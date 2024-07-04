@@ -39,7 +39,7 @@ class _MainScreenState extends State<MainScreen> {
           Manual(),
         ],
       ),
-      bottomNavigationBar: ZozoBottomNavigationBar(
+      bottomNavigationBar: CustomBottomNavigationBar(
         currentIndex: _selectedIndex,
         onTap: _onItemTapped,
       ),
@@ -47,11 +47,11 @@ class _MainScreenState extends State<MainScreen> {
   }
 }
 
-class ZozoBottomNavigationBar extends StatelessWidget {
+class CustomBottomNavigationBar extends StatelessWidget {
   final int currentIndex;
   final ValueChanged<int> onTap;
 
-  const ZozoBottomNavigationBar({
+  const CustomBottomNavigationBar({
     Key? key,
     required this.currentIndex,
     required this.onTap,

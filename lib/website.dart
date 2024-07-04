@@ -10,13 +10,16 @@ class WebsiteScreen extends StatefulWidget {
 class _WebsiteScreenState extends State<WebsiteScreen> {
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
-      body: Column(
-        children: [
-          Text(
-            'ああああ',
-          ),
-        ],
+    return Scaffold(
+      appBar: AppBar(),
+      body: const Center(
+        child: Column(
+          children: [
+            Text(
+              'This is WebSite',
+            ),
+          ],
+        ),
       ),
     );
   }
