@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:parts/map.dart';
-import 'package:parts/search.dart';
-import 'package:parts/website.dart';
+import 'package:parts/map_page/map.dart';
+import 'package:parts/search_page/search.dart';
+import 'package:parts/web_page/website.dart';
 
 import '../manual_page/manual.dart';
 

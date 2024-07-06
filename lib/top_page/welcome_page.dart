@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:parts/login_page/sign_up.dart';
 
-import '../src/page_route.dart';
+import '../../src/page_route.dart';
 
 class WelcomePage extends StatefulWidget {
   const WelcomePage({Key? key}) : super(key: key);
