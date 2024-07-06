@@ -5,7 +5,7 @@ import 'terms_screen.dart';
 import 'usage_screen.dart';
 
 class Manual extends StatefulWidget {
-  const Manual({Key? key}) : super(key: key);
+  const Manual({super.key});
 
   @override
   State<Manual> createState() => _ManualState();
