@@ -57,10 +57,12 @@ class _UsageScreenState extends State<UsageScreen> {
             padding: EdgeInsets.symmetric(horizontal: 10.0),
             child: Text('スポットへ行くとチェックインができるようになります。'),
           ),
+          const Text('画像添付する'),
           const Padding(
             padding: EdgeInsets.symmetric(horizontal: 10.0),
             child: Text('チェックインするとアニメ名を入力すると投稿ができるようになります。'),
           ),
+          const Text('画像添付する'),
           const Align(
             alignment: Alignment.centerLeft,
             child: Text(

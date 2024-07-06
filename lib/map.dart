@@ -24,6 +24,8 @@ class _MapScreenState extends State<MapScreen> {
   bool _errorOccurred = false;
   bool _canCheckIn = false;
   Marker? _selectedMarker;
+  String _inputValue = '';
+  String _resultMessage = '';
 
   @override
   void initState() {
@@ -32,32 +34,62 @@ class _MapScreenState extends State<MapScreen> {
   }
 
   Future<void> _getCurrentLocation() async {
-    try {
-      final Position position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high,
-      );
-      setState(() {
-        _currentPosition = LatLng(position.latitude, position.longitude);
-        _isLoading = false;
-      });
-      _setCustomMarkers();
-      _moveToCurrentLocation();
-    } on PlatformException catch (e) {
-      if (e.code == 'PERMISSION_DENIED') {
-        _showLocationPermissionDialog();
-      } else if (e.code == 'PERMISSION_DENIED_NEVER_ASK') {
-        _showLocationPermissionDialog(
-          message: '位置情報がオフになっています。設定アプリケーションで位置情報をオンにしてください。',
-          actionText: '設定を開く',
-        );
-      } else {
-        _showErrorDialog('位置情報を取得できませんでした。');
-      }
+    bool serviceEnabled;
+    LocationPermission permission;
+
+    // 位置情報サービスが有効か確認
+    serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) {
+      // 位置情報サービスが無効の場合の処理
+      _showErrorDialog('位置情報サービスが無効です。');
       setState(() {
         _isLoading = false;
         _errorOccurred = true;
       });
+      return;
     }
+
+    // 位置情報の許可を確認
+    permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+      if (permission == LocationPermission.denied) {
+        // ユーザーが位置情報の許可を拒否した場合の処理
+        _showLocationPermissionDialog(
+          message: '位置情報の許可が必要です。',
+          actionText: '設定を開く',
+        );
+        setState(() {
+          _isLoading = false;
+          _errorOccurred = true;
+        });
+        return;
+      }
+    }
+
+    if (permission == LocationPermission.deniedForever) {
+      // ユーザーが位置情報の許可を永続的に拒否した場合の処理
+      _showLocationPermissionDialog(
+        message: '位置情報がオフになっています。設定アプリケーションで位置情報をオンにしてください。',
+        actionText: '設定を開く',
+      );
+      setState(() {
+        _isLoading = false;
+        _errorOccurred = true;
+      });
+      return;
+    }
+
+    // 位置情報を取得
+    final Position position = await Geolocator.getCurrentPosition(
+      desiredAccuracy: LocationAccuracy.high,
+    );
+    setState(() {
+      _currentPosition = LatLng(position.latitude, position.longitude);
+      _isLoading = false;
+    });
+    _setCustomMarkers();
+    _moveToCurrentLocation();
   }
 
   void _moveToCurrentLocation() {
@@ -66,22 +98,34 @@ class _MapScreenState extends State<MapScreen> {
         CameraUpdate.newCameraPosition(
           CameraPosition(
             target: _currentPosition!,
-            zoom: 15.0,
+            zoom: 16.0,
+            bearing: 30.0,
+            tilt: 60.0,
           ),
         ),
       );
+
+      // 現在位置のマーカーを追加する
+      final Marker marker = Marker(
+        markerId: const MarkerId('current_position_marker'),
+        position: _currentPosition!,
+        infoWindow: const InfoWindow(title: '現在位置'),
+        icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueBlue),
+      );
+
+      setState(() {
+        _markers.add(marker);
+      });
     }
   }
 
   void _showLocationPermissionDialog(
-      {String message = '', String actionText = ''}) {
+      {String message = '位置情報の許可が必要です。', String actionText = '設定を開く'}) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('位置情報の許可が必要です'),
-        content: Text(message.isNotEmpty
-            ? message
-            : '位置情報の使用を許可していないため、現在位置を取得できませんでした。'),
+        content: Text(message),
         actions: <Widget>[
           TextButton(
             onPressed: () {
@@ -99,7 +143,7 @@ class _MapScreenState extends State<MapScreen> {
               }
               Navigator.of(context).pop();
             },
-            child: Text(actionText.isNotEmpty ? actionText : '設定を開く'),
+            child: Text(actionText),
           ),
         ],
       ),
@@ -169,8 +213,17 @@ class _MapScreenState extends State<MapScreen> {
       'marker4',
       150,
       100,
-      "岡山理科大学",
-      "ここは岡山理科大学です。",
+      "学",
+      "ここは大学です。",
+    );
+    final marker5 = await _createMarkerWithImage(
+      const LatLng(34.666535957785, 133.91807787258),
+      'assets/images/kamebashi.jpg',
+      'marker4',
+      150,
+      100,
+      "岡山駅",
+      "ここは岡山駅です",
     );
 
     setState(() {
@@ -178,6 +231,7 @@ class _MapScreenState extends State<MapScreen> {
       _markers.add(marker2);
       _markers.add(marker3);
       _markers.add(marker4);
+      _markers.add(marker5);
     });
   }
 
@@ -232,30 +286,33 @@ class _MapScreenState extends State<MapScreen> {
       builder: (context) {
         return StatefulBuilder(
           builder: (BuildContext context, StateSetter setState) {
-            return Container(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: <Widget>[
-                  Image.asset(imagePath, width: 150, height: 100),
-                  const SizedBox(height: 16),
-                  ListTile(
-                    title: Text(title),
-                    subtitle: Text(snippet),
+            return Padding(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(context).viewInsets.bottom,
+              ),
+              child: SingleChildScrollView(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Image.asset(imagePath, width: 150, height: 100),
+                      const SizedBox(height: 16),
+                      ListTile(
+                        title: Text(title),
+                        subtitle: Text(snippet),
+                      ),
+                      const SizedBox(height: 16),
+                      if (_canCheckIn)
+                        _buildCheckInForm(context, title)
+                      else
+                        _buildCheckInButton(),
+                      const SizedBox(
+                        height: 10.0,
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 16),
-                  ElevatedButton(
-                    onPressed: _canCheckIn ? () => _checkIn() : null,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: _canCheckIn ? Colors.green : Colors.grey,
-                    ),
-                    child: Text(
-                      _canCheckIn ? '✔︎ チェックイン' : '対象から離れているためチェックインできません',
-                      style: TextStyle(color: Colors.white),
-                    ),
-                  ),
-                  Text('距離: ${_distance.toStringAsFixed(2)} メートル'),
-                ],
+                ),
               ),
             );
           },
@@ -264,48 +321,145 @@ class _MapScreenState extends State<MapScreen> {
     );
   }
 
-  bool _calculateCanCheckIn() {
-    if (_currentPosition == null) return false;
-    return _distance < 1000; // 1000メートル以内であればチェックイン可能
+  Widget _buildCheckInForm(BuildContext context, String title) {
+    return Column(
+      children: [
+        TextField(
+          onChanged: (value) {
+            setState(() {
+              _inputValue = value;
+            });
+          },
+          decoration: const InputDecoration(labelText: '入力してください'),
+        ),
+        const SizedBox(height: 16),
+        ElevatedButton(
+          onPressed: () => _validateCheckIn(context, title),
+          style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+          child: const Text(
+            '送信',
+            style: TextStyle(color: Colors.white),
+          ),
+        ),
+      ],
+    );
   }
 
-  void _checkIn() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('チェックインしました'),
-        content: const Text('現在位置にチェックインしました。'),
-        actions: <Widget>[
-          TextButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-            },
-            child: const Text('OK'),
-          ),
-        ],
+  Widget _buildCheckInButton() {
+    return ElevatedButton(
+      onPressed: null,
+      style: ElevatedButton.styleFrom(backgroundColor: Colors.grey),
+      child: const Text(
+        '対象から離れているためチェックインできません',
+        style: TextStyle(color: Colors.white),
       ),
     );
   }
 
+  bool _calculateCanCheckIn() {
+    if (_currentPosition == null) return false;
+    return _distance <= 500.0;
+  }
+
+  void _validateCheckIn(BuildContext context, String title) {
+    bool isCorrect = _inputValue == title;
+    _showCheckInResult(context, isCorrect);
+  }
+
+  void _showCheckInResult(BuildContext context, bool isCorrect) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              CircleAvatar(
+                radius: 30.0,
+                backgroundColor: isCorrect ? Colors.green : Colors.red,
+                child: Icon(
+                  isCorrect ? Icons.check : Icons.close,
+                  color: Colors.white,
+                  size: 50.0,
+                ),
+              ),
+              const SizedBox(height: 16),
+            ],
+          ),
+        );
+      },
+    );
+
+    Future.delayed(const Duration(seconds: 1), () {
+      Navigator.of(context).pop();
+      _showCheckInMessage(context, isCorrect);
+    });
+  }
+
+  void _showCheckInMessage(BuildContext context, bool isCorrect) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              CircleAvatar(
+                radius: 30.0,
+                backgroundColor: isCorrect ? Colors.green : Colors.red,
+                child: Icon(
+                  isCorrect ? Icons.check : Icons.close,
+                  color: Colors.white,
+                  size: 50.0,
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                isCorrect ? 'チェックイン済み' : '入力が間違っています',
+                style: TextStyle(
+                  fontSize: 18.0,
+                  fontWeight: FontWeight.bold,
+                  color: isCorrect ? Colors.green : Colors.red,
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+
+    Future.delayed(const Duration(seconds: 1), () {
+      Navigator.of(context).pop();
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
+    LatLng initialCameraPosition =
+        const LatLng(35.658581, 139.745433); // 東京駅の位置
+
+    if (!_isLoading && !_errorOccurred && _currentPosition != null) {
+      initialCameraPosition = _currentPosition!;
+    }
+
     return Scaffold(
       body: _isLoading
-          ? Center(child: CircularProgressIndicator())
-          : GoogleMap(
-              initialCameraPosition: CameraPosition(
-                target: _currentPosition ??
-                    LatLng(35.681236, 139.767125), // デフォルトは東京駅
-                zoom: 15,
-              ),
-              onMapCreated: (GoogleMapController controller) {
-                _mapController = controller;
-                _moveToCurrentLocation();
-              },
-              myLocationEnabled: true,
-              myLocationButtonEnabled: true,
-              markers: _markers,
-            ),
+          ? const Center(child: CircularProgressIndicator())
+          : _errorOccurred
+              ? const Center(child: Text('エラーが発生しました。'))
+              : GoogleMap(
+                  onMapCreated: (controller) => _mapController = controller,
+                  initialCameraPosition: CameraPosition(
+                    target: initialCameraPosition,
+                    zoom: 16.0,
+                    bearing: 30.0,
+                    tilt: 60.0,
+                  ),
+                  markers: _markers,
+                  myLocationEnabled: true,
+                ),
     );
   }
 }
