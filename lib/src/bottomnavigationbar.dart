@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:parts/map.dart';
-import 'package:parts/spot_page/spot.dart';
+import 'package:parts/search.dart';
 import 'package:parts/website.dart';
 
 import '../manual_page/manual.dart';
@@ -35,7 +35,7 @@ class _MainScreenState extends State<MainScreen> {
         children: const [
           MapScreen(),
           WebsiteScreen(),
-          SpotScreen(),
+          SearchPage(),
           Manual(),
         ],
       ),

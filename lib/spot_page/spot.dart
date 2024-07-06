@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:parts/search.dart';
 import 'package:parts/spot_page/spot_detail.dart';
 
 class Spot {
@@ -35,32 +34,18 @@ class SpotScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-          title: const Text(
-            '巡礼スポット',
-            style: TextStyle(
-              color: Color(0xFF00008b),
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          leading: IconButton(
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const SearchPage()),
-              );
-            },
-            icon: const Icon(
-              Icons.search,
-              color: Color(0xFF00008b),
-            ),
-          )),
+        title: const Icon(
+          Icons.check_circle,
+          color: Color(0xFF00008b),
+        ),
+      ),
       body: Padding(
         padding: const EdgeInsets.all(8.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              '■ チェクイン対象のスポット一覧',
+              '■ チェクイン済みのスポット一覧',
               style: TextStyle(
                 color: Color(0xFF00008b),
                 fontWeight: FontWeight.bold,
