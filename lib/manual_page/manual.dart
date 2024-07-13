@@ -1,74 +1,72 @@
+// manual.dart
 import 'package:flutter/material.dart';
-import 'package:parts/manual_page/privacypolicy_screen.dart';
+import 'package:settings_ui/settings_ui.dart';
 
-import 'terms_screen.dart';
-import 'usage_screen.dart';
+import '../setting_page/settings.dart';
 
-class Manual extends StatefulWidget {
-  const Manual({super.key});
+class Manual extends StatelessWidget {
+  const Manual({Key? key});
 
-  @override
-  State<Manual> createState() => _ManualState();
-}
-
-class _ManualState extends State<Manual> {
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        automaticallyImplyLeading: false,
-        title: const Text(
-          '使い方・利用規約　等',
-          style: TextStyle(
-            color: Color(0xFF00008b),
-            fontWeight: FontWeight.bold,
+    return MaterialApp(
+      home: Scaffold(
+        appBar: AppBar(
+          backgroundColor: Colors.white,
+          title: const Text(
+            'その他',
+            style: TextStyle(
+              color: Color(0xFF00008b),
+              fontWeight: FontWeight.bold,
+            ),
           ),
         ),
-      ),
-      body: ListView(
-        children: [
-          ListTile(
-            title: const Text('設定'),
-            trailing: const Icon(Icons.arrow_forward_ios),
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const UsageScreen()),
-              );
-            },
-          ),
-          ListTile(
-            title: const Text('使い方'),
-            trailing: const Icon(Icons.arrow_forward_ios),
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const UsageScreen()),
-              );
-            },
-          ),
-          ListTile(
-            title: const Text('利用規約'),
-            trailing: const Icon(Icons.arrow_forward_ios),
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const TermsScreen()),
-              );
-            },
-          ),
-          ListTile(
-            title: const Text('個人情報保護方針'),
-            trailing: const Icon(Icons.arrow_forward_ios),
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                    builder: (context) => const PrivacyPolicyScreen()),
-              );
-            },
-          ),
-        ],
+        body: SettingsList(
+          sections: [
+            SettingsSection(
+              title: const Text('設定'),
+              tiles: <SettingsTile>[
+                SettingsTile.navigation(
+                  leading: const Icon(Icons.settings_outlined),
+                  title: const Text('設定'),
+                  value: const Text(''),
+                  onPressed: (context) {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => Settings()),
+                    );
+                  },
+                ),
+              ],
+            ),
+            SettingsSection(
+              title: const Text('利用方法'),
+              tiles: <SettingsTile>[
+                SettingsTile.navigation(
+                  leading: const Icon(Icons.bookmarks_sharp),
+                  title: const Text('利用方法'),
+                  value: const Text(''),
+                  onPressed: (context) {
+                    // 画面遷移処理
+                  },
+                ),
+              ],
+            ),
+            SettingsSection(
+              title: const Text('ポイント'),
+              tiles: <SettingsTile>[
+                SettingsTile.navigation(
+                  leading: const Icon(Icons.monetization_on_outlined),
+                  title: const Text('ポイントについて'),
+                  value: const Text(''),
+                  onPressed: (context) {
+                    // 画面遷移処理
+                  },
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }

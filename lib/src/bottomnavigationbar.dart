@@ -75,8 +75,7 @@ class CustomBottomNavigationBar extends StatelessWidget {
         BottomNavigationBarItem(icon: Icon(Icons.map), label: '地図'),
         BottomNavigationBarItem(icon: Icon(Icons.web), label: '公式サイト'),
         BottomNavigationBarItem(icon: Icon(Icons.place), label: 'スポット'),
-        BottomNavigationBarItem(
-            icon: Icon(Icons.description), label: '使い方・規約等'),
+        BottomNavigationBarItem(icon: Icon(Icons.description), label: 'その他'),
       ],
     );
   }
