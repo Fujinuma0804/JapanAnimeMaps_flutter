@@ -1,6 +1,37 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
-class ProfileScreen extends StatelessWidget {
+class ProfileScreen extends StatefulWidget {
+  @override
+  _ProfileScreenState createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends State<ProfileScreen> {
+  User? currentUser;
+  DocumentSnapshot<Map<String, dynamic>>? userData;
+
+  @override
+  void initState() {
+    super.initState();
+    fetchUserData();
+  }
+
+  Future<void> fetchUserData() async {
+    User? user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      DocumentSnapshot<Map<String, dynamic>> userDoc = await FirebaseFirestore
+          .instance
+          .collection('user')
+          .doc(user.uid)
+          .get();
+      setState(() {
+        currentUser = user;
+        userData = userDoc;
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -21,54 +52,52 @@ class ProfileScreen extends StatelessWidget {
           ),
         ),
       ),
-      body: Container(
-        child: Column(
-          children: [
-            const SizedBox(
-              height: 10.0,
-            ),
-            Stack(
+      body: userData == null
+          ? Center(child: CircularProgressIndicator())
+          : Column(
               children: [
-                Image.asset('assets/banner.jpg', fit: BoxFit.cover),
-                Positioned(
-                  bottom: 0,
-                  left: 16,
-                  child: CircleAvatar(
-                    radius: 40,
-                    backgroundImage: const AssetImage('assets/avatar.jpg'),
-                    child: IconButton(
-                      icon: const Icon(Icons.camera_alt, color: Colors.white),
-                      onPressed: () {
-                        // Add functionality to change avatar
-                      },
+                const SizedBox(height: 10.0),
+                Stack(
+                  children: [
+                    Image.asset('assets/banner.jpg', fit: BoxFit.cover),
+                    Positioned(
+                      bottom: 0,
+                      left: 16,
+                      child: CircleAvatar(
+                        radius: 40,
+                        backgroundImage: const AssetImage('assets/avatar.jpg'),
+                        child: IconButton(
+                          icon:
+                              const Icon(Icons.camera_alt, color: Colors.white),
+                          onPressed: () {
+                            // Add functionality to change avatar
+                          },
+                        ),
+                      ),
                     ),
-                  ),
+                    Positioned(
+                      bottom: 0,
+                      right: 16,
+                      child: IconButton(
+                        icon: const Icon(Icons.camera_alt, color: Colors.white),
+                        onPressed: () {
+                          // Add functionality to change banner
+                        },
+                      ),
+                    ),
+                  ],
                 ),
-                Positioned(
-                  bottom: 0,
-                  right: 16,
-                  child: IconButton(
-                    icon: const Icon(Icons.camera_alt, color: Colors.white),
-                    onPressed: () {
-                      // Add functionality to change banner
-                    },
-                  ),
-                ),
+                const SizedBox(height: 16),
+                buildProfileItem('名前', userData?.data()?['name'] ?? '未設定'),
+                buildProfileItem(
+                    'メールアドレス', userData?.data()?['email'] ?? '未設定'),
+                buildProfileItem(
+                    'ステータスメッセージ', userData?.data()?['statusMessage'] ?? '未設定'),
+                buildProfileItem('ID', userData?.data()?['id'] ?? '未設定'),
+                buildProfileItem(
+                    '誕生日', userData?.data()?['birthdate'] ?? '未設定'),
               ],
             ),
-            const SizedBox(height: 16),
-            buildProfileItem('名前', 'そうた'),
-            buildProfileItem('ステータスメッセージ', '未設定'),
-            buildProfileItem('電話番号', '+81 80-1903-1370'),
-            buildProfileItem('ID', 'applepobo321'),
-            buildProfileSwitchItem('IDによる友だち追加を許可', true),
-            buildProfileItem('マイQRコード', ''),
-            buildProfileItem('誕生日', '2002年10月17日'),
-            const SizedBox(height: 16),
-            buildBGMItem('BGM'),
-          ],
-        ),
-      ),
     );
   }
 
