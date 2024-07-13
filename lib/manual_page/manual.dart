@@ -28,6 +28,16 @@ class _ManualState extends State<Manual> {
       body: ListView(
         children: [
           ListTile(
+            title: const Text('設定'),
+            trailing: const Icon(Icons.arrow_forward_ios),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const UsageScreen()),
+              );
+            },
+          ),
+          ListTile(
             title: const Text('使い方'),
             trailing: const Icon(Icons.arrow_forward_ios),
             onTap: () {

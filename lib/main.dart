@@ -1,6 +1,7 @@
-// main.dart
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:parts/src/bottomnavigationbar.dart';
 import 'package:parts/top_page/welcome_page.dart';
 
 void main() async {
@@ -20,7 +21,20 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.white),
         useMaterial3: true,
       ),
-      home: WelcomePage(),
+      home: StreamBuilder(
+        stream: FirebaseAuth.instance.authStateChanges(),
+        builder: (context, AsyncSnapshot<User?> snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return Center(child: CircularProgressIndicator());
+          } else {
+            if (snapshot.hasData && snapshot.data != null) {
+              return MainScreen(); // ログインしている場合はMainScreenを表示
+            } else {
+              return WelcomePage(); // ログインしていない場合はWelcomePageを表示
+            }
+          }
+        },
+      ),
     );
   }
 }

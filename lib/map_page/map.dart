@@ -20,6 +20,7 @@ class _MapScreenState extends State<MapScreen> {
   GoogleMapController? _mapController;
   LatLng? _currentPosition;
   final Set<Marker> _markers = {};
+  final Set<Circle> _circles = {};
   bool _isLoading = true;
   bool _errorOccurred = false;
   bool _canCheckIn = false;
@@ -82,8 +83,26 @@ class _MapScreenState extends State<MapScreen> {
     setState(() {
       _currentPosition = LatLng(position.latitude, position.longitude);
       _isLoading = false;
+      _addCurrentLocationCircle();
     });
     _moveToCurrentLocation();
+  }
+
+  void _addCurrentLocationCircle() {
+    if (_currentPosition != null) {
+      setState(() {
+        _circles.add(
+          Circle(
+            circleId: const CircleId('current_location'),
+            center: _currentPosition!,
+            radius: 10, // 半径を小さくして○を小さくします
+            fillColor: Colors.blue.withOpacity(0.5),
+            strokeColor: Colors.blue,
+            strokeWidth: 2,
+          ),
+        );
+      });
+    }
   }
 
   void _moveToCurrentLocation() {
@@ -98,17 +117,6 @@ class _MapScreenState extends State<MapScreen> {
           ),
         ),
       );
-
-      final Marker marker = Marker(
-        markerId: const MarkerId('current_position_marker'),
-        position: _currentPosition!,
-        infoWindow: const InfoWindow(title: '現在位置'),
-        icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueBlue),
-      );
-
-      setState(() {
-        _markers.add(marker);
-      });
     }
   }
 
@@ -260,16 +268,21 @@ class _MapScreenState extends State<MapScreen> {
             return ListView(
               shrinkWrap: true,
               children: [
+                const SizedBox(
+                  height: 10.0,
+                ),
                 SizedBox(
-                  height: 150,
-                  width: double.infinity,
+                  height: 100,
+                  width: 200,
                   child: Image.network(
                     imageUrl,
-                    fit: BoxFit.cover,
+                    // fit: BoxFit.cover,
                   ),
                 ),
-                Padding(
-                  padding: const EdgeInsets.all(8.0),
+                const SizedBox(
+                  height: 10.0,
+                ),
+                Center(
                   child: Text(
                     title,
                     style: const TextStyle(
@@ -278,23 +291,37 @@ class _MapScreenState extends State<MapScreen> {
                     ),
                   ),
                 ),
-                Padding(
-                  padding: const EdgeInsets.all(8.0),
+                const SizedBox(
+                  height: 10.0,
+                ),
+                Center(
                   child: Text(
                     snippet,
-                    style: const TextStyle(fontSize: 14),
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
                 if (_selectedMarker != null)
                   Padding(
                     padding: const EdgeInsets.all(8.0),
                     child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF00008b),
+                      ),
                       onPressed: () {
                         setState(() {
                           _canCheckIn = true;
                         });
                       },
-                      child: const Text('チェックイン'),
+                      child: const Text(
+                        'チェックイン',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ),
                   ),
                 if (_canCheckIn)
@@ -304,7 +331,7 @@ class _MapScreenState extends State<MapScreen> {
                       children: [
                         TextField(
                           controller: textController,
-                          decoration: InputDecoration(
+                          decoration: const InputDecoration(
                             hintText: 'コメントを入力してください',
                             border: OutlineInputBorder(),
                           ),
@@ -320,12 +347,21 @@ class _MapScreenState extends State<MapScreen> {
                         ),
                         const SizedBox(height: 8),
                         ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF00008b),
+                          ),
                           onPressed: () {
                             String comment = textController.text;
                             print('コメント: $comment');
                             _showConfirmationDialog(context, isCorrect);
                           },
-                          child: const Text('送信'),
+                          child: const Text(
+                            '送信',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                         ),
                       ],
                     ),
@@ -337,7 +373,7 @@ class _MapScreenState extends State<MapScreen> {
       },
     ).then((value) {
       if (_showConfirmation) {
-        Timer(Duration(seconds: 2), () {
+        Timer(const Duration(seconds: 2), () {
           setState(() {
             _showConfirmation = false;
             _canCheckIn = false;
@@ -351,8 +387,8 @@ class _MapScreenState extends State<MapScreen> {
     Navigator.of(context).pop();
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(isCorrect ? 'チェックインしました！' : '不正解です。'),
-        duration: Duration(seconds: 2),
+        content: Text(isCorrect ? 'チェックインしました！' : 'タイトルが違います。'),
+        duration: const Duration(seconds: 2),
       ),
     );
 
@@ -379,6 +415,9 @@ class _MapScreenState extends State<MapScreen> {
                         tilt: 60.0,
                       ),
                       markers: _markers,
+                      circles: _circles,
+                      myLocationEnabled: true,
+                      myLocationButtonEnabled: true,
                       onMapCreated: (GoogleMapController controller) {
                         _mapController = controller;
                         _moveToCurrentLocation();
@@ -397,7 +436,7 @@ class _MapScreenState extends State<MapScreen> {
                   child: Container(
                     width: 100,
                     height: 100,
-                    decoration: BoxDecoration(
+                    decoration: const BoxDecoration(
                       color: Colors.white,
                       shape: BoxShape.circle,
                     ),
