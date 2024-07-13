@@ -2,6 +2,9 @@
 import 'package:flutter/material.dart';
 import 'package:settings_ui/settings_ui.dart';
 
+import '../manual_page/privacypolicy_screen.dart';
+import '../manual_page/terms_screen.dart';
+
 class Settings extends StatelessWidget {
   const Settings({Key? key});
 
@@ -76,6 +79,10 @@ class Settings extends StatelessWidget {
                 title: const Text('プライバシーポリシー'),
                 value: const Text(''),
                 onPressed: (context) {
+                  Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (context) => PrivacyPolicyScreen()));
                   // 画面遷移処理
                 },
               ),
@@ -84,6 +91,8 @@ class Settings extends StatelessWidget {
                 title: const Text('利用規約'),
                 value: const Text(''),
                 onPressed: (context) {
+                  Navigator.push(context,
+                      MaterialPageRoute(builder: (context) => TermsScreen()));
                   // 画面遷移処理
                 },
               ),

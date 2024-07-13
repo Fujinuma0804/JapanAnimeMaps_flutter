@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'data/privacy.dart';
+
 class PrivacyPolicyScreen extends StatefulWidget {
   const PrivacyPolicyScreen({Key? key}) : super(key: key);
 
@@ -12,20 +14,17 @@ class _PrivacyPolicyScreenState extends State<PrivacyPolicyScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        backgroundColor: Colors.white,
         title: (const Text(
-          '個人情報保護方針',
+          'プライバシーポリシー',
           style: TextStyle(
             color: Color(0xFF00008b),
             fontWeight: FontWeight.bold,
           ),
         )),
       ),
-      body: const Column(
-        children: [
-          Text(
-            'ああああ',
-          ),
-        ],
+      body: SingleChildScrollView(
+        child: PrivacyPolicyHtml,
       ),
     );
   }

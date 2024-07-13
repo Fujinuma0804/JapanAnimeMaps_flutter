@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'data/terms.dart';
+
 class TermsScreen extends StatefulWidget {
   const TermsScreen({Key? key}) : super(key: key);
 
@@ -12,6 +14,7 @@ class _TermsScreenState extends State<TermsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        backgroundColor: Colors.white,
         title: (const Text(
           '利用規約',
           style: TextStyle(
@@ -20,12 +23,8 @@ class _TermsScreenState extends State<TermsScreen> {
           ),
         )),
       ),
-      body: const Column(
-        children: [
-          Text(
-            'ああああ',
-          ),
-        ],
+      body: SingleChildScrollView(
+        child: TermsOfServiceHtml,
       ),
     );
   }
