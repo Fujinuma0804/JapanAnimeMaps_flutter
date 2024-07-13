@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:parts/spot_page/spot.dart';
+
+import '../spot_page/spot_test.dart';
 
 class SearchPage extends StatefulWidget {
   const SearchPage({Key? key}) : super(key: key);
@@ -24,7 +25,7 @@ class _SearchPageState extends State<SearchPage> {
           onPressed: () {
             Navigator.push(
               context,
-              MaterialPageRoute(builder: (context) => const SpotScreen()),
+              MaterialPageRoute(builder: (context) => const SpotTestScreen()),
             );
           },
           icon: const Icon(

@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
@@ -27,12 +28,21 @@ class _MapScreenState extends State<MapScreen> {
   bool _showConfirmation = false;
   bool _isCorrect = false;
   Marker? _selectedMarker;
+  late User _user; // Firebase user
+  late String _userId; // User ID
 
   @override
   void initState() {
     super.initState();
     _getCurrentLocation();
     _loadMarkersFromFirestore();
+    _getUser(); // Fetch current user
+  }
+
+  Future<void> _getUser() async {
+    FirebaseAuth auth = FirebaseAuth.instance;
+    _user = auth.currentUser!;
+    _userId = _user.uid;
   }
 
   Future<void> _getCurrentLocation() async {
@@ -262,111 +272,117 @@ class _MapScreenState extends State<MapScreen> {
 
     showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
       builder: (BuildContext context) {
         return StatefulBuilder(
           builder: (BuildContext context, StateSetter setState) {
-            return ListView(
-              shrinkWrap: true,
-              children: [
-                const SizedBox(
-                  height: 10.0,
+            return SingleChildScrollView(
+              child: Padding(
+                padding: EdgeInsets.only(
+                  bottom: MediaQuery.of(context).viewInsets.bottom,
                 ),
-                SizedBox(
-                  height: 100,
-                  width: 200,
-                  child: Image.network(
-                    imageUrl,
-                    // fit: BoxFit.cover,
-                  ),
-                ),
-                const SizedBox(
-                  height: 10.0,
-                ),
-                Center(
-                  child: Text(
-                    title,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const SizedBox(
+                      height: 10.0,
                     ),
-                  ),
-                ),
-                const SizedBox(
-                  height: 10.0,
-                ),
-                Center(
-                  child: Text(
-                    snippet,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-                if (_selectedMarker != null)
-                  Padding(
-                    padding: const EdgeInsets.all(8.0),
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF00008b),
+                    SizedBox(
+                      height: 100,
+                      width: 200,
+                      child: Image.network(
+                        imageUrl,
                       ),
-                      onPressed: () {
-                        setState(() {
-                          _canCheckIn = true;
-                        });
-                      },
-                      child: const Text(
-                        'チェックイン',
-                        style: TextStyle(
-                          color: Colors.white,
+                    ),
+                    const SizedBox(
+                      height: 10.0,
+                    ),
+                    Center(
+                      child: Text(
+                        title,
+                        style: const TextStyle(
+                          fontSize: 16,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
                     ),
-                  ),
-                if (_canCheckIn)
-                  Padding(
-                    padding: const EdgeInsets.all(8.0),
-                    child: Column(
-                      children: [
-                        TextField(
-                          controller: textController,
-                          decoration: const InputDecoration(
-                            hintText: 'コメントを入力してください',
-                            border: OutlineInputBorder(),
-                          ),
-                          keyboardType: TextInputType.text,
-                          maxLines: null,
-                          textAlign: TextAlign.left,
-                          onChanged: (text) {
-                            setState(() {
-                              isCorrect = text.trim().toLowerCase() ==
-                                  title.trim().toLowerCase();
-                            });
-                          },
+                    const SizedBox(
+                      height: 10.0,
+                    ),
+                    Center(
+                      child: Text(
+                        snippet,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
                         ),
-                        const SizedBox(height: 8),
-                        ElevatedButton(
+                      ),
+                    ),
+                    if (_selectedMarker != null)
+                      Padding(
+                        padding: const EdgeInsets.all(8.0),
+                        child: ElevatedButton(
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFF00008b),
                           ),
                           onPressed: () {
-                            String comment = textController.text;
-                            print('コメント: $comment');
-                            _showConfirmationDialog(context, isCorrect);
+                            setState(() {
+                              _canCheckIn = true;
+                            });
                           },
                           child: const Text(
-                            '送信',
+                            'チェックイン',
                             style: TextStyle(
                               color: Colors.white,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
                         ),
-                      ],
-                    ),
-                  ),
-              ],
+                      ),
+                    if (_canCheckIn)
+                      Padding(
+                        padding: const EdgeInsets.all(8.0),
+                        child: Column(
+                          children: [
+                            TextField(
+                              controller: textController,
+                              decoration: const InputDecoration(
+                                hintText: 'コメントを入力してください',
+                                border: OutlineInputBorder(),
+                              ),
+                              keyboardType: TextInputType.text,
+                              maxLines: null,
+                              textAlign: TextAlign.left,
+                              onChanged: (text) {
+                                setState(() {
+                                  isCorrect = text.trim().toLowerCase() ==
+                                      title.trim().toLowerCase();
+                                });
+                              },
+                            ),
+                            const SizedBox(height: 8),
+                            ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF00008b),
+                              ),
+                              onPressed: () {
+                                String comment = textController.text;
+                                _checkIn(comment, title, isCorrect);
+                              },
+                              child: const Text(
+                                '送信',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                  ],
+                ),
+              ),
             );
           },
         );
@@ -380,6 +396,39 @@ class _MapScreenState extends State<MapScreen> {
           });
         });
       }
+    });
+  }
+
+  void _checkIn(String comment, String title, bool isCorrect) {
+    // Add check-in to Firestore
+    FirebaseFirestore.instance
+        .collection('users')
+        .doc(_userId)
+        .collection('check_ins')
+        .add({
+      'title': title,
+      'comment': comment,
+      'isCorrect': isCorrect,
+      'timestamp': FieldValue.serverTimestamp(),
+    }).then((_) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('チェックインしました！'),
+          duration: const Duration(seconds: 2),
+        ),
+      );
+
+      setState(() {
+        _showConfirmation = true;
+        _isCorrect = isCorrect;
+      });
+    }).catchError((error) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('チェックインに失敗しました。'),
+          duration: const Duration(seconds: 2),
+        ),
+      );
     });
   }
 
@@ -401,6 +450,7 @@ class _MapScreenState extends State<MapScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      resizeToAvoidBottomInset: true,
       body: Stack(
         children: [
           _isLoading

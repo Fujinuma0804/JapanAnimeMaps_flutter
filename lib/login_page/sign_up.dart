@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../src/page_route.dart';
 import 'login_page.dart';
-import 'mail_sign_up.dart';
+import 'mail_sign_up1.dart';
 
 class SignUpPage extends StatefulWidget {
   const SignUpPage({Key? key}) : super(key: key);
