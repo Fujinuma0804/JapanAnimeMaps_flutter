@@ -23,7 +23,8 @@ class _MapScreenState extends State<MapScreen> {
   bool _isLoading = true;
   bool _errorOccurred = false;
   bool _canCheckIn = false;
-  bool _showConfirmation = false; // Control confirmation display
+  bool _showConfirmation = false;
+  bool _isCorrect = false;
   Marker? _selectedMarker;
 
   @override
@@ -249,6 +250,7 @@ class _MapScreenState extends State<MapScreen> {
   void _showModalBottomSheet(
       BuildContext context, String imageUrl, String title, String snippet) {
     TextEditingController textController = TextEditingController();
+    bool isCorrect = false;
 
     showModalBottomSheet(
       context: context,
@@ -310,18 +312,18 @@ class _MapScreenState extends State<MapScreen> {
                           maxLines: null,
                           textAlign: TextAlign.left,
                           onChanged: (text) {
-                            // Handle text changes here
+                            setState(() {
+                              isCorrect = text.trim().toLowerCase() ==
+                                  title.trim().toLowerCase();
+                            });
                           },
                         ),
                         const SizedBox(height: 8),
                         ElevatedButton(
                           onPressed: () {
-                            // Handle submission of text
                             String comment = textController.text;
-                            // Use 'comment' as needed, e.g., save to Firestore
                             print('コメント: $comment');
-                            _showConfirmationDialog(
-                                context); // Show confirmation dialog
+                            _showConfirmationDialog(context, isCorrect);
                           },
                           child: const Text('送信'),
                         ),
@@ -334,29 +336,29 @@ class _MapScreenState extends State<MapScreen> {
         );
       },
     ).then((value) {
-      // This code block executes when the bottom sheet is dismissed
       if (_showConfirmation) {
         Timer(Duration(seconds: 2), () {
           setState(() {
-            _showConfirmation = false; // Reset confirmation state
-            _canCheckIn = false; // Reset check-in state
+            _showConfirmation = false;
+            _canCheckIn = false;
           });
         });
       }
     });
   }
 
-  void _showConfirmationDialog(BuildContext context) {
-    Navigator.of(context).pop(); // Close the bottom sheet
+  void _showConfirmationDialog(BuildContext context, bool isCorrect) {
+    Navigator.of(context).pop();
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('チェックインしました！'),
+      SnackBar(
+        content: Text(isCorrect ? 'チェックインしました！' : '不正解です。'),
         duration: Duration(seconds: 2),
       ),
     );
 
     setState(() {
-      _showConfirmation = true; // Set confirmation flag
+      _showConfirmation = true;
+      _isCorrect = isCorrect;
     });
   }
 
@@ -401,41 +403,10 @@ class _MapScreenState extends State<MapScreen> {
                     ),
                     child: Center(
                       child: Text(
-                        '✔︎',
+                        _isCorrect ? '✔︎' : '✖️',
                         style: TextStyle(
                           fontSize: 48,
-                          color: Colors.green,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          if (_canCheckIn && !_showConfirmation)
-            Center(
-              child: Container(
-                width: 200,
-                height: 200,
-                decoration: BoxDecoration(
-                  color: Colors.grey[300],
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Center(
-                  child: Container(
-                    width: 100,
-                    height: 100,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      shape: BoxShape.circle,
-                    ),
-                    child: Center(
-                      child: Text(
-                        '✖️',
-                        style: TextStyle(
-                          fontSize: 48,
-                          color: Colors.red,
+                          color: _isCorrect ? Colors.green : Colors.red,
                           fontWeight: FontWeight.bold,
                         ),
                       ),

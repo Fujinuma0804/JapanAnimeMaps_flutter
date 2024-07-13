@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../src/page_route.dart';
 import 'login_page.dart';
-import 'mail_login.dart';
+import 'mail_sign_up.dart';
 
 class SignUpPage extends StatefulWidget {
   const SignUpPage({Key? key}) : super(key: key);
@@ -35,7 +35,7 @@ class _SignUpPageState extends State<SignUpPage> {
                   child: ElevatedButton(
                     onPressed: () {
                       Navigator.of(context).push(
-                        elasticTransition(const MailLoginPage()),
+                        elasticTransition(const MailSignUpPage()),
                       );
                     },
                     style: ElevatedButton.styleFrom(

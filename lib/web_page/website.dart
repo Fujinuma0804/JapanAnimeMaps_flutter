@@ -11,7 +11,9 @@ class _WebsiteScreenState extends State<WebsiteScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(),
+      appBar: AppBar(
+        automaticallyImplyLeading: false,
+      ),
       body: const Center(
         child: Column(
           children: [

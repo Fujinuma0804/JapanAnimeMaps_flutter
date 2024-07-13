@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:parts/login_page/sign_up.dart';
 
 import '../../src/page_route.dart';
 import 'mail_login.dart';
@@ -74,6 +75,23 @@ class _LoginPageState extends State<LoginPage> {
                         color: Colors.white,
                         fontWeight: FontWeight.bold,
                       ),
+                    ),
+                  ),
+                ),
+                const SizedBox(
+                  height: 20.0,
+                ),
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(context).push(
+                      elasticTransition(const SignUpPage()),
+                    );
+                  },
+                  child: const Text(
+                    '登録がまだの方はこちら',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
                 ),

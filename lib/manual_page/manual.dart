@@ -16,6 +16,7 @@ class _ManualState extends State<Manual> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        automaticallyImplyLeading: false,
         title: const Text(
           '使い方・利用規約　等',
           style: TextStyle(
