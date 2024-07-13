@@ -2,10 +2,11 @@ import 'dart:async';
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart' show PlatformException, rootBundle;
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:http/http.dart' as http;
 import 'package:url_launcher/url_launcher.dart';
 
 class MapScreen extends StatefulWidget {
@@ -19,28 +20,25 @@ class _MapScreenState extends State<MapScreen> {
   GoogleMapController? _mapController;
   LatLng? _currentPosition;
   final Set<Marker> _markers = {};
-  double _distance = 0.0;
   bool _isLoading = true;
   bool _errorOccurred = false;
   bool _canCheckIn = false;
+  bool _showConfirmation = false; // Control confirmation display
   Marker? _selectedMarker;
-  String _inputValue = '';
-  String _resultMessage = '';
 
   @override
   void initState() {
     super.initState();
     _getCurrentLocation();
+    _loadMarkersFromFirestore();
   }
 
   Future<void> _getCurrentLocation() async {
     bool serviceEnabled;
     LocationPermission permission;
 
-    // 位置情報サービスが有効か確認
     serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
-      // 位置情報サービスが無効の場合の処理
       _showErrorDialog('位置情報サービスが無効です。');
       setState(() {
         _isLoading = false;
@@ -49,12 +47,10 @@ class _MapScreenState extends State<MapScreen> {
       return;
     }
 
-    // 位置情報の許可を確認
     permission = await Geolocator.checkPermission();
     if (permission == LocationPermission.denied) {
       permission = await Geolocator.requestPermission();
       if (permission == LocationPermission.denied) {
-        // ユーザーが位置情報の許可を拒否した場合の処理
         _showLocationPermissionDialog(
           message: '位置情報の許可が必要です。',
           actionText: '設定を開く',
@@ -68,7 +64,6 @@ class _MapScreenState extends State<MapScreen> {
     }
 
     if (permission == LocationPermission.deniedForever) {
-      // ユーザーが位置情報の許可を永続的に拒否した場合の処理
       _showLocationPermissionDialog(
         message: '位置情報がオフになっています。設定アプリケーションで位置情報をオンにしてください。',
         actionText: '設定を開く',
@@ -80,7 +75,6 @@ class _MapScreenState extends State<MapScreen> {
       return;
     }
 
-    // 位置情報を取得
     final Position position = await Geolocator.getCurrentPosition(
       desiredAccuracy: LocationAccuracy.high,
     );
@@ -88,7 +82,6 @@ class _MapScreenState extends State<MapScreen> {
       _currentPosition = LatLng(position.latitude, position.longitude);
       _isLoading = false;
     });
-    _setCustomMarkers();
     _moveToCurrentLocation();
   }
 
@@ -105,7 +98,6 @@ class _MapScreenState extends State<MapScreen> {
         ),
       );
 
-      // 現在位置のマーカーを追加する
       final Marker marker = Marker(
         markerId: const MarkerId('current_position_marker'),
         position: _currentPosition!,
@@ -119,8 +111,10 @@ class _MapScreenState extends State<MapScreen> {
     }
   }
 
-  void _showLocationPermissionDialog(
-      {String message = '位置情報の許可が必要です。', String actionText = '設定を開く'}) {
+  void _showLocationPermissionDialog({
+    String message = '位置情報の許可が必要です。',
+    String actionText = '設定を開く',
+  }) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -170,74 +164,48 @@ class _MapScreenState extends State<MapScreen> {
 
   void _calculateDistance(LatLng markerPosition) {
     if (_currentPosition != null) {
-      _distance = Geolocator.distanceBetween(
+      double distance = Geolocator.distanceBetween(
         _currentPosition!.latitude,
         _currentPosition!.longitude,
         markerPosition.latitude,
         markerPosition.longitude,
       );
+      print('Distance: $distance meters');
     }
   }
 
-  Future<void> _setCustomMarkers() async {
-    final marker1 = await _createMarkerWithImage(
-      const LatLng(35.658581, 139.745433),
-      'assets/images/kamebashi.jpg',
-      'marker1',
-      150,
-      100,
-      "ミナ.クル前(1話)",
-      "夜のお楽しみ会で通る場所。七尾出身の絵師「長谷川等伯」像と同じポーズでバシャリ。",
-    );
-    final marker2 = await _createMarkerWithImage(
-      const LatLng(35.659581, 139.746433),
-      'assets/images/kamebashi.jpg',
-      'marker2',
-      150,
-      100,
-      "タイトル2",
-      "説明文2",
-    );
-    final marker3 = await _createMarkerWithImage(
-      const LatLng(34.68887729, 133.93229229),
-      'assets/images/kamebashi.jpg',
-      'marker3',
-      150,
-      100,
-      "お家だよ〜〜",
-      "テストテストMyHouse",
-    );
-    final marker4 = await _createMarkerWithImage(
-      const LatLng(34.69615058, 133.92786637),
-      'assets/images/kamebashi.jpg',
-      'marker4',
-      150,
-      100,
-      "学",
-      "ここは大学です。",
-    );
-    final marker5 = await _createMarkerWithImage(
-      const LatLng(34.666535957785, 133.91807787258),
-      'assets/images/kamebashi.jpg',
-      'marker4',
-      150,
-      100,
-      "岡山駅",
-      "ここは岡山駅です",
-    );
+  Future<void> _loadMarkersFromFirestore() async {
+    CollectionReference markers =
+        FirebaseFirestore.instance.collection('locations');
 
-    setState(() {
-      _markers.add(marker1);
-      _markers.add(marker2);
-      _markers.add(marker3);
-      _markers.add(marker4);
-      _markers.add(marker5);
-    });
+    QuerySnapshot snapshot = await markers.get();
+    for (var doc in snapshot.docs) {
+      Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
+      LatLng position = LatLng(data['latitude'], data['longitude']);
+      String imageUrl = data['imageUrl'];
+      String locationId = data['locationID'].toString();
+      String title = data['title'];
+      String description = data['description'];
+
+      Marker marker = await _createMarkerWithImage(
+        position,
+        imageUrl,
+        locationId,
+        150,
+        100,
+        title,
+        description,
+      );
+
+      setState(() {
+        _markers.add(marker);
+      });
+    }
   }
 
   Future<Marker> _createMarkerWithImage(
     LatLng position,
-    String imagePath,
+    String imageUrl,
     String markerId,
     int width,
     int height,
@@ -245,7 +213,8 @@ class _MapScreenState extends State<MapScreen> {
     String snippet,
   ) async {
     final Uint8List markerIcon =
-        await _getBytesFromAsset(imagePath, width, height);
+        await _getBytesFromUrl(imageUrl, width, height);
+
     return Marker(
       markerId: MarkerId(markerId),
       position: position,
@@ -258,18 +227,16 @@ class _MapScreenState extends State<MapScreen> {
             icon: BitmapDescriptor.fromBytes(markerIcon),
           );
           _calculateDistance(position);
-          _canCheckIn = _calculateCanCheckIn();
+          _showModalBottomSheet(context, imageUrl, title, snippet);
         });
-        _showModalBottomSheet(context, imagePath, title, snippet);
       },
     );
   }
 
-  Future<Uint8List> _getBytesFromAsset(
-      String path, int width, int height) async {
-    final ByteData data = await rootBundle.load(path);
+  Future<Uint8List> _getBytesFromUrl(String url, int width, int height) async {
+    final http.Response response = await http.get(Uri.parse(url));
     final ui.Codec codec = await ui.instantiateImageCodec(
-      data.buffer.asUint8List(),
+      response.bodyBytes,
       targetWidth: width,
       targetHeight: height,
     );
@@ -280,186 +247,205 @@ class _MapScreenState extends State<MapScreen> {
   }
 
   void _showModalBottomSheet(
-      BuildContext context, String imagePath, String title, String snippet) {
+      BuildContext context, String imageUrl, String title, String snippet) {
+    TextEditingController textController = TextEditingController();
+
     showModalBottomSheet(
       context: context,
-      builder: (context) {
+      builder: (BuildContext context) {
         return StatefulBuilder(
           builder: (BuildContext context, StateSetter setState) {
-            return Padding(
-              padding: EdgeInsets.only(
-                bottom: MediaQuery.of(context).viewInsets.bottom,
-              ),
-              child: SingleChildScrollView(
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Image.asset(imagePath, width: 150, height: 100),
-                      const SizedBox(height: 16),
-                      ListTile(
-                        title: Text(title),
-                        subtitle: Text(snippet),
-                      ),
-                      const SizedBox(height: 16),
-                      if (_canCheckIn)
-                        _buildCheckInForm(context, title)
-                      else
-                        _buildCheckInButton(),
-                      const SizedBox(
-                        height: 10.0,
-                      ),
-                    ],
+            return ListView(
+              shrinkWrap: true,
+              children: [
+                SizedBox(
+                  height: 150,
+                  width: double.infinity,
+                  child: Image.network(
+                    imageUrl,
+                    fit: BoxFit.cover,
                   ),
                 ),
-              ),
+                Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: Text(
+                    snippet,
+                    style: const TextStyle(fontSize: 14),
+                  ),
+                ),
+                if (_selectedMarker != null)
+                  Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: ElevatedButton(
+                      onPressed: () {
+                        setState(() {
+                          _canCheckIn = true;
+                        });
+                      },
+                      child: const Text('チェックイン'),
+                    ),
+                  ),
+                if (_canCheckIn)
+                  Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: Column(
+                      children: [
+                        TextField(
+                          controller: textController,
+                          decoration: InputDecoration(
+                            hintText: 'コメントを入力してください',
+                            border: OutlineInputBorder(),
+                          ),
+                          keyboardType: TextInputType.text,
+                          maxLines: null,
+                          textAlign: TextAlign.left,
+                          onChanged: (text) {
+                            // Handle text changes here
+                          },
+                        ),
+                        const SizedBox(height: 8),
+                        ElevatedButton(
+                          onPressed: () {
+                            // Handle submission of text
+                            String comment = textController.text;
+                            // Use 'comment' as needed, e.g., save to Firestore
+                            print('コメント: $comment');
+                            _showConfirmationDialog(
+                                context); // Show confirmation dialog
+                          },
+                          child: const Text('送信'),
+                        ),
+                      ],
+                    ),
+                  ),
+              ],
             );
           },
         );
       },
-    );
-  }
-
-  Widget _buildCheckInForm(BuildContext context, String title) {
-    return Column(
-      children: [
-        TextField(
-          onChanged: (value) {
-            setState(() {
-              _inputValue = value;
-            });
-          },
-          decoration: const InputDecoration(labelText: '入力してください'),
-        ),
-        const SizedBox(height: 16),
-        ElevatedButton(
-          onPressed: () => _validateCheckIn(context, title),
-          style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
-          child: const Text(
-            '送信',
-            style: TextStyle(color: Colors.white),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildCheckInButton() {
-    return ElevatedButton(
-      onPressed: null,
-      style: ElevatedButton.styleFrom(backgroundColor: Colors.grey),
-      child: const Text(
-        '対象から離れているためチェックインできません',
-        style: TextStyle(color: Colors.white),
-      ),
-    );
-  }
-
-  bool _calculateCanCheckIn() {
-    if (_currentPosition == null) return false;
-    return _distance <= 500.0;
-  }
-
-  void _validateCheckIn(BuildContext context, String title) {
-    bool isCorrect = _inputValue == title;
-    _showCheckInResult(context, isCorrect);
-  }
-
-  void _showCheckInResult(BuildContext context, bool isCorrect) {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              CircleAvatar(
-                radius: 30.0,
-                backgroundColor: isCorrect ? Colors.green : Colors.red,
-                child: Icon(
-                  isCorrect ? Icons.check : Icons.close,
-                  color: Colors.white,
-                  size: 50.0,
-                ),
-              ),
-              const SizedBox(height: 16),
-            ],
-          ),
-        );
-      },
-    );
-
-    Future.delayed(const Duration(seconds: 1), () {
-      Navigator.of(context).pop();
-      _showCheckInMessage(context, isCorrect);
+    ).then((value) {
+      // This code block executes when the bottom sheet is dismissed
+      if (_showConfirmation) {
+        Timer(Duration(seconds: 2), () {
+          setState(() {
+            _showConfirmation = false; // Reset confirmation state
+            _canCheckIn = false; // Reset check-in state
+          });
+        });
+      }
     });
   }
 
-  void _showCheckInMessage(BuildContext context, bool isCorrect) {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              CircleAvatar(
-                radius: 30.0,
-                backgroundColor: isCorrect ? Colors.green : Colors.red,
-                child: Icon(
-                  isCorrect ? Icons.check : Icons.close,
-                  color: Colors.white,
-                  size: 50.0,
-                ),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                isCorrect ? 'チェックイン済み' : '入力が間違っています',
-                style: TextStyle(
-                  fontSize: 18.0,
-                  fontWeight: FontWeight.bold,
-                  color: isCorrect ? Colors.green : Colors.red,
-                ),
-              ),
-            ],
-          ),
-        );
-      },
+  void _showConfirmationDialog(BuildContext context) {
+    Navigator.of(context).pop(); // Close the bottom sheet
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('チェックインしました！'),
+        duration: Duration(seconds: 2),
+      ),
     );
 
-    Future.delayed(const Duration(seconds: 1), () {
-      Navigator.of(context).pop();
+    setState(() {
+      _showConfirmation = true; // Set confirmation flag
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    LatLng initialCameraPosition =
-        const LatLng(35.658581, 139.745433); // 東京駅の位置
-
-    if (!_isLoading && !_errorOccurred && _currentPosition != null) {
-      initialCameraPosition = _currentPosition!;
-    }
-
     return Scaffold(
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : _errorOccurred
-              ? const Center(child: Text('エラーが発生しました。'))
-              : GoogleMap(
-                  onMapCreated: (controller) => _mapController = controller,
-                  initialCameraPosition: CameraPosition(
-                    target: initialCameraPosition,
-                    zoom: 16.0,
-                    bearing: 30.0,
-                    tilt: 60.0,
-                  ),
-                  markers: _markers,
-                  myLocationEnabled: true,
+      body: Stack(
+        children: [
+          _isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : _errorOccurred
+                  ? const Center(child: Text('エラーが発生しました。'))
+                  : GoogleMap(
+                      initialCameraPosition: const CameraPosition(
+                        target: LatLng(35.658581, 139.745433),
+                        zoom: 16.0,
+                        bearing: 30.0,
+                        tilt: 60.0,
+                      ),
+                      markers: _markers,
+                      onMapCreated: (GoogleMapController controller) {
+                        _mapController = controller;
+                        _moveToCurrentLocation();
+                      },
+                    ),
+          if (_showConfirmation)
+            Center(
+              child: Container(
+                width: 200,
+                height: 200,
+                decoration: BoxDecoration(
+                  color: Colors.grey[300],
+                  borderRadius: BorderRadius.circular(20),
                 ),
+                child: Center(
+                  child: Container(
+                    width: 100,
+                    height: 100,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Center(
+                      child: Text(
+                        '✔︎',
+                        style: TextStyle(
+                          fontSize: 48,
+                          color: Colors.green,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          if (_canCheckIn && !_showConfirmation)
+            Center(
+              child: Container(
+                width: 200,
+                height: 200,
+                decoration: BoxDecoration(
+                  color: Colors.grey[300],
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Center(
+                  child: Container(
+                    width: 100,
+                    height: 100,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Center(
+                      child: Text(
+                        '✖️',
+                        style: TextStyle(
+                          fontSize: 48,
+                          color: Colors.red,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
     );
   }
 }

@@ -19,7 +19,7 @@ class _LoginPageState extends State<LoginPage> {
           // 背景画像
           Positioned.fill(
             child: Image.asset(
-              'assets/images/background_login.jpg',
+              'assets/images/star.jpg',
               fit: BoxFit.cover,
             ),
           ),

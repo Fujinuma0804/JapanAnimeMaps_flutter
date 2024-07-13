@@ -19,7 +19,7 @@ class _WelcomePageState extends State<WelcomePage> {
           // 背景画像
           Positioned.fill(
             child: Image.asset(
-              'assets/images/mrsgreenapple03.jpg',
+              'assets/images/star.jpg',
               fit: BoxFit.cover,
             ),
           ),

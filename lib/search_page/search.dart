@@ -54,7 +54,7 @@ class _SearchPageState extends State<SearchPage> {
               const SizedBox(height: 10.0), // Add some spacing
               _buildImageCard(
                 context,
-                'assets/images/konan.jpg',
+                'assets/images/picture_sample.png',
                 '名探偵コナン',
                 '青山剛昌',
                 () => Navigator.push(
@@ -63,7 +63,7 @@ class _SearchPageState extends State<SearchPage> {
                     builder: (context) => const DetailPage(
                       title: '名探偵コナン',
                       description: '青山剛昌',
-                      imagePath: 'assets/images/konan.jpg',
+                      imagePath: 'assets/images/picture_sample.png',
                     ),
                   ),
                 ),
@@ -71,7 +71,7 @@ class _SearchPageState extends State<SearchPage> {
               const SizedBox(height: 5.0),
               _buildImageCard(
                 context,
-                'assets/images/kamebashi.jpg',
+                'assets/images/picture_sample.png',
                 'Text Line 3',
                 'Text Line 4',
                 () => Navigator.push(
@@ -80,7 +80,7 @@ class _SearchPageState extends State<SearchPage> {
                     builder: (context) => const DetailPage(
                       title: 'Text Line 3',
                       description: 'Text Line 4',
-                      imagePath: 'assets/images/kamebashi.jpg',
+                      imagePath: 'assets/images/picture_sample.png',
                     ),
                   ),
                 ),
@@ -88,7 +88,7 @@ class _SearchPageState extends State<SearchPage> {
               const SizedBox(height: 5.0),
               _buildImageCard(
                 context,
-                'assets/images/konan.jpg',
+                'assets/images/picture_sample.png',
                 'Text Line 5',
                 'Text Line 6',
                 () => Navigator.push(
@@ -97,7 +97,7 @@ class _SearchPageState extends State<SearchPage> {
                     builder: (context) => const DetailPage(
                       title: 'Text Line 5',
                       description: 'Text Line 6',
-                      imagePath: 'assets/images/konan.jpg',
+                      imagePath: 'assets/images/picture_sample.png',
                     ),
                   ),
                 ),
@@ -105,7 +105,7 @@ class _SearchPageState extends State<SearchPage> {
               const SizedBox(height: 5.0),
               _buildImageCard(
                 context,
-                'assets/images/kamebashi.jpg',
+                'assets/images/picture_sample.png',
                 'Text Line 7',
                 'Text Line 8',
                 () => Navigator.push(
@@ -114,7 +114,7 @@ class _SearchPageState extends State<SearchPage> {
                     builder: (context) => const DetailPage(
                       title: 'Text Line 7',
                       description: 'Text Line 8',
-                      imagePath: 'assets/images/kamebashi.jpg',
+                      imagePath: 'assets/images/picture_sample.png',
                     ),
                   ),
                 ),
