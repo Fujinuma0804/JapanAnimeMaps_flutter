@@ -22,7 +22,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (user != null) {
       DocumentSnapshot<Map<String, dynamic>> userDoc = await FirebaseFirestore
           .instance
-          .collection('user')
+          .collection('users')
           .doc(user.uid)
           .get();
       setState(() {
@@ -89,13 +89,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
                 const SizedBox(height: 16),
                 buildProfileItem('名前', userData?.data()?['name'] ?? '未設定'),
-                buildProfileItem(
-                    'メールアドレス', userData?.data()?['email'] ?? '未設定'),
-                buildProfileItem(
-                    'ステータスメッセージ', userData?.data()?['statusMessage'] ?? '未設定'),
                 buildProfileItem('ID', userData?.data()?['id'] ?? '未設定'),
                 buildProfileItem(
-                    '誕生日', userData?.data()?['birthdate'] ?? '未設定'),
+                    'メールアドレス', userData?.data()?['email'] ?? '未設定'),
+                buildProfileItem('誕生日', userData?.data()?['birthday'] ?? '未設定'),
+                buildProfileItem(
+                    '登録日',
+                    userData?.data()?['created_at']?.toDate().toString() ??
+                        '未設定'),
               ],
             ),
     );
@@ -109,37 +110,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
         children: [
           Text(title, style: const TextStyle(color: Colors.black)),
           Text(value, style: const TextStyle(color: Colors.black)),
-        ],
-      ),
-    );
-  }
-
-  Widget buildProfileSwitchItem(String title, bool value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(title, style: const TextStyle(color: Colors.black)),
-          Switch(
-            value: value,
-            onChanged: (bool newValue) {
-              // Add functionality to handle switch change
-            },
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget buildBGMItem(String title) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(title, style: const TextStyle(color: Colors.black)),
-          // Add BGM slider or any widget here
         ],
       ),
     );

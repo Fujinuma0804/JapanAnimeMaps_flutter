@@ -2,3 +2,4 @@
 #include "Generated.xcconfig"
 #include "Pods/Target Support Files/Pods-Runner/Pods-Runner.release.xcconfig"
 #include "Target Support Files/Pods-Runner/Pods-Runner.profile.xcconfig"
+//４行目のものは、実機の際にはコメントアウト必須

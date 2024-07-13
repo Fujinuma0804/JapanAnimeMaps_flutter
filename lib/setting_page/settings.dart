@@ -1,13 +1,14 @@
-// settings.dart
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:settings_ui/settings_ui.dart';
 
 import '../manual_page/privacypolicy_screen.dart';
 import '../manual_page/terms_screen.dart';
 import '../profile_page/profile.dart';
+import '../top_page/welcome_page.dart';
 
 class Settings extends StatelessWidget {
-  const Settings({Key? key});
+  const Settings({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -122,8 +123,12 @@ class Settings extends StatelessWidget {
               SettingsTile.navigation(
                 leading: const Icon(Icons.waving_hand_sharp),
                 title: const Text('サインアウト'),
-                onPressed: (context) {
-                  // 画面遷移処理
+                onPressed: (context) async {
+                  await FirebaseAuth.instance.signOut();
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(builder: (context) => WelcomePage()),
+                  );
                 },
               ),
               SettingsTile.navigation(
