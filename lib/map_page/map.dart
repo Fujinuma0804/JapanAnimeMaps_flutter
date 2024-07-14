@@ -192,6 +192,9 @@ class _MapScreenState extends State<MapScreen> {
         markerPosition.longitude,
       );
       print('Distance: $distance meters');
+      setState(() {
+        _canCheckIn = distance <= 500; // 500m以内ならチェックイン可能
+      });
     }
   }
 
@@ -212,8 +215,8 @@ class _MapScreenState extends State<MapScreen> {
         position,
         imageUrl,
         locationId,
-        150,
-        100,
+        280,
+        180,
         title,
         description,
       );
@@ -284,6 +287,7 @@ class _MapScreenState extends State<MapScreen> {
       String title, String snippet, bool hasCheckedIn) {
     TextEditingController textController = TextEditingController();
     bool isCorrect = false;
+    bool showTextField = false;
 
     showModalBottomSheet(
       context: context,
@@ -299,19 +303,13 @@ class _MapScreenState extends State<MapScreen> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const SizedBox(
-                      height: 10.0,
-                    ),
+                    const SizedBox(height: 10.0),
                     SizedBox(
                       height: 150,
                       width: 250,
-                      child: Image.network(
-                        imageUrl,
-                      ),
+                      child: Image.network(imageUrl),
                     ),
-                    const SizedBox(
-                      height: 10.0,
-                    ),
+                    const SizedBox(height: 10.0),
                     Center(
                       child: Text(
                         title,
@@ -321,13 +319,10 @@ class _MapScreenState extends State<MapScreen> {
                         ),
                       ),
                     ),
-                    const SizedBox(
-                      height: 10.0,
-                    ),
+                    const SizedBox(height: 10.0),
                     Center(
                       child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 30.0), // 左右に8.0の余白を追加
+                        padding: const EdgeInsets.symmetric(horizontal: 30.0),
                         child: Text(
                           snippet,
                           style: const TextStyle(
@@ -337,31 +332,52 @@ class _MapScreenState extends State<MapScreen> {
                         ),
                       ),
                     ),
-                    const SizedBox(
-                      height: 20.0,
-                    ),
-                    if (_selectedMarker != null && !hasCheckedIn)
-                      Padding(
-                        padding: const EdgeInsets.all(8.0),
-                        child: ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF00008b),
-                          ),
-                          onPressed: () {
-                            setState(() {
-                              _canCheckIn = true;
-                            });
-                          },
-                          child: const Text(
-                            'チェックイン',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
+                    const SizedBox(height: 20.0),
+                    if (_selectedMarker != null &&
+                        !hasCheckedIn &&
+                        !showTextField)
+                      Column(
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.all(8.0),
+                            child: ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: _canCheckIn
+                                    ? const Color(0xFF00008b)
+                                    : Colors.grey,
+                              ),
+                              onPressed: _canCheckIn
+                                  ? () {
+                                      setState(() {
+                                        showTextField = true;
+                                      });
+                                    }
+                                  : null,
+                              child: const Text(
+                                'チェックイン',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
                             ),
                           ),
-                        ),
+                          if (!_canCheckIn)
+                            const Padding(
+                              padding: EdgeInsets.all(8.0),
+                              child: Text(
+                                '現在位置から離れているためチェックインできません',
+                                style: TextStyle(
+                                  color: Colors.red,
+                                  fontSize: 14,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
+                          const SizedBox(height: 15.0),
+                        ],
                       ),
-                    if (_canCheckIn)
+                    if (_canCheckIn && !hasCheckedIn && showTextField)
                       Padding(
                         padding: const EdgeInsets.all(8.0),
                         child: Column(
@@ -386,7 +402,7 @@ class _MapScreenState extends State<MapScreen> {
                             ElevatedButton(
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: _isSubmitting
-                                    ? Colors.grey // グレイアウト
+                                    ? Colors.grey
                                     : const Color(0xFF00008b),
                               ),
                               onPressed: _isSubmitting
@@ -395,8 +411,7 @@ class _MapScreenState extends State<MapScreen> {
                                       String comment = textController.text;
                                       _checkIn(comment, title, isCorrect,
                                           _selectedMarker!.markerId.value);
-                                      Navigator.of(context)
-                                          .pop(); // 送信ボタンを押したら非表示
+                                      Navigator.of(context).pop();
                                     },
                               child: const Text(
                                 '送信',
@@ -409,6 +424,19 @@ class _MapScreenState extends State<MapScreen> {
                           ],
                         ),
                       ),
+                    if (hasCheckedIn)
+                      const Padding(
+                        padding: EdgeInsets.all(8.0),
+                        child: Text(
+                          '✔︎チェックイン済み',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.grey,
+                          ),
+                        ),
+                      ),
+                    const SizedBox(height: 15.0),
                   ],
                 ),
               ),

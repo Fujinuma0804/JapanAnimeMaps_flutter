@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'data/web_page.dart';
+
 class WebsiteScreen extends StatefulWidget {
   const WebsiteScreen({Key? key}) : super(key: key);
 
@@ -14,14 +16,8 @@ class _WebsiteScreenState extends State<WebsiteScreen> {
       appBar: AppBar(
         automaticallyImplyLeading: false,
       ),
-      body: const Center(
-        child: Column(
-          children: [
-            Text(
-              'This is WebSite',
-            ),
-          ],
-        ),
+      body: SingleChildScrollView(
+        child: WebPageHtml,
       ),
     );
   }
