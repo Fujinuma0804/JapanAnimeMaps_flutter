@@ -207,7 +207,7 @@ class _MapScreenState extends State<MapScreen> {
       Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
       LatLng position = LatLng(data['latitude'], data['longitude']);
       String imageUrl = data['imageUrl'];
-      String locationId = data['locationID'].toString();
+      String locationId = doc.id;
       String title = data['title'];
       String description = data['description'];
 
@@ -462,22 +462,40 @@ class _MapScreenState extends State<MapScreen> {
       _isSubmitting = true;
     });
 
-    // Add check-in to Firestore
-    await FirebaseFirestore.instance
-        .collection('users')
-        .doc(_userId)
-        .collection('check_ins')
-        .add({
-      'title': title,
-      'comment': comment,
-      'isCorrect': isCorrect,
-      'locationId': locationId,
-      'timestamp': FieldValue.serverTimestamp(),
-    }).then((_) {
+    try {
+      // Add check-in to Firestore
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(_userId)
+          .collection('check_ins')
+          .add({
+        'title': title,
+        'comment': comment,
+        'isCorrect': isCorrect,
+        'locationId': locationId,
+        'timestamp': FieldValue.serverTimestamp(),
+      });
+
+      // Increment check-in count for the location
+      DocumentReference locationRef =
+          FirebaseFirestore.instance.collection('locations').doc(locationId);
+
+      await FirebaseFirestore.instance.runTransaction((transaction) async {
+        DocumentSnapshot snapshot = await transaction.get(locationRef);
+
+        if (snapshot.exists) {
+          int currentCount =
+              (snapshot.data() as Map<String, dynamic>)['checkinCount'] ?? 0;
+          transaction.update(locationRef, {'checkinCount': currentCount + 1});
+        } else {
+          print('Location document does not exist: $locationId');
+        }
+      });
+
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('チェックインしました！'),
-          duration: const Duration(seconds: 2),
+        const SnackBar(
+          content: Text('チェックインしました！'),
+          duration: Duration(seconds: 2),
         ),
       );
 
@@ -485,33 +503,19 @@ class _MapScreenState extends State<MapScreen> {
         _showConfirmation = true;
         _isCorrect = isCorrect;
       });
-    }).catchError((error) {
+    } catch (error) {
+      print('Error during check-in: $error');
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('チェックインに失敗しました。'),
-          duration: const Duration(seconds: 2),
+        const SnackBar(
+          content: Text('チェックインに失敗しました。'),
+          duration: Duration(seconds: 2),
         ),
       );
-    }).whenComplete(() {
+    } finally {
       setState(() {
         _isSubmitting = false;
       });
-    });
-  }
-
-  void _showConfirmationDialog(BuildContext context, bool isCorrect) {
-    Navigator.of(context).pop();
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(isCorrect ? 'チェックインしました！' : 'タイトルが違います。'),
-        duration: const Duration(seconds: 2),
-      ),
-    );
-
-    setState(() {
-      _showConfirmation = true;
-      _isCorrect = isCorrect;
-    });
+    }
   }
 
   @override

@@ -6,6 +6,7 @@ import '../manual_page/privacypolicy_screen.dart';
 import '../manual_page/terms_screen.dart';
 import '../profile_page/profile.dart';
 import '../top_page/welcome_page.dart';
+import 'help.dart';
 
 class Settings extends StatelessWidget {
   const Settings({Key? key}) : super(key: key);
@@ -105,6 +106,8 @@ class Settings extends StatelessWidget {
                 title: const Text('ヘルプセンター'),
                 value: const Text(''),
                 onPressed: (context) {
+                  Navigator.push(context,
+                      MaterialPageRoute(builder: (context) => HelpCenter()));
                   // 画面遷移処理
                 },
               ),
