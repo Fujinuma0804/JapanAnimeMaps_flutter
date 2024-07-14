@@ -27,9 +27,11 @@ class _MapScreenState extends State<MapScreen> {
   bool _canCheckIn = false;
   bool _showConfirmation = false;
   bool _isCorrect = false;
+  bool _hasCheckedInAlready = false;
   Marker? _selectedMarker;
   late User _user; // Firebase user
   late String _userId; // User ID
+  bool _isSubmitting = false; // Check-in submission state
 
   @override
   void initState() {
@@ -238,7 +240,8 @@ class _MapScreenState extends State<MapScreen> {
       markerId: MarkerId(markerId),
       position: position,
       icon: BitmapDescriptor.fromBytes(markerIcon),
-      onTap: () {
+      onTap: () async {
+        bool hasCheckedIn = await _hasCheckedIn(markerId);
         setState(() {
           _selectedMarker = Marker(
             markerId: MarkerId(markerId),
@@ -246,7 +249,8 @@ class _MapScreenState extends State<MapScreen> {
             icon: BitmapDescriptor.fromBytes(markerIcon),
           );
           _calculateDistance(position);
-          _showModalBottomSheet(context, imageUrl, title, snippet);
+          _showModalBottomSheet(
+              context, imageUrl, title, snippet, hasCheckedIn);
         });
       },
     );
@@ -265,8 +269,19 @@ class _MapScreenState extends State<MapScreen> {
         .asUint8List();
   }
 
-  void _showModalBottomSheet(
-      BuildContext context, String imageUrl, String title, String snippet) {
+  Future<bool> _hasCheckedIn(String locationId) async {
+    QuerySnapshot snapshot = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(_userId)
+        .collection('check_ins')
+        .where('locationId', isEqualTo: locationId)
+        .get();
+
+    return snapshot.docs.isNotEmpty;
+  }
+
+  void _showModalBottomSheet(BuildContext context, String imageUrl,
+      String title, String snippet, bool hasCheckedIn) {
     TextEditingController textController = TextEditingController();
     bool isCorrect = false;
 
@@ -288,8 +303,8 @@ class _MapScreenState extends State<MapScreen> {
                       height: 10.0,
                     ),
                     SizedBox(
-                      height: 100,
-                      width: 200,
+                      height: 150,
+                      width: 250,
                       child: Image.network(
                         imageUrl,
                       ),
@@ -310,15 +325,22 @@ class _MapScreenState extends State<MapScreen> {
                       height: 10.0,
                     ),
                     Center(
-                      child: Text(
-                        snippet,
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 30.0), // 左右に8.0の余白を追加
+                        child: Text(
+                          snippet,
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
                     ),
-                    if (_selectedMarker != null)
+                    const SizedBox(
+                      height: 20.0,
+                    ),
+                    if (_selectedMarker != null && !hasCheckedIn)
                       Padding(
                         padding: const EdgeInsets.all(8.0),
                         child: ElevatedButton(
@@ -347,7 +369,7 @@ class _MapScreenState extends State<MapScreen> {
                             TextField(
                               controller: textController,
                               decoration: const InputDecoration(
-                                hintText: 'コメントを入力してください',
+                                hintText: '題名を入力してください',
                                 border: OutlineInputBorder(),
                               ),
                               keyboardType: TextInputType.text,
@@ -363,12 +385,19 @@ class _MapScreenState extends State<MapScreen> {
                             const SizedBox(height: 8),
                             ElevatedButton(
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFF00008b),
+                                backgroundColor: _isSubmitting
+                                    ? Colors.grey // グレイアウト
+                                    : const Color(0xFF00008b),
                               ),
-                              onPressed: () {
-                                String comment = textController.text;
-                                _checkIn(comment, title, isCorrect);
-                              },
+                              onPressed: _isSubmitting
+                                  ? null
+                                  : () {
+                                      String comment = textController.text;
+                                      _checkIn(comment, title, isCorrect,
+                                          _selectedMarker!.markerId.value);
+                                      Navigator.of(context)
+                                          .pop(); // 送信ボタンを押したら非表示
+                                    },
                               child: const Text(
                                 '送信',
                                 style: TextStyle(
@@ -399,9 +428,14 @@ class _MapScreenState extends State<MapScreen> {
     });
   }
 
-  void _checkIn(String comment, String title, bool isCorrect) {
+  void _checkIn(
+      String comment, String title, bool isCorrect, String locationId) async {
+    setState(() {
+      _isSubmitting = true;
+    });
+
     // Add check-in to Firestore
-    FirebaseFirestore.instance
+    await FirebaseFirestore.instance
         .collection('users')
         .doc(_userId)
         .collection('check_ins')
@@ -409,6 +443,7 @@ class _MapScreenState extends State<MapScreen> {
       'title': title,
       'comment': comment,
       'isCorrect': isCorrect,
+      'locationId': locationId,
       'timestamp': FieldValue.serverTimestamp(),
     }).then((_) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -429,6 +464,10 @@ class _MapScreenState extends State<MapScreen> {
           duration: const Duration(seconds: 2),
         ),
       );
+    }).whenComplete(() {
+      setState(() {
+        _isSubmitting = false;
+      });
     });
   }
 
