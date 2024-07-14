@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
 import '../spot_page/spot_test.dart';
@@ -10,6 +11,30 @@ class SearchPage extends StatefulWidget {
 }
 
 class _SearchPageState extends State<SearchPage> {
+  List<Map<String, dynamic>> _locations = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchLocations();
+  }
+
+  Future<void> _fetchLocations() async {
+    FirebaseFirestore.instance
+        .collection('locations')
+        .orderBy('checkinCount', descending: true)
+        .get()
+        .then((querySnapshot) {
+      setState(() {
+        _locations = querySnapshot.docs
+            .map((doc) => doc.data() as Map<String, dynamic>)
+            .toList();
+      });
+    }).catchError((error) {
+      print('Error fetching locations: $error');
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -44,7 +69,7 @@ class _SearchPageState extends State<SearchPage> {
                 padding:
                     EdgeInsets.symmetric(horizontal: 16.0), // Add some padding
                 child: Text(
-                  '■ 人気のアニメ一覧',
+                  '■ 人気のスポット',
                   style: TextStyle(
                     color: Color(0xFF00008b),
                     fontWeight: FontWeight.bold,
@@ -53,73 +78,27 @@ class _SearchPageState extends State<SearchPage> {
                 ),
               ),
               const SizedBox(height: 10.0), // Add some spacing
-              _buildImageCard(
-                context,
-                'assets/images/picture_sample.png',
-                '名探偵コナン',
-                '青山剛昌',
-                () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const DetailPage(
-                      title: '名探偵コナン',
-                      description: '青山剛昌',
-                      imagePath: 'assets/images/picture_sample.png',
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 5.0),
-              _buildImageCard(
-                context,
-                'assets/images/picture_sample.png',
-                'Text Line 3',
-                'Text Line 4',
-                () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const DetailPage(
-                      title: 'Text Line 3',
-                      description: 'Text Line 4',
-                      imagePath: 'assets/images/picture_sample.png',
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 5.0),
-              _buildImageCard(
-                context,
-                'assets/images/picture_sample.png',
-                'Text Line 5',
-                'Text Line 6',
-                () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const DetailPage(
-                      title: 'Text Line 5',
-                      description: 'Text Line 6',
-                      imagePath: 'assets/images/picture_sample.png',
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 5.0),
-              _buildImageCard(
-                context,
-                'assets/images/picture_sample.png',
-                'Text Line 7',
-                'Text Line 8',
-                () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const DetailPage(
-                      title: 'Text Line 7',
-                      description: 'Text Line 8',
-                      imagePath: 'assets/images/picture_sample.png',
-                    ),
-                  ),
-                ),
-              ),
+              ..._locations.map((location) => Column(
+                    children: [
+                      _buildImageCard(
+                        context,
+                        location['imageUrl'],
+                        location['title'],
+                        location['description'],
+                        () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => DetailPage(
+                              title: location['title'],
+                              description: location['description'],
+                              imagePath: location['imageUrl'],
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 10.0), // Add space between cards
+                    ],
+                  )),
             ],
           ),
         ),
@@ -133,7 +112,7 @@ class _SearchPageState extends State<SearchPage> {
       onTap: onTap,
       child: Stack(
         children: [
-          Image.asset(
+          Image.network(
             imagePath,
             fit: BoxFit.cover,
             width: double.infinity,
@@ -174,6 +153,8 @@ class _SearchPageState extends State<SearchPage> {
                         color: Colors.white,
                         fontSize: 16.0,
                       ),
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 1,
                     ),
                   ],
                 ),
@@ -212,7 +193,7 @@ class DetailPage extends StatelessWidget {
       ),
       body: Column(
         children: [
-          Image.asset(imagePath),
+          Image.network(imagePath),
           Padding(
             padding: const EdgeInsets.all(16.0),
             child: Text(
