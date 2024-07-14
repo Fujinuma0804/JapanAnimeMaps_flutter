@@ -2,11 +2,12 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:settings_ui/settings_ui.dart';
 
+import '../apps_about/apps_about.dart';
+import '../help_page/help.dart';
 import '../manual_page/privacypolicy_screen.dart';
 import '../manual_page/terms_screen.dart';
 import '../profile_page/profile.dart';
 import '../top_page/welcome_page.dart';
-import 'help.dart';
 
 class Settings extends StatelessWidget {
   const Settings({Key? key}) : super(key: key);
@@ -116,6 +117,8 @@ class Settings extends StatelessWidget {
                 title: const Text('アプリについて'),
                 value: const Text(''),
                 onPressed: (context) {
+                  Navigator.push(context,
+                      MaterialPageRoute(builder: (context) => AppsAbout()));
                   // 画面遷移処理
                 },
               ),

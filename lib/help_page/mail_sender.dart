@@ -42,13 +42,14 @@ class _MailScreenState extends State<MailScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+          backgroundColor: Colors.white,
           title: const Text(
-        'メール送信',
-        style: TextStyle(
-          color: Color(0xFF00008b),
-          fontWeight: FontWeight.bold,
-        ),
-      )),
+            'メール送信',
+            style: TextStyle(
+              color: Color(0xFF00008b),
+              fontWeight: FontWeight.bold,
+            ),
+          )),
       body: SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),

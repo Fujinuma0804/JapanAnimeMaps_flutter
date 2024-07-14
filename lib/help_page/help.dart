@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:settings_ui/settings_ui.dart';
 
-import '../help_page/chat_sender.dart';
-import '../help_page/mail_sender.dart';
+import 'chat_sender.dart';
+import 'mail_sender.dart';
 
 class HelpCenter extends StatelessWidget {
   const HelpCenter({Key? key}) : super(key: key);
