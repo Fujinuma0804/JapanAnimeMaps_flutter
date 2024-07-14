@@ -16,11 +16,11 @@ class _MailScreenState extends State<MailScreen> {
   final String _bcc = 'initial_bcc@example.com';
 
   final List<String> _subjects = [
-    '件名1',
-    '件名2',
-    '件名3',
-    '件名4',
-    '件名5',
+    '不具合について',
+    'ポイントについて',
+    '個人情報について',
+    'ご意見・ご感想',
+    'その他',
   ];
 
   String? _selectedSubject;
