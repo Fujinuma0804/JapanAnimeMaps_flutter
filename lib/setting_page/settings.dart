@@ -6,6 +6,7 @@ import '../apps_about/apps_about.dart';
 import '../help_page/help.dart';
 import '../manual_page/privacypolicy_screen.dart';
 import '../manual_page/terms_screen.dart';
+import '../notification/notification.dart';
 import '../profile_page/profile.dart';
 import '../top_page/welcome_page.dart';
 
@@ -54,7 +55,6 @@ class Settings extends StatelessWidget {
               SettingsTile.navigation(
                 leading: const Icon(Icons.notifications_active_outlined),
                 title: const Text('通知'),
-                value: const Text('オン'),
                 onPressed: (context) {
                   // 画面遷移処理
                 },
@@ -62,7 +62,6 @@ class Settings extends StatelessWidget {
               SettingsTile.navigation(
                 leading: const Icon(Icons.language),
                 title: const Text('言語設定'),
-                value: const Text('日本語'),
                 onPressed: (context) {
                   // 画面遷移処理
                 },
@@ -77,7 +76,10 @@ class Settings extends StatelessWidget {
                 title: const Text('お知らせ'),
                 value: const Text(''),
                 onPressed: (context) {
-                  // 画面遷移処理
+                  Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (context) => NotificationsPage()));
                 },
               ),
               SettingsTile.navigation(
