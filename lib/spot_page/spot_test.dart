@@ -148,11 +148,21 @@ class _SpotTestScreenState extends State<SpotTestScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('チェックインした場所'),
+        backgroundColor: Colors.white,
+        title: const Text(
+          'チェックイン履歴',
+          style: TextStyle(
+            color: Color(0xFF00008b),
+            fontWeight: FontWeight.bold,
+          ),
+        ),
         actions: [
           IconButton(
             onPressed: () => _toggleSortOrder(),
-            icon: Icon(_sortByTimestamp ? Icons.sort : Icons.sort_by_alpha),
+            icon: Icon(
+              _sortByTimestamp ? Icons.sort : Icons.sort_by_alpha,
+              color: const Color(0xFF00008b),
+            ),
           ),
         ],
       ),
