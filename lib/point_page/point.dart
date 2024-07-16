@@ -65,7 +65,7 @@ class PointPage extends StatelessWidget {
                   // 画面遷移処理
                 },
                 title: const Text(
-                  'ポイントの利用方法',
+                  'ポイントの利用',
                   style: TextStyle(
                     color: Colors.grey,
                   ),
