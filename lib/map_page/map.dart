@@ -493,9 +493,9 @@ class _MapScreenState extends State<MapScreen> {
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('チェックインしました！'),
-          duration: Duration(seconds: 2),
+        SnackBar(
+          content: Text(isCorrect ? 'チェックインしました！' : '題名が異なります。'),
+          duration: const Duration(seconds: 2),
         ),
       );
 
@@ -563,7 +563,7 @@ class _MapScreenState extends State<MapScreen> {
                     ),
                     child: Center(
                       child: Text(
-                        _isCorrect ? '✔︎' : '✖️',
+                        _isCorrect ? '✔︎' : '❌',
                         style: TextStyle(
                           fontSize: 48,
                           color: _isCorrect ? Colors.green : Colors.red,

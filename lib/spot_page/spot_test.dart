@@ -5,8 +5,7 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 class SpotDetailScreen extends StatelessWidget {
   final String title;
-  final String comment;
-  final bool isCorrect;
+  final String description;
   final double latitude;
   final double longitude;
   final String imageUrl;
@@ -14,8 +13,7 @@ class SpotDetailScreen extends StatelessWidget {
   const SpotDetailScreen({
     Key? key,
     required this.title,
-    required this.comment,
-    required this.isCorrect,
+    required this.description,
     required this.latitude,
     required this.longitude,
     required this.imageUrl,
@@ -23,70 +21,49 @@ class SpotDetailScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // デバッグ用に座標と画像URLをコンソールに出力
-    print('Debug: Latitude: $latitude, Longitude: $longitude');
-    if (imageUrl.isNotEmpty) {
-      print('Debug: Image URL: $imageUrl');
-    } else {
-      print('Debug: Image URL is empty');
-    }
-
     return Scaffold(
       appBar: AppBar(
         title: const Text('詳細'),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
+      body: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Center(
+            Padding(
+              padding: const EdgeInsets.all(16.0),
               child: Text(
                 title,
                 style:
-                    const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
               ),
             ),
-            const SizedBox(height: 8),
-            Center(
-              child: Text(
-                comment.isNotEmpty ? comment : 'なし',
-                style: const TextStyle(fontSize: 16),
-              ),
-            ),
-            const SizedBox(height: 16),
-            Center(
-              child: SizedBox(
+            if (imageUrl.isNotEmpty)
+              Image.network(
+                imageUrl,
+                fit: BoxFit.cover,
                 height: 200,
-                child: imageUrl.isNotEmpty
-                    ? Image.network(
-                        imageUrl,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) {
-                          return const Center(child: Text('画像を読み込めませんでした'));
-                        },
-                      )
-                    : const Center(child: Text('画像がありません')),
+                width: double.infinity,
               ),
-            ),
-            const SizedBox(height: 16),
-            const Text(
-              '地図:',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            Expanded(
+            SizedBox(
+              height: 200,
               child: GoogleMap(
                 initialCameraPosition: CameraPosition(
-                  target: LatLng(latitude, longitude), // 緯度と経度の順番に注意
-                  zoom: 16,
+                  target: LatLng(latitude, longitude),
+                  zoom: 15,
                 ),
                 markers: {
                   Marker(
-                    markerId: const MarkerId('selected_location'),
-                    position: LatLng(latitude, longitude), // 緯度と経度の順番に注意
+                    markerId: const MarkerId('spot_location'),
+                    position: LatLng(latitude, longitude),
                   ),
                 },
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Text(
+                description,
+                style: const TextStyle(fontSize: 16),
               ),
             ),
           ],
@@ -108,6 +85,7 @@ class _SpotTestScreenState extends State<SpotTestScreen> {
   late String _userId;
   late Stream<QuerySnapshot> _checkInsStream;
   bool _sortByTimestamp = true;
+  int _correctCount = 0;
 
   @override
   void initState() {
@@ -135,6 +113,33 @@ class _SpotTestScreenState extends State<SpotTestScreen> {
     }
 
     _checkInsStream = query.snapshots();
+
+    _countAndSaveCorrectCheckIns();
+  }
+
+  Future<void> _countAndSaveCorrectCheckIns() async {
+    int correctCount = 0;
+    QuerySnapshot snapshot = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(_userId)
+        .collection('check_ins')
+        .get();
+
+    for (var doc in snapshot.docs) {
+      var data = doc.data() as Map<String, dynamic>;
+      if (data['isCorrect'] == true) {
+        correctCount++;
+      }
+    }
+
+    await FirebaseFirestore.instance
+        .collection('users')
+        .doc(_userId)
+        .update({'correctCount': correctCount});
+
+    setState(() {
+      _correctCount = correctCount;
+    });
   }
 
   void _toggleSortOrder() {
@@ -186,60 +191,62 @@ class _SpotTestScreenState extends State<SpotTestScreen> {
             children: snapshot.data!.docs.map((DocumentSnapshot document) {
               Map<String, dynamic> data =
                   document.data() as Map<String, dynamic>;
-
-              // フィールド名とその値をデバッグ出力
-              data.forEach((key, value) {
-                print('Debug: Field: $key, Value: $value');
-              });
-
-              String title = data['title'] ?? 'タイトルなし';
-              String comment = data['comment'] ?? '';
+              String locationId = data['locationId'] ?? '';
               bool isCorrect = data['isCorrect'] ?? false;
-              double latitude = 0.0;
-              double longitude = 0.0;
-              String imageUrl = '';
 
-              // locationIdを使ってlocationデータを取得する
-              String locationId = data['locationId'];
-              FirebaseFirestore.instance
-                  .collection('locations')
-                  .doc(locationId)
-                  .get()
-                  .then((locationDoc) {
-                if (locationDoc.exists) {
-                  Map<String, dynamic> locationData =
-                      locationDoc.data() as Map<String, dynamic>;
-                  latitude = locationData['latitude']?.toDouble() ?? 0.0;
-                  longitude = locationData['longitude']?.toDouble() ?? 0.0;
-                  imageUrl = locationData['imageUrl'] ?? '';
-                  // デバッグ用に取得したデータを表示
-                  print('Debug: Fetched Latitude: $latitude');
-                  print('Debug: Fetched Longitude: $longitude');
-                  print('Debug: Fetched Image URL: $imageUrl');
-                }
-              });
+              return FutureBuilder<DocumentSnapshot>(
+                future: FirebaseFirestore.instance
+                    .collection('locations')
+                    .doc(locationId)
+                    .get(),
+                builder: (BuildContext context,
+                    AsyncSnapshot<DocumentSnapshot> locationSnapshot) {
+                  if (locationSnapshot.connectionState ==
+                      ConnectionState.done) {
+                    if (locationSnapshot.hasError) {
+                      return ListTile(
+                          title: Text('Error: ${locationSnapshot.error}'));
+                    }
 
-              return ListTile(
-                title: Text(title),
-                subtitle: Text(comment.isNotEmpty ? comment : 'コメントなし'),
-                trailing: Icon(
-                  isCorrect ? Icons.check_circle : Icons.cancel,
-                  color: isCorrect ? Colors.green : Colors.red,
-                ),
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => SpotDetailScreen(
-                        title: title,
-                        comment: comment,
-                        isCorrect: isCorrect,
-                        latitude: latitude,
-                        longitude: longitude,
-                        imageUrl: imageUrl,
-                      ),
-                    ),
-                  );
+                    if (locationSnapshot.hasData &&
+                        locationSnapshot.data!.exists) {
+                      Map<String, dynamic> locationData =
+                          locationSnapshot.data!.data() as Map<String, dynamic>;
+                      String title = locationData['title'] ?? '';
+                      String description = locationData['description'] ?? '';
+                      double latitude = locationData['latitude'] ?? 0.0;
+                      double longitude = locationData['longitude'] ?? 0.0;
+                      String imageUrl = locationData['imageUrl'] ?? '';
+
+                      return ListTile(
+                        title: Text(title),
+                        subtitle: Text(
+                          description,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        trailing: Icon(
+                          isCorrect ? Icons.check_circle : Icons.cancel,
+                          color: isCorrect ? Colors.green : Colors.red,
+                        ),
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => SpotDetailScreen(
+                                title: title,
+                                description: description,
+                                latitude: latitude,
+                                longitude: longitude,
+                                imageUrl: imageUrl,
+                              ),
+                            ),
+                          );
+                        },
+                      );
+                    }
+                  }
+                  return ListTile(title: Text('Loading...'));
                 },
               );
             }).toList(),

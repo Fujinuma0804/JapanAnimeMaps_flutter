@@ -4,7 +4,6 @@ import 'package:settings_ui/settings_ui.dart';
 
 import '../manual_page/privacypolicy_screen.dart';
 import '../manual_page/terms_screen.dart';
-import '../profile_page/profile.dart';
 
 class PointPage extends StatelessWidget {
   const PointPage({Key? key}) : super(key: key);
@@ -52,20 +51,25 @@ class PointPage extends StatelessWidget {
               SettingsTile.navigation(
                 leading: const Icon(Icons.insert_chart_outlined),
                 title: const Text('ポイントの貯め方'),
-                onPressed: (context) {
-                  Navigator.push(context,
-                      MaterialPageRoute(builder: (context) => ProfileScreen()));
-                  // 画面遷移処理
-                },
+                onPressed: (context) {},
               ),
               SettingsTile.navigation(
                 leading: const Icon(Icons.money),
-                title: const Text('ポイントの利用方法'),
+                value: const Text(
+                  '準備中…',
+                  style: TextStyle(
+                    color: Colors.grey,
+                  ),
+                ),
                 onPressed: (context) {
-                  Navigator.push(context,
-                      MaterialPageRoute(builder: (context) => ProfileScreen()));
                   // 画面遷移処理
                 },
+                title: const Text(
+                  'ポイントの利用方法',
+                  style: TextStyle(
+                    color: Colors.grey,
+                  ),
+                ),
               ),
               SettingsTile.navigation(
                 leading: const Icon(Icons.book_outlined),
