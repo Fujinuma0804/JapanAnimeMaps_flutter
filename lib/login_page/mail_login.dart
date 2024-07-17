@@ -39,7 +39,7 @@ class _MailLoginPageState extends State<MailLoginPage> {
           // 背景画像
           Positioned.fill(
             child: Image.asset(
-              'assets/images/star.jpg',
+              'assets/images/top.png',
               fit: BoxFit.cover,
             ),
           ),

@@ -133,29 +133,22 @@ class Settings extends StatelessWidget {
             SettingsSection(
               tiles: <SettingsTile>[
                 SettingsTile.navigation(
-                  leading: const Icon(Icons.waving_hand_sharp),
-                  title: const Text('サインアウト'),
+                  leading: const Icon(
+                    Icons.waving_hand_sharp,
+                    color: Colors.red,
+                  ),
+                  title: const Text(
+                    'サインアウト',
+                    style: TextStyle(
+                      color: Colors.red,
+                    ),
+                  ),
                   onPressed: (context) async {
                     await FirebaseAuth.instance.signOut();
                     Navigator.pushReplacement(
                       context,
                       MaterialPageRoute(builder: (context) => WelcomePage()),
                     );
-                  },
-                ),
-                SettingsTile.navigation(
-                  leading: const Icon(
-                    Icons.delete_outline,
-                    color: Colors.red,
-                  ),
-                  title: const Text(
-                    'アカウント削除',
-                    style: TextStyle(
-                      color: Colors.red,
-                    ),
-                  ),
-                  onPressed: (context) {
-                    // 画面遷移処理
                   },
                 ),
               ],

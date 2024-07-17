@@ -20,7 +20,7 @@ class _SignUpPageState extends State<SignUpPage> {
           // 背景画像
           Positioned.fill(
             child: Image.asset(
-              'assets/images/star.jpg',
+              'assets/images/top.png',
               fit: BoxFit.cover,
             ),
           ),
@@ -41,7 +41,7 @@ class _SignUpPageState extends State<SignUpPage> {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.transparent,
                       side: const BorderSide(
-                        color: Colors.white, //枠線!
+                        color: Colors.white, //枠線
                         width: 1.5,
                       ),
                     ),

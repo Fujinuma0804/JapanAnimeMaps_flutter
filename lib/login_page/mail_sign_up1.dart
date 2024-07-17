@@ -43,7 +43,7 @@ class _MailSignUpPageState extends State<MailSignUpPage> {
         children: [
           Positioned.fill(
             child: Image.asset(
-              'assets/images/star.jpg',
+              'assets/images/top.png',
               fit: BoxFit.cover,
             ),
           ),

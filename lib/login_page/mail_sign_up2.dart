@@ -46,7 +46,7 @@ class _SecondSignUpPageState extends State<SecondSignUpPage> {
         children: [
           Positioned.fill(
             child: Image.asset(
-              'assets/images/star.jpg',
+              'assets/images/top.png',
               fit: BoxFit.cover,
             ),
           ),

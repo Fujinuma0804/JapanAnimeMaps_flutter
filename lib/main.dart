@@ -21,17 +21,26 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.white),
         useMaterial3: true,
       ),
-      home: StreamBuilder(
-        stream: FirebaseAuth.instance.authStateChanges(),
-        builder: (context, AsyncSnapshot<User?> snapshot) {
+      home: FutureBuilder(
+        future: Future.delayed(Duration(seconds: 2)),
+        builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return Center(child: CircularProgressIndicator());
+            return WelcomePage(); // Show Top screen for 2 seconds
           } else {
-            if (snapshot.hasData && snapshot.data != null) {
-              return MainScreen(); // ログインしている場合はMainScreenを表示
-            } else {
-              return WelcomePage(); // ログインしていない場合はWelcomePageを表示
-            }
+            return StreamBuilder(
+              stream: FirebaseAuth.instance.authStateChanges(),
+              builder: (context, AsyncSnapshot<User?> snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return Center(child: CircularProgressIndicator());
+                } else {
+                  if (snapshot.hasData && snapshot.data != null) {
+                    return MainScreen(); // Show MainScreen if logged in
+                  } else {
+                    return WelcomePage(); // Show WelcomePage if not logged in
+                  }
+                }
+              },
+            );
           }
         },
       ),
