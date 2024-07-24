@@ -6,6 +6,8 @@ import 'package:parts/map_page/map.dart';
 import 'package:parts/search_page/search.dart';
 import 'package:parts/web_page/website.dart';
 
+import '../point_page/point.dart';
+
 class MainScreen extends StatefulWidget {
   @override
   _MainScreenState createState() => _MainScreenState();
@@ -70,6 +72,7 @@ class _MainScreenState extends State<MainScreen> {
           MapScreen(),
           WebsiteScreen(),
           SearchPage(),
+          PointPage(),
           Manual(),
         ],
       ),
@@ -109,6 +112,8 @@ class CustomBottomNavigationBar extends StatelessWidget {
         BottomNavigationBarItem(icon: Icon(Icons.map), label: '地図'),
         BottomNavigationBarItem(icon: Icon(Icons.web), label: '公式サイト'),
         BottomNavigationBarItem(icon: Icon(Icons.place), label: 'スポット'),
+        BottomNavigationBarItem(
+            icon: Icon(Icons.monetization_on), label: 'ポイント'),
         BottomNavigationBarItem(icon: Icon(Icons.description), label: 'その他'),
       ],
     );

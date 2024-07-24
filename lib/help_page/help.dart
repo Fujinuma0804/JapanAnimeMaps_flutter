@@ -2,6 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:settings_ui/settings_ui.dart';
 
+import '../loading_code/loading_code_top.dart';
 import 'chat_sender.dart';
 import 'mail_sender.dart';
 
@@ -81,6 +82,16 @@ class HelpCenter extends StatelessWidget {
                 },
               ),
               SettingsTile.navigation(
+                leading: const Icon(Icons.chat),
+                title: const Text('LINEで問い合わせ'),
+                value: const Text(''),
+                onPressed: (context) {
+                  Navigator.push(context,
+                      MaterialPageRoute(builder: (context) => MailScreen()));
+                  // 画面遷移処理
+                },
+              ),
+              SettingsTile.navigation(
                 leading: const Icon(Icons.phone),
                 title: const Text(
                   '電話で問い合わせ',
@@ -95,6 +106,23 @@ class HelpCenter extends StatelessWidget {
                   ),
                 ),
                 onPressed: (context) {
+                  // 画面遷移処理
+                },
+              ),
+            ],
+          ),
+          SettingsSection(
+            title: const Text('その他'),
+            tiles: <SettingsTile>[
+              SettingsTile.navigation(
+                leading: const Icon(Icons.camera_alt_outlined),
+                title: const Text('コード読み込み'),
+                value: const Text(''),
+                onPressed: (context) {
+                  Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (context) => LoadingCodeTop()));
                   // 画面遷移処理
                 },
               ),

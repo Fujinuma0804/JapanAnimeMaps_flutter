@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:parts/manual_page/usage_screen.dart';
 import 'package:settings_ui/settings_ui.dart';
 
-import '../point_page/point.dart';
 import '../setting_page/settings.dart';
 
 class Manual extends StatelessWidget {
@@ -54,23 +53,6 @@ class Manual extends StatelessWidget {
                           context,
                           MaterialPageRoute(
                               builder: (context) => UsageScreen()));
-                      // 画面遷移処理
-                    },
-                  ),
-                ],
-              ),
-              SettingsSection(
-                title: const Text('ポイント'),
-                tiles: <SettingsTile>[
-                  SettingsTile.navigation(
-                    leading: const Icon(Icons.monetization_on_outlined),
-                    title: const Text('ポイントについて'),
-                    value: const Text(''),
-                    onPressed: (context) {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => PointPage()),
-                      );
                       // 画面遷移処理
                     },
                   ),
