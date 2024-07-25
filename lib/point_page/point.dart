@@ -4,6 +4,7 @@ import 'package:settings_ui/settings_ui.dart';
 
 import '../manual_page/privacypolicy_screen.dart';
 import '../manual_page/terms_screen.dart';
+import 'chenged_point.dart';
 
 class PointPage extends StatelessWidget {
   const PointPage({Key? key}) : super(key: key);
@@ -49,20 +50,14 @@ class PointPage extends StatelessWidget {
               ),
               SettingsTile.navigation(
                 leading: const Icon(Icons.money),
-                value: const Text(
-                  '準備中…',
-                  style: TextStyle(
-                    color: Colors.grey,
-                  ),
-                ),
                 onPressed: (context) {
-                  // 画面遷移処理
+                  Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (context) => PresentListScreen()));
                 },
                 title: const Text(
                   'ポイントの利用',
-                  style: TextStyle(
-                    color: Colors.grey,
-                  ),
                 ),
               ),
               SettingsTile.navigation(
