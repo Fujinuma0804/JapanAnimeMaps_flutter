@@ -1,0 +1,15 @@
+{
+  "settings": "Settings",
+  "personalInfo": "Personal Information",
+  "profile": "Profile",
+  "general": "General",
+  "notifications": "Notifications",
+  "languageSettings": "Language Settings",
+  "appInfo": "App Information",
+  "announcement": "Announcement",
+  "privacyPolicy": "Privacy Policy",
+  "termsOfService": "Terms of Service",
+  "helpCenter": "Help Center",
+  "aboutApp": "About App",
+  "signOut": "Sign Out"
+}

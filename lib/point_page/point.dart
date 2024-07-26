@@ -11,79 +11,82 @@ class PointPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        title: const Text(
-          'ポイントについて',
-          style: TextStyle(
-            color: Color(0xFF00008b),
-            fontWeight: FontWeight.bold,
+    return WillPopScope(
+      onWillPop: () async => false,
+      child: Scaffold(
+        appBar: AppBar(
+          backgroundColor: Colors.white,
+          title: const Text(
+            'ポイントについて',
+            style: TextStyle(
+              color: Color(0xFF00008b),
+              fontWeight: FontWeight.bold,
+            ),
           ),
         ),
-      ),
-      body: SettingsList(
-        sections: [
-          SettingsSection(
-            title: const Text('ポイント'),
-            tiles: <SettingsTile>[
-              SettingsTile.navigation(
-                leading: const Icon(Icons.monetization_on_outlined),
-                title: const Text('ポイント数'),
-                onPressed: (context) {
-                  Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (context) => const UserPointPage()));
-                  // 画面遷移処理
-                },
-              ),
-            ],
-          ),
-          SettingsSection(
-            title: const Text('利用について'),
-            tiles: <SettingsTile>[
-              SettingsTile.navigation(
-                leading: const Icon(Icons.insert_chart_outlined),
-                title: const Text('ポイントの貯め方'),
-                onPressed: (context) {},
-              ),
-              SettingsTile.navigation(
-                leading: const Icon(Icons.money),
-                onPressed: (context) {
-                  Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (context) => PresentListScreen()));
-                },
-                title: const Text(
-                  'ポイントの利用',
+        body: SettingsList(
+          sections: [
+            SettingsSection(
+              title: const Text('ポイント'),
+              tiles: <SettingsTile>[
+                SettingsTile.navigation(
+                  leading: const Icon(Icons.monetization_on_outlined),
+                  title: const Text('ポイント数'),
+                  onPressed: (context) {
+                    Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) => const UserPointPage()));
+                    // 画面遷移処理
+                  },
                 ),
-              ),
-              SettingsTile.navigation(
-                leading: const Icon(Icons.book_outlined),
-                title: const Text('ポイント利用規約'),
-                onPressed: (context) {
-                  Navigator.push(context,
-                      MaterialPageRoute(builder: (context) => TermsScreen()));
-                  // 画面遷移処理
-                },
-              ),
-              SettingsTile.navigation(
-                leading: const Icon(Icons.privacy_tip_outlined),
-                title: const Text('プライバシーポリシー'),
-                value: const Text(''),
-                onPressed: (context) {
-                  Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (context) => PrivacyPolicyScreen()));
-                  // 画面遷移処理
-                },
-              ),
-            ],
-          ),
-        ],
+              ],
+            ),
+            SettingsSection(
+              title: const Text('利用について'),
+              tiles: <SettingsTile>[
+                SettingsTile.navigation(
+                  leading: const Icon(Icons.insert_chart_outlined),
+                  title: const Text('ポイントの貯め方'),
+                  onPressed: (context) {},
+                ),
+                SettingsTile.navigation(
+                  leading: const Icon(Icons.money),
+                  onPressed: (context) {
+                    Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) => PresentListScreen()));
+                  },
+                  title: const Text(
+                    'ポイントの利用',
+                  ),
+                ),
+                SettingsTile.navigation(
+                  leading: const Icon(Icons.book_outlined),
+                  title: const Text('ポイント利用規約'),
+                  onPressed: (context) {
+                    Navigator.push(context,
+                        MaterialPageRoute(builder: (context) => TermsScreen()));
+                    // 画面遷移処理
+                  },
+                ),
+                SettingsTile.navigation(
+                  leading: const Icon(Icons.privacy_tip_outlined),
+                  title: const Text('プライバシーポリシー'),
+                  value: const Text(''),
+                  onPressed: (context) {
+                    Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) => PrivacyPolicyScreen()));
+                    // 画面遷移処理
+                  },
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
