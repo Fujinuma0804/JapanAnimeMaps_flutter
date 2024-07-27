@@ -9,6 +9,8 @@ class SpotDetailScreen extends StatelessWidget {
   final double latitude;
   final double longitude;
   final String imageUrl;
+  final String sourceTitle;
+  final String sourceLink;
 
   const SpotDetailScreen({
     Key? key,
@@ -17,13 +19,21 @@ class SpotDetailScreen extends StatelessWidget {
     required this.latitude,
     required this.longitude,
     required this.imageUrl,
+    required this.sourceTitle,
+    required this.sourceLink,
   }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('詳細'),
+        title: const Text(
+          '詳細',
+          style: TextStyle(
+            color: Color(0xFF00008b),
+            fontWeight: FontWeight.bold,
+          ),
+        ),
       ),
       body: SingleChildScrollView(
         child: Column(
@@ -38,12 +48,35 @@ class SpotDetailScreen extends StatelessWidget {
               ),
             ),
             if (imageUrl.isNotEmpty)
-              Image.network(
-                imageUrl,
-                fit: BoxFit.cover,
-                height: 200,
-                width: double.infinity,
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Image.network(
+                  imageUrl,
+                  fit: BoxFit.cover,
+                  height: 200,
+                  width: double.infinity,
+                ),
               ),
+            Align(
+              alignment: FractionalOffset.centerRight,
+              child: Text(
+                sourceTitle,
+                style: TextStyle(
+                  color: Colors.grey,
+                  fontSize: 10.0,
+                ),
+              ),
+            ),
+            Align(
+              alignment: FractionalOffset.centerRight,
+              child: Text(
+                sourceLink,
+                style: TextStyle(
+                  fontSize: 10.0,
+                  color: Colors.grey,
+                ),
+              ),
+            ),
             SizedBox(
               height: 200,
               child: GoogleMap(
@@ -217,6 +250,8 @@ class _SpotTestScreenState extends State<SpotTestScreen> {
                       double latitude = locationData['latitude'] ?? 0.0;
                       double longitude = locationData['longitude'] ?? 0.0;
                       String imageUrl = locationData['imageUrl'] ?? '';
+                      String sourceTitle = locationData['sourceTitle'] ?? '';
+                      String sourceLink = locationData['sourceLink'] ?? '';
 
                       return ListTile(
                         title: Text(title),
@@ -239,6 +274,8 @@ class _SpotTestScreenState extends State<SpotTestScreen> {
                                 latitude: latitude,
                                 longitude: longitude,
                                 imageUrl: imageUrl,
+                                sourceTitle: sourceTitle,
+                                sourceLink: sourceLink,
                               ),
                             ),
                           );

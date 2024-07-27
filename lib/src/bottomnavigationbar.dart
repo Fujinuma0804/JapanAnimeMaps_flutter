@@ -3,10 +3,10 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:parts/manual_page/manual.dart';
 import 'package:parts/map_page/map.dart';
-import 'package:parts/search_page/search.dart';
 import 'package:parts/web_page/website.dart';
 
 import '../point_page/point.dart';
+import '../spot_page/anime_list.dart';
 
 class MainScreen extends StatefulWidget {
   @override
@@ -68,10 +68,10 @@ class _MainScreenState extends State<MainScreen> {
             _selectedIndex = index;
           });
         },
-        children: const [
+        children: [
           MapScreen(),
           WebsiteScreen(),
-          SearchPage(),
+          AnimeListPage(),
           PointPage(),
           Manual(),
         ],
