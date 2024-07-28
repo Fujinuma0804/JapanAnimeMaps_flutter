@@ -2,6 +2,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:parts/spot_page/spot_test.dart';
 
+import 'anime_list_detail.dart';
+
 class AnimeListPage extends StatefulWidget {
   @override
   _AnimeListPageState createState() => _AnimeListPageState();
@@ -208,27 +210,6 @@ class _AnimeListPageState extends State<AnimeListPage> {
       context,
       MaterialPageRoute(
         builder: (context) => AnimeDetailsPage(animeName: animeName),
-      ),
-    );
-  }
-}
-
-class AnimeDetailsPage extends StatelessWidget {
-  final String animeName;
-
-  AnimeDetailsPage({required this.animeName});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(animeName),
-      ),
-      body: Center(
-        child: Text(
-          'Details for $animeName',
-          style: TextStyle(fontSize: 24.0),
-        ),
       ),
     );
   }
