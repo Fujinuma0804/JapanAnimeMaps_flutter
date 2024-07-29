@@ -542,6 +542,7 @@ class _MapScreenState extends State<MapScreen> {
                       onMapCreated: (GoogleMapController controller) {
                         _mapController = controller;
                         _moveToCurrentLocation();
+                        _setMapStyle(controller);
                       },
                     ),
           if (_showConfirmation)
@@ -578,5 +579,64 @@ class _MapScreenState extends State<MapScreen> {
         ],
       ),
     );
+  }
+
+  void _setMapStyle(GoogleMapController controller) {
+    controller.setMapStyle('''
+      [
+        {
+          "elementType": "geometry",
+          "stylers": [
+            {
+              "color": "#1d2c4d"
+            }
+          ]
+        },
+        {
+          "elementType": "labels",
+          "stylers": [
+            {
+              "visibility": "off"
+            }
+          ]
+        },
+        {
+          "featureType": "road",
+          "elementType": "labels",
+          "stylers": [
+            {
+              "visibility": "on"
+            }
+          ]
+        },
+        {
+          "featureType": "transit.station",
+          "elementType": "labels",
+          "stylers": [
+            {
+              "visibility": "on"
+            }
+          ]
+        },
+        {
+          "featureType": "road",
+          "elementType": "geometry",
+          "stylers": [
+            {
+              "color": "#304a7d"
+            }
+          ]
+        },
+        {
+          "featureType": "transit.station",
+          "elementType": "geometry",
+          "stylers": [
+            {
+              "color": "#3a4762"
+            }
+          ]
+        }
+      ]
+    ''');
   }
 }
