@@ -1,6 +1,8 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:parts/setting_page/q_a.dart';
 import 'package:settings_ui/settings_ui.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../loading_code/loading_code_top.dart';
 import 'chat_sender.dart';
@@ -8,6 +10,15 @@ import 'mail_sender.dart';
 
 class HelpCenter extends StatelessWidget {
   const HelpCenter({Key? key}) : super(key: key);
+
+  Future<void> _launchURL() async {
+    const url = 'https://page.line.me/446sszel';
+    if (await canLaunch(url)) {
+      await launch(url);
+    } else {
+      throw 'Could not launch $url';
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -38,6 +49,10 @@ class HelpCenter extends StatelessWidget {
                 title: const Text('よくあるご質問を確認'),
                 value: const Text(''),
                 onPressed: (context) {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => QA()),
+                  );
                   // 画面遷移処理
                 },
               ),
@@ -51,8 +66,10 @@ class HelpCenter extends StatelessWidget {
                 title: const Text('メールで問い合わせ'),
                 value: const Text(''),
                 onPressed: (context) {
-                  Navigator.push(context,
-                      MaterialPageRoute(builder: (context) => MailScreen()));
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => MailScreen()),
+                  );
                   // 画面遷移処理
                 },
               ),
@@ -86,8 +103,7 @@ class HelpCenter extends StatelessWidget {
                 title: const Text('LINEで問い合わせ'),
                 value: const Text(''),
                 onPressed: (context) {
-                  Navigator.push(context,
-                      MaterialPageRoute(builder: (context) => MailScreen()));
+                  _launchURL();
                   // 画面遷移処理
                 },
               ),
@@ -120,9 +136,9 @@ class HelpCenter extends StatelessWidget {
                 value: const Text(''),
                 onPressed: (context) {
                   Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (context) => LoadingCodeTop()));
+                    context,
+                    MaterialPageRoute(builder: (context) => LoadingCodeTop()),
+                  );
                   // 画面遷移処理
                 },
               ),

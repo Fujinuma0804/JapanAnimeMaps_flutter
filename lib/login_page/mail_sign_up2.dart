@@ -22,7 +22,7 @@ class _SecondSignUpPageState extends State<SecondSignUpPage> {
 
   String name = '';
   String id = '';
-  String birthday = '';
+  DateTime? birthday;
 
   bool _isLoading = false;
 
@@ -30,7 +30,7 @@ class _SecondSignUpPageState extends State<SecondSignUpPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       extendBodyBehindAppBar: true,
-      resizeToAvoidBottomInset: false,
+      resizeToAvoidBottomInset: true,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -143,35 +143,51 @@ class _SecondSignUpPageState extends State<SecondSignUpPage> {
                         child: SizedBox(
                           width: 350.0,
                           height: 45.0,
-                          child: TextFormField(
-                            onChanged: (value) {
-                              birthday = value;
+                          child: InkWell(
+                            onTap: () async {
+                              final DateTime? picked = await showDatePicker(
+                                context: context,
+                                initialDate: DateTime.now(),
+                                firstDate: DateTime(1900),
+                                lastDate: DateTime.now(),
+                              );
+                              if (picked != null && picked != birthday) {
+                                setState(() {
+                                  birthday = picked;
+                                });
+                              }
                             },
-                            style: const TextStyle(
-                              color: Colors.white,
+                            child: InputDecorator(
+                              decoration: const InputDecoration(
+                                labelText: '誕生日を選択',
+                                labelStyle: TextStyle(
+                                  color: Colors.white,
+                                ),
+                                border: OutlineInputBorder(
+                                  borderSide: BorderSide(
+                                    color: Colors.white,
+                                  ),
+                                ),
+                                enabledBorder: OutlineInputBorder(
+                                  borderSide: BorderSide(
+                                    color: Colors.white,
+                                  ),
+                                ),
+                                focusedBorder: OutlineInputBorder(
+                                  borderSide: BorderSide(
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ),
+                              child: Text(
+                                birthday == null
+                                    ? '誕生日を選択'
+                                    : "${birthday!.year}/${birthday!.month}/${birthday!.day}",
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                ),
+                              ),
                             ),
-                            decoration: const InputDecoration(
-                              labelText: '誕生日を入力',
-                              labelStyle: TextStyle(
-                                color: Colors.white,
-                              ),
-                              border: OutlineInputBorder(
-                                borderSide: BorderSide(
-                                  color: Colors.white,
-                                ),
-                              ),
-                              enabledBorder: OutlineInputBorder(
-                                borderSide: BorderSide(
-                                  color: Colors.white,
-                                ),
-                              ),
-                              focusedBorder: OutlineInputBorder(
-                                borderSide: BorderSide(
-                                  color: Colors.white,
-                                ),
-                              ),
-                            ),
-                            textAlign: TextAlign.left,
                           ),
                         ),
                       ),
@@ -264,7 +280,7 @@ class _SecondSignUpPageState extends State<SecondSignUpPage> {
           'name': name,
           'id': id,
           'email': widget.email,
-          'birthday': birthday,
+          'birthday': birthday?.toIso8601String(),
           'created_at': FieldValue.serverTimestamp(),
         });
 

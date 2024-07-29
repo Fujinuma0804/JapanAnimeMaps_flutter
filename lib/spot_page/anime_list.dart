@@ -77,7 +77,7 @@ class _AnimeListPageState extends State<AnimeListPage> {
                     onChanged: _onSearchChanged,
                     autofocus: true,
                     decoration: InputDecoration(
-                      hintText: 'Search...',
+                      hintText: 'アニメで検索...',
                       hintStyle:
                           TextStyle(color: Colors.grey), // Placeholder color
                       border: InputBorder.none,
