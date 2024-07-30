@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:parts/point_page/point_manual.dart';
 import 'package:parts/point_page/user_point.dart';
 import 'package:settings_ui/settings_ui.dart';
 
@@ -48,7 +49,10 @@ class PointPage extends StatelessWidget {
                 SettingsTile.navigation(
                   leading: const Icon(Icons.insert_chart_outlined),
                   title: const Text('ポイントの貯め方'),
-                  onPressed: (context) {},
+                  onPressed: (context) {
+                    Navigator.push(context,
+                        MaterialPageRoute(builder: (context) => PointManual()));
+                  },
                 ),
                 SettingsTile.navigation(
                   leading: const Icon(Icons.money),
