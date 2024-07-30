@@ -74,7 +74,7 @@ class _MapScreenState extends State<MapScreen> {
 
   void _initializeVideoPlayer() {
     _videoPlayerController = VideoPlayerController.network(
-        'https://firebasestorage.googleapis.com/v0/b/anime-97d2d.appspot.com/o/sky2.mp4?alt=media&token=a7bbb091-bbcd-41f5-91fc-82b05161ea8c');
+        'https://firebasestorage.googleapis.com/v0/b/anime-97d2d.appspot.com/o/sky3.mp4?alt=media&token=700efc46-684e-4d12-9969-9beba75384d6');
     _initializeVideoPlayerFuture =
         _videoPlayerController.initialize().then((_) {
       _videoPlayerController.setLooping(true);
@@ -157,7 +157,7 @@ class _MapScreenState extends State<MapScreen> {
             circleId: const CircleId('current_location'),
             center: _currentPosition!,
             radius: 10,
-            fillColor: Colors.blue.withOpacity(0.5),
+            fillColor: Colors.blue.withOpacity(0.3),
             strokeColor: Colors.blue,
             strokeWidth: 2,
           ),
