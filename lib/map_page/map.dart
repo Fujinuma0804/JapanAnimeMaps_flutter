@@ -9,6 +9,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:http/http.dart' as http;
 import 'package:url_launcher/url_launcher.dart';
+import 'package:video_player/video_player.dart';
 
 class MapScreen extends StatefulWidget {
   const MapScreen({Key? key}) : super(key: key);
@@ -29,16 +30,64 @@ class _MapScreenState extends State<MapScreen> {
   bool _isCorrect = false;
   bool _hasCheckedInAlready = false;
   Marker? _selectedMarker;
-  late User _user; // Firebase user
-  late String _userId; // User ID
-  bool _isSubmitting = false; // Check-in submission state
+  late User _user;
+  late String _userId;
+  bool _isSubmitting = false;
+
+  late VideoPlayerController _videoPlayerController;
+  late Future<void> _initializeVideoPlayerFuture;
+
+  static const String _mapStyle = '''
+  [
+    {
+      "featureType": "all",
+      "elementType": "labels",
+      "stylers": [
+        { "visibility": "off" }
+      ]
+    },
+    {
+      "featureType": "road",
+      "elementType": "labels",
+      "stylers": [
+        { "visibility": "on" }
+      ]
+    },
+    {
+      "featureType": "transit.station",
+      "elementType": "labels",
+      "stylers": [
+        { "visibility": "on" }
+      ]
+    }
+  ]
+  ''';
 
   @override
   void initState() {
     super.initState();
     _getCurrentLocation();
     _loadMarkersFromFirestore();
-    _getUser(); // Fetch current user
+    _getUser();
+    _initializeVideoPlayer();
+  }
+
+  void _initializeVideoPlayer() {
+    _videoPlayerController = VideoPlayerController.network(
+        'https://firebasestorage.googleapis.com/v0/b/anime-97d2d.appspot.com/o/sky2.mp4?alt=media&token=a7bbb091-bbcd-41f5-91fc-82b05161ea8c');
+    _initializeVideoPlayerFuture =
+        _videoPlayerController.initialize().then((_) {
+      _videoPlayerController.setLooping(true);
+      _videoPlayerController.setVolume(0.0);
+      _videoPlayerController.play();
+      setState(() {});
+    });
+  }
+
+  @override
+  void dispose() {
+    _videoPlayerController.dispose();
+    super.dispose();
   }
 
   Future<void> _getUser() async {
@@ -107,7 +156,7 @@ class _MapScreenState extends State<MapScreen> {
           Circle(
             circleId: const CircleId('current_location'),
             center: _currentPosition!,
-            radius: 10, // 半径を小さくして○を小さくします
+            radius: 10,
             fillColor: Colors.blue.withOpacity(0.5),
             strokeColor: Colors.blue,
             strokeWidth: 2,
@@ -193,7 +242,7 @@ class _MapScreenState extends State<MapScreen> {
       );
       print('Distance: $distance meters');
       setState(() {
-        _canCheckIn = distance <= 500; // 500m以内ならチェックイン可能
+        _canCheckIn = distance <= 500;
       });
     }
   }
@@ -463,7 +512,6 @@ class _MapScreenState extends State<MapScreen> {
     });
 
     try {
-      // Add check-in to Firestore
       await FirebaseFirestore.instance
           .collection('users')
           .doc(_userId)
@@ -476,7 +524,6 @@ class _MapScreenState extends State<MapScreen> {
         'timestamp': FieldValue.serverTimestamp(),
       });
 
-      // Increment check-in count for the location
       DocumentReference locationRef =
           FirebaseFirestore.instance.collection('locations').doc(locationId);
 
@@ -528,22 +575,54 @@ class _MapScreenState extends State<MapScreen> {
               ? const Center(child: CircularProgressIndicator())
               : _errorOccurred
                   ? const Center(child: Text('エラーが発生しました。'))
-                  : GoogleMap(
-                      initialCameraPosition: const CameraPosition(
-                        target: LatLng(35.658581, 139.745433),
-                        zoom: 16.0,
-                        bearing: 30.0,
-                        tilt: 60.0,
-                      ),
-                      markers: _markers,
-                      circles: _circles,
-                      myLocationEnabled: true,
-                      myLocationButtonEnabled: true,
-                      onMapCreated: (GoogleMapController controller) {
-                        _mapController = controller;
-                        _moveToCurrentLocation();
-                        _setMapStyle(controller);
-                      },
+                  : Stack(
+                      children: [
+                        GoogleMap(
+                          initialCameraPosition: const CameraPosition(
+                            target: LatLng(35.658581, 139.745433),
+                            zoom: 16.0,
+                            bearing: 30.0,
+                            tilt: 60.0,
+                          ),
+                          markers: _markers,
+                          circles: _circles,
+                          myLocationEnabled: true,
+                          myLocationButtonEnabled: true,
+                          onMapCreated: (GoogleMapController controller) {
+                            _mapController = controller;
+                            controller.setMapStyle(_mapStyle);
+                            _moveToCurrentLocation();
+                          },
+                        ),
+                        FutureBuilder(
+                          future: _initializeVideoPlayerFuture,
+                          builder: (context, snapshot) {
+                            if (snapshot.connectionState ==
+                                ConnectionState.done) {
+                              return Positioned.fill(
+                                child: IgnorePointer(
+                                  child: Opacity(
+                                    opacity: 0.4,
+                                    child: FittedBox(
+                                      fit: BoxFit.cover,
+                                      child: SizedBox(
+                                        width: _videoPlayerController
+                                            .value.size.width,
+                                        height: _videoPlayerController
+                                            .value.size.height,
+                                        child:
+                                            VideoPlayer(_videoPlayerController),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              );
+                            } else {
+                              return const SizedBox.shrink();
+                            }
+                          },
+                        ),
+                      ],
                     ),
           if (_showConfirmation)
             Center(
@@ -579,64 +658,5 @@ class _MapScreenState extends State<MapScreen> {
         ],
       ),
     );
-  }
-
-  void _setMapStyle(GoogleMapController controller) {
-    controller.setMapStyle('''
-      [
-        {
-          "elementType": "geometry",
-          "stylers": [
-            {
-              "color": "#1d2c4d"
-            }
-          ]
-        },
-        {
-          "elementType": "labels",
-          "stylers": [
-            {
-              "visibility": "off"
-            }
-          ]
-        },
-        {
-          "featureType": "road",
-          "elementType": "labels",
-          "stylers": [
-            {
-              "visibility": "on"
-            }
-          ]
-        },
-        {
-          "featureType": "transit.station",
-          "elementType": "labels",
-          "stylers": [
-            {
-              "visibility": "on"
-            }
-          ]
-        },
-        {
-          "featureType": "road",
-          "elementType": "geometry",
-          "stylers": [
-            {
-              "color": "#304a7d"
-            }
-          ]
-        },
-        {
-          "featureType": "transit.station",
-          "elementType": "geometry",
-          "stylers": [
-            {
-              "color": "#3a4762"
-            }
-          ]
-        }
-      ]
-    ''');
   }
 }
