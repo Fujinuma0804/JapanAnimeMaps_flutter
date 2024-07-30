@@ -6,7 +6,7 @@ import 'package:parts/map_page/map.dart';
 import 'package:parts/web_page/website.dart';
 
 import '../point_page/point.dart';
-import '../spot_page/anime_list.dart';
+import '../spot_page/anime_list_en.dart';
 
 class MainScreen extends StatefulWidget {
   @override
@@ -71,7 +71,7 @@ class _MainScreenState extends State<MainScreen> {
         children: [
           MapScreen(),
           WebsiteScreen(),
-          AnimeListPage(),
+          AnimeListEnPage(),
           PointPage(),
           Manual(),
         ],

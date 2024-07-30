@@ -1,15 +1,14 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_firestore/cloud_firestore.dart'; // 追加
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-
-import '../src/bottomnavigationbar.dart';
+import 'package:flutter/services.dart';
+import 'package:intl/intl.dart';
+import 'package:parts/login_page/login_page.dart';
 
 class SecondSignUpPage extends StatefulWidget {
-  final String email;
-  final String password;
+  final UserCredential userCredential;
 
-  const SecondSignUpPage(
-      {required this.email, required this.password, Key? key})
+  const SecondSignUpPage({Key? key, required this.userCredential})
       : super(key: key);
 
   @override
@@ -17,14 +16,47 @@ class SecondSignUpPage extends StatefulWidget {
 }
 
 class _SecondSignUpPageState extends State<SecondSignUpPage> {
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final _firestore = FirebaseFirestore.instance; // 追加
 
+  String userName = '';
   String name = '';
   String id = '';
-  DateTime? birthday;
+  DateTime? selectedDate;
 
   bool _isLoading = false;
+  String _language = '日本語';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserLanguage();
+  }
+
+  void _loadUserLanguage() async {
+    DocumentSnapshot userDoc = await _firestore
+        .collection('users')
+        .doc(widget.userCredential.user?.uid)
+        .get();
+
+    if (userDoc.exists && userDoc['language'] != null) {
+      setState(() {
+        _language = userDoc['language'];
+      });
+    }
+  }
+
+  Future<void> _selectDate(BuildContext context) async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: DateTime(2000),
+      firstDate: DateTime(1900),
+      lastDate: DateTime.now(),
+    );
+    if (picked != null && picked != selectedDate)
+      setState(() {
+        selectedDate = picked;
+      });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -32,11 +64,12 @@ class _SecondSignUpPageState extends State<SecondSignUpPage> {
       extendBodyBehindAppBar: true,
       resizeToAvoidBottomInset: true,
       appBar: AppBar(
+        automaticallyImplyLeading: false,
         backgroundColor: Colors.transparent,
         elevation: 0,
-        title: const Text(
-          '登録情報を入力',
-          style: TextStyle(
+        title: Text(
+          _language == '日本語' ? '追加情報を登録' : 'Sign Up Additional Info',
+          style: const TextStyle(
             color: Colors.white,
             fontWeight: FontWeight.bold,
           ),
@@ -50,195 +83,214 @@ class _SecondSignUpPageState extends State<SecondSignUpPage> {
               fit: BoxFit.cover,
             ),
           ),
-          DraggableScrollableSheet(
-            initialChildSize: 0.8,
-            minChildSize: 0.5,
-            maxChildSize: 0.9,
-            builder: (BuildContext context, ScrollController scrollController) {
-              return SingleChildScrollView(
-                controller: scrollController,
-                child: Padding(
-                  padding: EdgeInsets.only(
-                    bottom: MediaQuery.of(context).viewInsets.bottom,
-                    top: 20,
+          Center(
+            child: SingleChildScrollView(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(context).viewInsets.bottom,
+                top: 20,
+              ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Center(
+                    child: SizedBox(
+                      width: 350.0,
+                      height: 45.0,
+                      child: TextFormField(
+                        onChanged: (value) {
+                          id = value;
+                        },
+                        style: const TextStyle(
+                          color: Colors.white,
+                        ),
+                        decoration: InputDecoration(
+                          labelText: _language == '日本語'
+                              ? 'ユーザーIDを入力'
+                              : 'Enter User ID',
+                          labelStyle: const TextStyle(
+                            color: Colors.white,
+                          ),
+                          border: const OutlineInputBorder(
+                            borderSide: BorderSide(
+                              color: Colors.white,
+                            ),
+                          ),
+                          enabledBorder: const OutlineInputBorder(
+                            borderSide: BorderSide(
+                              color: Colors.white,
+                            ),
+                          ),
+                          focusedBorder: const OutlineInputBorder(
+                            borderSide: BorderSide(
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                        textAlign: TextAlign.left,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.singleLineFormatter
+                        ],
+                      ),
+                    ),
                   ),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Center(
-                        child: SizedBox(
-                          width: 350.0,
-                          height: 45.0,
+                  const SizedBox(height: 20.0),
+                  Center(
+                    child: SizedBox(
+                      width: 350.0,
+                      height: 45.0,
+                      child: TextFormField(
+                        onChanged: (value) {
+                          name = value;
+                        },
+                        style: const TextStyle(
+                          color: Colors.white,
+                        ),
+                        decoration: InputDecoration(
+                          labelText:
+                              _language == '日本語' ? '名前を入力' : 'Enter Your Name',
+                          labelStyle: const TextStyle(
+                            color: Colors.white,
+                          ),
+                          border: const OutlineInputBorder(
+                            borderSide: BorderSide(
+                              color: Colors.white,
+                            ),
+                          ),
+                          enabledBorder: const OutlineInputBorder(
+                            borderSide: BorderSide(
+                              color: Colors.white,
+                            ),
+                          ),
+                          focusedBorder: const OutlineInputBorder(
+                            borderSide: BorderSide(
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                        textAlign: TextAlign.left,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.singleLineFormatter
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 20.0),
+                  Center(
+                    child: SizedBox(
+                      width: 350.0,
+                      height: 45.0,
+                      child: GestureDetector(
+                        onTap: () => _selectDate(context),
+                        child: AbsorbPointer(
                           child: TextFormField(
-                            onChanged: (value) {
-                              name = value;
-                            },
+                            decoration: InputDecoration(
+                              labelText: _language == '日本語'
+                                  ? '誕生日を選択'
+                                  : 'Select Birthday',
+                              labelStyle: const TextStyle(
+                                color: Colors.white,
+                              ),
+                              border: const OutlineInputBorder(
+                                borderSide: BorderSide(
+                                  color: Colors.white,
+                                ),
+                              ),
+                              enabledBorder: const OutlineInputBorder(
+                                borderSide: BorderSide(
+                                  color: Colors.white,
+                                ),
+                              ),
+                              focusedBorder: const OutlineInputBorder(
+                                borderSide: BorderSide(
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ),
                             style: const TextStyle(
                               color: Colors.white,
                             ),
-                            decoration: const InputDecoration(
-                              labelText: '名前を入力',
-                              labelStyle: TextStyle(
-                                color: Colors.white,
-                              ),
-                              border: OutlineInputBorder(
-                                borderSide: BorderSide(
-                                  color: Colors.white,
-                                ),
-                              ),
-                              enabledBorder: OutlineInputBorder(
-                                borderSide: BorderSide(
-                                  color: Colors.white,
-                                ),
-                              ),
-                              focusedBorder: OutlineInputBorder(
-                                borderSide: BorderSide(
-                                  color: Colors.white,
-                                ),
-                              ),
-                            ),
                             textAlign: TextAlign.left,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 20.0),
-                      Center(
-                        child: SizedBox(
-                          width: 350.0,
-                          height: 45.0,
-                          child: TextFormField(
-                            onChanged: (value) {
-                              id = value.toLowerCase(); // 小文字に変換して代入
-                            },
-                            style: const TextStyle(
-                              color: Colors.white,
-                            ),
-                            decoration: const InputDecoration(
-                              labelText: 'IDを入力（小文字と数字のみ）',
-                              labelStyle: TextStyle(
-                                color: Colors.white,
-                              ),
-                              border: OutlineInputBorder(
-                                borderSide: BorderSide(
-                                  color: Colors.white,
-                                ),
-                              ),
-                              enabledBorder: OutlineInputBorder(
-                                borderSide: BorderSide(
-                                  color: Colors.white,
-                                ),
-                              ),
-                              focusedBorder: OutlineInputBorder(
-                                borderSide: BorderSide(
-                                  color: Colors.white,
-                                ),
-                              ),
-                            ),
-                            textAlign: TextAlign.left,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 20.0),
-                      Center(
-                        child: SizedBox(
-                          width: 350.0,
-                          height: 45.0,
-                          child: InkWell(
-                            onTap: () async {
-                              final DateTime? picked = await showDatePicker(
-                                context: context,
-                                initialDate: DateTime.now(),
-                                firstDate: DateTime(1900),
-                                lastDate: DateTime.now(),
-                              );
-                              if (picked != null && picked != birthday) {
-                                setState(() {
-                                  birthday = picked;
-                                });
-                              }
-                            },
-                            child: InputDecorator(
-                              decoration: const InputDecoration(
-                                labelText: '誕生日を選択',
-                                labelStyle: TextStyle(
-                                  color: Colors.white,
-                                ),
-                                border: OutlineInputBorder(
-                                  borderSide: BorderSide(
-                                    color: Colors.white,
-                                  ),
-                                ),
-                                enabledBorder: OutlineInputBorder(
-                                  borderSide: BorderSide(
-                                    color: Colors.white,
-                                  ),
-                                ),
-                                focusedBorder: OutlineInputBorder(
-                                  borderSide: BorderSide(
-                                    color: Colors.white,
-                                  ),
-                                ),
-                              ),
-                              child: Text(
-                                birthday == null
-                                    ? '誕生日を選択'
-                                    : "${birthday!.year}/${birthday!.month}/${birthday!.day}",
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                ),
-                              ),
+                            controller: TextEditingController(
+                              text: selectedDate == null
+                                  ? ''
+                                  : DateFormat('yyyy-MM-dd')
+                                      .format(selectedDate!),
                             ),
                           ),
                         ),
                       ),
-                      const SizedBox(height: 50.0),
-                      SizedBox(
-                        height: 50.0,
-                        width: 200.0,
-                        child: ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            side: const BorderSide(
-                              color: Colors.white,
-                            ),
-                            backgroundColor: Colors.transparent,
-                          ),
-                          onPressed: _isLoading ? null : _signUp,
-                          child: _isLoading
-                              ? const CircularProgressIndicator(
-                                  valueColor: AlwaysStoppedAnimation<Color>(
-                                      Colors.white),
-                                )
-                              : const Text(
-                                  '登録',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 15.0,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                        ),
-                      ),
-                      const SizedBox(height: 35.0),
-                    ],
+                    ),
                   ),
-                ),
-              );
-            },
+                  const SizedBox(height: 50.0),
+                  SizedBox(
+                    height: 50.0,
+                    width: 200.0,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        side: const BorderSide(
+                          color: Colors.white,
+                        ),
+                        backgroundColor: Colors.transparent,
+                      ),
+                      onPressed: _isLoading ? null : _next,
+                      child: _isLoading
+                          ? const CircularProgressIndicator(
+                              valueColor:
+                                  AlwaysStoppedAnimation<Color>(Colors.white),
+                            )
+                          : Text(
+                              _language == '日本語' ? '登録' : 'Sign Up',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 15.0,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                    ),
+                  ),
+                  const SizedBox(height: 25.0),
+                  SizedBox(
+                    height: 50.0,
+                    width: 200.0,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        side: const BorderSide(
+                          color: Colors.white,
+                        ),
+                        backgroundColor: Colors.transparent,
+                      ),
+                      onPressed: () {
+                        Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (context) => const LoginPage()));
+                      },
+                      child: Text(
+                        _language == '日本語' ? '戻る' : 'Back',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 35.0),
+                ],
+              ),
+            ),
           ),
         ],
       ),
     );
   }
 
-  void _signUp() async {
-    // 正規表現パターン: 小文字アルファベットと数字のみを許可する
-    final RegExp idPattern = RegExp(r'^[a-z0-9]+$');
-
-    // IDがパターンに一致するかチェック
-    if (!idPattern.hasMatch(id)) {
+  void _next() async {
+    if (id.isEmpty || name.isEmpty || selectedDate == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('IDは小文字アルファベットと数字のみ使用できます。'),
+        SnackBar(
+          content: Text(_language == '日本語'
+              ? '全てのフィールドを入力してください。'
+              : 'Please fill in all fields.'),
         ),
       );
       return;
@@ -249,75 +301,38 @@ class _SecondSignUpPageState extends State<SecondSignUpPage> {
     });
 
     try {
-      // FirestoreでIDの重複をチェック
-      final idExists = await _firestore
+      // Firestoreに追加情報を保存
+      await _firestore
           .collection('users')
-          .where('id', isEqualTo: id)
-          .limit(1)
-          .get();
+          .doc(widget.userCredential.user?.uid)
+          .update({
+        'name': name,
+        'id': id,
+        'birthday': selectedDate,
+        'created_at': FieldValue.serverTimestamp(), // 作成日時を追加
+      });
 
-      if (idExists.docs.isNotEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('このIDは既に使用されています。別のIDをお試しください。'),
-          ),
-        );
-        setState(() {
-          _isLoading = false;
-        });
-        return;
-      }
-
-      // Firebase Authでユーザを登録
-      final newUser = await _auth.createUserWithEmailAndPassword(
-        email: widget.email,
-        password: widget.password,
-      );
-
-      if (newUser != null) {
-        // Firestoreにユーザ情報を保存
-        await _firestore.collection('users').doc(newUser.user?.uid).set({
-          'name': name,
-          'id': id,
-          'email': widget.email,
-          'birthday': birthday?.toIso8601String(),
-          'created_at': FieldValue.serverTimestamp(),
-        });
-
-        // メイン画面に遷移
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => MainScreen()),
-        );
-      }
-    } on FirebaseAuthException catch (e) {
-      String errorMessage;
-      switch (e.code) {
-        case 'email-already-in-use':
-          errorMessage = 'このメールアドレスは既に使用されています。';
-          break;
-        case 'invalid-email':
-          errorMessage = 'メールアドレスのフォーマットが正しくありません。';
-          break;
-        case 'weak-password':
-          errorMessage = 'パスワードが簡単すぎます。';
-          break;
-        default:
-          errorMessage = '登録に失敗しました。もう一度お試しください。';
-          break;
-      }
-      print('Error code: ${e.code}');
-      print('Error message: ${e.message}');
+      // 登録完了メッセージを表示
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(errorMessage),
+          content: Text(_language == '日本語'
+              ? '登録が完了しました。'
+              : 'Registration completed successfully.'),
+        ),
+      );
+
+      // ログインページへ遷移
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => const LoginPage(),
         ),
       );
     } catch (e) {
-      print('Error: $e');
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('登録に失敗しました。もう一度お試しください。'),
+        SnackBar(
+          content: Text(
+              _language == '日本語' ? 'エラーが発生しました: $e' : 'An error occurred: $e'),
         ),
       );
     } finally {

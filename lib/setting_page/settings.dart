@@ -1,6 +1,8 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:settings_ui/settings_ui.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../apps_about/apps_about.dart';
 import '../help_page/help.dart';
@@ -10,8 +12,91 @@ import '../notification/notification.dart';
 import '../profile_page/profile.dart';
 import '../top_page/welcome_page.dart';
 
-class Settings extends StatelessWidget {
+class Settings extends StatefulWidget {
   const Settings({Key? key}) : super(key: key);
+
+  @override
+  _SettingsState createState() => _SettingsState();
+}
+
+class _SettingsState extends State<Settings> {
+  String _language = '日本語';
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadLanguagePreference();
+  }
+
+  Future<void> _loadLanguagePreference() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _language = prefs.getString('language') ?? '日本語';
+    });
+  }
+
+  Future<void> _saveLanguagePreference(String language) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.setString('language', language);
+  }
+
+  Future<void> _updateUserLanguageInFirestore(String language) async {
+    User? user = _auth.currentUser;
+    if (user != null) {
+      FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .update({'language': language});
+    }
+  }
+
+  void _changeLanguage(String language) {
+    setState(() {
+      _language = language;
+    });
+    _saveLanguagePreference(language);
+    _updateUserLanguageInFirestore(language);
+  }
+
+  void _showLanguageDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Column(children: [
+            Text('言語設定'),
+            Text(
+              '変更後はアプリを再起動してください。',
+              style: TextStyle(
+                color: Colors.black,
+                fontSize: 15.0,
+              ),
+            )
+          ]),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                title: Text('日本語'),
+                onTap: () {
+                  _changeLanguage('日本語');
+                  Navigator.of(context).pop();
+                },
+              ),
+              ListTile(
+                title: Text('English'),
+                onTap: () {
+                  _changeLanguage('English');
+                  Navigator.of(context).pop();
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -66,8 +151,9 @@ class Settings extends StatelessWidget {
                 SettingsTile.navigation(
                   leading: const Icon(Icons.language),
                   title: const Text('言語設定'),
+                  value: Text(_language),
                   onPressed: (context) {
-                    // 画面遷移処理
+                    _showLanguageDialog(context);
                   },
                 ),
               ],

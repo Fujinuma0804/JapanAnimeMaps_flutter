@@ -1,6 +1,7 @@
+import 'package:cloud_firestore/cloud_firestore.dart'; // 追加
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart'; // 追加
+import 'package:flutter/services.dart';
 import 'package:parts/login_page/login_page.dart';
 
 import 'mail_sign_up2.dart';
@@ -14,6 +15,7 @@ class MailSignUpPage extends StatefulWidget {
 
 class _MailSignUpPageState extends State<MailSignUpPage> {
   final _auth = FirebaseAuth.instance;
+  final _firestore = FirebaseFirestore.instance; // 追加
 
   String email = '';
   String password = '';
@@ -21,6 +23,7 @@ class _MailSignUpPageState extends State<MailSignUpPage> {
 
   bool _isObscure = true;
   bool _isLoading = false;
+  String _language = '日本語';
 
   @override
   Widget build(BuildContext context) {
@@ -31,13 +34,39 @@ class _MailSignUpPageState extends State<MailSignUpPage> {
         automaticallyImplyLeading: false,
         backgroundColor: Colors.transparent,
         elevation: 0,
-        title: const Text(
-          'メールアドレスで登録',
-          style: TextStyle(
+        title: Text(
+          _language == '日本語' ? 'メールアドレスで登録' : 'Sign Up with Email',
+          style: const TextStyle(
             color: Colors.white,
             fontWeight: FontWeight.bold,
           ),
         ),
+        actions: [
+          DropdownButton<String>(
+            value: _language,
+            dropdownColor: Colors.black,
+            icon: const Icon(Icons.language, color: Colors.white),
+            underline: Container(
+              height: 2,
+              color: Colors.transparent,
+            ),
+            onChanged: (String? newValue) {
+              setState(() {
+                _language = newValue!;
+              });
+            },
+            items: <String>['日本語', 'English']
+                .map<DropdownMenuItem<String>>((String value) {
+              return DropdownMenuItem<String>(
+                value: value,
+                child: Text(
+                  value,
+                  style: const TextStyle(color: Colors.white),
+                ),
+              );
+            }).toList(),
+          ),
+        ],
       ),
       body: Stack(
         children: [
@@ -67,33 +96,34 @@ class _MailSignUpPageState extends State<MailSignUpPage> {
                         style: const TextStyle(
                           color: Colors.white,
                         ),
-                        decoration: const InputDecoration(
-                          labelText: 'メールアドレスを入力',
-                          labelStyle: TextStyle(
+                        decoration: InputDecoration(
+                          labelText: _language == '日本語'
+                              ? 'メールアドレスを入力'
+                              : 'Enter Email Address',
+                          labelStyle: const TextStyle(
                             color: Colors.white,
                           ),
-                          border: OutlineInputBorder(
+                          border: const OutlineInputBorder(
                             borderSide: BorderSide(
                               color: Colors.white,
                             ),
                           ),
-                          enabledBorder: OutlineInputBorder(
+                          enabledBorder: const OutlineInputBorder(
                             borderSide: BorderSide(
                               color: Colors.white,
                             ),
                           ),
-                          focusedBorder: OutlineInputBorder(
+                          focusedBorder: const OutlineInputBorder(
                             borderSide: BorderSide(
                               color: Colors.white,
                             ),
                           ),
                         ),
                         textAlign: TextAlign.left,
-                        keyboardType:
-                            TextInputType.emailAddress, // メールアドレス用のキーボードタイプを指定
+                        keyboardType: TextInputType.emailAddress,
                         inputFormatters: [
                           FilteringTextInputFormatter.singleLineFormatter
-                        ], // 複数行の入力を防ぐためのフォーマッター
+                        ],
                       ),
                     ),
                   ),
@@ -124,7 +154,9 @@ class _MailSignUpPageState extends State<MailSignUpPage> {
                               color: Colors.white,
                             ),
                           ),
-                          labelText: 'パスワードを入力',
+                          labelText: _language == '日本語'
+                              ? 'パスワードを入力'
+                              : 'Enter Password',
                           labelStyle: const TextStyle(
                             color: Colors.white,
                           ),
@@ -175,7 +207,9 @@ class _MailSignUpPageState extends State<MailSignUpPage> {
                               color: Colors.white,
                             ),
                           ),
-                          labelText: 'パスワードを再度入力',
+                          labelText: _language == '日本語'
+                              ? 'パスワードを再度入力'
+                              : 'Re-enter Password',
                           labelStyle: const TextStyle(
                             color: Colors.white,
                           ),
@@ -216,9 +250,9 @@ class _MailSignUpPageState extends State<MailSignUpPage> {
                               valueColor:
                                   AlwaysStoppedAnimation<Color>(Colors.white),
                             )
-                          : const Text(
-                              '次へ',
-                              style: TextStyle(
+                          : Text(
+                              _language == '日本語' ? '次へ' : 'Next',
+                              style: const TextStyle(
                                 color: Colors.white,
                                 fontSize: 15.0,
                                 fontWeight: FontWeight.bold,
@@ -243,9 +277,9 @@ class _MailSignUpPageState extends State<MailSignUpPage> {
                             MaterialPageRoute(
                                 builder: (context) => const LoginPage()));
                       },
-                      child: const Text(
-                        '戻る',
-                        style: TextStyle(
+                      child: Text(
+                        _language == '日本語' ? '戻る' : 'Back',
+                        style: const TextStyle(
                           color: Colors.white,
                           fontWeight: FontWeight.bold,
                         ),
@@ -262,11 +296,13 @@ class _MailSignUpPageState extends State<MailSignUpPage> {
     );
   }
 
-  void _next() {
+  void _next() async {
     if (!_isValidEmail(email)) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('正しい形式のメールアドレスを入力してください。'),
+        SnackBar(
+          content: Text(_language == '日本語'
+              ? '正しい形式のメールアドレスを入力してください。'
+              : 'Please enter a valid email address.'),
         ),
       );
       return;
@@ -274,29 +310,57 @@ class _MailSignUpPageState extends State<MailSignUpPage> {
 
     if (password != confirmPassword) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('パスワードが一致しません。'),
+        SnackBar(
+          content: Text(
+              _language == '日本語' ? 'パスワードが一致しません。' : 'Passwords do not match.'),
         ),
       );
       return;
     }
 
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => SecondSignUpPage(
-          email: email,
-          password: password,
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      // FirebaseAuthを使って新規ユーザーを作成
+      UserCredential userCredential =
+          await _auth.createUserWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+
+      // Firestoreにユーザー情報を保存
+      await _firestore.collection('users').doc(userCredential.user?.uid).set({
+        'email': email,
+        'language': _language,
+      });
+
+      // 次のページへ遷移
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) =>
+              SecondSignUpPage(userCredential: userCredential),
         ),
-      ),
-    );
+      );
+    } on FirebaseAuthException catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(_language == '日本語'
+              ? 'エラーが発生しました: ${e.message}'
+              : 'An error occurred: ${e.message}'),
+        ),
+      );
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
   }
 
   bool _isValidEmail(String email) {
-    // 正規表現を用いてメールアドレスの形式をチェック
-    // メールアドレスの形式は各種の正規表現パターンで表されますが、一例として以下のパターンを利用しています。
-    // 実際の使用に応じて適切なパターンを選択してください。
-    final emailRegExp = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
-    return emailRegExp.hasMatch(email);
+    final emailRegex = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$');
+    return emailRegex.hasMatch(email);
   }
 }
