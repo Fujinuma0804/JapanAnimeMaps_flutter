@@ -1,7 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:parts/spot_page/spot_test.dart';
-import 'package:translator/translator.dart'; // Add this import for translation
+import 'package:translator/translator.dart';
 
 import 'anime_list_detail_en.dart';
 
@@ -13,12 +13,12 @@ class AnimeListEnPage extends StatefulWidget {
 class _AnimeListEnPageState extends State<AnimeListEnPage> {
   final FirebaseFirestore firestore = FirebaseFirestore.instance;
   final TextEditingController _searchController = TextEditingController();
-  final translator = GoogleTranslator(); // Initialize the translator
+  final translator = GoogleTranslator();
   String _searchQuery = '';
   bool _isSearching = false;
 
-  Future<Map<String, String>> _fetchAnimeNamesAndImages() async {
-    Map<String, String> animeData = {};
+  Future<Map<String, Map<String, String>>> _fetchAnimeNamesAndImages() async {
+    Map<String, Map<String, String>> animeData = {};
     try {
       QuerySnapshot snapshot = await firestore.collection('locations').get();
       Map<String, QueryDocumentSnapshot> minIdDocs = {};
@@ -47,7 +47,10 @@ class _AnimeListEnPageState extends State<AnimeListEnPage> {
             await translator.translate(animeName, to: 'en');
         String translatedAnimeName = translation.text;
 
-        animeData[translatedAnimeName] = imageUrl;
+        animeData[animeName] = {
+          'translatedName': translatedAnimeName,
+          'imageUrl': imageUrl
+        };
       }
     } catch (e) {
       print("Error fetching and translating anime names and images: $e");
@@ -138,7 +141,7 @@ class _AnimeListEnPageState extends State<AnimeListEnPage> {
               ),
             ),
             Expanded(
-              child: FutureBuilder<Map<String, String>>(
+              child: FutureBuilder<Map<String, Map<String, String>>>(
                 future: _fetchAnimeNamesAndImages(),
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
@@ -151,8 +154,9 @@ class _AnimeListEnPageState extends State<AnimeListEnPage> {
                   } else {
                     final allAnimeEntries = snapshot.data!.entries.toList();
                     final filteredAnimeEntries = allAnimeEntries
-                        .where((entry) =>
-                            entry.key.toLowerCase().contains(_searchQuery))
+                        .where((entry) => entry.value['translatedName']!
+                            .toLowerCase()
+                            .contains(_searchQuery))
                         .toList();
 
                     if (filteredAnimeEntries.isEmpty) {
@@ -168,10 +172,13 @@ class _AnimeListEnPageState extends State<AnimeListEnPage> {
                       ),
                       itemCount: filteredAnimeEntries.length,
                       itemBuilder: (context, index) {
-                        final animeName = filteredAnimeEntries[index].key;
-                        final imageUrl = filteredAnimeEntries[index].value;
+                        final animeNameJa = filteredAnimeEntries[index].key;
+                        final animeNameEn = filteredAnimeEntries[index]
+                            .value['translatedName']!;
+                        final imageUrl =
+                            filteredAnimeEntries[index].value['imageUrl']!;
                         return GestureDetector(
-                          onTap: () => _navigateToDetails(context, animeName),
+                          onTap: () => _navigateToDetails(context, animeNameJa),
                           child: Padding(
                             padding: const EdgeInsets.all(4.0),
                             child: Column(
@@ -189,7 +196,7 @@ class _AnimeListEnPageState extends State<AnimeListEnPage> {
                                 ),
                                 SizedBox(height: 4.0),
                                 Text(
-                                  animeName,
+                                  animeNameEn,
                                   textAlign: TextAlign.center,
                                   style: TextStyle(
                                     fontSize: 14.0,
@@ -212,29 +219,12 @@ class _AnimeListEnPageState extends State<AnimeListEnPage> {
     );
   }
 
-  void _navigateToDetails(BuildContext context, String animeNameEn) async {
-    try {
-      // 英語から日本語に翻訳
-      final translation =
-          await translator.translate(animeNameEn, from: 'en', to: 'ja');
-      String animeNameJa = translation.text;
-
-      // 日本語の名前でAnimeDetailsEnPageに遷移
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => AnimeDetailsEnPage(animeName: animeNameJa),
-        ),
-      );
-    } catch (e) {
-      print("Error translating anime name: $e");
-      // エラーが発生した場合、英語の名前をそのまま使用
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => AnimeDetailsEnPage(animeName: animeNameEn),
-        ),
-      );
-    }
+  void _navigateToDetails(BuildContext context, String animeNameJa) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => AnimeDetailsEnPage(animeName: animeNameJa),
+      ),
+    );
   }
 }

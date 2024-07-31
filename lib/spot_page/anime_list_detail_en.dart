@@ -9,8 +9,7 @@ class AnimeDetailsEnPage extends StatelessWidget {
 
   AnimeDetailsEnPage({required this.animeName});
 
-  Future<List<Map<String, dynamic>>>
-      _fetchAndTranslateLocationsForAnime() async {
+  Future<List<Map<String, dynamic>>> _fetchLocationsForAnime() async {
     List<Map<String, dynamic>> locations = [];
     try {
       QuerySnapshot snapshot = await FirebaseFirestore.instance
@@ -20,17 +19,10 @@ class AnimeDetailsEnPage extends StatelessWidget {
 
       for (var doc in snapshot.docs) {
         var data = doc.data() as Map<String, dynamic>;
-
-        // タイトルと説明を翻訳
-        Translation translatedTitle =
-            await translator.translate(data['title'] ?? '', to: 'en');
-        Translation translatedDescription =
-            await translator.translate(data['description'] ?? '', to: 'en');
-
         locations.add({
-          'title': translatedTitle.text, // .textを使用して文字列を取得
+          'title': data['title'] ?? '',
           'imageUrl': data['imageUrl'] ?? '',
-          'description': translatedDescription.text, // .textを使用して文字列を取得
+          'description': data['description'] ?? '',
           'latitude': data['latitude'] ?? 0.0,
           'longitude': data['longitude'] ?? 0.0,
           'sourceTitle': data['sourceTitle'] ?? '',
@@ -38,25 +30,43 @@ class AnimeDetailsEnPage extends StatelessWidget {
         });
       }
     } catch (e) {
-      print("Error fetching and translating locations: $e");
+      print("Error fetching locations: $e");
     }
     return locations;
+  }
+
+  Future<String> translateText(String text, String to) async {
+    try {
+      var translation = await translator.translate(text, to: to);
+      return translation.text;
+    } catch (e) {
+      print("Translation error: $e");
+      return text;
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(
-          animeName,
-          style: TextStyle(
-            color: Color(0xFF00008b),
-            fontWeight: FontWeight.bold,
-          ),
+        title: FutureBuilder<String>(
+          future: translateText(animeName, 'en'),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return CircularProgressIndicator();
+            }
+            return Text(
+              snapshot.data ?? animeName,
+              style: TextStyle(
+                color: Color(0xFF00008b),
+                fontWeight: FontWeight.bold,
+              ),
+            );
+          },
         ),
       ),
       body: FutureBuilder<List<Map<String, dynamic>>>(
-        future: _fetchAndTranslateLocationsForAnime(),
+        future: _fetchLocationsForAnime(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return Center(child: CircularProgressIndicator());
@@ -112,15 +122,24 @@ class AnimeDetailsEnPage extends StatelessWidget {
                           ),
                         ),
                         SizedBox(height: 8.0),
-                        Text(
-                          title,
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontSize: 14.0,
-                            fontWeight: FontWeight.bold,
-                          ),
-                          overflow: TextOverflow.ellipsis,
-                          maxLines: 1,
+                        FutureBuilder<String>(
+                          future: translateText(title, 'en'),
+                          builder: (context, snapshot) {
+                            if (snapshot.connectionState ==
+                                ConnectionState.waiting) {
+                              return CircularProgressIndicator();
+                            }
+                            return Text(
+                              snapshot.data ?? title,
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontSize: 14.0,
+                                fontWeight: FontWeight.bold,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                              maxLines: 1,
+                            );
+                          },
                         ),
                       ],
                     ),
@@ -143,8 +162,9 @@ class SpotDetailScreen extends StatelessWidget {
   final String imageUrl;
   final String sourceTitle;
   final String sourceLink;
+  final translator = GoogleTranslator();
 
-  const SpotDetailScreen({
+  SpotDetailScreen({
     Key? key,
     required this.title,
     required this.description,
@@ -155,12 +175,22 @@ class SpotDetailScreen extends StatelessWidget {
     required this.sourceLink,
   }) : super(key: key);
 
+  Future<String> translateText(String text, String to) async {
+    try {
+      var translation = await translator.translate(text, to: to);
+      return translation.text;
+    } catch (e) {
+      print("Translation error: $e");
+      return text;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text(
-          '詳細',
+          'Details',
           style: TextStyle(
             color: Color(0xFF00008b),
             fontWeight: FontWeight.bold,
@@ -173,10 +203,18 @@ class SpotDetailScreen extends StatelessWidget {
           children: [
             Padding(
               padding: const EdgeInsets.all(16.0),
-              child: Text(
-                title,
-                style:
-                    const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+              child: FutureBuilder<String>(
+                future: translateText(title, 'en'),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return CircularProgressIndicator();
+                  }
+                  return Text(
+                    snapshot.data ?? title,
+                    style: const TextStyle(
+                        fontSize: 24, fontWeight: FontWeight.bold),
+                  );
+                },
               ),
             ),
             if (imageUrl.isNotEmpty)
@@ -226,12 +264,20 @@ class SpotDetailScreen extends StatelessWidget {
             ),
             Padding(
               padding: const EdgeInsets.all(16.0),
-              child: Text(
-                description,
-                style: const TextStyle(
-                  fontSize: 16,
-                  color: Colors.black,
-                ),
+              child: FutureBuilder<String>(
+                future: translateText(description, 'en'),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return CircularProgressIndicator();
+                  }
+                  return Text(
+                    snapshot.data ?? description,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      color: Colors.black,
+                    ),
+                  );
+                },
               ),
             ),
           ],
