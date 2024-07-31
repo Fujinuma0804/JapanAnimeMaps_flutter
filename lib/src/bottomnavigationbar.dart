@@ -2,11 +2,11 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:parts/manual_page/manual.dart';
-import 'package:parts/map_page/map.dart';
-import 'package:parts/web_page/website.dart';
 
+import '../map_page/map_en.dart';
 import '../point_page/point.dart';
 import '../spot_page/anime_list_en.dart';
+import '../web_page/website_en.dart';
 
 class MainScreen extends StatefulWidget {
   @override
@@ -69,8 +69,8 @@ class _MainScreenState extends State<MainScreen> {
           });
         },
         children: [
-          MapScreen(),
-          WebsiteScreen(),
+          MapEnScreen(),
+          WebsiteEnScreen(),
           AnimeListEnPage(),
           PointPage(),
           Manual(),

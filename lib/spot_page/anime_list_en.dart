@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:parts/spot_page/spot_test.dart';
 import 'package:translator/translator.dart'; // Add this import for translation
 
-import 'anime_list_detail.dart';
+import 'anime_list_detail_en.dart';
 
 class AnimeListEnPage extends StatefulWidget {
   @override
@@ -212,12 +212,29 @@ class _AnimeListEnPageState extends State<AnimeListEnPage> {
     );
   }
 
-  void _navigateToDetails(BuildContext context, String animeName) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => AnimeDetailsPage(animeName: animeName),
-      ),
-    );
+  void _navigateToDetails(BuildContext context, String animeNameEn) async {
+    try {
+      // 英語から日本語に翻訳
+      final translation =
+          await translator.translate(animeNameEn, from: 'en', to: 'ja');
+      String animeNameJa = translation.text;
+
+      // 日本語の名前でAnimeDetailsEnPageに遷移
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => AnimeDetailsEnPage(animeName: animeNameJa),
+        ),
+      );
+    } catch (e) {
+      print("Error translating anime name: $e");
+      // エラーが発生した場合、英語の名前をそのまま使用
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => AnimeDetailsEnPage(animeName: animeNameEn),
+        ),
+      );
+    }
   }
 }
