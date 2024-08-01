@@ -10,6 +10,7 @@ import '../manual_page/privacypolicy_screen.dart';
 import '../manual_page/terms_screen.dart';
 import '../notification/notification.dart';
 import '../profile_page/profile.dart';
+import '../src/analytics_repository.dart';
 import '../top_page/welcome_page.dart';
 
 class Settings extends StatefulWidget {
@@ -129,6 +130,7 @@ class _SettingsState extends State<Settings> {
                   title: const Text('プロフィール'),
                   value: const Text(''),
                   onPressed: (context) {
+                    AnalyticsService().logPage('ProfileScreen');
                     Navigator.push(
                         context,
                         MaterialPageRoute(

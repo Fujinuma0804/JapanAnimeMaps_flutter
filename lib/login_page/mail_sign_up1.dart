@@ -22,6 +22,7 @@ class _MailSignUpPageState extends State<MailSignUpPage> {
   String confirmPassword = '';
 
   bool _isObscure = true;
+  bool _isObscure2 = true;
   bool _isLoading = false;
   String _language = '日本語';
 
@@ -199,7 +200,7 @@ class _MailSignUpPageState extends State<MailSignUpPage> {
                                 });
                               },
                               icon: Icon(
-                                _isObscure
+                                _isObscure2
                                     ? Icons.visibility_off
                                     : Icons.visibility,
                                 color: Colors.white,

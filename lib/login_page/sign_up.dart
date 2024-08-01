@@ -1,6 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:parts/login_page/mail_sign_up2.dart';
 
 import '../../src/page_route.dart';
 import 'login_page.dart';
@@ -20,15 +21,29 @@ class _SignUpPageState extends State<SignUpPage> {
   Future<void> _signInWithGoogle() async {
     try {
       final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+      if (googleUser == null) {
+        // ユーザーがサインインをキャンセルした場合
+        return;
+      }
+
       final GoogleSignInAuthentication googleAuth =
-          await googleUser!.authentication;
+          await googleUser.authentication;
 
       final credential = GoogleAuthProvider.credential(
         accessToken: googleAuth.accessToken,
         idToken: googleAuth.idToken,
       );
 
-      await _auth.signInWithCredential(credential);
+      UserCredential userCredential =
+          await _auth.signInWithCredential(credential);
+
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (context) => SecondSignUpPage(
+            userCredential: userCredential,
+          ),
+        ),
+      );
     } catch (e) {
       print('Error signing in with Google: $e');
     }
@@ -61,7 +76,7 @@ class _SignUpPageState extends State<SignUpPage> {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.transparent,
                       side: const BorderSide(
-                        color: Colors.white, //枠線
+                        color: Colors.white,
                         width: 1.5,
                       ),
                     ),
@@ -85,7 +100,7 @@ class _SignUpPageState extends State<SignUpPage> {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.transparent,
                       side: const BorderSide(
-                        color: Colors.white, //枠線
+                        color: Colors.white,
                         width: 1.5,
                       ),
                     ),
