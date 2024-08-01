@@ -1,4 +1,6 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 
 import '../../src/page_route.dart';
 import 'login_page.dart';
@@ -12,19 +14,37 @@ class SignUpPage extends StatefulWidget {
 }
 
 class _SignUpPageState extends State<SignUpPage> {
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final GoogleSignIn _googleSignIn = GoogleSignIn();
+
+  Future<void> _signInWithGoogle() async {
+    try {
+      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+      final GoogleSignInAuthentication googleAuth =
+          await googleUser!.authentication;
+
+      final credential = GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      );
+
+      await _auth.signInWithCredential(credential);
+    } catch (e) {
+      print('Error signing in with Google: $e');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: Stack(
         children: [
-          // 背景画像
           Positioned.fill(
             child: Image.asset(
               'assets/images/top.png',
               fit: BoxFit.cover,
             ),
           ),
-          // テキスト
           Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -61,11 +81,11 @@ class _SignUpPageState extends State<SignUpPage> {
                   width: 300.0,
                   height: 50.0,
                   child: ElevatedButton(
-                    onPressed: () {},
+                    onPressed: _signInWithGoogle,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.transparent,
                       side: const BorderSide(
-                        color: Colors.white, //枠線!
+                        color: Colors.white, //枠線
                         width: 1.5,
                       ),
                     ),

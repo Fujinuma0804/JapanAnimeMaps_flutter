@@ -22,179 +22,188 @@ class _MailLoginPageState extends State<MailLoginPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      extendBodyBehindAppBar: true, // AppBarの後ろに背景が表示されるようにする
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
-        elevation: 0, // AppBarを透明にするために追加
+        elevation: 0,
         title: const Text(
           'メールアドレスでログイン',
           style: TextStyle(
             color: Colors.white,
             fontWeight: FontWeight.bold,
-          ), // タイトルのテキスト色を白にする
+          ),
         ),
       ),
       body: Stack(
         children: [
-          // 背景画像
           Positioned.fill(
             child: Image.asset(
               'assets/images/top.png',
               fit: BoxFit.cover,
             ),
           ),
-          Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Center(
-                  child: SizedBox(
-                    width: 350.0,
-                    height: 45.0,
-                    child: TextFormField(
-                      onChanged: (value) {
-                        email = value;
-                      },
-                      style: const TextStyle(
-                        color: Colors.white, // 入力されるテキストの色を白色に設定
-                      ),
-                      decoration: const InputDecoration(
-                        labelText: 'メールアドレスを入力',
-                        labelStyle: TextStyle(
-                          color: Colors.white, // labelTextの色を白色に設定
-                        ),
-                        border: OutlineInputBorder(
-                          borderSide: BorderSide(
-                            color: Colors.white, // 枠線の色を指定
-                          ),
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderSide: BorderSide(
-                            color: Colors.white, // 有効時の枠線の色
-                          ),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderSide: BorderSide(
-                            color: Colors.white, // フォーカス時の枠線の色
-                          ),
-                        ),
-                      ),
-                      textAlign: TextAlign.left, // Align text input to the left
-                    ),
-                  ),
+          SafeArea(
+            child: SingleChildScrollView(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  minHeight: MediaQuery.of(context).size.height -
+                      MediaQuery.of(context).padding.top -
+                      MediaQuery.of(context).padding.bottom,
                 ),
-                const SizedBox(
-                  height: 20.0,
-                ),
-                Center(
-                  child: SizedBox(
-                    width: 350.0,
-                    height: 45.0,
-                    child: TextFormField(
-                      onChanged: (value) {
-                        password = value;
-                      },
-                      obscureText: _isObscure, // パスワードの非表示設定
-                      style: const TextStyle(
-                        color: Colors.white, // 入力されるテキストの色を白色に設定
-                      ),
-                      decoration: InputDecoration(
-                        suffixIcon: IconButton(
+                child: IntrinsicHeight(
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 20.0),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.max,
+                      children: [
+                        SizedBox(
+                          height: MediaQuery.of(context).size.height * 0.2,
+                        ),
+                        SizedBox(
+                          width: double.infinity,
+                          child: TextFormField(
+                            onChanged: (value) {
+                              email = value;
+                            },
+                            style: const TextStyle(
+                              color: Colors.white,
+                            ),
+                            decoration: const InputDecoration(
+                              labelText: 'メールアドレスを入力',
+                              labelStyle: TextStyle(
+                                color: Colors.white,
+                              ),
+                              border: OutlineInputBorder(
+                                borderSide: BorderSide(
+                                  color: Colors.white,
+                                ),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderSide: BorderSide(
+                                  color: Colors.white,
+                                ),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderSide: BorderSide(
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ),
+                            textAlign: TextAlign.left,
+                          ),
+                        ),
+                        const SizedBox(
+                          height: 20.0,
+                        ),
+                        SizedBox(
+                          width: double.infinity,
+                          child: TextFormField(
+                            onChanged: (value) {
+                              password = value;
+                            },
+                            obscureText: _isObscure,
+                            style: const TextStyle(
+                              color: Colors.white,
+                            ),
+                            decoration: InputDecoration(
+                              suffixIcon: IconButton(
+                                onPressed: () {
+                                  setState(() {
+                                    _isObscure = !_isObscure;
+                                  });
+                                },
+                                icon: Icon(
+                                  _isObscure
+                                      ? Icons.visibility_off
+                                      : Icons.visibility,
+                                  color: Colors.white,
+                                ),
+                              ),
+                              labelText: 'パスワードを入力',
+                              labelStyle: const TextStyle(
+                                color: Colors.white,
+                              ),
+                              border: const OutlineInputBorder(
+                                borderSide: BorderSide(
+                                  color: Colors.white,
+                                ),
+                              ),
+                              enabledBorder: const OutlineInputBorder(
+                                borderSide: BorderSide(
+                                  color: Colors.white,
+                                ),
+                              ),
+                              focusedBorder: const OutlineInputBorder(
+                                borderSide: BorderSide(
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ),
+                            textAlign: TextAlign.left,
+                          ),
+                        ),
+                        const SizedBox(
+                          height: 50.0,
+                        ),
+                        SizedBox(
+                          height: 50.0,
+                          width: 200.0,
+                          child: ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              side: const BorderSide(
+                                color: Colors.white,
+                              ),
+                              backgroundColor: Colors.transparent,
+                            ),
+                            onPressed: _isLoading ? null : _login,
+                            child: _isLoading
+                                ? const CircularProgressIndicator(
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                        Colors.white),
+                                  )
+                                : const Text(
+                                    'ログイン',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 15.0,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                          ),
+                        ),
+                        const Spacer(),
+                        TextButton(
                           onPressed: () {
-                            setState(() {
-                              _isObscure = !_isObscure;
-                            });
+                            Navigator.of(context).push(
+                              elasticTransition(const SignUpPage()),
+                            );
                           },
-                          icon: Icon(
-                            _isObscure
-                                ? Icons.visibility_off
-                                : Icons.visibility,
-                            color: Colors.white,
-                          ),
-                        ),
-                        labelText: 'パスワードを入力',
-                        labelStyle: const TextStyle(
-                          color: Colors.white, // labelTextの色を白色に設定
-                        ),
-                        border: const OutlineInputBorder(
-                          borderSide: BorderSide(
-                            color: Colors.white, // 枠線の色を指定
-                          ),
-                        ),
-                        enabledBorder: const OutlineInputBorder(
-                          borderSide: BorderSide(
-                            color: Colors.white, // 有効時の枠線の色
-                          ),
-                        ),
-                        focusedBorder: const OutlineInputBorder(
-                          borderSide: BorderSide(
-                            color: Colors.white, // フォーカス時の枠線の色
-                          ),
-                        ),
-                      ),
-                      textAlign: TextAlign.left, // Align text input to the left
-                    ),
-                  ),
-                ),
-                const SizedBox(
-                  height: 50.0,
-                ),
-                SizedBox(
-                  height: 50.0,
-                  width: 200.0,
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      side: const BorderSide(
-                        color: Colors.white,
-                      ),
-                      backgroundColor: Colors.transparent,
-                    ),
-                    onPressed: _isLoading ? null : _login,
-                    child: _isLoading
-                        ? const CircularProgressIndicator(
-                            valueColor:
-                                AlwaysStoppedAnimation<Color>(Colors.white),
-                          )
-                        : const Text(
-                            'ログイン',
+                          child: const Text(
+                            'パスワード忘れた方はこちら',
                             style: TextStyle(
                               color: Colors.white,
-                              fontSize: 15.0,
-                              fontWeight: FontWeight.bold,
                             ),
                           ),
-                  ),
-                ),
-                const SizedBox(
-                  height: 40.0,
-                ),
-                TextButton(
-                  onPressed: () {
-                    Navigator.of(context).push(
-                      elasticTransition(const SignUpPage()),
-                    );
-                  },
-                  child: const Text(
-                    'パスワード忘れた方はこちら',
-                    style: TextStyle(
-                      color: Colors.white,
+                        ),
+                        TextButton(
+                          onPressed: () {
+                            Navigator.of(context).push(
+                              elasticTransition(const SignUpPage()),
+                            );
+                          },
+                          child: const Text(
+                            '会員登録がまだの方はこちら',
+                            style: TextStyle(
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                        SizedBox(height: 20),
+                      ],
                     ),
                   ),
                 ),
-                TextButton(
-                  onPressed: () {
-                    Navigator.of(context).push(
-                      elasticTransition(const SignUpPage()),
-                    );
-                  },
-                  child: const Text(
-                    '会員登録がまだの方はこちら',
-                    style: TextStyle(
-                      color: Colors.white,
-                    ),
-                  ),
-                ),
-              ],
+              ),
             ),
           ),
         ],

@@ -29,7 +29,7 @@ class _MailSignUpPageState extends State<MailSignUpPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       extendBodyBehindAppBar: true,
-      resizeToAvoidBottomInset: true,
+      resizeToAvoidBottomInset: false, // レイアウトが上がらないように変更
       appBar: AppBar(
         automaticallyImplyLeading: false,
         backgroundColor: Colors.transparent,
@@ -76,218 +76,217 @@ class _MailSignUpPageState extends State<MailSignUpPage> {
               fit: BoxFit.cover,
             ),
           ),
-          Center(
-            child: SingleChildScrollView(
-              padding: EdgeInsets.only(
-                bottom: MediaQuery.of(context).viewInsets.bottom,
-                top: 20,
-              ),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Center(
-                    child: SizedBox(
-                      width: 350.0,
-                      height: 45.0,
-                      child: TextFormField(
-                        onChanged: (value) {
-                          email = value;
-                        },
-                        style: const TextStyle(
-                          color: Colors.white,
-                        ),
-                        decoration: InputDecoration(
-                          labelText: _language == '日本語'
-                              ? 'メールアドレスを入力'
-                              : 'Enter Email Address',
-                          labelStyle: const TextStyle(
+          SafeArea(
+            child: Center(
+              child: Padding(
+                padding: const EdgeInsets.all(16.0), // 追加
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Center(
+                      child: SizedBox(
+                        width: 350.0,
+                        height: 45.0,
+                        child: TextFormField(
+                          onChanged: (value) {
+                            email = value;
+                          },
+                          style: const TextStyle(
                             color: Colors.white,
                           ),
-                          border: const OutlineInputBorder(
-                            borderSide: BorderSide(
+                          decoration: InputDecoration(
+                            labelText: _language == '日本語'
+                                ? 'メールアドレスを入力'
+                                : 'Enter Email Address',
+                            labelStyle: const TextStyle(
                               color: Colors.white,
                             ),
-                          ),
-                          enabledBorder: const OutlineInputBorder(
-                            borderSide: BorderSide(
-                              color: Colors.white,
-                            ),
-                          ),
-                          focusedBorder: const OutlineInputBorder(
-                            borderSide: BorderSide(
-                              color: Colors.white,
-                            ),
-                          ),
-                        ),
-                        textAlign: TextAlign.left,
-                        keyboardType: TextInputType.emailAddress,
-                        inputFormatters: [
-                          FilteringTextInputFormatter.singleLineFormatter
-                        ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 20.0),
-                  Center(
-                    child: SizedBox(
-                      width: 350.0,
-                      height: 45.0,
-                      child: TextFormField(
-                        onChanged: (value) {
-                          password = value;
-                        },
-                        obscureText: _isObscure,
-                        style: const TextStyle(
-                          color: Colors.white,
-                        ),
-                        decoration: InputDecoration(
-                          suffixIcon: IconButton(
-                            onPressed: () {
-                              setState(() {
-                                _isObscure = !_isObscure;
-                              });
-                            },
-                            icon: Icon(
-                              _isObscure
-                                  ? Icons.visibility_off
-                                  : Icons.visibility,
-                              color: Colors.white,
-                            ),
-                          ),
-                          labelText: _language == '日本語'
-                              ? 'パスワードを入力'
-                              : 'Enter Password',
-                          labelStyle: const TextStyle(
-                            color: Colors.white,
-                          ),
-                          border: const OutlineInputBorder(
-                            borderSide: BorderSide(
-                              color: Colors.white,
-                            ),
-                          ),
-                          enabledBorder: const OutlineInputBorder(
-                            borderSide: BorderSide(
-                              color: Colors.white,
-                            ),
-                          ),
-                          focusedBorder: const OutlineInputBorder(
-                            borderSide: BorderSide(
-                              color: Colors.white,
-                            ),
-                          ),
-                        ),
-                        textAlign: TextAlign.left,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 20.0),
-                  Center(
-                    child: SizedBox(
-                      width: 350.0,
-                      height: 45.0,
-                      child: TextFormField(
-                        onChanged: (value) {
-                          confirmPassword = value;
-                        },
-                        obscureText: _isObscure,
-                        style: const TextStyle(
-                          color: Colors.white,
-                        ),
-                        decoration: InputDecoration(
-                          suffixIcon: IconButton(
-                            onPressed: () {
-                              setState(() {
-                                _isObscure = !_isObscure;
-                              });
-                            },
-                            icon: Icon(
-                              _isObscure
-                                  ? Icons.visibility_off
-                                  : Icons.visibility,
-                              color: Colors.white,
-                            ),
-                          ),
-                          labelText: _language == '日本語'
-                              ? 'パスワードを再度入力'
-                              : 'Re-enter Password',
-                          labelStyle: const TextStyle(
-                            color: Colors.white,
-                          ),
-                          border: const OutlineInputBorder(
-                            borderSide: BorderSide(
-                              color: Colors.white,
-                            ),
-                          ),
-                          enabledBorder: const OutlineInputBorder(
-                            borderSide: BorderSide(
-                              color: Colors.white,
-                            ),
-                          ),
-                          focusedBorder: const OutlineInputBorder(
-                            borderSide: BorderSide(
-                              color: Colors.white,
-                            ),
-                          ),
-                        ),
-                        textAlign: TextAlign.left,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 50.0),
-                  SizedBox(
-                    height: 50.0,
-                    width: 200.0,
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        side: const BorderSide(
-                          color: Colors.white,
-                        ),
-                        backgroundColor: Colors.transparent,
-                      ),
-                      onPressed: _isLoading ? null : _next,
-                      child: _isLoading
-                          ? const CircularProgressIndicator(
-                              valueColor:
-                                  AlwaysStoppedAnimation<Color>(Colors.white),
-                            )
-                          : Text(
-                              _language == '日本語' ? '次へ' : 'Next',
-                              style: const TextStyle(
+                            border: const OutlineInputBorder(
+                              borderSide: BorderSide(
                                 color: Colors.white,
-                                fontSize: 15.0,
-                                fontWeight: FontWeight.bold,
                               ),
                             ),
-                    ),
-                  ),
-                  const SizedBox(height: 25.0),
-                  SizedBox(
-                    height: 50.0,
-                    width: 200.0,
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        side: const BorderSide(
-                          color: Colors.white,
-                        ),
-                        backgroundColor: Colors.transparent,
-                      ),
-                      onPressed: () {
-                        Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                                builder: (context) => const LoginPage()));
-                      },
-                      child: Text(
-                        _language == '日本語' ? '戻る' : 'Back',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
+                            enabledBorder: const OutlineInputBorder(
+                              borderSide: BorderSide(
+                                color: Colors.white,
+                              ),
+                            ),
+                            focusedBorder: const OutlineInputBorder(
+                              borderSide: BorderSide(
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                          textAlign: TextAlign.left,
+                          keyboardType: TextInputType.emailAddress,
+                          inputFormatters: [
+                            FilteringTextInputFormatter.singleLineFormatter
+                          ],
                         ),
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 35.0),
-                ],
+                    const SizedBox(height: 20.0),
+                    Center(
+                      child: SizedBox(
+                        width: 350.0,
+                        height: 45.0,
+                        child: TextFormField(
+                          onChanged: (value) {
+                            password = value;
+                          },
+                          obscureText: _isObscure,
+                          style: const TextStyle(
+                            color: Colors.white,
+                          ),
+                          decoration: InputDecoration(
+                            suffixIcon: IconButton(
+                              onPressed: () {
+                                setState(() {
+                                  _isObscure = !_isObscure;
+                                });
+                              },
+                              icon: Icon(
+                                _isObscure
+                                    ? Icons.visibility_off
+                                    : Icons.visibility,
+                                color: Colors.white,
+                              ),
+                            ),
+                            labelText: _language == '日本語'
+                                ? 'パスワードを入力'
+                                : 'Enter Password',
+                            labelStyle: const TextStyle(
+                              color: Colors.white,
+                            ),
+                            border: const OutlineInputBorder(
+                              borderSide: BorderSide(
+                                color: Colors.white,
+                              ),
+                            ),
+                            enabledBorder: const OutlineInputBorder(
+                              borderSide: BorderSide(
+                                color: Colors.white,
+                              ),
+                            ),
+                            focusedBorder: const OutlineInputBorder(
+                              borderSide: BorderSide(
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                          textAlign: TextAlign.left,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 20.0),
+                    Center(
+                      child: SizedBox(
+                        width: 350.0,
+                        height: 45.0,
+                        child: TextFormField(
+                          onChanged: (value) {
+                            confirmPassword = value;
+                          },
+                          obscureText: _isObscure,
+                          style: const TextStyle(
+                            color: Colors.white,
+                          ),
+                          decoration: InputDecoration(
+                            suffixIcon: IconButton(
+                              onPressed: () {
+                                setState(() {
+                                  _isObscure = !_isObscure;
+                                });
+                              },
+                              icon: Icon(
+                                _isObscure
+                                    ? Icons.visibility_off
+                                    : Icons.visibility,
+                                color: Colors.white,
+                              ),
+                            ),
+                            labelText: _language == '日本語'
+                                ? 'パスワードを再度入力'
+                                : 'Re-enter Password',
+                            labelStyle: const TextStyle(
+                              color: Colors.white,
+                            ),
+                            border: const OutlineInputBorder(
+                              borderSide: BorderSide(
+                                color: Colors.white,
+                              ),
+                            ),
+                            enabledBorder: const OutlineInputBorder(
+                              borderSide: BorderSide(
+                                color: Colors.white,
+                              ),
+                            ),
+                            focusedBorder: const OutlineInputBorder(
+                              borderSide: BorderSide(
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                          textAlign: TextAlign.left,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 50.0),
+                    SizedBox(
+                      height: 50.0,
+                      width: 200.0,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          side: const BorderSide(
+                            color: Colors.white,
+                          ),
+                          backgroundColor: Colors.transparent,
+                        ),
+                        onPressed: _isLoading ? null : _next,
+                        child: _isLoading
+                            ? const CircularProgressIndicator(
+                                valueColor:
+                                    AlwaysStoppedAnimation<Color>(Colors.white),
+                              )
+                            : Text(
+                                _language == '日本語' ? '次へ' : 'Next',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 15.0,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                      ),
+                    ),
+                    const SizedBox(height: 25.0),
+                    SizedBox(
+                      height: 50.0,
+                      width: 200.0,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          side: const BorderSide(
+                            color: Colors.white,
+                          ),
+                          backgroundColor: Colors.transparent,
+                        ),
+                        onPressed: () {
+                          Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (context) => const LoginPage()));
+                        },
+                        child: Text(
+                          _language == '日本語' ? '戻る' : 'Back',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 35.0),
+                  ],
+                ),
               ),
             ),
           ),
