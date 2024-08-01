@@ -1,3 +1,7 @@
+import 'dart:async';
+
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 class UsageScreen extends StatefulWidget {
@@ -8,13 +12,51 @@ class UsageScreen extends StatefulWidget {
 }
 
 class _UsageScreenState extends State<UsageScreen> {
+  late Stream<DocumentSnapshot> _languageStream;
+  late String _language;
+  late StreamSubscription<DocumentSnapshot> _languageSubscription;
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+
+  @override
+  void initState() {
+    super.initState();
+    _language = 'English'; // デフォルト言語を設定
+    _monitorLanguageChange();
+  }
+
+  @override
+  void dispose() {
+    _languageSubscription.cancel();
+    super.dispose();
+  }
+
+  void _monitorLanguageChange() {
+    User? user = _auth.currentUser;
+    if (user != null) {
+      _languageSubscription = FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .snapshots()
+          .listen((snapshot) {
+        if (snapshot.exists) {
+          final newLanguage = snapshot.data()?['language'] as String?;
+          if (newLanguage != null) {
+            setState(() {
+              _language = newLanguage == 'Japanese' ? '日本語' : 'English';
+            });
+          }
+        }
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.white,
-        title: const Text(
-          '使い方',
+        title: Text(
+          _language == '日本語' ? '使い方' : 'Usage',
           style: TextStyle(
             color: Color(0xFF00008b),
             fontWeight: FontWeight.bold,
@@ -28,10 +70,12 @@ class _UsageScreenState extends State<UsageScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SizedBox(height: 20.0),
-              const Center(
+              Center(
                 child: Text(
-                  '獲得ポイントをランキング形式で毎週発表！\n',
-                  style: TextStyle(
+                  _language == '日本語'
+                      ? '獲得ポイントをランキング形式で毎週発表！\n'
+                      : 'Weekly rankings for earned points are announced!',
+                  style: const TextStyle(
                     color: Colors.black,
                     fontSize: 18.0,
                     fontWeight: FontWeight.bold,
@@ -39,39 +83,49 @@ class _UsageScreenState extends State<UsageScreen> {
                 ),
               ),
               const SizedBox(height: 10.0),
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 10.0),
-                child: Text('日々追加されるスポットへたくさんチェックインしよう。'),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 10.0),
+                child: Text(_language == '日本語'
+                    ? '日々追加されるスポットへたくさんチェックインしよう。'
+                    : 'Check-in at the new spots added daily.'),
               ),
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 10.0),
-                child: Text('チェックインすると画像投稿が可能に！！'),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 10.0),
+                child: Text(_language == '日本語'
+                    ? 'チェックインすると画像投稿が可能に！！'
+                    : 'Check-in to be able to post images!!'),
               ),
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 10.0),
-                child: Text('投稿して同じアニメの好きな友達をフォローしよう！'),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 10.0),
+                child: Text(_language == '日本語'
+                    ? '投稿して同じアニメの好きな友達をフォローしよう！'
+                    : 'Post and follow friends who like the same anime!'),
               ),
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 10.0),
-                child: Text('チェックインや投稿で溜めたポイントを豪華景品へ交換！'),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 10.0),
+                child: Text(_language == '日本語'
+                    ? 'チェックインや投稿で溜めたポイントを豪華景品へ交換！'
+                    : 'Exchange points accumulated from check-ins and posts for luxurious prizes!'),
               ),
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 10.0),
-                child: Text('景品については、数に限りがあります。'),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 10.0),
+                child: Text(_language == '日本語'
+                    ? '景品については、数に限りがあります。'
+                    : 'Prizes are limited in quantity.'),
               ),
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 10.0),
-                child: Text('景品の一部は告知なしで終了する可能性があります。'),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 10.0),
+                child: Text(_language == '日本語'
+                    ? '景品の一部は告知なしで終了する可能性があります。'
+                    : 'Some prizes may end without notice.'),
               ),
-              const SizedBox(
-                height: 15.0,
-              ),
-              const Align(
+              const SizedBox(height: 15.0),
+              Align(
                 alignment: Alignment.centerLeft,
                 child: Text(
-                  '■ 参加方法',
+                  _language == '日本語' ? '■ 参加方法' : '■ How to Participate',
                   textAlign: TextAlign.start,
-                  style: TextStyle(
+                  style: const TextStyle(
                     color: Color(0xFF00008b),
                     fontWeight: FontWeight.bold,
                     fontSize: 16,
@@ -79,23 +133,25 @@ class _UsageScreenState extends State<UsageScreen> {
                 ),
               ),
               const SizedBox(height: 10.0),
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 10.0),
-                child: Text('本アプリに登録し、ログインした状態でチェックイン'),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 10.0),
+                child: Text(_language == '日本語'
+                    ? '本アプリに登録し、ログインした状態でチェックイン'
+                    : 'Register in the app and check-in while logged in'),
               ),
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 10.0),
-                child: Text('利用方法を参考に、たくさんチェックイン・投稿をしよう'),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 10.0),
+                child: Text(_language == '日本語'
+                    ? '利用方法を参考に、たくさんチェックイン・投稿をしよう'
+                    : 'Check-in and post a lot by referring to the usage instructions'),
               ),
-              const SizedBox(
-                height: 15.0,
-              ),
-              const Align(
+              const SizedBox(height: 15.0),
+              Align(
                 alignment: Alignment.centerLeft,
                 child: Text(
-                  '■ 利用方法',
+                  _language == '日本語' ? '■ 利用方法' : '■ How to Use',
                   textAlign: TextAlign.start,
-                  style: TextStyle(
+                  style: const TextStyle(
                     color: Color(0xFF00008b),
                     fontWeight: FontWeight.bold,
                     fontSize: 16,
@@ -103,13 +159,13 @@ class _UsageScreenState extends State<UsageScreen> {
                 ),
               ),
               const SizedBox(height: 10.0),
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 10.0),
-                child: Text('①スポット付近でチェックインができるようになります。'),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 10.0),
+                child: Text(_language == '日本語'
+                    ? '①スポット付近でチェックインができるようになります。'
+                    : '① You can check-in near the spot.'),
               ),
-              const SizedBox(
-                height: 10.0,
-              ),
+              const SizedBox(height: 10.0),
               Center(
                 child: SizedBox(
                   height: 400,
@@ -117,16 +173,14 @@ class _UsageScreenState extends State<UsageScreen> {
                   child: Image.asset('assets/images/sample_images.png'),
                 ),
               ),
-              const SizedBox(
-                height: 10.0,
+              const SizedBox(height: 10.0),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 10.0),
+                child: Text(_language == '日本語'
+                    ? '②チェックインを押し、アニメの題名を入力します。'
+                    : '② Press check-in and enter the anime title.'),
               ),
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 10.0),
-                child: Text('②チェックインを押し、アニメの題名を入力します。'),
-              ),
-              const SizedBox(
-                height: 10.0,
-              ),
+              const SizedBox(height: 10.0),
               Center(
                 child: SizedBox(
                   height: 400,
@@ -134,22 +188,20 @@ class _UsageScreenState extends State<UsageScreen> {
                   child: Image.asset('assets/images/sample_checkin.png'),
                 ),
               ),
-              const SizedBox(
-                height: 10.0,
+              const SizedBox(height: 10.0),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 10.0),
+                child: Text(_language == '日本語'
+                    ? '③アニメの題名が正しければチェックイン完了です！！'
+                    : '③ If the anime title is correct, the check-in is complete!!'),
               ),
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 10.0),
-                child: Text('③アニメの題名が正しければチェックイン完了です！！'),
-              ),
-              const SizedBox(
-                height: 15.0,
-              ),
-              const Align(
+              const SizedBox(height: 15.0),
+              Align(
                 alignment: Alignment.centerLeft,
                 child: Text(
-                  '■ ポイント情報',
+                  _language == '日本語' ? '■ ポイント情報' : '■ Points Information',
                   textAlign: TextAlign.start,
-                  style: TextStyle(
+                  style: const TextStyle(
                     color: Color(0xFF00008b),
                     fontWeight: FontWeight.bold,
                     fontSize: 16,
@@ -163,58 +215,34 @@ class _UsageScreenState extends State<UsageScreen> {
                   width: 1.0,
                   style: BorderStyle.solid,
                 ),
-                children: const [
+                children: [
                   TableRow(
                     children: [
                       Padding(
-                        padding: EdgeInsets.all(8.0),
-                        child: Text('チェックイン'),
+                        padding: const EdgeInsets.all(8.0),
+                        child: Text(_language == '日本語' ? 'チェックイン' : 'Check-in'),
                       ),
                       Padding(
-                        padding: EdgeInsets.all(8.0),
-                        child: Text('１ポイント'),
+                        padding: const EdgeInsets.all(8.0),
+                        child: Text(_language == '日本語' ? '１ポイント' : '1 point'),
                       ),
                     ],
                   ),
                   TableRow(
                     children: [
                       Padding(
-                        padding: EdgeInsets.all(8.0),
-                        child: Text('投稿'),
+                        padding: const EdgeInsets.all(8.0),
+                        child: Text(_language == '日本語' ? '投稿' : 'Post'),
                       ),
                       Padding(
-                        padding: EdgeInsets.all(8.0),
-                        child: Text('２ポイント'),
+                        padding: const EdgeInsets.all(8.0),
+                        child: Text(_language == '日本語' ? '２ポイント' : '2 points'),
                       ),
                     ],
                   ),
                 ],
               ),
-              const SizedBox(height: 5.0),
-              const Align(
-                alignment: Alignment.centerRight,
-                child: Text(
-                  '※事情により予告なく変更となる可能性があります。',
-                  textAlign: TextAlign.right,
-                  style: TextStyle(
-                    color: Colors.grey,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 10,
-                  ),
-                ),
-              ),
-              const SizedBox(
-                height: 10.0,
-              ),
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 10.0),
-                child: Text('溜まったポイントは豪華景品へと交換可能！'),
-              ),
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 10.0),
-                child: Text('たくたんチェックイン・投稿で豪華景品をゲットしよう！'),
-              ),
-              const SizedBox(height: 50.0), // Extra space at the bottom
+              const SizedBox(height: 10.0),
             ],
           ),
         ),

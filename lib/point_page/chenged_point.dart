@@ -1,20 +1,74 @@
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import 'present_detail_screen.dart';
 
-class PresentListScreen extends StatelessWidget {
+class PresentListScreen extends StatefulWidget {
+  @override
+  _PresentListScreenState createState() => _PresentListScreenState();
+}
+
+class _PresentListScreenState extends State<PresentListScreen> {
+  String _language = 'English';
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  late StreamSubscription<DocumentSnapshot> _languageSubscription;
+
+  @override
+  void initState() {
+    super.initState();
+    _monitorLanguageChange();
+  }
+
+  @override
+  void dispose() {
+    _languageSubscription.cancel();
+    super.dispose();
+  }
+
+  void _monitorLanguageChange() {
+    User? user = _auth.currentUser;
+    if (user != null) {
+      _languageSubscription = FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .snapshots()
+          .listen((snapshot) {
+        if (snapshot.exists) {
+          final newLanguage = snapshot.data()?['language'] as String?;
+          if (newLanguage != null) {
+            setState(() {
+              _language = newLanguage == 'Japanese' ? '日本語' : 'English';
+            });
+          }
+        }
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('プレゼント一覧'),
+        title: Text(
+          _language == '日本語' ? 'プレゼント一覧' : 'Present List',
+          style: TextStyle(
+            color: Color(0xFF00008b),
+            fontWeight: FontWeight.bold,
+          ),
+        ),
       ),
       body: StreamBuilder<QuerySnapshot>(
         stream: FirebaseFirestore.instance.collection('presents').snapshots(),
         builder: (context, snapshot) {
           if (snapshot.hasError) {
-            return Center(child: Text('エラーが発生しました'));
+            return Center(
+              child: Text(
+                _language == '日本語' ? 'エラーが発生しました' : 'An error occurred',
+              ),
+            );
           }
 
           if (snapshot.connectionState == ConnectionState.waiting) {
@@ -72,7 +126,7 @@ class PresentListScreen extends StatelessWidget {
                             ),
                             SizedBox(height: 4),
                             Text(
-                              '${present['points']} ポイント',
+                              '${present['points']} ${_language == '日本語' ? 'ポイント' : 'Points'}',
                               style: TextStyle(
                                 color: Colors.green,
                                 fontWeight: FontWeight.bold,

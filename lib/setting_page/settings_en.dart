@@ -1,3 +1,5 @@
+import 'dart:async'; // この行を追加
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -22,11 +24,19 @@ class SettingsEn extends StatefulWidget {
 class _SettingsEnState extends State<SettingsEn> {
   String _language = '日本語';
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  late StreamSubscription<DocumentSnapshot> _languageSubscription;
 
   @override
   void initState() {
     super.initState();
     _loadLanguagePreference();
+    _monitorLanguageChange();
+  }
+
+  @override
+  void dispose() {
+    _languageSubscription.cancel();
+    super.dispose();
   }
 
   Future<void> _loadLanguagePreference() async {
@@ -53,9 +63,9 @@ class _SettingsEnState extends State<SettingsEn> {
 
   void _changeLanguage(String language) {
     setState(() {
-      _language = language;
+      _language = language == 'Japanese' ? '日本語' : 'English';
     });
-    _saveLanguagePreference(language);
+    _saveLanguagePreference(_language);
     _updateUserLanguageInFirestore(language);
   }
 
@@ -80,7 +90,7 @@ class _SettingsEnState extends State<SettingsEn> {
               ListTile(
                 title: Text('日本語'),
                 onTap: () {
-                  _changeLanguage('日本語');
+                  _changeLanguage('Japanese');
                   Navigator.of(context).pop();
                 },
               ),
@@ -98,6 +108,26 @@ class _SettingsEnState extends State<SettingsEn> {
     );
   }
 
+  void _monitorLanguageChange() {
+    User? user = _auth.currentUser;
+    if (user != null) {
+      _languageSubscription = FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .snapshots()
+          .listen((snapshot) {
+        if (snapshot.exists) {
+          final newLanguage = snapshot.data()?['language'] as String?;
+          if (newLanguage != null) {
+            setState(() {
+              _language = newLanguage == 'Japanese' ? '日本語' : 'English';
+            });
+          }
+        }
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return WillPopScope(
@@ -105,8 +135,8 @@ class _SettingsEnState extends State<SettingsEn> {
       child: Scaffold(
         appBar: AppBar(
           backgroundColor: Colors.white,
-          title: const Text(
-            'Settings',
+          title: Text(
+            _language == '日本語' ? '設定' : 'Settings',
             style: TextStyle(
               color: Color(0xFF00008b),
               fontWeight: FontWeight.bold,
@@ -122,35 +152,35 @@ class _SettingsEnState extends State<SettingsEn> {
         body: SettingsList(
           sections: [
             SettingsSection(
-              title: const Text('Personal Information'),
+              title: Text(_language == '日本語' ? '個人情報' : 'Personal Information'),
               tiles: <SettingsTile>[
                 SettingsTile.navigation(
                   leading: const Icon(Icons.account_circle),
-                  title: const Text('Profile'),
+                  title: Text(_language == '日本語' ? 'プロフィール' : 'Profile'),
                   value: const Text(''),
                   onPressed: (context) {
                     Navigator.push(
                         context,
                         MaterialPageRoute(
                             builder: (context) => ProfileEnScreen()));
-                    // 画面遷移処理
                   },
                 ),
               ],
             ),
             SettingsSection(
-              title: const Text('General'),
+              title: Text(_language == '日本語' ? '一般' : 'General'),
               tiles: <SettingsTile>[
                 SettingsTile.navigation(
                   leading: const Icon(Icons.notifications_active_outlined),
-                  title: const Text('Notifications'),
+                  title: Text(_language == '日本語' ? '通知' : 'Notifications'),
                   onPressed: (context) {
                     // 画面遷移処理
                   },
                 ),
                 SettingsTile.navigation(
                   leading: const Icon(Icons.language),
-                  title: const Text('Language Settings'),
+                  title:
+                      Text(_language == '日本語' ? '言語設定' : 'Language Settings'),
                   value: Text(_language),
                   onPressed: (context) {
                     _showLanguageDialog(context);
@@ -159,11 +189,11 @@ class _SettingsEnState extends State<SettingsEn> {
               ],
             ),
             SettingsSection(
-              title: const Text('About This App'),
+              title: Text(_language == '日本語' ? 'このアプリについて' : 'About This App'),
               tiles: <SettingsTile>[
                 SettingsTile.navigation(
                   leading: const Icon(Icons.circle_notifications),
-                  title: const Text('Notice'),
+                  title: Text(_language == '日本語' ? 'お知らせ' : 'Notice'),
                   value: const Text(''),
                   onPressed: (context) {
                     Navigator.push(
@@ -174,44 +204,42 @@ class _SettingsEnState extends State<SettingsEn> {
                 ),
                 SettingsTile.navigation(
                   leading: const Icon(Icons.privacy_tip_outlined),
-                  title: const Text('Privacy Policy'),
+                  title: Text(
+                      _language == '日本語' ? 'プライバシーポリシー' : 'Privacy Policy'),
                   value: const Text(''),
                   onPressed: (context) {
                     Navigator.push(
                         context,
                         MaterialPageRoute(
                             builder: (context) => PrivacyPolicyScreen()));
-                    // 画面遷移処理
                   },
                 ),
                 SettingsTile.navigation(
                   leading: const Icon(Icons.book_outlined),
-                  title: const Text('Terms of Service'),
+                  title: Text(_language == '日本語' ? '利用規約' : 'Terms of Service'),
                   value: const Text(''),
                   onPressed: (context) {
                     Navigator.push(context,
                         MaterialPageRoute(builder: (context) => TermsScreen()));
-                    // 画面遷移処理
                   },
                 ),
                 SettingsTile.navigation(
                   leading: const Icon(Icons.help_outline),
-                  title: const Text('Help Center'),
+                  title: Text(_language == '日本語' ? 'ヘルプセンター' : 'Help Center'),
                   value: const Text(''),
                   onPressed: (context) {
                     Navigator.push(context,
                         MaterialPageRoute(builder: (context) => HelpCenter()));
-                    // 画面遷移処理
                   },
                 ),
                 SettingsTile.navigation(
                   leading: const Icon(Icons.info_outline_rounded),
-                  title: const Text('About This Apps'),
+                  title: Text(
+                      _language == '日本語' ? 'このアプリについて' : 'About This Apps'),
                   value: const Text(''),
                   onPressed: (context) {
                     Navigator.push(context,
                         MaterialPageRoute(builder: (context) => AppsAbout()));
-                    // 画面遷移処理
                   },
                 ),
               ],
@@ -223,12 +251,7 @@ class _SettingsEnState extends State<SettingsEn> {
                     Icons.waving_hand_sharp,
                     color: Colors.red,
                   ),
-                  title: const Text(
-                    'Sign Out',
-                    style: TextStyle(
-                      color: Colors.red,
-                    ),
-                  ),
+                  title: Text(_language == '日本語' ? 'サインアウト' : 'Sign Out'),
                   onPressed: (context) async {
                     await FirebaseAuth.instance.signOut();
                     Navigator.pushReplacement(

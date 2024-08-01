@@ -1,11 +1,14 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:parts/spot_page/anime_list.dart';
 
 import '../manual_page/manual_en.dart';
+import '../map_page/map.dart';
 import '../map_page/map_en.dart';
 import '../point_page/point_en.dart';
 import '../spot_page/anime_list_en.dart';
+import '../web_page/website.dart';
 import '../web_page/website_en.dart';
 
 class MainScreen extends StatefulWidget {
@@ -17,16 +20,36 @@ class _MainScreenState extends State<MainScreen> {
   int _selectedIndex = 0;
   final PageController _pageController = PageController();
   late User _user;
+  String _userLanguage = 'English';
+  late Stream<DocumentSnapshot> _userStream;
 
   @override
   void initState() {
     super.initState();
     _getUser();
     _updateCorrectCount();
+    _setupUserStream();
   }
 
   Future<void> _getUser() async {
     _user = FirebaseAuth.instance.currentUser!;
+  }
+
+  void _setupUserStream() {
+    _userStream = FirebaseFirestore.instance
+        .collection('users')
+        .doc(_user.uid)
+        .snapshots();
+
+    _userStream.listen((DocumentSnapshot snapshot) {
+      if (snapshot.exists) {
+        setState(() {
+          _userLanguage =
+              (snapshot.data() as Map<String, dynamic>)['language'] ??
+                  'English';
+        });
+      }
+    });
   }
 
   Future<void> _updateCorrectCount() async {
@@ -59,39 +82,57 @@ class _MainScreenState extends State<MainScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: PageView(
-        controller: _pageController,
-        physics: const NeverScrollableScrollPhysics(),
-        onPageChanged: (index) {
-          setState(() {
-            _selectedIndex = index;
-          });
-        },
-        children: [
-          MapEnScreen(),
-          WebsiteEnScreen(),
-          AnimeListEnPage(),
-          PointEnPage(),
-          ManualEn(),
-        ],
-      ),
-      bottomNavigationBar: CustomBottomNavigationBar(
-        currentIndex: _selectedIndex,
-        onTap: _onItemTapped,
-      ),
+    return StreamBuilder<DocumentSnapshot>(
+      stream: _userStream,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return CircularProgressIndicator();
+        }
+
+        return Scaffold(
+          body: PageView(
+            controller: _pageController,
+            physics: const NeverScrollableScrollPhysics(),
+            onPageChanged: (index) {
+              setState(() {
+                _selectedIndex = index;
+              });
+            },
+            children: [
+              _userLanguage == 'Japanese' ? MapScreen() : MapEnScreen(),
+              _userLanguage == 'Japanese' ? WebsiteScreen() : WebsiteEnScreen(),
+              _userLanguage == 'Japanese' ? AnimeListPage() : AnimeListEnPage(),
+              _userLanguage == 'Japanese' ? PointEnPage() : PointEnPage(),
+              _userLanguage == 'Japanese' ? ManualEn() : ManualEn(),
+            ],
+          ),
+          bottomNavigationBar: CustomBottomNavigationBar(
+            currentIndex: _selectedIndex,
+            onTap: _onItemTapped,
+            language: _userLanguage,
+          ),
+        );
+      },
     );
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
   }
 }
 
 class CustomBottomNavigationBar extends StatelessWidget {
   final int currentIndex;
   final ValueChanged<int> onTap;
+  final String language;
 
   const CustomBottomNavigationBar({
     Key? key,
     required this.currentIndex,
     required this.onTap,
+    required this.language,
   }) : super(key: key);
 
   @override
@@ -108,13 +149,27 @@ class CustomBottomNavigationBar extends StatelessWidget {
       unselectedItemColor: Colors.white,
       currentIndex: currentIndex,
       onTap: onTap,
-      items: const [
-        BottomNavigationBarItem(icon: Icon(Icons.map), label: '地図'),
-        BottomNavigationBarItem(icon: Icon(Icons.web), label: '公式サイト'),
-        BottomNavigationBarItem(icon: Icon(Icons.place), label: 'スポット'),
+      items: [
         BottomNavigationBarItem(
-            icon: Icon(Icons.monetization_on), label: 'ポイント'),
-        BottomNavigationBarItem(icon: Icon(Icons.description), label: 'その他'),
+          icon: Icon(Icons.map),
+          label: language == 'Japanese' ? '地図' : 'Map',
+        ),
+        BottomNavigationBarItem(
+          icon: Icon(Icons.web),
+          label: language == 'Japanese' ? '公式サイト' : 'Official Site',
+        ),
+        BottomNavigationBarItem(
+          icon: Icon(Icons.place),
+          label: language == 'Japanese' ? 'スポット' : 'Spot',
+        ),
+        BottomNavigationBarItem(
+          icon: Icon(Icons.monetization_on),
+          label: language == 'Japanese' ? 'ポイント' : 'Point',
+        ),
+        BottomNavigationBarItem(
+          icon: Icon(Icons.description),
+          label: language == 'Japanese' ? 'その他' : 'Other',
+        ),
       ],
     );
   }
