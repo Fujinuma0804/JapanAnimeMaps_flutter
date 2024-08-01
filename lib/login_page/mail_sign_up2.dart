@@ -5,6 +5,8 @@ import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:parts/login_page/login_page.dart';
 
+import '../src/bottomnavigationbar.dart'; // Import the MainScreen
+
 class SecondSignUpPage extends StatefulWidget {
   final UserCredential userCredential;
 
@@ -321,11 +323,11 @@ class _SecondSignUpPageState extends State<SecondSignUpPage> {
         ),
       );
 
-      // ログインページへ遷移
+      // MainScreenへ遷移
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) => const LoginPage(),
+          builder: (context) => MainScreen(),
         ),
       );
     } catch (e) {

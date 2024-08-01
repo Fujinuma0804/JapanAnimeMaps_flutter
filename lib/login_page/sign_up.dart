@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
@@ -36,6 +37,15 @@ class _SignUpPageState extends State<SignUpPage> {
 
       UserCredential userCredential =
           await _auth.signInWithCredential(credential);
+
+      // Firestoreにユーザー情報を保存
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(userCredential.user?.uid)
+          .set({
+        'email': userCredential.user?.email,
+        'language': '日本語', // or set this based on user choice if applicable
+      });
 
       Navigator.of(context).push(
         MaterialPageRoute(
