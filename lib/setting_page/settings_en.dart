@@ -251,7 +251,13 @@ class _SettingsEnState extends State<SettingsEn> {
                     Icons.waving_hand_sharp,
                     color: Colors.red,
                   ),
-                  title: Text(_language == '日本語' ? 'サインアウト' : 'Sign Out'),
+                  title: Text(
+                    _language == '日本語' ? 'サインアウト' : 'Sign Out',
+                    style: TextStyle(
+                      color: Colors.red,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                   onPressed: (context) async {
                     await FirebaseAuth.instance.signOut();
                     Navigator.pushReplacement(

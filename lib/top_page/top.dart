@@ -14,7 +14,7 @@ class _TopState extends State<Top> {
       body: Container(
         decoration: BoxDecoration(
           image: DecorationImage(
-            image: AssetImage('assets/images/top.png'),
+            image: AssetImage('assets/images/sky8.png'),
             fit: BoxFit.cover,
           ),
         ),

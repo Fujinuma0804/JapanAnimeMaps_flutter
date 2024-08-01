@@ -38,7 +38,7 @@ class _MailLoginPageState extends State<MailLoginPage> {
         children: [
           Positioned.fill(
             child: Image.asset(
-              'assets/images/top.png',
+              'assets/images/sky10.png',
               fit: BoxFit.cover,
             ),
           ),

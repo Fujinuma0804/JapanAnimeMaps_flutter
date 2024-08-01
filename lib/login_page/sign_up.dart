@@ -66,7 +66,7 @@ class _SignUpPageState extends State<SignUpPage> {
         children: [
           Positioned.fill(
             child: Image.asset(
-              'assets/images/top.png',
+              'assets/images/sky10.png',
               fit: BoxFit.cover,
             ),
           ),
