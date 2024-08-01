@@ -174,9 +174,7 @@ class _MailLoginPageState extends State<MailLoginPage> {
                         const Spacer(),
                         TextButton(
                           onPressed: () {
-                            Navigator.of(context).push(
-                              elasticTransition(const SignUpPage()),
-                            );
+                            _showPasswordResetDialog(context);
                           },
                           child: const Text(
                             'パスワード忘れた方はこちら',
@@ -255,4 +253,106 @@ class _MailLoginPageState extends State<MailLoginPage> {
       });
     }
   }
+}
+
+Future<void> _showPasswordResetDialog(BuildContext context) async {
+  TextEditingController emailController = TextEditingController();
+
+  return showDialog(
+    context: context,
+    builder: (BuildContext context) {
+      return AlertDialog(
+        backgroundColor: Colors.white,
+        insetPadding: const EdgeInsets.all(8),
+        title: const Center(
+          child: Text(
+            'パスワードリセット',
+            style: TextStyle(
+              color: Colors.black,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Center(
+              child: Text(
+                '登録したメールアドレスを入力してください。\n登録メールアドレスにリセットメールを送信します。',
+                style: TextStyle(
+                  fontSize: 15.0,
+                ),
+              ),
+            ),
+            const SizedBox(
+              height: 20.0,
+            ),
+            TextField(
+              controller: emailController,
+              decoration: const InputDecoration(
+                hintText: 'メールアドレスを入力',
+                enabledBorder: UnderlineInputBorder(
+                  borderSide: BorderSide(
+                    color: Colors.grey,
+                  ),
+                ),
+                focusedBorder: UnderlineInputBorder(
+                  borderSide: BorderSide(
+                    color: Colors.black,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+            },
+            child: const Text(
+              'キャンセル',
+              style: TextStyle(
+                color: Colors.black,
+                fontWeight: FontWeight.bold,
+                fontSize: 20.0,
+              ),
+            ),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.black,
+            ),
+            onPressed: () async {
+              String email = emailController.text.trim();
+              if (email.isNotEmpty) {
+                try {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('パスワードリセットメールを送信しました。'),
+                    ),
+                  );
+                  Navigator.pop(context);
+                } on FirebaseAuthException catch (e) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('エラーが発生しました。再度お試しください。'),
+                    ),
+                  );
+                }
+              }
+            },
+            child: const Text(
+              '送信',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 20.0,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ],
+      );
+    },
+  );
 }
