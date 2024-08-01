@@ -142,13 +142,6 @@ class _SettingsState extends State<Settings> {
               title: const Text('一般'),
               tiles: <SettingsTile>[
                 SettingsTile.navigation(
-                  leading: const Icon(Icons.notifications_active_outlined),
-                  title: const Text('通知'),
-                  onPressed: (context) {
-                    // 画面遷移処理
-                  },
-                ),
-                SettingsTile.navigation(
                   leading: const Icon(Icons.language),
                   title: const Text('言語設定'),
                   value: Text(_language),

@@ -40,7 +40,7 @@ dependencies:
   google_maps_flutter: ^2.5.3
   geolocator: ^12.0.0
   url_launcher: ^6.3.0
-  flutter_html: ^3.0.0-alpha.3
+  flutter_html: ^3.0.0-beta.2
   firebase_core: ^2.21.0
   cloud_firestore: ^4.17.5
   http: ^1.2.1
@@ -62,6 +62,7 @@ dependencies:
   video_player: ^2.9.1
   translator: ^1.0.0
   shared_preferences: ^2.2.3
+  flutter_html_svg: ^3.0.0-beta.2
 
 dev_dependencies:
   flutter_test:
