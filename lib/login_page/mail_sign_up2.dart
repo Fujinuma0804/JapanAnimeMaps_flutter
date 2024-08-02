@@ -76,6 +76,32 @@ class _SecondSignUpPageState extends State<SecondSignUpPage> {
             fontWeight: FontWeight.bold,
           ),
         ),
+        actions: [
+          DropdownButton<String>(
+            value: _language,
+            dropdownColor: Colors.black,
+            icon: const Icon(Icons.language, color: Colors.white),
+            underline: Container(
+              height: 2,
+              color: Colors.transparent,
+            ),
+            onChanged: (String? newValue) {
+              setState(() {
+                _language = newValue!;
+              });
+            },
+            items: <String>['日本語', 'English']
+                .map<DropdownMenuItem<String>>((String value) {
+              return DropdownMenuItem<String>(
+                value: value,
+                child: Text(
+                  value,
+                  style: const TextStyle(color: Colors.white),
+                ),
+              );
+            }).toList(),
+          ),
+        ],
       ),
       body: Stack(
         children: [

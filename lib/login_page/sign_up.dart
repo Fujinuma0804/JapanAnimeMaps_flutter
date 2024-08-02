@@ -5,6 +5,7 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'package:parts/login_page/mail_sign_up2.dart';
 
 import '../../src/page_route.dart';
+import '../src/bottomnavigationbar.dart';
 import 'login_page.dart';
 import 'mail_sign_up1.dart';
 
@@ -18,12 +19,20 @@ class SignUpPage extends StatefulWidget {
 class _SignUpPageState extends State<SignUpPage> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final GoogleSignIn _googleSignIn = GoogleSignIn();
+  bool _isLoading = false;
 
   Future<void> _signInWithGoogle() async {
+    setState(() {
+      _isLoading = true;
+    });
+
     try {
       final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
       if (googleUser == null) {
         // ユーザーがサインインをキャンセルした場合
+        setState(() {
+          _isLoading = false;
+        });
         return;
       }
 
@@ -38,24 +47,47 @@ class _SignUpPageState extends State<SignUpPage> {
       UserCredential userCredential =
           await _auth.signInWithCredential(credential);
 
-      // Firestoreにユーザー情報を保存
-      await FirebaseFirestore.instance
+      // Firestoreで同じメールアドレスのユーザーを検索
+      QuerySnapshot existingUsers = await FirebaseFirestore.instance
           .collection('users')
-          .doc(userCredential.user?.uid)
-          .set({
-        'email': userCredential.user?.email,
-        'language': '日本語', // or set this based on user choice if applicable
-      });
+          .where('email', isEqualTo: userCredential.user?.email)
+          .get();
 
-      Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (context) => SecondSignUpPage(
-            userCredential: userCredential,
+      if (existingUsers.docs.isNotEmpty) {
+        // 既存のユーザーが見つかった場合
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(
+            builder: (context) => MainScreen(),
           ),
-        ),
-      );
+        );
+      } else {
+        // 新規ユーザーの場合
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(userCredential.user?.uid)
+            .set({
+          'email': userCredential.user?.email,
+          'language': '日本語', // or set this based on user choice if applicable
+        });
+
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (context) => SecondSignUpPage(
+              userCredential: userCredential,
+            ),
+          ),
+        );
+      }
     } catch (e) {
       print('Error signing in with Google: $e');
+      // エラーが発生した場合、ユーザーに通知することをお勧めします
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('サインインに失敗しました。もう一度お試しください。')),
+      );
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
     }
   }
 
@@ -99,14 +131,12 @@ class _SignUpPageState extends State<SignUpPage> {
                     ),
                   ),
                 ),
-                const SizedBox(
-                  height: 20.0,
-                ),
+                const SizedBox(height: 20.0),
                 SizedBox(
                   width: 300.0,
                   height: 50.0,
                   child: ElevatedButton(
-                    onPressed: _signInWithGoogle,
+                    onPressed: _isLoading ? null : _signInWithGoogle,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.transparent,
                       side: const BorderSide(
@@ -123,9 +153,29 @@ class _SignUpPageState extends State<SignUpPage> {
                     ),
                   ),
                 ),
-                const SizedBox(
-                  height: 20.0,
+                const SizedBox(height: 20.0),
+                SizedBox(
+                  width: 300.0,
+                  height: 50.0,
+                  child: ElevatedButton(
+                    onPressed: () {},
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.transparent,
+                      side: const BorderSide(
+                        color: Colors.white,
+                        width: 1.5,
+                      ),
+                    ),
+                    child: const Text(
+                      'Appleで登録',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
                 ),
+                const SizedBox(height: 20.0),
                 TextButton(
                   onPressed: () {
                     Navigator.of(context).push(
@@ -143,6 +193,13 @@ class _SignUpPageState extends State<SignUpPage> {
               ],
             ),
           ),
+          if (_isLoading)
+            Container(
+              color: Colors.black.withOpacity(0.5),
+              child: Center(
+                child: CircularProgressIndicator(),
+              ),
+            ),
         ],
       ),
     );
