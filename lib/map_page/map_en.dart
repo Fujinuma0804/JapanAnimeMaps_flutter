@@ -10,7 +10,6 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:http/http.dart' as http;
 import 'package:translator/translator.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:video_player/video_player.dart';
 
 class MapEnScreen extends StatefulWidget {
   const MapEnScreen({Key? key}) : super(key: key);
@@ -37,30 +36,237 @@ class _MapEnScreenState extends State<MapEnScreen> {
 
   final translator = GoogleTranslator();
 
-  late VideoPlayerController _videoPlayerController;
-  late Future<void> _initializeVideoPlayerFuture;
-
   static const String _mapStyle = '''
   [
     {
-      "featureType": "all",
-      "elementType": "labels",
+      "elementType": "geometry",
       "stylers": [
-        { "visibility": "off" }
+        {
+          "color": "#1d2c4d"
+        }
+      ]
+    },
+    {
+      "elementType": "labels.text.fill",
+      "stylers": [
+        {
+          "color": "#8ec3b9"
+        }
+      ]
+    },
+    {
+      "elementType": "labels.text.stroke",
+      "stylers": [
+        {
+          "color": "#1a3646"
+        }
+      ]
+    },
+    {
+      "featureType": "administrative.country",
+      "elementType": "geometry.stroke",
+      "stylers": [
+        {
+          "color": "#4b6878"
+        }
+      ]
+    },
+    {
+      "featureType": "administrative.land_parcel",
+      "elementType": "labels.text.fill",
+      "stylers": [
+        {
+          "color": "#64779e"
+        }
+      ]
+    },
+    {
+      "featureType": "administrative.province",
+      "elementType": "geometry.stroke",
+      "stylers": [
+        {
+          "color": "#4b6878"
+        }
+      ]
+    },
+    {
+      "featureType": "landscape.man_made",
+      "elementType": "geometry.stroke",
+      "stylers": [
+        {
+          "color": "#334e87"
+        }
+      ]
+    },
+    {
+      "featureType": "landscape.natural",
+      "elementType": "geometry",
+      "stylers": [
+        {
+          "color": "#023e58"
+        }
+      ]
+    },
+    {
+      "featureType": "poi",
+      "elementType": "geometry",
+      "stylers": [
+        {
+          "color": "#283d6a"
+        }
+      ]
+    },
+    {
+      "featureType": "poi",
+      "elementType": "labels.text.fill",
+      "stylers": [
+        {
+          "color": "#6f9ba5"
+        }
+      ]
+    },
+    {
+      "featureType": "poi",
+      "elementType": "labels.text.stroke",
+      "stylers": [
+        {
+          "color": "#1d2c4d"
+        }
+      ]
+    },
+    {
+      "featureType": "poi.park",
+      "elementType": "geometry.fill",
+      "stylers": [
+        {
+          "color": "#023e58"
+        }
+      ]
+    },
+    {
+      "featureType": "poi.park",
+      "elementType": "labels.text.fill",
+      "stylers": [
+        {
+          "color": "#3C7680"
+        }
       ]
     },
     {
       "featureType": "road",
-      "elementType": "labels",
+      "elementType": "geometry",
       "stylers": [
-        { "visibility": "on" }
+        {
+          "color": "#304a7d"
+        }
+      ]
+    },
+    {
+      "featureType": "road",
+      "elementType": "labels.text.fill",
+      "stylers": [
+        {
+          "color": "#98a5be"
+        }
+      ]
+    },
+    {
+      "featureType": "road",
+      "elementType": "labels.text.stroke",
+      "stylers": [
+        {
+          "color": "#1d2c4d"
+        }
+      ]
+    },
+    {
+      "featureType": "road.highway",
+      "elementType": "geometry",
+      "stylers": [
+        {
+          "color": "#2c6675"
+        }
+      ]
+    },
+    {
+      "featureType": "road.highway",
+      "elementType": "geometry.stroke",
+      "stylers": [
+        {
+          "color": "#255763"
+        }
+      ]
+    },
+    {
+      "featureType": "road.highway",
+      "elementType": "labels.text.fill",
+      "stylers": [
+        {
+          "color": "#b0d5ce"
+        }
+      ]
+    },
+    {
+      "featureType": "road.highway",
+      "elementType": "labels.text.stroke",
+      "stylers": [
+        {
+          "color": "#023e58"
+        }
+      ]
+    },
+    {
+      "featureType": "transit",
+      "elementType": "labels.text.fill",
+      "stylers": [
+        {
+          "color": "#98a5be"
+        }
+      ]
+    },
+    {
+      "featureType": "transit",
+      "elementType": "labels.text.stroke",
+      "stylers": [
+        {
+          "color": "#1d2c4d"
+        }
+      ]
+    },
+    {
+      "featureType": "transit.line",
+      "elementType": "geometry.fill",
+      "stylers": [
+        {
+          "color": "#283d6a"
+        }
       ]
     },
     {
       "featureType": "transit.station",
-      "elementType": "labels",
+      "elementType": "geometry",
       "stylers": [
-        { "visibility": "on" }
+        {
+          "color": "#3a4762"
+        }
+      ]
+    },
+    {
+      "featureType": "water",
+      "elementType": "geometry",
+      "stylers": [
+        {
+          "color": "#0e1626"
+        }
+      ]
+    },
+    {
+      "featureType": "water",
+      "elementType": "labels.text.fill",
+      "stylers": [
+        {
+          "color": "#4e6d70"
+        }
       ]
     }
   ]
@@ -72,24 +278,10 @@ class _MapEnScreenState extends State<MapEnScreen> {
     _getCurrentLocation();
     _loadMarkersFromFirestore();
     _getUser();
-    _initializeVideoPlayer();
-  }
-
-  void _initializeVideoPlayer() {
-    _videoPlayerController = VideoPlayerController.network(
-        'https://firebasestorage.googleapis.com/v0/b/anime-97d2d.appspot.com/o/sky5.mp4?alt=media&token=a1148d51-4b7b-4667-acfe-31cffc9991ab');
-    _initializeVideoPlayerFuture =
-        _videoPlayerController.initialize().then((_) {
-      _videoPlayerController.setLooping(true);
-      _videoPlayerController.setVolume(0.0);
-      _videoPlayerController.play();
-      setState(() {});
-    });
   }
 
   @override
   void dispose() {
-    _videoPlayerController.dispose();
     super.dispose();
   }
 
@@ -608,54 +800,22 @@ class _MapEnScreenState extends State<MapEnScreen> {
               ? const Center(child: CircularProgressIndicator())
               : _errorOccurred
                   ? const Center(child: Text('An error occurred.'))
-                  : Stack(
-                      children: [
-                        GoogleMap(
-                          initialCameraPosition: const CameraPosition(
-                            target: LatLng(35.658581, 139.745433),
-                            zoom: 16.0,
-                            bearing: 30.0,
-                            tilt: 60.0,
-                          ),
-                          markers: _markers,
-                          circles: _circles,
-                          myLocationEnabled: true,
-                          myLocationButtonEnabled: true,
-                          onMapCreated: (GoogleMapController controller) {
-                            _mapController = controller;
-                            controller.setMapStyle(_mapStyle);
-                            _moveToCurrentLocation();
-                          },
-                        ),
-                        FutureBuilder(
-                          future: _initializeVideoPlayerFuture,
-                          builder: (context, snapshot) {
-                            if (snapshot.connectionState ==
-                                ConnectionState.done) {
-                              return Positioned.fill(
-                                child: IgnorePointer(
-                                  child: Opacity(
-                                    opacity: 0.4,
-                                    child: FittedBox(
-                                      fit: BoxFit.cover,
-                                      child: SizedBox(
-                                        width: _videoPlayerController
-                                            .value.size.width,
-                                        height: _videoPlayerController
-                                            .value.size.height,
-                                        child:
-                                            VideoPlayer(_videoPlayerController),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              );
-                            } else {
-                              return const SizedBox.shrink();
-                            }
-                          },
-                        ),
-                      ],
+                  : GoogleMap(
+                      initialCameraPosition: const CameraPosition(
+                        target: LatLng(35.658581, 139.745433),
+                        zoom: 16.0,
+                        bearing: 30.0,
+                        tilt: 60.0,
+                      ),
+                      markers: _markers,
+                      circles: _circles,
+                      myLocationEnabled: true,
+                      myLocationButtonEnabled: true,
+                      onMapCreated: (GoogleMapController controller) {
+                        _mapController = controller;
+                        controller.setMapStyle(_mapStyle);
+                        _moveToCurrentLocation();
+                      },
                     ),
           if (_showConfirmation)
             Center(
