@@ -1,4 +1,4 @@
-import 'dart:async'; // この行を追加
+import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -260,9 +260,9 @@ class _SettingsEnState extends State<SettingsEn> {
                   ),
                   onPressed: (context) async {
                     await FirebaseAuth.instance.signOut();
-                    Navigator.pushReplacement(
-                      context,
+                    Navigator.of(context).pushAndRemoveUntil(
                       MaterialPageRoute(builder: (context) => WelcomePage()),
+                      (Route<dynamic> route) => false,
                     );
                   },
                 ),
