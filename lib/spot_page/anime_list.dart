@@ -152,11 +152,12 @@ class _AnimeListPageState extends State<AnimeListPage> {
                     }
 
                     return GridView.builder(
+                      padding: EdgeInsets.only(bottom: 16.0),
                       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                         crossAxisCount: 2,
                         childAspectRatio: 1.3,
-                        mainAxisSpacing: 1.0, // アニメの間隔
-                        crossAxisSpacing: 3.0, // アニメの間隔
+                        mainAxisSpacing: 1.0,
+                        crossAxisSpacing: 3.0,
                       ),
                       itemCount: filteredAnimeEntries.length,
                       itemBuilder: (context, index) {
@@ -164,33 +165,58 @@ class _AnimeListPageState extends State<AnimeListPage> {
                         final imageUrl = filteredAnimeEntries[index].value;
                         return GestureDetector(
                           onTap: () => _navigateToDetails(context, animeName),
-                          child: Padding(
-                            padding: const EdgeInsets.all(4.0), // アニメ間のパディング
-                            child: Column(
-                              children: [
-                                ClipRRect(
-                                  borderRadius:
-                                      BorderRadius.circular(9.0), // 角を丸くする
-                                  child: SizedBox(
-                                    width: 200, // 固定幅
-                                    height: 100, // 固定高さ
-                                    child: Image.network(
-                                      imageUrl,
-                                      fit: BoxFit.cover,
-                                    ),
-                                  ),
-                                ),
-                                SizedBox(height: 4.0), // アニメ名と画像の間隔
-                                Text(
-                                  animeName,
-                                  textAlign: TextAlign.center,
+                          child: LayoutBuilder(
+                            builder: (context, constraints) {
+                              // テキストの高さを計算
+                              final textPainter = TextPainter(
+                                text: TextSpan(
+                                  text: animeName,
                                   style: TextStyle(
-                                    fontSize: 14.0,
-                                    fontWeight: FontWeight.bold,
-                                  ),
+                                      fontSize: 14.0,
+                                      fontWeight: FontWeight.bold),
                                 ),
-                              ],
-                            ),
+                                maxLines: 2,
+                                textDirection: TextDirection.ltr,
+                              )..layout(maxWidth: constraints.maxWidth);
+
+                              final textHeight = textPainter.height;
+                              final itemHeight = 100 +
+                                  textHeight +
+                                  12.0; // 画像の高さ + テキストの高さ + パディング
+
+                              return Container(
+                                height: itemHeight,
+                                padding: const EdgeInsets.all(4.0),
+                                child: Column(
+                                  children: [
+                                    ClipRRect(
+                                      borderRadius: BorderRadius.circular(9.0),
+                                      child: SizedBox(
+                                        width: 200,
+                                        height: 100,
+                                        child: Image.network(
+                                          imageUrl,
+                                          fit: BoxFit.cover,
+                                        ),
+                                      ),
+                                    ),
+                                    SizedBox(height: 4.0),
+                                    Expanded(
+                                      child: Text(
+                                        animeName,
+                                        textAlign: TextAlign.center,
+                                        style: TextStyle(
+                                          fontSize: 14.0,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            },
                           ),
                         );
                       },

@@ -179,32 +179,59 @@ class _AnimeListEnPageState extends State<AnimeListEnPage> {
                             filteredAnimeEntries[index].value['imageUrl']!;
                         return GestureDetector(
                           onTap: () => _navigateToDetails(context, animeNameJa),
-                          child: Padding(
-                            padding: const EdgeInsets.all(4.0),
-                            child: Column(
-                              children: [
-                                ClipRRect(
-                                  borderRadius: BorderRadius.circular(9.0),
-                                  child: SizedBox(
-                                    width: 200,
-                                    height: 100,
-                                    child: Image.network(
-                                      imageUrl,
-                                      fit: BoxFit.cover,
-                                    ),
-                                  ),
-                                ),
-                                SizedBox(height: 4.0),
-                                Text(
-                                  animeNameEn,
-                                  textAlign: TextAlign.center,
+                          child: LayoutBuilder(
+                            builder: (context, constraints) {
+                              final textPainter = TextPainter(
+                                text: TextSpan(
+                                  text: animeNameEn,
                                   style: TextStyle(
-                                    fontSize: 14.0,
-                                    fontWeight: FontWeight.bold,
-                                  ),
+                                      fontSize: 14.0,
+                                      fontWeight: FontWeight.bold),
                                 ),
-                              ],
-                            ),
+                                maxLines: 2,
+                                textDirection: TextDirection.ltr,
+                              )..layout(
+                                  maxWidth: constraints.maxWidth -
+                                      8.0); // 8.0 はパディング分
+
+                              final textHeight = textPainter.height;
+                              final itemHeight = 100 +
+                                  textHeight +
+                                  12.0; // 画像の高さ + テキストの高さ + パディング
+
+                              return Container(
+                                height: itemHeight,
+                                padding: const EdgeInsets.all(4.0),
+                                child: Column(
+                                  children: [
+                                    ClipRRect(
+                                      borderRadius: BorderRadius.circular(9.0),
+                                      child: SizedBox(
+                                        width: 200,
+                                        height: 100,
+                                        child: Image.network(
+                                          imageUrl,
+                                          fit: BoxFit.cover,
+                                        ),
+                                      ),
+                                    ),
+                                    SizedBox(height: 4.0),
+                                    Expanded(
+                                      child: Text(
+                                        animeNameEn,
+                                        textAlign: TextAlign.center,
+                                        style: TextStyle(
+                                          fontSize: 14.0,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            },
                           ),
                         );
                       },
