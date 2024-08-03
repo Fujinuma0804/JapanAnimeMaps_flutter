@@ -69,20 +69,20 @@ class _MapScreenState extends State<MapScreen> {
     _getCurrentLocation();
     _loadMarkersFromFirestore();
     _getUser();
-    _initializeVideoPlayer();
+    // _initializeVideoPlayer();
   }
 
-  void _initializeVideoPlayer() {
-    _videoPlayerController = VideoPlayerController.network(
-        'https://firebasestorage.googleapis.com/v0/b/anime-97d2d.appspot.com/o/sky5.mp4?alt=media&token=a1148d51-4b7b-4667-acfe-31cffc9991ab');
-    _initializeVideoPlayerFuture =
-        _videoPlayerController.initialize().then((_) {
-      _videoPlayerController.setLooping(true);
-      _videoPlayerController.setVolume(0.0);
-      _videoPlayerController.play();
-      setState(() {});
-    });
-  }
+  // void _initializeVideoPlayer() {
+  //   _videoPlayerController = VideoPlayerController.network(
+  //       'https://firebasestorage.googleapis.com/v0/b/anime-97d2d.appspot.com/o/sky5.mp4?alt=media&token=a1148d51-4b7b-4667-acfe-31cffc9991ab');
+  //   _initializeVideoPlayerFuture =
+  //       _videoPlayerController.initialize().then((_) {
+  //     _videoPlayerController.setLooping(true);
+  //     _videoPlayerController.setVolume(0.0);
+  //     _videoPlayerController.play();
+  //     setState(() {});
+  //   });
+  // }
 
   @override
   void dispose() {
@@ -594,34 +594,34 @@ class _MapScreenState extends State<MapScreen> {
                             _moveToCurrentLocation();
                           },
                         ),
-                        FutureBuilder(
-                          future: _initializeVideoPlayerFuture,
-                          builder: (context, snapshot) {
-                            if (snapshot.connectionState ==
-                                ConnectionState.done) {
-                              return Positioned.fill(
-                                child: IgnorePointer(
-                                  child: Opacity(
-                                    opacity: 0.4,
-                                    child: FittedBox(
-                                      fit: BoxFit.cover,
-                                      child: SizedBox(
-                                        width: _videoPlayerController
-                                            .value.size.width,
-                                        height: _videoPlayerController
-                                            .value.size.height,
-                                        child:
-                                            VideoPlayer(_videoPlayerController),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              );
-                            } else {
-                              return const SizedBox.shrink();
-                            }
-                          },
-                        ),
+                        // FutureBuilder(
+                        //   future: _initializeVideoPlayerFuture,
+                        //   builder: (context, snapshot) {
+                        //     if (snapshot.connectionState ==
+                        //         ConnectionState.done) {
+                        //       return Positioned.fill(
+                        //         child: IgnorePointer(
+                        //           child: Opacity(
+                        //             opacity: 0.4,
+                        //             child: FittedBox(
+                        //               fit: BoxFit.cover,
+                        //               child: SizedBox(
+                        //                 width: _videoPlayerController
+                        //                     .value.size.width,
+                        //                 height: _videoPlayerController
+                        //                     .value.size.height,
+                        //                 child:
+                        //                     VideoPlayer(_videoPlayerController),
+                        //               ),
+                        //             ),
+                        //           ),
+                        //         ),
+                        //       );
+                        //     } else {
+                        //       return const SizedBox.shrink();
+                        //     }
+                        //   },
+                        // ),
                       ],
                     ),
           if (_showConfirmation)

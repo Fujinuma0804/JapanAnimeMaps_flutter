@@ -3,9 +3,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
-import 'package:parts/login_page/login_page.dart';
 
-import '../src/bottomnavigationbar.dart'; // Import the MainScreen
+import '../src/bottomnavigationbar.dart';
 
 class SecondSignUpPage extends StatefulWidget {
   final UserCredential userCredential;
@@ -64,7 +63,6 @@ class _SecondSignUpPageState extends State<SecondSignUpPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       extendBodyBehindAppBar: true,
-      resizeToAvoidBottomInset: true,
       appBar: AppBar(
         automaticallyImplyLeading: false,
         backgroundColor: Colors.transparent,
@@ -111,199 +109,185 @@ class _SecondSignUpPageState extends State<SecondSignUpPage> {
               fit: BoxFit.cover,
             ),
           ),
-          Center(
+          SafeArea(
             child: SingleChildScrollView(
-              padding: EdgeInsets.only(
-                bottom: MediaQuery.of(context).viewInsets.bottom,
-                top: 20,
-              ),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Center(
-                    child: SizedBox(
-                      width: 350.0,
-                      height: 45.0,
-                      child: TextFormField(
-                        onChanged: (value) {
-                          id = value;
-                        },
-                        style: const TextStyle(
-                          color: Colors.white,
-                        ),
-                        decoration: InputDecoration(
-                          labelText: _language == '日本語'
-                              ? 'ユーザーIDを入力'
-                              : 'Enter User ID',
-                          labelStyle: const TextStyle(
-                            color: Colors.white,
-                          ),
-                          border: const OutlineInputBorder(
-                            borderSide: BorderSide(
-                              color: Colors.white,
-                            ),
-                          ),
-                          enabledBorder: const OutlineInputBorder(
-                            borderSide: BorderSide(
-                              color: Colors.white,
-                            ),
-                          ),
-                          focusedBorder: const OutlineInputBorder(
-                            borderSide: BorderSide(
-                              color: Colors.white,
-                            ),
-                          ),
-                        ),
-                        textAlign: TextAlign.left,
-                        inputFormatters: [
-                          FilteringTextInputFormatter.singleLineFormatter
-                        ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 20.0),
-                  Center(
-                    child: SizedBox(
-                      width: 350.0,
-                      height: 45.0,
-                      child: TextFormField(
-                        onChanged: (value) {
-                          name = value;
-                        },
-                        style: const TextStyle(
-                          color: Colors.white,
-                        ),
-                        decoration: InputDecoration(
-                          labelText:
-                              _language == '日本語' ? '名前を入力' : 'Enter Your Name',
-                          labelStyle: const TextStyle(
-                            color: Colors.white,
-                          ),
-                          border: const OutlineInputBorder(
-                            borderSide: BorderSide(
-                              color: Colors.white,
-                            ),
-                          ),
-                          enabledBorder: const OutlineInputBorder(
-                            borderSide: BorderSide(
-                              color: Colors.white,
-                            ),
-                          ),
-                          focusedBorder: const OutlineInputBorder(
-                            borderSide: BorderSide(
-                              color: Colors.white,
-                            ),
-                          ),
-                        ),
-                        textAlign: TextAlign.left,
-                        inputFormatters: [
-                          FilteringTextInputFormatter.singleLineFormatter
-                        ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 20.0),
-                  Center(
-                    child: SizedBox(
-                      width: 350.0,
-                      height: 45.0,
-                      child: GestureDetector(
-                        onTap: () => _selectDate(context),
-                        child: AbsorbPointer(
-                          child: TextFormField(
-                            decoration: InputDecoration(
-                              labelText: _language == '日本語'
-                                  ? '誕生日を選択'
-                                  : 'Select Birthday',
-                              labelStyle: const TextStyle(
-                                color: Colors.white,
-                              ),
-                              border: const OutlineInputBorder(
-                                borderSide: BorderSide(
-                                  color: Colors.white,
-                                ),
-                              ),
-                              enabledBorder: const OutlineInputBorder(
-                                borderSide: BorderSide(
-                                  color: Colors.white,
-                                ),
-                              ),
-                              focusedBorder: const OutlineInputBorder(
-                                borderSide: BorderSide(
-                                  color: Colors.white,
-                                ),
-                              ),
-                            ),
-                            style: const TextStyle(
-                              color: Colors.white,
-                            ),
-                            textAlign: TextAlign.left,
-                            controller: TextEditingController(
-                              text: selectedDate == null
-                                  ? ''
-                                  : DateFormat('yyyy-MM-dd')
-                                      .format(selectedDate!),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 50.0),
-                  SizedBox(
-                    height: 50.0,
-                    width: 200.0,
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        side: const BorderSide(
-                          color: Colors.white,
-                        ),
-                        backgroundColor: Colors.transparent,
-                      ),
-                      onPressed: _isLoading ? null : _next,
-                      child: _isLoading
-                          ? const CircularProgressIndicator(
-                              valueColor:
-                                  AlwaysStoppedAnimation<Color>(Colors.white),
-                            )
-                          : Text(
-                              _language == '日本語' ? '登録' : 'Sign Up',
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  minHeight: MediaQuery.of(context).size.height -
+                      MediaQuery.of(context).padding.top -
+                      MediaQuery.of(context).padding.bottom,
+                ),
+                child: IntrinsicHeight(
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 20.0),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Center(
+                          child: SizedBox(
+                            width: 350.0,
+                            height: 45.0,
+                            child: TextFormField(
+                              onChanged: (value) {
+                                id = value;
+                              },
                               style: const TextStyle(
                                 color: Colors.white,
-                                fontSize: 15.0,
-                                fontWeight: FontWeight.bold,
+                              ),
+                              decoration: InputDecoration(
+                                labelText: _language == '日本語'
+                                    ? 'ユーザーIDを入力'
+                                    : 'Enter User ID',
+                                labelStyle: const TextStyle(
+                                  color: Colors.white,
+                                ),
+                                border: const OutlineInputBorder(
+                                  borderSide: BorderSide(
+                                    color: Colors.white,
+                                  ),
+                                ),
+                                enabledBorder: const OutlineInputBorder(
+                                  borderSide: BorderSide(
+                                    color: Colors.white,
+                                  ),
+                                ),
+                                focusedBorder: const OutlineInputBorder(
+                                  borderSide: BorderSide(
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ),
+                              textAlign: TextAlign.left,
+                              inputFormatters: [
+                                FilteringTextInputFormatter.singleLineFormatter
+                              ],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 20.0),
+                        Center(
+                          child: SizedBox(
+                            width: 350.0,
+                            height: 45.0,
+                            child: TextFormField(
+                              onChanged: (value) {
+                                name = value;
+                              },
+                              style: const TextStyle(
+                                color: Colors.white,
+                              ),
+                              decoration: InputDecoration(
+                                labelText: _language == '日本語'
+                                    ? '名前を入力'
+                                    : 'Enter Your Name',
+                                labelStyle: const TextStyle(
+                                  color: Colors.white,
+                                ),
+                                border: const OutlineInputBorder(
+                                  borderSide: BorderSide(
+                                    color: Colors.white,
+                                  ),
+                                ),
+                                enabledBorder: const OutlineInputBorder(
+                                  borderSide: BorderSide(
+                                    color: Colors.white,
+                                  ),
+                                ),
+                                focusedBorder: const OutlineInputBorder(
+                                  borderSide: BorderSide(
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ),
+                              textAlign: TextAlign.left,
+                              inputFormatters: [
+                                FilteringTextInputFormatter.singleLineFormatter
+                              ],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 20.0),
+                        Center(
+                          child: SizedBox(
+                            width: 350.0,
+                            height: 45.0,
+                            child: GestureDetector(
+                              onTap: () => _selectDate(context),
+                              child: AbsorbPointer(
+                                child: TextFormField(
+                                  decoration: InputDecoration(
+                                    labelText: _language == '日本語'
+                                        ? '誕生日を選択'
+                                        : 'Select Birthday',
+                                    labelStyle: const TextStyle(
+                                      color: Colors.white,
+                                    ),
+                                    border: const OutlineInputBorder(
+                                      borderSide: BorderSide(
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                    enabledBorder: const OutlineInputBorder(
+                                      borderSide: BorderSide(
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                    focusedBorder: const OutlineInputBorder(
+                                      borderSide: BorderSide(
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                  ),
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                  ),
+                                  textAlign: TextAlign.left,
+                                  controller: TextEditingController(
+                                    text: selectedDate == null
+                                        ? ''
+                                        : DateFormat('yyyy-MM-dd')
+                                            .format(selectedDate!),
+                                  ),
+                                ),
                               ),
                             ),
+                          ),
+                        ),
+                        const SizedBox(height: 50.0),
+                        SizedBox(
+                          height: 50.0,
+                          width: 200.0,
+                          child: ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              side: const BorderSide(
+                                color: Colors.white,
+                              ),
+                              backgroundColor: Colors.transparent,
+                            ),
+                            onPressed: _isLoading ? null : _next,
+                            child: _isLoading
+                                ? const CircularProgressIndicator(
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                        Colors.white),
+                                  )
+                                : Text(
+                                    _language == '日本語' ? '登録' : 'Sign Up',
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 15.0,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                          ),
+                        ),
+                        const SizedBox(height: 25.0),
+                        SizedBox(
+                          height: MediaQuery.of(context).viewInsets.bottom,
+                        ),
+                      ],
                     ),
                   ),
-                  const SizedBox(height: 25.0),
-                  SizedBox(
-                    height: 50.0,
-                    width: 200.0,
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        side: const BorderSide(
-                          color: Colors.white,
-                        ),
-                        backgroundColor: Colors.transparent,
-                      ),
-                      onPressed: () {
-                        Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                                builder: (context) => const LoginPage()));
-                      },
-                      child: Text(
-                        _language == '日本語' ? '戻る' : 'Back',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 35.0),
-                ],
+                ),
               ),
             ),
           ),
@@ -329,7 +313,6 @@ class _SecondSignUpPageState extends State<SecondSignUpPage> {
     });
 
     try {
-      // Firestoreに追加情報を保存
       await _firestore
           .collection('users')
           .doc(widget.userCredential.user?.uid)
@@ -337,10 +320,9 @@ class _SecondSignUpPageState extends State<SecondSignUpPage> {
         'name': name,
         'id': id,
         'birthday': selectedDate,
-        'created_at': FieldValue.serverTimestamp(), // 作成日時を追加
+        'created_at': FieldValue.serverTimestamp(),
       });
 
-      // 登録完了メッセージを表示
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(_language == '日本語'
@@ -349,7 +331,6 @@ class _SecondSignUpPageState extends State<SecondSignUpPage> {
         ),
       );
 
-      // MainScreenへ遷移
       Navigator.push(
         context,
         MaterialPageRoute(

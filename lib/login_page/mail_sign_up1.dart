@@ -188,7 +188,7 @@ class _MailSignUpPageState extends State<MailSignUpPage> {
                           onChanged: (value) {
                             confirmPassword = value;
                           },
-                          obscureText: _isObscure,
+                          obscureText: _isObscure2,
                           style: const TextStyle(
                             color: Colors.white,
                           ),
@@ -196,7 +196,7 @@ class _MailSignUpPageState extends State<MailSignUpPage> {
                             suffixIcon: IconButton(
                               onPressed: () {
                                 setState(() {
-                                  _isObscure = !_isObscure;
+                                  _isObscure2 = !_isObscure2;
                                 });
                               },
                               icon: Icon(
