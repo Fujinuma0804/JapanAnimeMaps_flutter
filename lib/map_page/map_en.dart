@@ -39,6 +39,14 @@ class _MapEnScreenState extends State<MapEnScreen> {
   static const String _mapStyle = '''
   [
     {
+      "elementType": "labels.text",
+      "stylers": [
+        {
+          "language": "en"
+        }
+      ]
+    },
+    {
       "elementType": "geometry",
       "stylers": [
         {

@@ -19,30 +19,36 @@ class _AnimeListPageState extends State<AnimeListPage> {
     Map<String, String> animeData = {};
     try {
       QuerySnapshot snapshot = await firestore.collection('locations').get();
-      Map<String, QueryDocumentSnapshot> minIdDocs = {};
-
       for (var doc in snapshot.docs) {
         var data = doc.data() as Map<String, dynamic>?;
-        if (data != null &&
-            data.containsKey('animeName') &&
-            data.containsKey('imageUrl')) {
+        if (data != null && data.containsKey('animeName')) {
           String animeName = data['animeName'];
-          if (!minIdDocs.containsKey(animeName) ||
-              int.parse(doc.id.split('_').last) <
-                  int.parse(minIdDocs[animeName]!.id.split('_').last)) {
-            minIdDocs[animeName] = doc;
-          }
+          animeData[animeName] = await _fetchImageUrl(animeName);
         }
       }
-
-      minIdDocs.forEach((animeName, doc) {
-        var data = doc.data() as Map<String, dynamic>;
-        animeData[animeName] = data['imageUrl'];
-      });
     } catch (e) {
       print("Error fetching anime names and images: $e");
     }
     return animeData;
+  }
+
+  Future<String> _fetchImageUrl(String animeName) async {
+    try {
+      QuerySnapshot snapshot = await firestore
+          .collection('animes')
+          .where('name', isEqualTo: animeName)
+          .limit(1)
+          .get();
+      if (snapshot.docs.isNotEmpty) {
+        var data = snapshot.docs.first.data() as Map<String, dynamic>?;
+        if (data != null && data.containsKey('imageUrl')) {
+          return data['imageUrl'];
+        }
+      }
+    } catch (e) {
+      print("Error fetching image URL for $animeName: $e");
+    }
+    return '';
   }
 
   void _onSearchChanged(String query) {

@@ -25,13 +25,14 @@ class _AnimeListEnPageState extends State<AnimeListEnPage> {
 
       for (var doc in snapshot.docs) {
         var data = doc.data() as Map<String, dynamic>?;
-        if (data != null &&
-            data.containsKey('animeName') &&
-            data.containsKey('imageUrl')) {
+        if (data != null && data.containsKey('animeName')) {
           String animeName = data['animeName'];
           if (!minIdDocs.containsKey(animeName) ||
-              int.parse(doc.id.split('_').last) <
-                  int.parse(minIdDocs[animeName]!.id.split('_').last)) {
+              (doc.id
+                      .split('_')
+                      .last
+                      .compareTo(minIdDocs[animeName]!.id.split('_').last) <
+                  0)) {
             minIdDocs[animeName] = doc;
           }
         }
@@ -40,7 +41,9 @@ class _AnimeListEnPageState extends State<AnimeListEnPage> {
       for (var entry in minIdDocs.entries) {
         var data = entry.value.data() as Map<String, dynamic>;
         String animeName = data['animeName'];
-        String imageUrl = data['imageUrl'];
+
+        // Fetch imageUrl from animes collection
+        String imageUrl = await _fetchImageUrl(animeName);
 
         // Translate anime name to English
         Translation translation =
@@ -56,6 +59,25 @@ class _AnimeListEnPageState extends State<AnimeListEnPage> {
       print("Error fetching and translating anime names and images: $e");
     }
     return animeData;
+  }
+
+  Future<String> _fetchImageUrl(String animeName) async {
+    try {
+      QuerySnapshot snapshot = await firestore
+          .collection('animes')
+          .where('name', isEqualTo: animeName)
+          .limit(1)
+          .get();
+      if (snapshot.docs.isNotEmpty) {
+        var data = snapshot.docs.first.data() as Map<String, dynamic>?;
+        if (data != null && data.containsKey('imageUrl')) {
+          return data['imageUrl'];
+        }
+      }
+    } catch (e) {
+      print("Error fetching image URL for $animeName: $e");
+    }
+    return '';
   }
 
   void _onSearchChanged(String query) {
@@ -164,6 +186,7 @@ class _AnimeListEnPageState extends State<AnimeListEnPage> {
                     }
 
                     return GridView.builder(
+                      padding: EdgeInsets.only(bottom: 16.0),
                       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                         crossAxisCount: 2,
                         childAspectRatio: 1.3,
@@ -190,9 +213,7 @@ class _AnimeListEnPageState extends State<AnimeListEnPage> {
                                 ),
                                 maxLines: 2,
                                 textDirection: TextDirection.ltr,
-                              )..layout(
-                                  maxWidth: constraints.maxWidth -
-                                      8.0); // 8.0 はパディング分
+                              )..layout(maxWidth: constraints.maxWidth);
 
                               final textHeight = textPainter.height;
                               final itemHeight = 100 +
