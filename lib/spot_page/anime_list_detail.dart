@@ -1,6 +1,9 @@
+import 'dart:io' show Platform;
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class AnimeDetailsPage extends StatelessWidget {
   final String animeName;
@@ -145,6 +148,47 @@ class SpotDetailScreen extends StatelessWidget {
     required this.sourceLink,
   }) : super(key: key);
 
+  Future<void> _openMapOptions(BuildContext context) async {
+    final googleMapsUrl =
+        "https://www.google.com/maps/search/?api=1&query=$latitude,$longitude";
+    final appleMapsUrl = "http://maps.apple.com/?q=$latitude,$longitude";
+
+    showModalBottomSheet(
+      context: context,
+      builder: (BuildContext context) {
+        return SafeArea(
+          child: Wrap(
+            children: [
+              ListTile(
+                leading: Icon(Icons.map),
+                title: Text('Google Maps'),
+                onTap: () async {
+                  if (await canLaunch(googleMapsUrl)) {
+                    await launch(googleMapsUrl);
+                  } else {
+                    throw 'Could not open Google Maps.';
+                  }
+                },
+              ),
+              if (Platform.isIOS)
+                ListTile(
+                  leading: Icon(Icons.map),
+                  title: Text('Apple Maps'),
+                  onTap: () async {
+                    if (await canLaunch(appleMapsUrl)) {
+                      await launch(appleMapsUrl);
+                    } else {
+                      throw 'Could not open Apple Maps.';
+                    }
+                  },
+                ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -212,6 +256,19 @@ class SpotDetailScreen extends StatelessWidget {
                     position: LatLng(latitude, longitude),
                   ),
                 },
+              ),
+            ),
+            Center(
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: ElevatedButton(
+                  onPressed: () => _openMapOptions(context),
+                  child: Text('ここへ行く'),
+                  style: ElevatedButton.styleFrom(
+                    foregroundColor: Colors.white,
+                    backgroundColor: Color(0xFF00008b),
+                  ),
+                ),
               ),
             ),
             Padding(

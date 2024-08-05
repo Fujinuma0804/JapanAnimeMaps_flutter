@@ -279,20 +279,7 @@ class _MapScreenState extends State<MapScreen> {
     _getCurrentLocation();
     _loadMarkersFromFirestore();
     _getUser();
-    // _initializeVideoPlayer();
   }
-
-  // void _initializeVideoPlayer() {
-  //   _videoPlayerController = VideoPlayerController.network(
-  //       'https://firebasestorage.googleapis.com/v0/b/anime-97d2d.appspot.com/o/sky5.mp4?alt=media&token=a1148d51-4b7b-4667-acfe-31cffc9991ab');
-  //   _initializeVideoPlayerFuture =
-  //       _videoPlayerController.initialize().then((_) {
-  //     _videoPlayerController.setLooping(true);
-  //     _videoPlayerController.setVolume(0.0);
-  //     _videoPlayerController.play();
-  //     setState(() {});
-  //   });
-  // }
 
   @override
   void dispose() {
@@ -464,7 +451,9 @@ class _MapScreenState extends State<MapScreen> {
     QuerySnapshot snapshot = await markers.get();
     for (var doc in snapshot.docs) {
       Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
-      LatLng position = LatLng(data['latitude'], data['longitude']);
+      double latitude = (data['latitude'] as num).toDouble();
+      double longitude = (data['longitude'] as num).toDouble();
+      LatLng position = LatLng(latitude, longitude);
       String imageUrl = data['imageUrl'];
       String locationId = doc.id;
       String title = data['title'];

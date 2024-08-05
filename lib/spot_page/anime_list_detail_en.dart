@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:translator/translator.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class AnimeDetailsEnPage extends StatelessWidget {
   final String animeName;
@@ -185,6 +186,47 @@ class SpotDetailScreen extends StatelessWidget {
     }
   }
 
+  Future<void> _openMapOptions(BuildContext context) async {
+    final googleMapsUrl =
+        "https://www.google.com/maps/search/?api=1&query=$latitude,$longitude";
+    final appleMapsUrl = "http://maps.apple.com/?q=$latitude,$longitude";
+
+    // Show a dialog to let the user choose between Google Maps and Apple Maps
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text('Open in Maps'),
+          content: Text('Choose your preferred map application:'),
+          actions: [
+            TextButton(
+              onPressed: () async {
+                if (await canLaunchUrl(Uri.parse(googleMapsUrl))) {
+                  await launchUrl(Uri.parse(googleMapsUrl));
+                } else {
+                  throw 'Could not launch Google Maps';
+                }
+                Navigator.of(context).pop();
+              },
+              child: Text('Google Maps'),
+            ),
+            TextButton(
+              onPressed: () async {
+                if (await canLaunchUrl(Uri.parse(appleMapsUrl))) {
+                  await launchUrl(Uri.parse(appleMapsUrl));
+                } else {
+                  throw 'Could not launch Apple Maps';
+                }
+                Navigator.of(context).pop();
+              },
+              child: Text('Apple Maps'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -260,6 +302,19 @@ class SpotDetailScreen extends StatelessWidget {
                     position: LatLng(latitude, longitude),
                   ),
                 },
+              ),
+            ),
+            Center(
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: ElevatedButton(
+                  onPressed: () => _openMapOptions(context),
+                  child: Text('Go To Here'),
+                  style: ElevatedButton.styleFrom(
+                    foregroundColor: Colors.white,
+                    backgroundColor: Color(0xFF00008b),
+                  ),
+                ),
               ),
             ),
             Padding(
