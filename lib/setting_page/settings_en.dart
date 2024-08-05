@@ -128,6 +128,17 @@ class _SettingsEnState extends State<SettingsEn> {
     }
   }
 
+  Future<void> _signOut(BuildContext context) async {
+    await FirebaseAuth.instance.signOut();
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(
+        builder: (context) => WelcomePage(),
+        settings: RouteSettings(name: '/welcome'), // ルート名を設定
+      ),
+      (Route<dynamic> route) => false,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return WillPopScope(
@@ -170,13 +181,6 @@ class _SettingsEnState extends State<SettingsEn> {
             SettingsSection(
               title: Text(_language == '日本語' ? '一般' : 'General'),
               tiles: <SettingsTile>[
-                SettingsTile.navigation(
-                  leading: const Icon(Icons.notifications_active_outlined),
-                  title: Text(_language == '日本語' ? '通知' : 'Notifications'),
-                  onPressed: (context) {
-                    // 画面遷移処理
-                  },
-                ),
                 SettingsTile.navigation(
                   leading: const Icon(Icons.language),
                   title:
@@ -259,11 +263,7 @@ class _SettingsEnState extends State<SettingsEn> {
                     ),
                   ),
                   onPressed: (context) async {
-                    await FirebaseAuth.instance.signOut();
-                    Navigator.of(context).pushAndRemoveUntil(
-                      MaterialPageRoute(builder: (context) => WelcomePage()),
-                      (Route<dynamic> route) => false,
-                    );
+                    await _signOut(context);
                   },
                 ),
               ],
