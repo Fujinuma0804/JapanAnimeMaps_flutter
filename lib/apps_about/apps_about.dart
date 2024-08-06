@@ -1,9 +1,30 @@
 import 'package:flutter/material.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:parts/apps_about/license.dart';
 import 'package:settings_ui/settings_ui.dart';
 
-class AppsAbout extends StatelessWidget {
+class AppsAbout extends StatefulWidget {
   const AppsAbout({Key? key}) : super(key: key);
+
+  @override
+  _AppsAboutState createState() => _AppsAboutState();
+}
+
+class _AppsAboutState extends State<AppsAbout> {
+  String _version = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _getAppVersion();
+  }
+
+  Future<void> _getAppVersion() async {
+    final PackageInfo packageInfo = await PackageInfo.fromPlatform();
+    setState(() {
+      _version = packageInfo.version;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -37,7 +58,7 @@ class AppsAbout extends StatelessWidget {
               SettingsTile(
                 title: const Text('バージョン'),
                 leading: const Icon(Icons.info_outline),
-                value: Text(''),
+                value: Text(_version),
               ),
             ],
           ),
@@ -53,7 +74,6 @@ class AppsAbout extends StatelessWidget {
                     context,
                     MaterialPageRoute(builder: (context) => MyLicensePage()),
                   );
-                  // 画面遷移処理
                 },
               ),
             ],

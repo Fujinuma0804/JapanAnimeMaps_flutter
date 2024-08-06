@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_vibrate/flutter_vibrate.dart';
 import 'package:parts/spot_page/anime_list.dart';
 
 import '../manual_page/manual_en.dart';
@@ -73,7 +74,12 @@ class _MainScreenState extends State<MainScreen> {
         .update({'correctCount': correctCount});
   }
 
-  void _onItemTapped(int index) {
+  void _onItemTapped(int index) async {
+    bool canVibrate = await Vibrate.canVibrate;
+    if (canVibrate) {
+      Vibrate.feedback(FeedbackType.selection);
+    }
+
     setState(() {
       _selectedIndex = index;
     });
@@ -125,7 +131,7 @@ class _MainScreenState extends State<MainScreen> {
 
 class CustomBottomNavigationBar extends StatelessWidget {
   final int currentIndex;
-  final ValueChanged<int> onTap;
+  final void Function(int) onTap;
   final String language;
 
   const CustomBottomNavigationBar({
