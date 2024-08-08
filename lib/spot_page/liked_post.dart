@@ -2,7 +2,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
-import 'anime_list_detail.dart'; // SpotDetailScreenをインポート
+import 'anime_list_detail.dart';
+import 'liked_maps.dart'; // SpotDetailScreenをインポート
 
 class FavoriteLocationsPage extends StatefulWidget {
   @override
@@ -68,6 +69,24 @@ class _FavoriteLocationsPageState extends State<FavoriteLocationsPage> {
             fontWeight: FontWeight.bold,
           ),
         ),
+        actions: [
+          IconButton(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                    builder: (context) => LikedMaps(
+                          longitude: 0.0,
+                          latitude: 0.0,
+                        )),
+              );
+            },
+            icon: Icon(
+              Icons.map,
+              color: Color(0xFF00008b),
+            ),
+          ),
+        ],
       ),
       body: FutureBuilder<List<Map<String, dynamic>>>(
         future: _fetchFavoriteLocations(),
@@ -82,55 +101,50 @@ class _FavoriteLocationsPageState extends State<FavoriteLocationsPage> {
             final favoriteLocations = snapshot.data!;
             return Padding(
               padding: const EdgeInsets.symmetric(
-                  horizontal: 8.0), // 左右に8.0のパディングを追加
+                horizontal: 8.0, // 左右に8.0のパディングを追加
+              ),
               child: GridView.builder(
                 gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: 2, // 3列に設定
-                  crossAxisSpacing: 8.0,
-                  mainAxisSpacing: 8.0,
-                  childAspectRatio: 0.75, // 高さと幅の比率
+                  childAspectRatio: 1.0, // 高さと幅の比率を1:1に設定
+                  mainAxisSpacing: 10.0,
+                  crossAxisSpacing: 10.0,
                 ),
                 itemCount: favoriteLocations.length,
                 itemBuilder: (context, index) {
                   final location = favoriteLocations[index];
                   return GestureDetector(
                     onTap: () => _navigateToDetails(context, location),
-                    child: GridTile(
+                    child: Padding(
+                      padding: const EdgeInsets.all(8.0),
                       child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // 画像の表示
-                          Expanded(
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(9.0),
                             child: Image.network(
                               location['imageUrl'] ?? '',
+                              width: 200, // 画像サイズを調整
+                              height: 100, // 画像サイズを調整
                               fit: BoxFit.cover,
-                              width: double.infinity,
                             ),
                           ),
-                          // タイトルと説明の表示
-                          Padding(
-                            padding: const EdgeInsets.all(8.0),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  location['title'] ?? '名称不明',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 16,
-                                  ),
-                                  overflow: TextOverflow.ellipsis,
-                                  maxLines: 1,
-                                ),
-                                SizedBox(height: 4),
-                                Text(
-                                  location['description'] ?? '説明なし',
-                                  style: TextStyle(fontSize: 14),
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ],
+                          SizedBox(height: 4),
+                          Text(
+                            location['title'] ?? 'タイトルなし',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 14.0,
+                              fontWeight: FontWeight.bold,
                             ),
+                            overflow: TextOverflow.ellipsis,
+                            maxLines: 1,
+                          ),
+                          Text(
+                            location['description'] ?? '説明なし',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(fontSize: 10.0), // 説明文のフォントサイズを調整
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ],
                       ),
