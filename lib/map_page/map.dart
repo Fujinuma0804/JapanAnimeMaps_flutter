@@ -565,43 +565,57 @@ class _MapScreenState extends State<MapScreen> {
                       child: Image.network(imageUrl),
                     ),
                     const SizedBox(height: 10.0),
-                    Center(
-                      child: Text(
-                        title,
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
+                    Padding(
+                      padding: EdgeInsets.all(15),
+                      child: Center(
+                        child: Text(
+                          title,
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
                     ),
                     const SizedBox(height: 20.0),
-                    if (_selectedMarker != null &&
-                        !hasCheckedIn &&
-                        !showTextField)
+                    if (_selectedMarker != null)
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          ElevatedButton(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: _canCheckIn
-                                  ? const Color(0xFF00008b)
-                                  : Colors.grey,
-                            ),
-                            onPressed: _canCheckIn
-                                ? () {
-                                    setState(() {
-                                      showTextField = true;
-                                    });
-                                  }
-                                : null,
-                            child: const Text(
-                              'チェックイン',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
+                          if (hasCheckedIn)
+                            const Padding(
+                              padding: EdgeInsets.only(right: 10),
+                              child: Text(
+                                '✔︎チェックイン済み',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.grey,
+                                ),
+                              ),
+                            )
+                          else
+                            ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: _canCheckIn
+                                    ? const Color(0xFF00008b)
+                                    : Colors.grey,
+                              ),
+                              onPressed: _canCheckIn
+                                  ? () {
+                                      setState(() {
+                                        showTextField = true;
+                                      });
+                                    }
+                                  : null,
+                              child: const Text(
+                                'チェックイン',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
                             ),
-                          ),
                           const SizedBox(width: 10),
                           ElevatedButton(
                             style: ElevatedButton.styleFrom(
@@ -703,19 +717,19 @@ class _MapScreenState extends State<MapScreen> {
                           ],
                         ),
                       ),
-                    if (hasCheckedIn)
-                      const Padding(
-                        padding: EdgeInsets.all(8.0),
-                        child: Text(
-                          '✔︎チェックイン済み',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.grey,
-                          ),
-                        ),
-                      ),
-                    const SizedBox(height: 15.0),
+                    // if (hasCheckedIn)
+                    //   const Padding(
+                    //     padding: EdgeInsets.all(8.0),
+                    //     child: Text(
+                    //       '✔︎チェックイン済み',
+                    //       style: TextStyle(
+                    //         fontSize: 16,
+                    //         fontWeight: FontWeight.bold,
+                    //         color: Colors.grey,
+                    //       ),
+                    //     ),
+                    //   ),
+                    const SizedBox(height: 20.0),
                   ],
                 ),
               ),
@@ -735,13 +749,23 @@ class _MapScreenState extends State<MapScreen> {
     });
   }
 
+  StreamSubscription<DocumentSnapshot>? _favoriteSubscription;
+
   void _showNavigationModalBottomSheet(
       BuildContext context, LatLng destination) async {
-    bool isFavorite =
-        await _checkFavoriteStatus(_selectedMarker!.markerId.value);
-    setState(() {
-      _isFavorite = isFavorite;
+    // Firebase Firestoreのリスナーを設定
+    _favoriteSubscription = FirebaseFirestore.instance
+        .collection('favorites') // コレクション名を適宜変更
+        .doc(_selectedMarker!.markerId.value) // ドキュメントIDを使用
+        .snapshots()
+        .listen((snapshot) {
+      if (snapshot.exists) {
+        setState(() {
+          _isFavorite = snapshot['isFavorite'];
+        });
+      }
     });
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -761,46 +785,98 @@ class _MapScreenState extends State<MapScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     children: [
-                      IconButton(
-                        icon: const Icon(Icons.directions),
-                        onPressed: () {
-                          _launchMapsUrl(
-                              destination.latitude, destination.longitude);
-                        },
+                      Column(
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.directions),
+                            onPressed: () {
+                              _launchMapsUrl(
+                                  destination.latitude, destination.longitude);
+                            },
+                          ),
+                          const Text('ナビ'),
+                        ],
                       ),
-                      IconButton(
-                        icon: const Icon(Icons.post_add),
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => PostScreen(
-                                locationId: _selectedMarker!.markerId.value,
-                                userId: _userId,
-                              ),
+                      Column(
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.more_horiz),
+                            onPressed: () {},
+                          ),
+                          const Text('その他'),
+                        ],
+                      ),
+                      Column(
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.post_add),
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => PostScreen(
+                                    locationId: _selectedMarker!.markerId.value,
+                                    userId: _userId,
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                          const Text('投稿'),
+                        ],
+                      ),
+                      Column(
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.link),
+                            onPressed: () async {
+                              DocumentSnapshot snapshot =
+                                  await FirebaseFirestore.instance
+                                      .collection('locations')
+                                      .doc(_selectedMarker!.markerId.value)
+                                      .get();
+                              if (snapshot.exists) {
+                                Map<String, dynamic>? data =
+                                    snapshot.data() as Map<String, dynamic>?;
+                                if (data != null &&
+                                    data.containsKey('sourceLink')) {
+                                  final String sourceLink = data['sourceLink'];
+                                  //Open URL
+                                  if (await canLaunch(sourceLink)) {
+                                    await launch(sourceLink);
+                                  } else {
+                                    //No Open URL
+                                    print('Could not launch $sourceLink');
+                                  }
+                                }
+                              }
+                            },
+                          ),
+                          const Text('リンク'),
+                        ],
+                      ),
+                      Column(
+                        children: [
+                          IconButton(
+                            icon: Icon(
+                              _isFavorite
+                                  ? Icons.favorite
+                                  : Icons.favorite_border,
                             ),
-                          );
-                          // _uploadImage(_selectedMarker!.markerId.value);
-                        },
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.link),
-                        onPressed: () {
-                          // 引用リンク機能を実装
-                        },
-                      ),
-                      IconButton(
-                        icon: Icon(_isFavorite
-                            ? Icons.favorite
-                            : Icons.favorite_border),
-                        onPressed: () {
-                          _toggleFavorite(_selectedMarker!.markerId.value);
-                        },
+                            onPressed: () {
+                              setState(() {
+                                _isFavorite = !_isFavorite;
+                              });
+                              _toggleFavorite(_selectedMarker!.markerId.value);
+                            },
+                          ),
+                          const Text('お気に入り'),
+                        ],
                       ),
                     ],
                   ),
                   const SizedBox(height: 20),
-                  FutureBuilder<List<String>>(
+                  FutureBuilder<List<Map<String, dynamic>>>(
                     future: _getPostedImages(_selectedMarker!.markerId.value),
                     builder: (context, snapshot) {
                       if (snapshot.connectionState == ConnectionState.waiting) {
@@ -820,9 +896,20 @@ class _MapScreenState extends State<MapScreen> {
                           ),
                           itemCount: snapshot.data!.length,
                           itemBuilder: (context, index) {
-                            return Image.network(
-                              snapshot.data![index],
-                              fit: BoxFit.cover,
+                            return GestureDetector(
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => PostDetailScreen(
+                                        postData: snapshot.data![index]),
+                                  ),
+                                );
+                              },
+                              child: Image.network(
+                                snapshot.data![index]['imageUrl'],
+                                fit: BoxFit.cover,
+                              ),
                             );
                           },
                         );
@@ -837,7 +924,10 @@ class _MapScreenState extends State<MapScreen> {
           },
         );
       },
-    );
+    ).whenComplete(() {
+      // モーダルが閉じたときにリスナーを解除
+      _favoriteSubscription?.cancel();
+    });
 
     _showRouteOnMap(destination);
   }
@@ -932,16 +1022,18 @@ class _MapScreenState extends State<MapScreen> {
     }
   }
 
-  Future<List<String>> _getPostedImages(String locationId) async {
+  Future<List<Map<String, dynamic>>> _getPostedImages(String locationId) async {
     QuerySnapshot snapshot = await FirebaseFirestore.instance
         .collection('locations')
         .doc(locationId)
-        .collection('images')
+        .collection('posts')
         .orderBy('timestamp', descending: true)
         .limit(10)
         .get();
 
-    return snapshot.docs.map((doc) => doc['url'] as String).toList();
+    return snapshot.docs
+        .map((doc) => doc.data() as Map<String, dynamic>)
+        .toList();
   }
 
   void _checkIn(
@@ -1117,6 +1209,58 @@ class _MapScreenState extends State<MapScreen> {
               ),
             ),
         ],
+      ),
+    );
+  }
+}
+
+class PostDetailScreen extends StatelessWidget {
+  final Map<String, dynamic> postData;
+
+  const PostDetailScreen({Key? key, required this.postData}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text(
+          '投稿',
+          style: TextStyle(
+            color: Color(0xFF00008b),
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ),
+      body: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Image.network(
+              postData['imageUrl'],
+              fit: BoxFit.cover,
+              width: double.infinity,
+            ),
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '${postData['userDisplayName']} (@${postData['userId']})',
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(postData['caption']),
+                  const SizedBox(height: 8),
+                  Text(
+                    '投稿日時: ${(postData['timestamp'] as Timestamp).toDate().toString()}',
+                    style: const TextStyle(color: Colors.grey),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
