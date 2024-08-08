@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:parts/spot_page/spot_test.dart';
 
 import 'anime_list_detail.dart';
+import 'liked_post.dart';
 
 class AnimeListPage extends StatefulWidget {
   @override
@@ -98,19 +99,33 @@ class _AnimeListPageState extends State<AnimeListPage> {
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-          leading: IconButton(
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const SpotTestScreen()),
-              );
-            },
-            icon: const Icon(
-              Icons.check_circle,
-              color: Color(0xFF00008b),
-            ),
-          ),
           actions: [
+            IconButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (context) => const SpotTestScreen()),
+                );
+              },
+              icon: const Icon(
+                Icons.check_circle,
+                color: Color(0xFF00008b),
+              ),
+            ),
+            IconButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (context) => FavoriteLocationsPage()),
+                );
+              },
+              icon: const Icon(
+                Icons.favorite,
+                color: Color(0xFF00008b),
+              ),
+            ),
             IconButton(
               icon: Icon(
                 _isSearching ? Icons.close : Icons.search,
@@ -241,7 +256,9 @@ class _AnimeListPageState extends State<AnimeListPage> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => AnimeDetailsPage(animeName: animeName),
+        builder: (context) => AnimeDetailsPage(
+          animeName: animeName,
+        ),
       ),
     );
   }
