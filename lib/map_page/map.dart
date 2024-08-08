@@ -15,6 +15,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:video_player/video_player.dart';
 
 import '../PostScreen.dart';
+import '../spot_page/anime_list_detail.dart';
 
 class MapScreen extends StatefulWidget {
   const MapScreen({Key? key}) : super(key: key);
@@ -801,7 +802,38 @@ class _MapScreenState extends State<MapScreen> {
                         children: [
                           IconButton(
                             icon: const Icon(Icons.more_horiz),
-                            onPressed: () {},
+                            onPressed: () async {
+                              DocumentSnapshot snapshot =
+                                  await FirebaseFirestore.instance
+                                      .collection('locations')
+                                      .doc(_selectedMarker!.markerId.value)
+                                      .get();
+
+                              if (snapshot.exists) {
+                                Map<String, dynamic>? data =
+                                    snapshot.data() as Map<String, dynamic>?;
+                                if (data != null) {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => SpotDetailScreen(
+                                        title: data['title'] ?? '',
+                                        description: data['description'] ?? '',
+                                        latitude: data['latitude'] != null
+                                            ? data['latitude'].toDouble()
+                                            : 0.0,
+                                        longitude: data['longitude'] != null
+                                            ? data['longitude'].toDouble()
+                                            : 0.0,
+                                        imageUrl: data['imageUrl'] ?? '',
+                                        sourceTitle: data['sourceTitle'] ?? '',
+                                        sourceLink: data['sourceLink'] ?? '',
+                                      ),
+                                    ),
+                                  );
+                                }
+                              }
+                            },
                           ),
                           const Text('その他'),
                         ],
