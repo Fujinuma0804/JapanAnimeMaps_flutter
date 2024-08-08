@@ -23,6 +23,8 @@ class _MainScreenState extends State<MainScreen> {
   late User _user;
   String _userLanguage = 'English';
   late Stream<DocumentSnapshot> _userStream;
+  double _latitude = 37.7749;
+  double _longitude = -122.4194;
 
   @override
   void initState() {
@@ -92,7 +94,9 @@ class _MainScreenState extends State<MainScreen> {
       stream: _userStream,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return CircularProgressIndicator();
+          return Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          );
         }
 
         return Scaffold(
@@ -105,9 +109,11 @@ class _MainScreenState extends State<MainScreen> {
               });
             },
             children: [
-              _userLanguage == 'Japanese' ? MapScreen() : MapEnScreen(),
-              _userLanguage == 'Japanese' ? WebsiteScreen() : WebsiteEnScreen(),
               _userLanguage == 'Japanese' ? AnimeListPage() : AnimeListEnPage(),
+              _userLanguage == 'Japanese' ? WebsiteScreen() : WebsiteEnScreen(),
+              _userLanguage == 'Japanese'
+                  ? MapScreen(latitude: _latitude, longitude: _longitude)
+                  : MapEnScreen(),
               _userLanguage == 'Japanese' ? PointEnPage() : PointEnPage(),
               _userLanguage == 'Japanese' ? ManualEn() : ManualEn(),
             ],
@@ -157,16 +163,16 @@ class CustomBottomNavigationBar extends StatelessWidget {
       onTap: onTap,
       items: [
         BottomNavigationBarItem(
-          icon: Icon(Icons.map),
-          label: language == 'Japanese' ? '地図' : 'Map',
+          icon: Icon(Icons.place),
+          label: language == 'Japanese' ? 'スポット' : 'Spot',
         ),
         BottomNavigationBarItem(
           icon: Icon(Icons.web),
           label: language == 'Japanese' ? '公式サイト' : 'Official Site',
         ),
         BottomNavigationBarItem(
-          icon: Icon(Icons.place),
-          label: language == 'Japanese' ? 'スポット' : 'Spot',
+          icon: Icon(Icons.map),
+          label: language == 'Japanese' ? '地図' : 'Map',
         ),
         BottomNavigationBarItem(
           icon: Icon(Icons.monetization_on),

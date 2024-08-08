@@ -1,9 +1,9 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:parts/spot_page/spot_test.dart';
-import 'package:translator/translator.dart';
 
-import 'anime_list_detail_en.dart';
+import 'anime_list_detail.dart';
+import 'liked_post_en.dart';
 
 class AnimeListEnPage extends StatefulWidget {
   @override
@@ -13,50 +13,22 @@ class AnimeListEnPage extends StatefulWidget {
 class _AnimeListEnPageState extends State<AnimeListEnPage> {
   final FirebaseFirestore firestore = FirebaseFirestore.instance;
   final TextEditingController _searchController = TextEditingController();
-  final translator = GoogleTranslator();
   String _searchQuery = '';
   bool _isSearching = false;
 
-  Future<Map<String, Map<String, String>>> _fetchAnimeNamesAndImages() async {
-    Map<String, Map<String, String>> animeData = {};
+  Future<Map<String, String>> _fetchAnimeNamesAndImages() async {
+    Map<String, String> animeData = {};
     try {
       QuerySnapshot snapshot = await firestore.collection('locations').get();
-      Map<String, QueryDocumentSnapshot> minIdDocs = {};
-
       for (var doc in snapshot.docs) {
         var data = doc.data() as Map<String, dynamic>?;
         if (data != null && data.containsKey('animeName')) {
           String animeName = data['animeName'];
-          if (!minIdDocs.containsKey(animeName) ||
-              (doc.id
-                      .split('_')
-                      .last
-                      .compareTo(minIdDocs[animeName]!.id.split('_').last) <
-                  0)) {
-            minIdDocs[animeName] = doc;
-          }
+          animeData[animeName] = await _fetchImageUrl(animeName);
         }
       }
-
-      for (var entry in minIdDocs.entries) {
-        var data = entry.value.data() as Map<String, dynamic>;
-        String animeName = data['animeName'];
-
-        // Fetch imageUrl from animes collection
-        String imageUrl = await _fetchImageUrl(animeName);
-
-        // Translate anime name to English
-        Translation translation =
-            await translator.translate(animeName, to: 'en');
-        String translatedAnimeName = translation.text;
-
-        animeData[animeName] = {
-          'translatedName': translatedAnimeName,
-          'imageUrl': imageUrl
-        };
-      }
     } catch (e) {
-      print("Error fetching and translating anime names and images: $e");
+      print("Error fetching anime names and images: $e");
     }
     return animeData;
   }
@@ -112,33 +84,48 @@ class _AnimeListEnPageState extends State<AnimeListEnPage> {
                     onChanged: _onSearchChanged,
                     autofocus: true,
                     decoration: InputDecoration(
-                      hintText: 'Search anime...',
-                      hintStyle: TextStyle(color: Colors.grey),
+                      hintText: 'Search by anime...',
+                      hintStyle:
+                          TextStyle(color: Colors.grey), // Placeholder color
                       border: InputBorder.none,
                     ),
-                    style: TextStyle(color: Colors.black),
+                    style: TextStyle(color: Colors.black), // Text color
                   ),
                 )
               : Text(
-                  'Pilgrimage Spots',
+                  'Pilgrimage spot',
                   style: TextStyle(
                     color: Color(0xFF00008b),
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-          leading: IconButton(
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const SpotTestScreen()),
-              );
-            },
-            icon: const Icon(
-              Icons.check_circle,
-              color: Color(0xFF00008b),
-            ),
-          ),
           actions: [
+            IconButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (context) => const SpotTestScreen()),
+                );
+              },
+              icon: const Icon(
+                Icons.check_circle,
+                color: Color(0xFF00008b),
+              ),
+            ),
+            IconButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (context) => FavoriteLocationsEnPage()),
+                );
+              },
+              icon: const Icon(
+                Icons.favorite,
+                color: Color(0xFF00008b),
+              ),
+            ),
             IconButton(
               icon: Icon(
                 _isSearching ? Icons.close : Icons.search,
@@ -152,9 +139,10 @@ class _AnimeListEnPageState extends State<AnimeListEnPage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+              padding: EdgeInsets.symmetric(
+                  horizontal: 16.0, vertical: 8.0), // 上下のパディングも追加
               child: Text(
-                '■ Anime Spot List',
+                '■ Anime list',
                 style: TextStyle(
                   color: Color(0xFF00008b),
                   fontWeight: FontWeight.bold,
@@ -163,7 +151,7 @@ class _AnimeListEnPageState extends State<AnimeListEnPage> {
               ),
             ),
             Expanded(
-              child: FutureBuilder<Map<String, Map<String, String>>>(
+              child: FutureBuilder<Map<String, String>>(
                 future: _fetchAnimeNamesAndImages(),
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
@@ -176,13 +164,12 @@ class _AnimeListEnPageState extends State<AnimeListEnPage> {
                   } else {
                     final allAnimeEntries = snapshot.data!.entries.toList();
                     final filteredAnimeEntries = allAnimeEntries
-                        .where((entry) => entry.value['translatedName']!
-                            .toLowerCase()
-                            .contains(_searchQuery))
+                        .where((entry) =>
+                            entry.key.toLowerCase().contains(_searchQuery))
                         .toList();
 
                     if (filteredAnimeEntries.isEmpty) {
-                      return Center(child: Text('Nothing found.'));
+                      return Center(child: Text('Nothing Found...'));
                     }
 
                     return GridView.builder(
@@ -195,18 +182,16 @@ class _AnimeListEnPageState extends State<AnimeListEnPage> {
                       ),
                       itemCount: filteredAnimeEntries.length,
                       itemBuilder: (context, index) {
-                        final animeNameJa = filteredAnimeEntries[index].key;
-                        final animeNameEn = filteredAnimeEntries[index]
-                            .value['translatedName']!;
-                        final imageUrl =
-                            filteredAnimeEntries[index].value['imageUrl']!;
+                        final animeName = filteredAnimeEntries[index].key;
+                        final imageUrl = filteredAnimeEntries[index].value;
                         return GestureDetector(
-                          onTap: () => _navigateToDetails(context, animeNameJa),
+                          onTap: () => _navigateToDetails(context, animeName),
                           child: LayoutBuilder(
                             builder: (context, constraints) {
+                              // テキストの高さを計算
                               final textPainter = TextPainter(
                                 text: TextSpan(
-                                  text: animeNameEn,
+                                  text: animeName,
                                   style: TextStyle(
                                       fontSize: 14.0,
                                       fontWeight: FontWeight.bold),
@@ -239,7 +224,7 @@ class _AnimeListEnPageState extends State<AnimeListEnPage> {
                                     SizedBox(height: 4.0),
                                     Expanded(
                                       child: Text(
-                                        animeNameEn,
+                                        animeName,
                                         textAlign: TextAlign.center,
                                         style: TextStyle(
                                           fontSize: 14.0,
@@ -267,11 +252,13 @@ class _AnimeListEnPageState extends State<AnimeListEnPage> {
     );
   }
 
-  void _navigateToDetails(BuildContext context, String animeNameJa) {
+  void _navigateToDetails(BuildContext context, String animeName) {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => AnimeDetailsEnPage(animeName: animeNameJa),
+        builder: (context) => AnimeDetailsPage(
+          animeName: animeName,
+        ),
       ),
     );
   }

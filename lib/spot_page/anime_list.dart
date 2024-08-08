@@ -142,7 +142,7 @@ class _AnimeListPageState extends State<AnimeListPage> {
               padding: EdgeInsets.symmetric(
                   horizontal: 16.0, vertical: 8.0), // 上下のパディングも追加
               child: Text(
-                '■ アニメスポット一覧',
+                '■ アニメ一覧',
                 style: TextStyle(
                   color: Color(0xFF00008b),
                   fontWeight: FontWeight.bold,

@@ -18,7 +18,9 @@ import '../PostScreen.dart';
 import '../spot_page/anime_list_detail.dart';
 
 class MapScreen extends StatefulWidget {
-  const MapScreen({Key? key}) : super(key: key);
+  const MapScreen(
+      {Key? key, required double longitude, required double latitude})
+      : super(key: key);
 
   @override
   State<MapScreen> createState() => _MapScreenState();
@@ -554,8 +556,7 @@ class _MapScreenState extends State<MapScreen> {
             return SingleChildScrollView(
               child: Padding(
                 padding: EdgeInsets.only(
-                  bottom: MediaQuery.of(context).viewInsets.bottom,
-                ),
+                    bottom: MediaQuery.of(context).viewInsets.bottom),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [

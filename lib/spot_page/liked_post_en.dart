@@ -4,12 +4,13 @@ import 'package:flutter/material.dart';
 
 import 'anime_list_detail.dart'; // SpotDetailScreenをインポート
 
-class FavoriteLocationsPage extends StatefulWidget {
+class FavoriteLocationsEnPage extends StatefulWidget {
   @override
-  _FavoriteLocationsPageState createState() => _FavoriteLocationsPageState();
+  _FavoriteLocationsEnPageState createState() =>
+      _FavoriteLocationsEnPageState();
 }
 
-class _FavoriteLocationsPageState extends State<FavoriteLocationsPage> {
+class _FavoriteLocationsEnPageState extends State<FavoriteLocationsEnPage> {
   final FirebaseFirestore firestore = FirebaseFirestore.instance;
   final FirebaseAuth auth = FirebaseAuth.instance;
 
@@ -45,7 +46,7 @@ class _FavoriteLocationsPageState extends State<FavoriteLocationsPage> {
               print('Location data for $locationId: ${locationDoc.data()}');
               favoriteLocations.add(locationDoc.data() as Map<String, dynamic>);
             } else {
-              print("Location ID $locationId が存在しません。");
+              print("Location ID $locationId does not exist.");
             }
             break;
           }
@@ -62,7 +63,7 @@ class _FavoriteLocationsPageState extends State<FavoriteLocationsPage> {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          'お気に入りのスポット',
+          'Favorite Spot',
           style: TextStyle(
             color: Color(0xFF00008b),
             fontWeight: FontWeight.bold,
@@ -75,9 +76,9 @@ class _FavoriteLocationsPageState extends State<FavoriteLocationsPage> {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return Center(child: CircularProgressIndicator());
           } else if (snapshot.hasError) {
-            return Center(child: Text('エラー: ${snapshot.error}'));
+            return Center(child: Text('Error: ${snapshot.error}'));
           } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            return Center(child: Text('お気に入りのスポットが見つかりませんでした。'));
+            return Center(child: Text('Favorite spot not found.'));
           } else {
             final favoriteLocations = snapshot.data!;
             return Padding(
@@ -114,7 +115,7 @@ class _FavoriteLocationsPageState extends State<FavoriteLocationsPage> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  location['title'] ?? '名称不明',
+                                  location['title'] ?? 'No title',
                                   style: TextStyle(
                                     fontWeight: FontWeight.bold,
                                     fontSize: 16,
@@ -124,7 +125,7 @@ class _FavoriteLocationsPageState extends State<FavoriteLocationsPage> {
                                 ),
                                 SizedBox(height: 4),
                                 Text(
-                                  location['description'] ?? '説明なし',
+                                  location['description'] ?? 'Not Description',
                                   style: TextStyle(fontSize: 14),
                                   maxLines: 2,
                                   overflow: TextOverflow.ellipsis,
@@ -150,13 +151,13 @@ class _FavoriteLocationsPageState extends State<FavoriteLocationsPage> {
       context,
       MaterialPageRoute(
         builder: (context) => SpotDetailScreen(
-          title: location['title'] ?? '名称不明',
-          description: location['description'] ?? '説明なし',
+          title: location['title'] ?? 'Not title',
+          description: location['description'] ?? 'Not Description',
           latitude: location['latitude'] ?? 0.0,
           longitude: location['longitude'] ?? 0.0,
           imageUrl: location['imageUrl'] ?? '',
-          sourceTitle: location['sourceTitle'] ?? '引用元なし',
-          sourceLink: location['sourceLink'] ?? 'リンクなし',
+          sourceTitle: location['sourceTitle'] ?? 'Not Quote source',
+          sourceLink: location['sourceLink'] ?? 'Not Link',
         ),
       ),
     );
