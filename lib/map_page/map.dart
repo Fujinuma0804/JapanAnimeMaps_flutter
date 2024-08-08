@@ -1,15 +1,20 @@
 import 'dart:async';
+import 'dart:io';
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:http/http.dart' as http;
+import 'package:image_picker/image_picker.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:video_player/video_player.dart';
+
+import '../PostScreen.dart';
 
 class MapScreen extends StatefulWidget {
   const MapScreen({Key? key}) : super(key: key);
@@ -23,6 +28,7 @@ class _MapScreenState extends State<MapScreen> {
   LatLng? _currentPosition;
   final Set<Marker> _markers = {};
   final Set<Circle> _circles = {};
+  final Set<Polyline> _polylines = {};
   bool _isLoading = true;
   bool _errorOccurred = false;
   bool _canCheckIn = false;
@@ -32,6 +38,7 @@ class _MapScreenState extends State<MapScreen> {
   Marker? _selectedMarker;
   late User _user;
   late String _userId;
+  bool _isFavorite = false;
   bool _isSubmitting = false;
 
   late VideoPlayerController _videoPlayerController;
@@ -567,63 +574,65 @@ class _MapScreenState extends State<MapScreen> {
                         ),
                       ),
                     ),
-                    const SizedBox(height: 10.0),
-                    Center(
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 30.0),
-                        child: Text(
-                          snippet,
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    ),
                     const SizedBox(height: 20.0),
                     if (_selectedMarker != null &&
                         !hasCheckedIn &&
                         !showTextField)
-                      Column(
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Padding(
-                            padding: const EdgeInsets.all(8.0),
-                            child: ElevatedButton(
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: _canCheckIn
-                                    ? const Color(0xFF00008b)
-                                    : Colors.grey,
-                              ),
-                              onPressed: _canCheckIn
-                                  ? () {
-                                      setState(() {
-                                        showTextField = true;
-                                      });
-                                    }
-                                  : null,
-                              child: const Text(
-                                'チェックイン',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                ),
+                          ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: _canCheckIn
+                                  ? const Color(0xFF00008b)
+                                  : Colors.grey,
+                            ),
+                            onPressed: _canCheckIn
+                                ? () {
+                                    setState(() {
+                                      showTextField = true;
+                                    });
+                                  }
+                                : null,
+                            child: const Text(
+                              'チェックイン',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
                               ),
                             ),
                           ),
-                          if (!_canCheckIn)
-                            const Padding(
-                              padding: EdgeInsets.all(8.0),
-                              child: Text(
-                                '現在位置から離れているためチェックインできません',
-                                style: TextStyle(
-                                  color: Colors.red,
-                                  fontSize: 14,
-                                ),
-                                textAlign: TextAlign.center,
+                          const SizedBox(width: 10),
+                          ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF00008b),
+                            ),
+                            onPressed: () {
+                              Navigator.pop(context);
+                              _showNavigationModalBottomSheet(
+                                  context, _selectedMarker!.position);
+                            },
+                            child: const Text(
+                              'ここへ行く',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
                               ),
                             ),
-                          const SizedBox(height: 15.0),
+                          ),
                         ],
+                      ),
+                    if (!_canCheckIn && !hasCheckedIn)
+                      const Padding(
+                        padding: EdgeInsets.all(8.0),
+                        child: Text(
+                          '現在位置から離れているためチェックインできません',
+                          style: TextStyle(
+                            color: Colors.red,
+                            fontSize: 14,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
                       ),
                     if (_canCheckIn && !hasCheckedIn && showTextField)
                       Padding(
@@ -647,27 +656,49 @@ class _MapScreenState extends State<MapScreen> {
                               },
                             ),
                             const SizedBox(height: 8),
-                            ElevatedButton(
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: _isSubmitting
-                                    ? Colors.grey
-                                    : const Color(0xFF00008b),
-                              ),
-                              onPressed: _isSubmitting
-                                  ? null
-                                  : () {
-                                      String comment = textController.text;
-                                      _checkIn(comment, title, isCorrect,
-                                          _selectedMarker!.markerId.value);
-                                      Navigator.of(context).pop();
-                                    },
-                              child: const Text(
-                                '送信',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                              children: [
+                                ElevatedButton(
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.grey,
+                                  ),
+                                  onPressed: () {
+                                    setState(() {
+                                      showTextField = false;
+                                    });
+                                  },
+                                  child: const Text(
+                                    '戻る',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
                                 ),
-                              ),
+                                ElevatedButton(
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: _isSubmitting
+                                        ? Colors.grey
+                                        : const Color(0xFF00008b),
+                                  ),
+                                  onPressed: _isSubmitting
+                                      ? null
+                                      : () {
+                                          String comment = textController.text;
+                                          _checkIn(comment, title, isCorrect,
+                                              _selectedMarker!.markerId.value);
+                                          Navigator.of(context).pop();
+                                        },
+                                  child: const Text(
+                                    '送信',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
                           ],
                         ),
@@ -702,6 +733,215 @@ class _MapScreenState extends State<MapScreen> {
         });
       }
     });
+  }
+
+  void _showNavigationModalBottomSheet(
+      BuildContext context, LatLng destination) async {
+    bool isFavorite =
+        await _checkFavoriteStatus(_selectedMarker!.markerId.value);
+    setState(() {
+      _isFavorite = isFavorite;
+    });
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (BuildContext context) {
+        return DraggableScrollableSheet(
+          initialChildSize: 0.5,
+          minChildSize: 0.2,
+          maxChildSize: 0.9,
+          expand: false,
+          builder: (_, controller) {
+            return SingleChildScrollView(
+              controller: controller,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const SizedBox(height: 20),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.directions),
+                        onPressed: () {
+                          _launchMapsUrl(
+                              destination.latitude, destination.longitude);
+                        },
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.post_add),
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => PostScreen(
+                                locationId: _selectedMarker!.markerId.value,
+                                userId: _userId,
+                              ),
+                            ),
+                          );
+                          // _uploadImage(_selectedMarker!.markerId.value);
+                        },
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.link),
+                        onPressed: () {
+                          // 引用リンク機能を実装
+                        },
+                      ),
+                      IconButton(
+                        icon: Icon(_isFavorite
+                            ? Icons.favorite
+                            : Icons.favorite_border),
+                        onPressed: () {
+                          _toggleFavorite(_selectedMarker!.markerId.value);
+                        },
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                  FutureBuilder<List<String>>(
+                    future: _getPostedImages(_selectedMarker!.markerId.value),
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return const CircularProgressIndicator();
+                      } else if (snapshot.hasError) {
+                        return const Text('エラーが発生しました');
+                      } else if (snapshot.hasData &&
+                          snapshot.data!.isNotEmpty) {
+                        return GridView.builder(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          gridDelegate:
+                              const SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 3,
+                            crossAxisSpacing: 4,
+                            mainAxisSpacing: 4,
+                          ),
+                          itemCount: snapshot.data!.length,
+                          itemBuilder: (context, index) {
+                            return Image.network(
+                              snapshot.data![index],
+                              fit: BoxFit.cover,
+                            );
+                          },
+                        );
+                      } else {
+                        return const Text('まだ投稿されていません。');
+                      }
+                    },
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+
+    _showRouteOnMap(destination);
+  }
+
+  Future<void> _toggleFavorite(String locationId) async {
+    try {
+      DocumentReference userFavoriteRef = FirebaseFirestore.instance
+          .collection('users')
+          .doc(_userId)
+          .collection('favorites')
+          .doc(locationId);
+
+      DocumentSnapshot favoriteSnapshot = await userFavoriteRef.get();
+
+      if (favoriteSnapshot.exists) {
+        // お気に入りから削除
+        await userFavoriteRef.delete();
+        setState(() {
+          _isFavorite = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('お気に入りから削除しました')),
+        );
+      } else {
+        // お気に入りに追加
+        await userFavoriteRef.set({
+          'locationId': locationId,
+          'timestamp': FieldValue.serverTimestamp(),
+        });
+        setState(() {
+          _isFavorite = true;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('お気に入りに追加しました')),
+        );
+      }
+    } catch (e) {
+      print('Error toggling favorite: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('お気に入りの更新に失敗しました')),
+      );
+    }
+  }
+
+  Future<bool> _checkFavoriteStatus(String locationId) async {
+    DocumentSnapshot favoriteSnapshot = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(_userId)
+        .collection('favorites')
+        .doc(locationId)
+        .get();
+
+    return favoriteSnapshot.exists;
+  }
+
+  Future<void> _uploadImage(String locationId) async {
+    final ImagePicker _picker = ImagePicker();
+    final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
+
+    if (image != null) {
+      File file = File(image.path);
+      try {
+        String fileName = '${DateTime.now().millisecondsSinceEpoch}.jpg';
+        Reference ref = FirebaseStorage.instance
+            .ref()
+            .child('location_images')
+            .child(locationId)
+            .child(fileName);
+
+        await ref.putFile(file);
+        String downloadURL = await ref.getDownloadURL();
+
+        await FirebaseFirestore.instance
+            .collection('locations')
+            .doc(locationId)
+            .collection('images')
+            .add({
+          'url': downloadURL,
+          'userId': _userId,
+          'timestamp': FieldValue.serverTimestamp(),
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('画像をアップロードしました')),
+        );
+      } catch (e) {
+        print('Error uploading image: $e');
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('画像のアップロードに失敗しました')),
+        );
+      }
+    }
+  }
+
+  Future<List<String>> _getPostedImages(String locationId) async {
+    QuerySnapshot snapshot = await FirebaseFirestore.instance
+        .collection('locations')
+        .doc(locationId)
+        .collection('images')
+        .orderBy('timestamp', descending: true)
+        .limit(10)
+        .get();
+
+    return snapshot.docs.map((doc) => doc['url'] as String).toList();
   }
 
   void _checkIn(
@@ -764,6 +1004,55 @@ class _MapScreenState extends State<MapScreen> {
     }
   }
 
+  void _launchMapsUrl(double lat, double lng) async {
+    final url = 'https://www.google.com/maps/dir/?api=1&destination=$lat,$lng';
+    if (await canLaunch(url)) {
+      await launch(url);
+    } else {
+      throw 'Could not launch $url';
+    }
+  }
+
+  void _showRouteOnMap(LatLng destination) {
+    if (_currentPosition != null) {
+      setState(() {
+        _polylines.clear();
+        _polylines.add(
+          Polyline(
+            polylineId: const PolylineId("route"),
+            points: [_currentPosition!, destination],
+            color: Colors.blue,
+            width: 5,
+          ),
+        );
+      });
+
+      _mapController?.animateCamera(
+        CameraUpdate.newLatLngBounds(
+          LatLngBounds(
+            southwest: LatLng(
+              _currentPosition!.latitude < destination.latitude
+                  ? _currentPosition!.latitude
+                  : destination.latitude,
+              _currentPosition!.longitude < destination.longitude
+                  ? _currentPosition!.longitude
+                  : destination.longitude,
+            ),
+            northeast: LatLng(
+              _currentPosition!.latitude > destination.latitude
+                  ? _currentPosition!.latitude
+                  : destination.latitude,
+              _currentPosition!.longitude > destination.longitude
+                  ? _currentPosition!.longitude
+                  : destination.longitude,
+            ),
+          ),
+          100.0,
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -785,6 +1074,7 @@ class _MapScreenState extends State<MapScreen> {
                           ),
                           markers: _markers,
                           circles: _circles,
+                          polylines: _polylines,
                           myLocationEnabled: true,
                           myLocationButtonEnabled: true,
                           onMapCreated: (GoogleMapController controller) {
@@ -793,34 +1083,6 @@ class _MapScreenState extends State<MapScreen> {
                             _moveToCurrentLocation();
                           },
                         ),
-                        // FutureBuilder(
-                        //   future: _initializeVideoPlayerFuture,
-                        //   builder: (context, snapshot) {
-                        //     if (snapshot.connectionState ==
-                        //         ConnectionState.done) {
-                        //       return Positioned.fill(
-                        //         child: IgnorePointer(
-                        //           child: Opacity(
-                        //             opacity: 0.4,
-                        //             child: FittedBox(
-                        //               fit: BoxFit.cover,
-                        //               child: SizedBox(
-                        //                 width: _videoPlayerController
-                        //                     .value.size.width,
-                        //                 height: _videoPlayerController
-                        //                     .value.size.height,
-                        //                 child:
-                        //                     VideoPlayer(_videoPlayerController),
-                        //               ),
-                        //             ),
-                        //           ),
-                        //         ),
-                        //       );
-                        //     } else {
-                        //       return const SizedBox.shrink();
-                        //     }
-                        //   },
-                        // ),
                       ],
                     ),
           if (_showConfirmation)
