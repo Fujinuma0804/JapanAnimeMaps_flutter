@@ -223,26 +223,6 @@ class SpotDetailScreen extends StatelessWidget {
                   width: double.infinity,
                 ),
               ),
-            Align(
-              alignment: FractionalOffset.centerRight,
-              child: Text(
-                sourceTitle,
-                style: TextStyle(
-                  color: Colors.grey,
-                  fontSize: 10.0,
-                ),
-              ),
-            ),
-            Align(
-              alignment: FractionalOffset.centerRight,
-              child: Text(
-                sourceLink,
-                style: TextStyle(
-                  fontSize: 10.0,
-                  color: Colors.grey,
-                ),
-              ),
-            ),
             SizedBox(
               height: 200,
               child: GoogleMap(
@@ -278,6 +258,26 @@ class SpotDetailScreen extends StatelessWidget {
                 style: const TextStyle(
                   fontSize: 16,
                   color: Colors.black,
+                ),
+              ),
+            ),
+            Align(
+              alignment: FractionalOffset.centerRight,
+              child: Text(
+                sourceTitle,
+                style: TextStyle(
+                  color: Colors.grey,
+                  fontSize: 10.0,
+                ),
+              ),
+            ),
+            Align(
+              alignment: FractionalOffset.centerRight,
+              child: Text(
+                sourceLink,
+                style: TextStyle(
+                  fontSize: 10.0,
+                  color: Colors.grey,
                 ),
               ),
             ),

@@ -1193,6 +1193,22 @@ class _LikedMapsState extends State<LikedMaps> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        elevation: 0,
+        backgroundColor: Colors.transparent, // AppBarを透明に設定
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new), // ＜ のアイコンを使用
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+        title: Text(
+          'お気に入りのスポット',
+          style: TextStyle(
+            color: Color(0xFF00008b),
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        centerTitle: true,
+      ),
       resizeToAvoidBottomInset: true,
       body: Stack(
         children: [
