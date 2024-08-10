@@ -158,6 +158,8 @@ class _FavoriteLocationsEnPageState extends State<FavoriteLocationsEnPage> {
           imageUrl: location['imageUrl'] ?? '',
           sourceTitle: location['sourceTitle'] ?? 'Not Quote source',
           sourceLink: location['sourceLink'] ?? 'Not Link',
+          url: location['url'] ?? 'Error',
+          subMedia: location['subMedia'] ?? 'Error',
         ),
       ),
     );

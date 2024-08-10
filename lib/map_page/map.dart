@@ -814,6 +814,20 @@ class _MapScreenState extends State<MapScreen> {
                                 Map<String, dynamic>? data =
                                     snapshot.data() as Map<String, dynamic>?;
                                 if (data != null) {
+                                  // subMediaの処理を追加
+                                  List<Map<String, dynamic>> subMediaList = [];
+                                  if (data['subMedia'] != null &&
+                                      data['subMedia'] is List) {
+                                    subMediaList =
+                                        (data['subMedia'] as List).map((item) {
+                                      return {
+                                        'type': item['type'] as String? ?? '',
+                                        'url': item['url'] as String? ?? '',
+                                        'title': item['title'] as String? ?? '',
+                                      };
+                                    }).toList();
+                                  }
+
                                   Navigator.push(
                                     context,
                                     MaterialPageRoute(
@@ -821,14 +835,18 @@ class _MapScreenState extends State<MapScreen> {
                                         title: data['title'] ?? '',
                                         description: data['description'] ?? '',
                                         latitude: data['latitude'] != null
-                                            ? data['latitude'].toDouble()
+                                            ? (data['latitude'] as num)
+                                                .toDouble()
                                             : 0.0,
                                         longitude: data['longitude'] != null
-                                            ? data['longitude'].toDouble()
+                                            ? (data['longitude'] as num)
+                                                .toDouble()
                                             : 0.0,
                                         imageUrl: data['imageUrl'] ?? '',
                                         sourceTitle: data['sourceTitle'] ?? '',
                                         sourceLink: data['sourceLink'] ?? '',
+                                        url: data['url'] ?? '',
+                                        subMedia: subMediaList,
                                       ),
                                     ),
                                   );

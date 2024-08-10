@@ -826,6 +826,19 @@ class _LikedMapsState extends State<LikedMaps> {
                                 Map<String, dynamic>? data =
                                     snapshot.data() as Map<String, dynamic>?;
                                 if (data != null) {
+                                  List<Map<String, dynamic>> subMediaList = [];
+                                  if (data['subMedia'] != null &&
+                                      data['subMedia'] is List) {
+                                    subMediaList =
+                                        (data['subMedia'] as List).map((item) {
+                                      return {
+                                        'type': item['type'] as String? ?? '',
+                                        'url': item['url'] as String? ?? '',
+                                        'title': item['title'] as String? ?? '',
+                                      };
+                                    }).toList();
+                                  }
+
                                   Navigator.push(
                                     context,
                                     MaterialPageRoute(
@@ -841,6 +854,8 @@ class _LikedMapsState extends State<LikedMaps> {
                                         imageUrl: data['imageUrl'] ?? '',
                                         sourceTitle: data['sourceTitle'] ?? '',
                                         sourceLink: data['sourceLink'] ?? '',
+                                        url: data['url'] ?? '',
+                                        subMedia: subMediaList,
                                       ),
                                     ),
                                   );

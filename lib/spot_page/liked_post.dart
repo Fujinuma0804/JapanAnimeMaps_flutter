@@ -171,6 +171,8 @@ class _FavoriteLocationsPageState extends State<FavoriteLocationsPage> {
           imageUrl: location['imageUrl'] ?? '',
           sourceTitle: location['sourceTitle'] ?? '引用元なし',
           sourceLink: location['sourceLink'] ?? 'リンクなし',
+          url: location['url'] ?? 'エラー',
+          subMedia: location['subMedia'] ?? 'エラー',
         ),
       ),
     );

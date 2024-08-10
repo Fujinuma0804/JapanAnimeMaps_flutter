@@ -1,9 +1,11 @@
 import 'dart:io' show Platform;
 
+import 'package:chewie/chewie.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:video_player/video_player.dart';
 
 class AnimeDetailsPage extends StatelessWidget {
   final String animeName;
@@ -20,6 +22,16 @@ class AnimeDetailsPage extends StatelessWidget {
 
       for (var doc in snapshot.docs) {
         var data = doc.data() as Map<String, dynamic>;
+        var subMediaList =
+            (data['subMedia'] as List<dynamic>?)?.map((subMedia) {
+                  return {
+                    'type': subMedia['type'] as String?,
+                    'url': subMedia['url'] as String?,
+                    'title': subMedia['title'] as String?,
+                  };
+                }).toList() ??
+                [];
+
         locations.add({
           'title': data['title'] ?? '',
           'imageUrl': data['imageUrl'] ?? '',
@@ -28,6 +40,8 @@ class AnimeDetailsPage extends StatelessWidget {
           'longitude': data['longitude'] ?? 0.0,
           'sourceTitle': data['sourceTitle'] ?? '',
           'sourceLink': data['sourceLink'] ?? '',
+          'url': data['url'] ?? '',
+          'subMedia': subMediaList,
         });
       }
     } catch (e) {
@@ -87,6 +101,9 @@ class AnimeDetailsPage extends StatelessWidget {
                           longitude: location['longitude'] as double,
                           sourceLink: location['sourceLink'] as String,
                           sourceTitle: location['sourceTitle'] as String,
+                          url: location['url'] as String,
+                          subMedia: location['subMedia']
+                              as List<Map<String, dynamic>>,
                         ),
                       ),
                     );
@@ -97,12 +114,27 @@ class AnimeDetailsPage extends StatelessWidget {
                       children: [
                         ClipRRect(
                           borderRadius: BorderRadius.circular(9.0),
-                          child: Image.network(
-                            imageUrl,
-                            width: 200,
-                            height: 100,
-                            fit: BoxFit.cover,
-                          ),
+                          child: imageUrl.isNotEmpty
+                              ? Image.network(
+                                  imageUrl,
+                                  width: 200,
+                                  height: 100,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) {
+                                    return Image.asset(
+                                      'assets/placeholder_image.png',
+                                      width: 200,
+                                      height: 100,
+                                      fit: BoxFit.cover,
+                                    );
+                                  },
+                                )
+                              : Image.asset(
+                                  'assets/placeholder_image.png',
+                                  width: 200,
+                                  height: 100,
+                                  fit: BoxFit.cover,
+                                ),
                         ),
                         SizedBox(height: 8.0),
                         Text(
@@ -128,7 +160,7 @@ class AnimeDetailsPage extends StatelessWidget {
   }
 }
 
-class SpotDetailScreen extends StatelessWidget {
+class SpotDetailScreen extends StatefulWidget {
   final String title;
   final String description;
   final double latitude;
@@ -136,6 +168,8 @@ class SpotDetailScreen extends StatelessWidget {
   final String imageUrl;
   final String sourceTitle;
   final String sourceLink;
+  final String url;
+  final List<Map<String, dynamic>> subMedia;
 
   const SpotDetailScreen({
     Key? key,
@@ -146,12 +180,24 @@ class SpotDetailScreen extends StatelessWidget {
     required this.imageUrl,
     required this.sourceTitle,
     required this.sourceLink,
+    required this.url,
+    required this.subMedia,
   }) : super(key: key);
+
+  @override
+  _SpotDetailScreenState createState() => _SpotDetailScreenState();
+}
+
+class _SpotDetailScreenState extends State<SpotDetailScreen> {
+  VideoPlayerController? _videoPlayerController;
+  ChewieController? _chewieController;
+  bool _isPictureInPicture = false;
 
   Future<void> _openMapOptions(BuildContext context) async {
     final googleMapsUrl =
-        "https://www.google.com/maps/search/?api=1&query=$latitude,$longitude";
-    final appleMapsUrl = "http://maps.apple.com/?q=$latitude,$longitude";
+        "https://www.google.com/maps/search/?api=1&query=${widget.latitude},${widget.longitude}";
+    final appleMapsUrl =
+        "http://maps.apple.com/?q=${widget.latitude},${widget.longitude}";
 
     showModalBottomSheet(
       context: context,
@@ -190,6 +236,46 @@ class SpotDetailScreen extends StatelessWidget {
   }
 
   @override
+  void initState() {
+    super.initState();
+    _initializeMedia();
+  }
+
+  Future<void> _initializeMedia() async {
+    if (widget.url.isNotEmpty && widget.url.toLowerCase().endsWith('.mp4')) {
+      await _initializeVideoPlayer(widget.url);
+    }
+    for (var subMedia in widget.subMedia) {
+      if (subMedia['type'] == 'video') {
+        await _initializeVideoPlayer(subMedia['url']);
+        break; // 最初の動画のみを初期化
+      }
+    }
+  }
+
+  Future<void> _initializeVideoPlayer(String url) async {
+    try {
+      _videoPlayerController = VideoPlayerController.network(url);
+      await _videoPlayerController!.initialize();
+      _chewieController = ChewieController(
+        videoPlayerController: _videoPlayerController!,
+        autoPlay: true,
+        looping: true,
+      );
+      setState(() {});
+    } catch (e) {
+      print("Error initializing video player: $e");
+    }
+  }
+
+  @override
+  void dispose() {
+    _videoPlayerController?.dispose();
+    _chewieController?.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
@@ -201,86 +287,189 @@ class SpotDetailScreen extends StatelessWidget {
           ),
         ),
       ),
-      body: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+      body: NotificationListener<ScrollNotification>(
+        onNotification: (scrollNotification) {
+          if (scrollNotification is ScrollUpdateNotification) {
+            if (scrollNotification.metrics.pixels > 0 && !_isPictureInPicture) {
+              setState(() {
+                _isPictureInPicture = true;
+              });
+            } else if (scrollNotification.metrics.pixels == 0 &&
+                _isPictureInPicture) {
+              setState(() {
+                _isPictureInPicture = false;
+              });
+            }
+          }
+          return true;
+        },
+        child: Stack(
           children: [
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Text(
-                title,
-                style:
-                    const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-              ),
-            ),
-            if (imageUrl.isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Image.network(
-                  imageUrl,
-                  fit: BoxFit.cover,
-                  height: 200,
-                  width: double.infinity,
-                ),
-              ),
-            SizedBox(
-              height: 200,
-              child: GoogleMap(
-                initialCameraPosition: CameraPosition(
-                  target: LatLng(latitude, longitude),
-                  zoom: 15,
-                ),
-                markers: {
-                  Marker(
-                    markerId: const MarkerId('spot_location'),
-                    position: LatLng(latitude, longitude),
+            SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Text(
+                      widget.title,
+                      style: const TextStyle(
+                          fontSize: 24, fontWeight: FontWeight.bold),
+                    ),
                   ),
-                },
+                  Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Image.network(
+                      widget.imageUrl,
+                      fit: BoxFit.cover,
+                      width: double.infinity,
+                      height: 200,
+                    ),
+                  ),
+                  if (_chewieController != null)
+                    Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: AspectRatio(
+                        aspectRatio: _videoPlayerController!.value.aspectRatio,
+                        child: Chewie(controller: _chewieController!),
+                      ),
+                    )
+                  else if (widget.url.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Image.network(
+                        widget.url,
+                        fit: BoxFit.cover,
+                        height: 200,
+                        width: double.infinity,
+                        errorBuilder: (context, error, stackTrace) {
+                          return Image.asset(
+                            'assets/placeholder_image.png',
+                            fit: BoxFit.cover,
+                            height: 200,
+                            width: double.infinity,
+                          );
+                        },
+                      ),
+                    )
+                  else
+                    SizedBox(
+                      height: 200,
+                      child: GoogleMap(
+                        initialCameraPosition: CameraPosition(
+                          target: LatLng(widget.latitude, widget.longitude),
+                          zoom: 15,
+                        ),
+                        markers: {
+                          Marker(
+                            markerId: const MarkerId('spot_location'),
+                            position: LatLng(widget.latitude, widget.longitude),
+                          ),
+                        },
+                      ),
+                    ),
+                  Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: ElevatedButton(
+                        onPressed: () => _openMapOptions(context),
+                        child: Text('ここへ行く'),
+                        style: ElevatedButton.styleFrom(
+                          foregroundColor: Colors.white,
+                          backgroundColor: Color(0xFF00008b),
+                        ),
+                      ),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Text(
+                      widget.description,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        color: Colors.black,
+                      ),
+                    ),
+                  ),
+                  // サブメディアを表示
+                  ...widget.subMedia.map((subMedia) {
+                    if (subMedia['type'] == 'image') {
+                      return Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            if (subMedia['title'] != null)
+                              Text(
+                                subMedia['title']!,
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            SizedBox(height: 8),
+                            Image.network(
+                              subMedia['url']!,
+                              fit: BoxFit.cover,
+                              width: double.infinity,
+                              errorBuilder: (context, error, stackTrace) {
+                                print('Error loading subMedia image: $error');
+                                return Container(
+                                  width: double.infinity,
+                                  height: 200,
+                                  color: Colors.grey,
+                                  child: Icon(Icons.error),
+                                );
+                              },
+                            ),
+                          ],
+                        ),
+                      );
+                    }
+                    return SizedBox.shrink();
+                  }).toList(),
+                  Align(
+                    alignment: FractionalOffset.centerRight,
+                    child: Text(
+                      widget.sourceTitle,
+                      style: TextStyle(
+                        color: Colors.grey,
+                        fontSize: 10.0,
+                      ),
+                    ),
+                  ),
+                  Align(
+                    alignment: FractionalOffset.centerRight,
+                    child: Text(
+                      widget.sourceLink,
+                      style: TextStyle(
+                        fontSize: 10.0,
+                        color: Colors.grey,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
-            Center(
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: ElevatedButton(
-                  onPressed: () => _openMapOptions(context),
-                  child: Text('ここへ行く'),
-                  style: ElevatedButton.styleFrom(
-                    foregroundColor: Colors.white,
-                    backgroundColor: Color(0xFF00008b),
+            if (_isPictureInPicture && _chewieController != null)
+              Positioned(
+                right: 16,
+                bottom: 16,
+                child: GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      _isPictureInPicture = false;
+                    });
+                  },
+                  child: SizedBox(
+                    width: MediaQuery.of(context).size.width * 0.5, // 画面幅の40%
+                    height: MediaQuery.of(context).size.width *
+                        0.8 /
+                        _videoPlayerController!.value.aspectRatio,
+                    child: Chewie(controller: _chewieController!),
                   ),
                 ),
               ),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Text(
-                description,
-                style: const TextStyle(
-                  fontSize: 16,
-                  color: Colors.black,
-                ),
-              ),
-            ),
-            Align(
-              alignment: FractionalOffset.centerRight,
-              child: Text(
-                sourceTitle,
-                style: TextStyle(
-                  color: Colors.grey,
-                  fontSize: 10.0,
-                ),
-              ),
-            ),
-            Align(
-              alignment: FractionalOffset.centerRight,
-              child: Text(
-                sourceLink,
-                style: TextStyle(
-                  fontSize: 10.0,
-                  color: Colors.grey,
-                ),
-              ),
-            ),
           ],
         ),
       ),

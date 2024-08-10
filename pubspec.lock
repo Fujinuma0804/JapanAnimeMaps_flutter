@@ -81,6 +81,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.0.3"
+  chewie:
+    dependency: "direct main"
+    description:
+      name: chewie
+      sha256: "2243e41e79e865d426d9dd9c1a9624aa33c4ad11de2d0cd680f826e2cd30e879"
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.8.3"
   cli_util:
     dependency: transitive
     description:
@@ -161,6 +169,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.0.8"
+  dbus:
+    dependency: transitive
+    description:
+      name: dbus
+      sha256: "365c771ac3b0e58845f39ec6deebc76e3276aa9922b0cc60840712094d9047ac"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.7.10"
   diffutil_dart:
     dependency: transitive
     description:
@@ -877,6 +893,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.0.5"
+  nested:
+    dependency: transitive
+    description:
+      name: nested
+      sha256: "03bac4c528c64c95c722ec99280375a6f2fc708eec17c7b3f07253b626cd2a20"
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.0.0"
   octo_image:
     dependency: transitive
     description:
@@ -1045,6 +1069,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.1.8"
+  provider:
+    dependency: transitive
+    description:
+      name: provider
+      sha256: c8a055ee5ce3fd98d6fc872478b03823ffdb448699c6ebdbbc71d59b596fd48c
+      url: "https://pub.dev"
+    source: hosted
+    version: "6.1.2"
   qr_code_scanner:
     dependency: "direct main"
     description:
@@ -1442,6 +1474,22 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "14.2.1"
+  wakelock_plus:
+    dependency: transitive
+    description:
+      name: wakelock_plus
+      sha256: "4fa83a128b4127619e385f686b4f080a5d2de46cff8e8c94eccac5fcf76550e5"
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.2.7"
+  wakelock_plus_platform_interface:
+    dependency: transitive
+    description:
+      name: wakelock_plus_platform_interface
+      sha256: "422d1cdbb448079a8a62a5a770b69baa489f8f7ca21aef47800c726d404f9d16"
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.2.1"
   web:
     dependency: transitive
     description:
