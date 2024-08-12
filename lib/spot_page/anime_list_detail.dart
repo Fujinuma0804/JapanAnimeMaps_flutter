@@ -22,15 +22,35 @@ class AnimeDetailsPage extends StatelessWidget {
 
       for (var doc in snapshot.docs) {
         var data = doc.data() as Map<String, dynamic>;
-        var subMediaList =
-            (data['subMedia'] as List<dynamic>?)?.map((subMedia) {
-                  return {
-                    'type': subMedia['type'] as String?,
-                    'url': subMedia['url'] as String?,
-                    'title': subMedia['title'] as String?,
-                  };
-                }).toList() ??
-                [];
+        var subMediaList = <Map<String, dynamic>>[];
+        if (data['subMedia'] is List) {
+          subMediaList = (data['subMedia'] as List).map((subMedia) {
+            if (subMedia is Map<String, dynamic>) {
+              return {
+                'type': subMedia['type'] as String? ?? 'unknown',
+                'url': subMedia['url'] as String? ?? '',
+                'title': subMedia['title'] as String?,
+              };
+            } else {
+              return {
+                'type': 'unknown',
+                'url': subMedia.toString(),
+                'title': null,
+              };
+            }
+          }).toList();
+        } else if (data['subMedia'] is String) {
+          subMediaList = [
+            {
+              'type': 'unknown',
+              'url': data['subMedia'] as String,
+              'title': null,
+            }
+          ];
+        } else {
+          // subMediaが存在しない、または他の型の場合は空のリストを使用
+          subMediaList = [];
+        }
 
         locations.add({
           'title': data['title'] ?? '',
@@ -409,7 +429,7 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
                               ),
                             SizedBox(height: 8),
                             Image.network(
-                              subMedia['url']!,
+                              subMedia['url'] ?? '',
                               fit: BoxFit.cover,
                               width: double.infinity,
                               errorBuilder: (context, error, stackTrace) {

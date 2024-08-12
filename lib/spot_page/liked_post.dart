@@ -43,8 +43,14 @@ class _FavoriteLocationsPageState extends State<FavoriteLocationsPage> {
                 await firestore.collection('locations').doc(locationId).get();
 
             if (locationDoc.exists) {
-              print('Location data for $locationId: ${locationDoc.data()}');
-              favoriteLocations.add(locationDoc.data() as Map<String, dynamic>);
+              var locationData = locationDoc.data();
+              if (locationData != null &&
+                  locationData is Map<String, dynamic>) {
+                print('Location data for $locationId: $locationData');
+                favoriteLocations.add(Map<String, dynamic>.from(locationData));
+              } else {
+                print("Invalid data format for location ID $locationId");
+              }
             } else {
               print("Location ID $locationId が存在しません。");
             }
@@ -90,7 +96,7 @@ class _FavoriteLocationsPageState extends State<FavoriteLocationsPage> {
       ),
       body: FutureBuilder<List<Map<String, dynamic>>>(
         future: _fetchFavoriteLocations(),
-        builder: (context, snapshot) {
+        builder: (context, AsyncSnapshot<List<Map<String, dynamic>>> snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return Center(child: CircularProgressIndicator());
           } else if (snapshot.hasError) {
@@ -160,6 +166,21 @@ class _FavoriteLocationsPageState extends State<FavoriteLocationsPage> {
   }
 
   void _navigateToDetails(BuildContext context, Map<String, dynamic> location) {
+    // subMediaの処理を追加
+    List<Map<String, dynamic>> subMediaList = [];
+    if (location['subMedia'] != null && location['subMedia'] is List) {
+      subMediaList = (location['subMedia'] as List).map((item) {
+        return {
+          'type': item['type'] as String? ?? '',
+          'url': item['url'] as String? ?? '',
+          'title': item['title'] as String? ?? '',
+        };
+      }).toList();
+    }
+
+    // デバッグ用にsubMediaの内容を出力
+    print('subMedia: $subMediaList');
+
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -172,7 +193,7 @@ class _FavoriteLocationsPageState extends State<FavoriteLocationsPage> {
           sourceTitle: location['sourceTitle'] ?? '引用元なし',
           sourceLink: location['sourceLink'] ?? 'リンクなし',
           url: location['url'] ?? 'エラー',
-          subMedia: location['subMedia'] ?? 'エラー',
+          subMedia: subMediaList,
         ),
       ),
     );

@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:parts/spot_page/spot_test.dart';
@@ -15,41 +16,28 @@ class _AnimeListPageState extends State<AnimeListPage> {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
   bool _isSearching = false;
+  List<Map<String, dynamic>> _allAnimeData = [];
 
-  Future<Map<String, String>> _fetchAnimeNamesAndImages() async {
-    Map<String, String> animeData = {};
-    try {
-      QuerySnapshot snapshot = await firestore.collection('locations').get();
-      for (var doc in snapshot.docs) {
-        var data = doc.data() as Map<String, dynamic>?;
-        if (data != null && data.containsKey('animeName')) {
-          String animeName = data['animeName'];
-          animeData[animeName] = await _fetchImageUrl(animeName);
-        }
-      }
-    } catch (e) {
-      print("Error fetching anime names and images: $e");
-    }
-    return animeData;
+  @override
+  void initState() {
+    super.initState();
+    _fetchAnimeData();
   }
 
-  Future<String> _fetchImageUrl(String animeName) async {
+  Future<void> _fetchAnimeData() async {
     try {
-      QuerySnapshot snapshot = await firestore
-          .collection('animes')
-          .where('name', isEqualTo: animeName)
-          .limit(1)
-          .get();
-      if (snapshot.docs.isNotEmpty) {
-        var data = snapshot.docs.first.data() as Map<String, dynamic>?;
-        if (data != null && data.containsKey('imageUrl')) {
-          return data['imageUrl'];
-        }
-      }
+      QuerySnapshot animeSnapshot = await firestore.collection('animes').get();
+      _allAnimeData = animeSnapshot.docs.map((doc) {
+        var data = doc.data() as Map<String, dynamic>;
+        return {
+          'name': data['name'] ?? '',
+          'imageUrl': data['imageUrl'] ?? '',
+        };
+      }).toList();
+      setState(() {});
     } catch (e) {
-      print("Error fetching image URL for $animeName: $e");
+      print("Error fetching anime data: $e");
     }
-    return '';
   }
 
   void _onSearchChanged(String query) {
@@ -70,27 +58,26 @@ class _AnimeListPageState extends State<AnimeListPage> {
 
   @override
   Widget build(BuildContext context) {
+    List<Map<String, dynamic>> filteredAnimeData = _allAnimeData
+        .where((anime) => anime['name'].toLowerCase().contains(_searchQuery))
+        .toList();
+
     return WillPopScope(
       onWillPop: () async => false,
       child: Scaffold(
         appBar: AppBar(
           automaticallyImplyLeading: false,
           title: _isSearching
-              ? AnimatedSwitcher(
-                  duration: Duration(milliseconds: 300),
-                  child: TextField(
-                    key: ValueKey('searchBar'),
-                    controller: _searchController,
-                    onChanged: _onSearchChanged,
-                    autofocus: true,
-                    decoration: InputDecoration(
-                      hintText: 'アニメで検索...',
-                      hintStyle:
-                          TextStyle(color: Colors.grey), // Placeholder color
-                      border: InputBorder.none,
-                    ),
-                    style: TextStyle(color: Colors.black), // Text color
+              ? TextField(
+                  controller: _searchController,
+                  onChanged: _onSearchChanged,
+                  autofocus: true,
+                  decoration: InputDecoration(
+                    hintText: 'アニメで検索...',
+                    hintStyle: TextStyle(color: Colors.grey),
+                    border: InputBorder.none,
                   ),
+                  style: TextStyle(color: Colors.black),
                 )
               : Text(
                   '巡礼スポット',
@@ -101,30 +88,19 @@ class _AnimeListPageState extends State<AnimeListPage> {
                 ),
           actions: [
             IconButton(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                      builder: (context) => const SpotTestScreen()),
-                );
-              },
-              icon: const Icon(
-                Icons.check_circle,
-                color: Color(0xFF00008b),
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const SpotTestScreen()),
               ),
+              icon: const Icon(Icons.check_circle, color: Color(0xFF00008b)),
             ),
             IconButton(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                      builder: (context) => FavoriteLocationsPage()),
-                );
-              },
-              icon: const Icon(
-                Icons.favorite,
-                color: Color(0xFF00008b),
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                    builder: (context) => FavoriteLocationsPage()),
               ),
+              icon: const Icon(Icons.favorite, color: Color(0xFF00008b)),
             ),
             IconButton(
               icon: Icon(
@@ -139,8 +115,7 @@ class _AnimeListPageState extends State<AnimeListPage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Padding(
-              padding: EdgeInsets.symmetric(
-                  horizontal: 16.0, vertical: 8.0), // 上下のパディングも追加
+              padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
               child: Text(
                 '■ アニメ一覧',
                 style: TextStyle(
@@ -151,100 +126,32 @@ class _AnimeListPageState extends State<AnimeListPage> {
               ),
             ),
             Expanded(
-              child: FutureBuilder<Map<String, String>>(
-                future: _fetchAnimeNamesAndImages(),
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return Center(child: CircularProgressIndicator());
-                  } else if (snapshot.hasError) {
-                    return Center(child: Text('Error: ${snapshot.error}'));
-                  } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                    return Center(
-                        child: Text('No anime names and images found.'));
-                  } else {
-                    final allAnimeEntries = snapshot.data!.entries.toList();
-                    final filteredAnimeEntries = allAnimeEntries
-                        .where((entry) =>
-                            entry.key.toLowerCase().contains(_searchQuery))
-                        .toList();
-
-                    if (filteredAnimeEntries.isEmpty) {
-                      return Center(child: Text('何も見つかりませんでした。。'));
-                    }
-
-                    return GridView.builder(
-                      padding: EdgeInsets.only(bottom: 16.0),
-                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 2,
-                        childAspectRatio: 1.3,
-                        mainAxisSpacing: 1.0,
-                        crossAxisSpacing: 3.0,
-                      ),
-                      itemCount: filteredAnimeEntries.length,
-                      itemBuilder: (context, index) {
-                        final animeName = filteredAnimeEntries[index].key;
-                        final imageUrl = filteredAnimeEntries[index].value;
-                        return GestureDetector(
-                          onTap: () => _navigateToDetails(context, animeName),
-                          child: LayoutBuilder(
-                            builder: (context, constraints) {
-                              // テキストの高さを計算
-                              final textPainter = TextPainter(
-                                text: TextSpan(
-                                  text: animeName,
-                                  style: TextStyle(
-                                      fontSize: 14.0,
-                                      fontWeight: FontWeight.bold),
-                                ),
-                                maxLines: 2,
-                                textDirection: TextDirection.ltr,
-                              )..layout(maxWidth: constraints.maxWidth);
-
-                              final textHeight = textPainter.height;
-                              final itemHeight = 100 +
-                                  textHeight +
-                                  12.0; // 画像の高さ + テキストの高さ + パディング
-
-                              return Container(
-                                height: itemHeight,
-                                padding: const EdgeInsets.all(4.0),
-                                child: Column(
-                                  children: [
-                                    ClipRRect(
-                                      borderRadius: BorderRadius.circular(9.0),
-                                      child: SizedBox(
-                                        width: 200,
-                                        height: 100,
-                                        child: Image.network(
-                                          imageUrl,
-                                          fit: BoxFit.cover,
-                                        ),
-                                      ),
-                                    ),
-                                    SizedBox(height: 4.0),
-                                    Expanded(
-                                      child: Text(
-                                        animeName,
-                                        textAlign: TextAlign.center,
-                                        style: TextStyle(
-                                          fontSize: 14.0,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                        maxLines: 2,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              );
-                            },
+              child: _allAnimeData.isEmpty
+                  ? Center(child: CircularProgressIndicator())
+                  : filteredAnimeData.isEmpty
+                      ? Center(child: Text('何も見つかりませんでした。。'))
+                      : GridView.builder(
+                          padding: EdgeInsets.only(bottom: 16.0),
+                          gridDelegate:
+                              SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 2,
+                            childAspectRatio: 1.3,
+                            mainAxisSpacing: 1.0,
+                            crossAxisSpacing: 3.0,
                           ),
-                        );
-                      },
-                    );
-                  }
-                },
-              ),
+                          itemCount: filteredAnimeData.length,
+                          itemBuilder: (context, index) {
+                            final animeName = filteredAnimeData[index]['name'];
+                            final imageUrl =
+                                filteredAnimeData[index]['imageUrl'];
+                            return GestureDetector(
+                              onTap: () =>
+                                  _navigateToDetails(context, animeName),
+                              child: AnimeGridItem(
+                                  animeName: animeName, imageUrl: imageUrl),
+                            );
+                          },
+                        ),
             ),
           ],
         ),
@@ -256,10 +163,72 @@ class _AnimeListPageState extends State<AnimeListPage> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => AnimeDetailsPage(
-          animeName: animeName,
-        ),
+        builder: (context) => AnimeDetailsPage(animeName: animeName),
       ),
+    );
+  }
+}
+
+class AnimeGridItem extends StatelessWidget {
+  final String animeName;
+  final String imageUrl;
+
+  const AnimeGridItem(
+      {Key? key, required this.animeName, required this.imageUrl})
+      : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final textPainter = TextPainter(
+          text: TextSpan(
+            text: animeName,
+            style: TextStyle(fontSize: 14.0, fontWeight: FontWeight.bold),
+          ),
+          maxLines: 2,
+          textDirection: TextDirection.ltr,
+        )..layout(maxWidth: constraints.maxWidth);
+
+        final textHeight = textPainter.height;
+        final itemHeight = 100 + textHeight + 12.0;
+
+        return Container(
+          height: itemHeight,
+          padding: const EdgeInsets.all(4.0),
+          child: Column(
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(9.0),
+                child: CachedNetworkImage(
+                  imageUrl: imageUrl,
+                  width: 200,
+                  height: 100,
+                  fit: BoxFit.cover,
+                  placeholder: (context, url) => Container(
+                    color: Colors.grey[300],
+                    child: Center(child: CircularProgressIndicator()),
+                  ),
+                  errorWidget: (context, url, error) => Icon(Icons.error),
+                ),
+              ),
+              SizedBox(height: 4.0),
+              Expanded(
+                child: Text(
+                  animeName,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 14.0,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }
