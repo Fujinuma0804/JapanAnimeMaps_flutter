@@ -306,6 +306,14 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
             fontWeight: FontWeight.bold,
           ),
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(
+              Icons.favorite,
+            ),
+            onPressed: () {},
+          )
+        ],
       ),
       body: NotificationListener<ScrollNotification>(
         onNotification: (scrollNotification) {

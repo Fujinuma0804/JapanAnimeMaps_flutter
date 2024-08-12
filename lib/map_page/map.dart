@@ -47,6 +47,8 @@ class _MapScreenState extends State<MapScreen> {
   late VideoPlayerController _videoPlayerController;
   late Future<void> _initializeVideoPlayerFuture;
 
+  static const double _maxDisplayRadius = 150000;
+
   static const String _mapStyle = '''
   [
     {
@@ -464,24 +466,36 @@ class _MapScreenState extends State<MapScreen> {
       double latitude = (data['latitude'] as num).toDouble();
       double longitude = (data['longitude'] as num).toDouble();
       LatLng position = LatLng(latitude, longitude);
-      String imageUrl = data['imageUrl'];
-      String locationId = doc.id;
-      String title = data['title'];
-      String description = data['description'];
 
-      Marker marker = await _createMarkerWithImage(
-        position,
-        imageUrl,
-        locationId,
-        280,
-        180,
-        title,
-        description,
-      );
+      // 現在位置から150km以内のマーカーのみを追加
+      if (_currentPosition != null) {
+        double distance = Geolocator.distanceBetween(
+          _currentPosition!.latitude,
+          _currentPosition!.longitude,
+          latitude,
+          longitude,
+        );
+        if (distance <= _maxDisplayRadius) {
+          String imageUrl = data['imageUrl'];
+          String locationId = doc.id;
+          String title = data['title'];
+          String description = data['description'];
 
-      setState(() {
-        _markers.add(marker);
-      });
+          Marker marker = await _createMarkerWithImage(
+            position,
+            imageUrl,
+            locationId,
+            280,
+            180,
+            title,
+            description,
+          );
+
+          setState(() {
+            _markers.add(marker);
+          });
+        }
+      }
     }
   }
 
@@ -1224,6 +1238,19 @@ class _MapScreenState extends State<MapScreen> {
                             _mapController = controller;
                             controller.setMapStyle(_mapStyle);
                             _moveToCurrentLocation();
+                          },
+                          onCameraMove: (CameraPosition position) {
+                            if (_currentPosition != null) {
+                              double distance = Geolocator.distanceBetween(
+                                _currentPosition!.latitude,
+                                _currentPosition!.longitude,
+                                position.target.latitude,
+                                position.target.longitude,
+                              );
+                              if (distance > _maxDisplayRadius) {
+                                _moveToCurrentLocation();
+                              }
+                            }
                           },
                         ),
                       ],
