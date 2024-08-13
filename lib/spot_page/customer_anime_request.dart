@@ -24,6 +24,7 @@ class _AnimeRequestCustomerFormState extends State<AnimeRequestCustomerForm> {
   XFile? _animeImage;
   XFile? _userImage;
   bool _agreeToTerms = false;
+  bool _isLoading = false;
 
   Future<void> _pickImage(bool isAnimeImage) async {
     final ImagePicker _picker = ImagePicker();
@@ -51,7 +52,6 @@ class _AnimeRequestCustomerFormState extends State<AnimeRequestCustomerForm> {
   }
 
   Future<String> _uploadImage(XFile image) async {
-    // 画像を読み込む
     Uint8List imageBytes = await image.readAsBytes();
     img.Image? originalImage = img.decodeImage(imageBytes);
 
@@ -59,14 +59,11 @@ class _AnimeRequestCustomerFormState extends State<AnimeRequestCustomerForm> {
       throw Exception('Failed to decode image');
     }
 
-    // 画像を圧縮
     img.Image resizedImage = img.copyResize(originalImage, width: 1024);
     List<int> compressedBytes = img.encodeJpg(resizedImage, quality: 85);
 
-    // List<int>をUint8Listに変換
     Uint8List uint8List = Uint8List.fromList(compressedBytes);
 
-    // 圧縮した画像をアップロード
     final ref = FirebaseStorage.instance
         .ref()
         .child('images/${DateTime.now().toIso8601String()}.jpg');
@@ -78,6 +75,9 @@ class _AnimeRequestCustomerFormState extends State<AnimeRequestCustomerForm> {
 
   void _submitForm() async {
     if (_formKey.currentState!.validate() && _agreeToTerms) {
+      setState(() {
+        _isLoading = true;
+      });
       try {
         final user = FirebaseAuth.instance.currentUser;
         if (user == null) throw Exception('User not logged in');
@@ -122,6 +122,10 @@ class _AnimeRequestCustomerFormState extends State<AnimeRequestCustomerForm> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(errorMessage)),
         );
+      } finally {
+        setState(() {
+          _isLoading = false;
+        });
       }
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -164,112 +168,123 @@ class _AnimeRequestCustomerFormState extends State<AnimeRequestCustomerForm> {
           ),
         ),
       ),
-      body: Form(
-        key: _formKey,
-        child: ListView(
-          padding: EdgeInsets.all(16.0),
-          children: <Widget>[
-            TextFormField(
-              controller: _animeNameController,
-              decoration: InputDecoration(labelText: 'アニメ名'),
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'アニメ名を入力してください';
-                }
-                return null;
-              },
-            ),
-            TextFormField(
-              controller: _sceneController,
-              decoration: InputDecoration(labelText: '具体的なシーン（シーズン1の3話など）'),
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'シーンを入力してください';
-                }
-                return null;
-              },
-            ),
-            TextFormField(
-              controller: _locationController,
-              decoration: InputDecoration(labelText: '聖地の場所'),
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return '聖地の場所を入力してください';
-                }
-                return null;
-              },
-            ),
-            TextFormField(
-              controller: _latitudeController,
-              decoration: InputDecoration(labelText: '緯度（任意）'),
-              keyboardType: TextInputType.number,
-            ),
-            TextFormField(
-              controller: _longitudeController,
-              decoration: InputDecoration(labelText: '経度（任意）'),
-              keyboardType: TextInputType.number,
-            ),
-            const SizedBox(height: 15.0),
-            ElevatedButton(
-              onPressed: () => _pickImage(false),
-              child: Text(
-                '撮影した画像をアップロード（任意）',
-                style: TextStyle(
-                  color: Color(0xFF00008b),
+      body: Stack(
+        children: [
+          Form(
+            key: _formKey,
+            child: ListView(
+              padding: EdgeInsets.all(16.0),
+              children: <Widget>[
+                TextFormField(
+                  controller: _animeNameController,
+                  decoration: InputDecoration(labelText: 'アニメ名'),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'アニメ名を入力してください';
+                    }
+                    return null;
+                  },
                 ),
-              ),
-            ),
-            const SizedBox(height: 15.0),
-            ElevatedButton(
-              onPressed: () => _pickImage(true),
-              child: Text(
-                'アニメ画像をアップロード（任意）',
-                style: TextStyle(
-                  color: Color(0xFF00008b),
+                TextFormField(
+                  controller: _sceneController,
+                  decoration: InputDecoration(labelText: '具体的なシーン（シーズン1の3話など）'),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'シーンを入力してください';
+                    }
+                    return null;
+                  },
                 ),
-              ),
-            ),
-            const SizedBox(height: 20),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                TextButton(
-                  onPressed: _showTermsAndPolicy,
+                TextFormField(
+                  controller: _locationController,
+                  decoration: InputDecoration(labelText: '聖地の場所'),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return '聖地の場所を入力してください';
+                    }
+                    return null;
+                  },
+                ),
+                TextFormField(
+                  controller: _latitudeController,
+                  decoration: InputDecoration(labelText: '緯度（任意）'),
+                  keyboardType: TextInputType.number,
+                ),
+                TextFormField(
+                  controller: _longitudeController,
+                  decoration: InputDecoration(labelText: '経度（任意）'),
+                  keyboardType: TextInputType.number,
+                ),
+                const SizedBox(height: 15.0),
+                ElevatedButton(
+                  onPressed: () => _pickImage(false),
                   child: Text(
-                    'プライバシーポリシーへの同意が必要です。',
+                    '撮影した画像をアップロード（任意）',
                     style: TextStyle(
-                      decoration: TextDecoration.underline,
                       color: Color(0xFF00008b),
                     ),
                   ),
                 ),
-              ],
-            ),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Checkbox(
-                  value: _agreeToTerms,
-                  onChanged: (bool? value) {
-                    setState(() {
-                      _agreeToTerms = value!;
-                    });
-                  },
+                const SizedBox(height: 15.0),
+                ElevatedButton(
+                  onPressed: () => _pickImage(true),
+                  child: Text(
+                    'アニメ画像をアップロード（任意）',
+                    style: TextStyle(
+                      color: Color(0xFF00008b),
+                    ),
+                  ),
                 ),
-                Text('同意します'),
+                const SizedBox(height: 20),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    TextButton(
+                      onPressed: _showTermsAndPolicy,
+                      child: Text(
+                        'プライバシーポリシーへの同意が必要です。',
+                        style: TextStyle(
+                          decoration: TextDecoration.underline,
+                          color: Color(0xFF00008b),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Checkbox(
+                      value: _agreeToTerms,
+                      onChanged: (bool? value) {
+                        setState(() {
+                          _agreeToTerms = value!;
+                        });
+                      },
+                    ),
+                    Text('同意します'),
+                  ],
+                ),
+                const SizedBox(height: 20),
+                ElevatedButton(
+                  onPressed: _agreeToTerms && !_isLoading ? _submitForm : null,
+                  child: Text('送信'),
+                  style: ElevatedButton.styleFrom(
+                    foregroundColor: Colors.white,
+                    backgroundColor: Color(0xFF00008b),
+                  ),
+                ),
               ],
             ),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: _agreeToTerms ? _submitForm : null,
-              child: Text('送信'),
-              style: ElevatedButton.styleFrom(
-                foregroundColor: Colors.white,
-                backgroundColor: Color(0xFF00008b),
+          ),
+          if (_isLoading)
+            Container(
+              color: Colors.black.withOpacity(0.5),
+              child: Center(
+                child: CircularProgressIndicator(),
               ),
             ),
-          ],
-        ),
+        ],
       ),
     );
   }
