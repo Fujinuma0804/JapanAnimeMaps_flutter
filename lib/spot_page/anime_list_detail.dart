@@ -445,25 +445,30 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
                       ),
                     ),
                   ),
-                  Align(
-                    alignment: FractionalOffset.centerRight,
-                    child: Text(
-                      widget.sourceTitle,
-                      style: TextStyle(
-                        color: Colors.grey,
-                        fontSize: 10.0,
-                      ),
+                  Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          widget.sourceTitle,
+                          style: TextStyle(
+                            color: Colors.grey,
+                            fontSize: 10.0,
+                          ),
+                        ),
+                        Text(
+                          widget.sourceLink,
+                          style: TextStyle(
+                            color: Colors.grey,
+                            fontSize: 10.0,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                  Align(
-                    alignment: FractionalOffset.centerRight,
-                    child: Text(
-                      widget.sourceLink,
-                      style: TextStyle(
-                        fontSize: 10.0,
-                        color: Colors.grey,
-                      ),
-                    ),
+                  const SizedBox(
+                    height: 20.0,
                   ),
                 ],
               ),
