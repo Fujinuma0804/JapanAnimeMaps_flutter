@@ -7,6 +7,8 @@ import 'package:flutter/material.dart';
 import 'package:image/image.dart' as img;
 import 'package:image_picker/image_picker.dart';
 
+import 'customer_anime_history.dart';
+
 class AnimeRequestCustomerForm extends StatefulWidget {
   @override
   _AnimeRequestCustomerFormState createState() =>
@@ -167,6 +169,20 @@ class _AnimeRequestCustomerFormState extends State<AnimeRequestCustomerForm> {
             fontWeight: FontWeight.bold,
           ),
         ),
+        actions: [
+          IconButton(
+            icon: Icon(
+              Icons.update,
+              color: Color(0xFF00008b),
+            ),
+            onPressed: () {
+              Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (context) => CustomerRequestHistory()));
+            },
+          ),
+        ],
       ),
       body: Stack(
         children: [
