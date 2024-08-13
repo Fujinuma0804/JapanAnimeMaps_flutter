@@ -21,8 +21,7 @@ class _WebsiteScreenState extends State<PointManual>
     super.initState();
     controller = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
-      ..loadRequest(
-          Uri.parse('https://infomapanime.click/home_q_a/?page_id=11'));
+      ..loadRequest(Uri.parse('https://testtestaaaa.my.canva.site/point'));
 
     SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle(
       statusBarColor: Colors.transparent,

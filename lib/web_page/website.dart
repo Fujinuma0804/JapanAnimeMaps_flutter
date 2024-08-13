@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:vibration/vibration.dart'; // 追加
 import 'package:webview_flutter/webview_flutter.dart';
 
 class WebsiteScreen extends StatefulWidget {
@@ -21,7 +22,7 @@ class _WebsiteScreenState extends State<WebsiteScreen>
     super.initState();
     controller = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
-      ..loadRequest(Uri.parse('https://testtestaaaa.my.canva.site/'));
+      ..loadRequest(Uri.parse('https://testtestaaaa.my.canva.site/home'));
 
     SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle(
       statusBarColor: Colors.transparent,
@@ -31,6 +32,11 @@ class _WebsiteScreenState extends State<WebsiteScreen>
       vsync: this,
       duration: Duration(seconds: 2),
     )..forward();
+
+    // バイブレーションを追加
+    if (Vibration.hasVibrator() != null) {
+      Vibration.vibrate(duration: 500);
+    }
 
     Future.delayed(Duration(seconds: 2), () {
       if (mounted) {
