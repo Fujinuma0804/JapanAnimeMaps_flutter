@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:parts/spot_page/spot_test.dart';
 
 import 'anime_list_detail.dart';
+import 'customer_anime_request.dart';
 import 'liked_post.dart';
 
 class AnimeListPage extends StatefulWidget {
@@ -101,6 +102,18 @@ class _AnimeListPageState extends State<AnimeListPage> {
                     builder: (context) => FavoriteLocationsPage()),
               ),
               icon: const Icon(Icons.favorite, color: Color(0xFF00008b)),
+            ),
+            IconButton(
+              icon: Icon(
+                Icons.add,
+                color: Color(0xFF00008b),
+              ),
+              onPressed: () {
+                Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (context) => AnimeRequestCustomerForm()));
+              },
             ),
             IconButton(
               icon: Icon(

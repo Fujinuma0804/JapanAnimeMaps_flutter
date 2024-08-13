@@ -380,6 +380,32 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
                         },
                       ),
                     )
+                  else if (widget.subMedia.isNotEmpty &&
+                      (widget.subMedia.first['type'] == 'image' ||
+                          widget.subMedia.first['type'] == 'video'))
+                    Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: widget.subMedia.first['type'] == 'image'
+                          ? Image.network(
+                              widget.subMedia.first['url'],
+                              fit: BoxFit.cover,
+                              height: 200,
+                              width: double.infinity,
+                              errorBuilder: (context, error, stackTrace) {
+                                return Image.asset(
+                                  'assets/placeholder_image.png',
+                                  fit: BoxFit.cover,
+                                  height: 200,
+                                  width: double.infinity,
+                                );
+                              },
+                            )
+                          : AspectRatio(
+                              aspectRatio:
+                                  _videoPlayerController!.value.aspectRatio,
+                              child: Chewie(controller: _chewieController!),
+                            ),
+                    )
                   else
                     SizedBox(
                       height: 200,
@@ -419,43 +445,6 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
                       ),
                     ),
                   ),
-                  // サブメディアを表示
-                  ...widget.subMedia.map((subMedia) {
-                    if (subMedia['type'] == 'image') {
-                      return Padding(
-                        padding: const EdgeInsets.all(16.0),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            if (subMedia['title'] != null)
-                              Text(
-                                subMedia['title']!,
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            SizedBox(height: 8),
-                            Image.network(
-                              subMedia['url'] ?? '',
-                              fit: BoxFit.cover,
-                              width: double.infinity,
-                              errorBuilder: (context, error, stackTrace) {
-                                print('Error loading subMedia image: $error');
-                                return Container(
-                                  width: double.infinity,
-                                  height: 200,
-                                  color: Colors.grey,
-                                  child: Icon(Icons.error),
-                                );
-                              },
-                            ),
-                          ],
-                        ),
-                      );
-                    }
-                    return SizedBox.shrink();
-                  }).toList(),
                   Align(
                     alignment: FractionalOffset.centerRight,
                     child: Text(
@@ -490,7 +479,7 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
                     });
                   },
                   child: SizedBox(
-                    width: MediaQuery.of(context).size.width * 0.5, // 画面幅の40%
+                    width: MediaQuery.of(context).size.width * 0.5,
                     height: MediaQuery.of(context).size.width *
                         0.8 /
                         _videoPlayerController!.value.aspectRatio,
