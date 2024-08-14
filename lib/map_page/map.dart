@@ -846,6 +846,8 @@ class _MapScreenState extends State<MapScreen> {
                                     context,
                                     MaterialPageRoute(
                                       builder: (context) => SpotDetailScreen(
+                                        locationId:
+                                            _selectedMarker!.markerId.value,
                                         title: data['title'] ?? '',
                                         description: data['description'] ?? '',
                                         latitude: data['latitude'] != null

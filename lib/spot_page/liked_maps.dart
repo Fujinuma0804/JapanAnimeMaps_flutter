@@ -856,6 +856,8 @@ class _LikedMapsState extends State<LikedMaps> {
                                         sourceLink: data['sourceLink'] ?? '',
                                         url: data['url'] ?? '',
                                         subMedia: subMediaList,
+                                        locationId: _selectedMarker!
+                                            .markerId.value, // ここを修正
                                       ),
                                     ),
                                   );

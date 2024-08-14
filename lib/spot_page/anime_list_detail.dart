@@ -2,6 +2,7 @@ import 'dart:io' show Platform;
 
 import 'package:chewie/chewie.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart'; // FirebaseAuthをインポート
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -22,37 +23,8 @@ class AnimeDetailsPage extends StatelessWidget {
 
       for (var doc in snapshot.docs) {
         var data = doc.data() as Map<String, dynamic>;
-        var subMediaList = <Map<String, dynamic>>[];
-        if (data['subMedia'] is List) {
-          subMediaList = (data['subMedia'] as List).map((subMedia) {
-            if (subMedia is Map<String, dynamic>) {
-              return {
-                'type': subMedia['type'] as String? ?? 'unknown',
-                'url': subMedia['url'] as String? ?? '',
-                'title': subMedia['title'] as String?,
-              };
-            } else {
-              return {
-                'type': 'unknown',
-                'url': subMedia.toString(),
-                'title': null,
-              };
-            }
-          }).toList();
-        } else if (data['subMedia'] is String) {
-          subMediaList = [
-            {
-              'type': 'unknown',
-              'url': data['subMedia'] as String,
-              'title': null,
-            }
-          ];
-        } else {
-          // subMediaが存在しない、または他の型の場合は空のリストを使用
-          subMediaList = [];
-        }
-
         locations.add({
+          'id': doc.id, // ドキュメントIDを追加
           'title': data['title'] ?? '',
           'imageUrl': data['imageUrl'] ?? '',
           'description': data['description'] ?? '',
@@ -61,7 +33,7 @@ class AnimeDetailsPage extends StatelessWidget {
           'sourceTitle': data['sourceTitle'] ?? '',
           'sourceLink': data['sourceLink'] ?? '',
           'url': data['url'] ?? '',
-          'subMedia': subMediaList,
+          'subMedia': data['subMedia'] ?? [],
         });
       }
     } catch (e) {
@@ -107,6 +79,7 @@ class AnimeDetailsPage extends StatelessWidget {
                 final title = location['title'] as String;
                 final description = location['description'] as String;
                 final imageUrl = location['imageUrl'] as String;
+                final locationId = location['id'] as String; // ドキュメントIDを取得
 
                 return GestureDetector(
                   onTap: () {
@@ -122,8 +95,11 @@ class AnimeDetailsPage extends StatelessWidget {
                           sourceLink: location['sourceLink'] as String,
                           sourceTitle: location['sourceTitle'] as String,
                           url: location['url'] as String,
-                          subMedia: location['subMedia']
-                              as List<Map<String, dynamic>>,
+                          subMedia: (location['subMedia'] as List)
+                              .where((item) => item is Map<String, dynamic>)
+                              .cast<Map<String, dynamic>>()
+                              .toList(),
+                          locationId: locationId, // locationIdを渡す
                         ),
                       ),
                     );
@@ -190,6 +166,7 @@ class SpotDetailScreen extends StatefulWidget {
   final String sourceLink;
   final String url;
   final List<Map<String, dynamic>> subMedia;
+  final String locationId; // 追加：ロケーションID
 
   const SpotDetailScreen({
     Key? key,
@@ -202,6 +179,7 @@ class SpotDetailScreen extends StatefulWidget {
     required this.sourceLink,
     required this.url,
     required this.subMedia,
+    required this.locationId, // 追加：ロケーションID
   }) : super(key: key);
 
   @override
@@ -212,6 +190,7 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
   VideoPlayerController? _videoPlayerController;
   ChewieController? _chewieController;
   bool _isPictureInPicture = false;
+  bool _isFavorite = false;
 
   Future<void> _openMapOptions(BuildContext context) async {
     final googleMapsUrl =
@@ -259,6 +238,7 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
   void initState() {
     super.initState();
     _initializeMedia();
+    _checkIfFavorite();
   }
 
   Future<void> _initializeMedia() async {
@@ -269,6 +249,48 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
       if (subMedia['type'] == 'video') {
         await _initializeVideoPlayer(subMedia['url']);
         break; // 最初の動画のみを初期化
+      }
+    }
+  }
+
+  Future<void> _checkIfFavorite() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      final docSnapshot = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .collection('favorites')
+          .doc(widget.locationId)
+          .get();
+
+      setState(() {
+        _isFavorite = docSnapshot.exists;
+      });
+    }
+  }
+
+  Future<void> _toggleFavorite() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      final favoriteRef = FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .collection('favorites')
+          .doc(widget.locationId);
+
+      setState(() {
+        _isFavorite = !_isFavorite;
+      });
+
+      if (_isFavorite) {
+        // お気に入りに追加
+        await favoriteRef.set({
+          'locationId': widget.locationId,
+          'timestamp': FieldValue.serverTimestamp(),
+        });
+      } else {
+        // お気に入りから削除
+        await favoriteRef.delete();
       }
     }
   }
@@ -308,10 +330,11 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
         ),
         actions: [
           IconButton(
-            icon: const Icon(
-              Icons.favorite,
+            icon: Icon(
+              _isFavorite ? Icons.favorite : Icons.favorite_border,
+              color: _isFavorite ? Colors.red : null,
             ),
-            onPressed: () {},
+            onPressed: _toggleFavorite,
           )
         ],
       ),
@@ -371,11 +394,13 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
                         height: 200,
                         width: double.infinity,
                         errorBuilder: (context, error, stackTrace) {
-                          return Image.asset(
-                            'assets/placeholder_image.png',
-                            fit: BoxFit.cover,
+                          return Container(
                             height: 200,
                             width: double.infinity,
+                            color: Colors.grey,
+                            child: Center(
+                              child: Icon(Icons.error, color: Colors.white),
+                            ),
                           );
                         },
                       ),
@@ -392,11 +417,14 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
                               height: 200,
                               width: double.infinity,
                               errorBuilder: (context, error, stackTrace) {
-                                return Image.asset(
-                                  'assets/placeholder_image.png',
-                                  fit: BoxFit.cover,
+                                return Container(
                                   height: 200,
                                   width: double.infinity,
+                                  color: Colors.grey,
+                                  child: Center(
+                                    child:
+                                        Icon(Icons.error, color: Colors.white),
+                                  ),
                                 );
                               },
                             )

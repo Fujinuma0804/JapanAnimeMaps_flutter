@@ -2,7 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
-import 'anime_list_detail.dart'; // SpotDetailScreenをインポート
+import 'anime_list_detail.dart';
 
 class FavoriteLocationsEnPage extends StatefulWidget {
   @override
@@ -31,31 +31,31 @@ class _FavoriteLocationsEnPageState extends State<FavoriteLocationsEnPage> {
           .get();
 
       for (var doc in favoriteSnapshot.docs) {
-        var data = doc.data() as Map<String, dynamic>;
-        print('Favorite data for user $userID: $data');
+        String locationId = doc.id;
+        print('Fetching location data for location ID: $locationId');
 
-        for (var key in data.keys) {
-          if (key.startsWith('locationId')) {
-            String locationId = data[key];
-            print('Fetching location data for location ID: $locationId');
+        DocumentSnapshot locationDoc =
+            await firestore.collection('locations').doc(locationId).get();
 
-            DocumentSnapshot locationDoc =
-                await firestore.collection('locations').doc(locationId).get();
-
-            if (locationDoc.exists) {
-              print('Location data for $locationId: ${locationDoc.data()}');
-              favoriteLocations.add(locationDoc.data() as Map<String, dynamic>);
-            } else {
-              print("Location ID $locationId does not exist.");
-            }
-            break;
-          }
+        if (locationDoc.exists) {
+          print('Location data for $locationId: ${locationDoc.data()}');
+          Map<String, dynamic> locationData =
+              locationDoc.data() as Map<String, dynamic>;
+          locationData['isFavorite'] = true;
+          locationData['id'] = locationId; // IDを追加
+          favoriteLocations.add(locationData);
+        } else {
+          print("Location ID $locationId does not exist.");
         }
       }
     } catch (e) {
       print("Error fetching favorite locations: $e");
     }
     return favoriteLocations;
+  }
+
+  Future<void> _toggleFavorite(String locationId) async {
+    // ... (変更なし)
   }
 
   @override
@@ -82,14 +82,13 @@ class _FavoriteLocationsEnPageState extends State<FavoriteLocationsEnPage> {
           } else {
             final favoriteLocations = snapshot.data!;
             return Padding(
-              padding: const EdgeInsets.symmetric(
-                  horizontal: 8.0), // 左右に8.0のパディングを追加
+              padding: const EdgeInsets.symmetric(horizontal: 8.0),
               child: GridView.builder(
                 gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2, // 3列に設定
+                  crossAxisCount: 2,
                   crossAxisSpacing: 8.0,
                   mainAxisSpacing: 8.0,
-                  childAspectRatio: 0.75, // 高さと幅の比率
+                  childAspectRatio: 0.75,
                 ),
                 itemCount: favoriteLocations.length,
                 itemBuilder: (context, index) {
@@ -100,15 +99,28 @@ class _FavoriteLocationsEnPageState extends State<FavoriteLocationsEnPage> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // 画像の表示
-                          Expanded(
-                            child: Image.network(
-                              location['imageUrl'] ?? '',
-                              fit: BoxFit.cover,
-                              width: double.infinity,
-                            ),
+                          Stack(
+                            alignment: Alignment.topRight,
+                            children: [
+                              Expanded(
+                                child: Image.network(
+                                  location['imageUrl'] ?? '',
+                                  fit: BoxFit.cover,
+                                  width: double.infinity,
+                                ),
+                              ),
+                              IconButton(
+                                icon: Icon(
+                                  location['isFavorite']
+                                      ? Icons.favorite
+                                      : Icons.favorite_border,
+                                  color: Colors.red,
+                                ),
+                                onPressed: () =>
+                                    _toggleFavorite(location['id']),
+                              ),
+                            ],
                           ),
-                          // タイトルと説明の表示
                           Padding(
                             padding: const EdgeInsets.all(8.0),
                             child: Column(
@@ -151,6 +163,7 @@ class _FavoriteLocationsEnPageState extends State<FavoriteLocationsEnPage> {
       context,
       MaterialPageRoute(
         builder: (context) => SpotDetailScreen(
+          locationId: location['id'] ?? '',
           title: location['title'] ?? 'Not title',
           description: location['description'] ?? 'Not Description',
           latitude: location['latitude'] ?? 0.0,
@@ -158,8 +171,8 @@ class _FavoriteLocationsEnPageState extends State<FavoriteLocationsEnPage> {
           imageUrl: location['imageUrl'] ?? '',
           sourceTitle: location['sourceTitle'] ?? 'Not Quote source',
           sourceLink: location['sourceLink'] ?? 'Not Link',
-          url: location['url'] ?? 'Error',
-          subMedia: location['subMedia'] ?? 'Error',
+          url: location['url'] ?? '',
+          subMedia: List<Map<String, dynamic>>.from(location['subMedia'] ?? []),
         ),
       ),
     );
