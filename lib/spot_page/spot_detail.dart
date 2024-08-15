@@ -20,11 +20,22 @@ class SpotDetailScreen extends StatelessWidget {
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // 画像の読み込みにエラーが発生した場合のフォールバック処理
           Image.asset(
             spot.imagePath,
             width: double.infinity,
             height: 200,
             fit: BoxFit.cover,
+            errorBuilder: (context, error, stackTrace) {
+              return Container(
+                width: double.infinity,
+                height: 200,
+                color: Colors.grey,
+                child: const Center(
+                  child: Text('Image not found'),
+                ),
+              );
+            },
           ),
           const SizedBox(height: 16),
           Padding(
@@ -37,9 +48,7 @@ class SpotDetailScreen extends StatelessWidget {
               textAlign: TextAlign.left,
             ),
           ),
-          const SizedBox(
-            height: 20.0,
-          ),
+          const SizedBox(height: 20.0),
           Center(
             child: Column(
               children: [
@@ -50,9 +59,7 @@ class SpotDetailScreen extends StatelessWidget {
                       fontSize: 15.0,
                     ),
                   ),
-                const SizedBox(
-                  height: 35.0,
-                ),
+                const SizedBox(height: 35.0),
                 TextButton(
                   onPressed: () {},
                   child: const Text(

@@ -1,7 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'package:parts/spot_page/spot_test.dart';
+import 'package:parts/spot_page/check_in.dart';
 
 import 'anime_list_detail.dart';
 import 'customer_anime_request.dart';

@@ -1,7 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'package:parts/spot_page/spot_test.dart';
+import 'package:parts/spot_page/check_in_en.dart';
 import 'package:translator/translator.dart'; // google_translateの代わりにtranslatorパッケージを利用
 
 import 'anime_list_detail.dart';
@@ -88,7 +88,7 @@ class _AnimeListEnPageState extends State<AnimeListEnPage> {
                   style: TextStyle(color: Colors.black),
                 )
               : Text(
-                  'Pilgrimage Spots',
+                  'Spots',
                   style: TextStyle(
                     color: Color(0xFF00008b),
                     fontWeight: FontWeight.bold,
@@ -98,7 +98,8 @@ class _AnimeListEnPageState extends State<AnimeListEnPage> {
             IconButton(
               onPressed: () => Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => const SpotTestScreen()),
+                MaterialPageRoute(
+                    builder: (context) => const SpotTestScreenEn()),
               ),
               icon: const Icon(Icons.check_circle, color: Color(0xFF00008b)),
             ),
