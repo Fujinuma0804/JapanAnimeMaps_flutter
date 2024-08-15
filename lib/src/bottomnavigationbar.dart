@@ -113,7 +113,7 @@ class _MainScreenState extends State<MainScreen> {
               _userLanguage == 'Japanese' ? WebsiteScreen() : WebsiteEnScreen(),
               _userLanguage == 'Japanese'
                   ? MapScreen(latitude: _latitude, longitude: _longitude)
-                  : MapEnScreen(),
+                  : MapEnScreen(latitude: _latitude, longitude: _longitude),
               _userLanguage == 'Japanese' ? PointEnPage() : PointEnPage(),
               _userLanguage == 'Japanese' ? ManualEn() : ManualEn(),
             ],

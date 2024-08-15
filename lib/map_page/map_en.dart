@@ -1,18 +1,27 @@
 import 'dart:async';
+import 'dart:io';
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:http/http.dart' as http;
+import 'package:image_picker/image_picker.dart';
 import 'package:translator/translator.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:video_player/video_player.dart';
+
+import '../PostScreen.dart';
+import '../spot_page/anime_list_detail.dart';
 
 class MapEnScreen extends StatefulWidget {
-  const MapEnScreen({Key? key}) : super(key: key);
+  const MapEnScreen(
+      {Key? key, required double longitude, required double latitude})
+      : super(key: key);
 
   @override
   State<MapEnScreen> createState() => _MapEnScreenState();
@@ -23,6 +32,7 @@ class _MapEnScreenState extends State<MapEnScreen> {
   LatLng? _currentPosition;
   final Set<Marker> _markers = {};
   final Set<Circle> _circles = {};
+  final Set<Polyline> _polylines = {};
   bool _isLoading = true;
   bool _errorOccurred = false;
   bool _canCheckIn = false;
@@ -32,20 +42,17 @@ class _MapEnScreenState extends State<MapEnScreen> {
   Marker? _selectedMarker;
   late User _user;
   late String _userId;
+  bool _isFavorite = false;
   bool _isSubmitting = false;
-
   final translator = GoogleTranslator();
+
+  late VideoPlayerController _videoPlayerController;
+  late Future<void> _initializeVideoPlayerFuture;
+
+  static const double _maxDisplayRadius = 150000;
 
   static const String _mapStyle = '''
   [
-    {
-      "elementType": "labels.text",
-      "stylers": [
-        {
-          "language": "en"
-        }
-      ]
-    },
     {
       "elementType": "geometry",
       "stylers": [
@@ -290,6 +297,7 @@ class _MapEnScreenState extends State<MapEnScreen> {
 
   @override
   void dispose() {
+    _videoPlayerController.dispose();
     super.dispose();
   }
 
@@ -305,7 +313,10 @@ class _MapEnScreenState extends State<MapEnScreen> {
 
     serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
-      _showErrorDialog('Location services are disabled.');
+      String errorMessage = (await translator
+              .translate('Location services are disabled.', to: 'en'))
+          .text;
+      _showErrorDialog(errorMessage);
       setState(() {
         _isLoading = false;
         _errorOccurred = true;
@@ -317,9 +328,14 @@ class _MapEnScreenState extends State<MapEnScreen> {
     if (permission == LocationPermission.denied) {
       permission = await Geolocator.requestPermission();
       if (permission == LocationPermission.denied) {
+        String message = (await translator
+                .translate('Location permission is required.', to: 'en'))
+            .text;
+        String actionText =
+            (await translator.translate('Open Settings', to: 'en')).text;
         _showLocationPermissionDialog(
-          message: 'Location permission is required.',
-          actionText: 'Open Settings',
+          message: message,
+          actionText: actionText,
         );
         setState(() {
           _isLoading = false;
@@ -330,10 +346,15 @@ class _MapEnScreenState extends State<MapEnScreen> {
     }
 
     if (permission == LocationPermission.deniedForever) {
+      String message = (await translator.translate(
+              'Location is turned off. Please turn it on in the Settings app.',
+              to: 'en'))
+          .text;
+      String actionText =
+          (await translator.translate('Open Settings', to: 'en')).text;
       _showLocationPermissionDialog(
-        message:
-            'Location is turned off. Please turn on location in the settings app.',
-        actionText: 'Open Settings',
+        message: message,
+        actionText: actionText,
       );
       setState(() {
         _isLoading = false;
@@ -386,13 +407,13 @@ class _MapEnScreenState extends State<MapEnScreen> {
   }
 
   void _showLocationPermissionDialog({
-    String message = 'Location permission is required.',
-    String actionText = 'Open Settings',
+    String message = 'Location permission required',
+    String actionText = 'Open settings',
   }) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Location Permission Required'),
+        title: const Text('Location permission required'),
         content: Text(message),
         actions: <Widget>[
           TextButton(
@@ -422,7 +443,7 @@ class _MapEnScreenState extends State<MapEnScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Error'),
+        title: const Text('エラー'),
         content: Text(message),
         actions: <Widget>[
           TextButton(
@@ -458,25 +479,39 @@ class _MapEnScreenState extends State<MapEnScreen> {
     QuerySnapshot snapshot = await markers.get();
     for (var doc in snapshot.docs) {
       Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
-      LatLng position = LatLng(data['latitude'], data['longitude']);
-      String imageUrl = data['imageUrl'];
-      String locationId = doc.id;
-      String title = data['title'];
-      String description = data['description'];
+      double latitude = (data['latitude'] as num).toDouble();
+      double longitude = (data['longitude'] as num).toDouble();
+      LatLng position = LatLng(latitude, longitude);
 
-      Marker marker = await _createMarkerWithImage(
-        position,
-        imageUrl,
-        locationId,
-        280,
-        180,
-        title,
-        description,
-      );
+      // 現在位置から150km以内のマーカーのみを追加
+      if (_currentPosition != null) {
+        double distance = Geolocator.distanceBetween(
+          _currentPosition!.latitude,
+          _currentPosition!.longitude,
+          latitude,
+          longitude,
+        );
+        if (distance <= _maxDisplayRadius) {
+          String imageUrl = data['imageUrl'];
+          String locationId = doc.id;
+          String title = data['title'];
+          String description = data['description'];
 
-      setState(() {
-        _markers.add(marker);
-      });
+          Marker marker = await _createMarkerWithImage(
+            position,
+            imageUrl,
+            locationId,
+            280,
+            180,
+            title,
+            description,
+          );
+
+          setState(() {
+            _markers.add(marker);
+          });
+        }
+      }
     }
   }
 
@@ -487,7 +522,7 @@ class _MapEnScreenState extends State<MapEnScreen> {
     int width,
     int height,
     String title,
-    String description,
+    String snippet,
   ) async {
     final Uint8List markerIcon =
         await _getBytesFromUrl(imageUrl, width, height);
@@ -506,7 +541,7 @@ class _MapEnScreenState extends State<MapEnScreen> {
           );
           _calculateDistance(position);
           _showModalBottomSheet(
-              context, imageUrl, title, description, hasCheckedIn);
+              context, imageUrl, title, snippet, hasCheckedIn);
         });
       },
     );
@@ -537,18 +572,10 @@ class _MapEnScreenState extends State<MapEnScreen> {
   }
 
   void _showModalBottomSheet(BuildContext context, String imageUrl,
-      String title, String description, bool hasCheckedIn) {
+      String title, String snippet, bool hasCheckedIn) {
     TextEditingController textController = TextEditingController();
     bool isCorrect = false;
     bool showTextField = false;
-
-    // タイトルと説明を翻訳
-    Future<String> translateTitle = translator
-        .translate(title, to: 'en')
-        .then((translation) => translation.text);
-    Future<String> translateDescription = translator
-        .translate(description, to: 'en')
-        .then((translation) => translation.text);
 
     showModalBottomSheet(
       context: context,
@@ -559,8 +586,7 @@ class _MapEnScreenState extends State<MapEnScreen> {
             return SingleChildScrollView(
               child: Padding(
                 padding: EdgeInsets.only(
-                  bottom: MediaQuery.of(context).viewInsets.bottom,
-                ),
+                    bottom: MediaQuery.of(context).viewInsets.bottom),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -571,57 +597,37 @@ class _MapEnScreenState extends State<MapEnScreen> {
                       child: Image.network(imageUrl),
                     ),
                     const SizedBox(height: 10.0),
-                    Center(
-                      child: FutureBuilder<String>(
-                        future: translateTitle,
-                        builder: (context, snapshot) {
-                          if (snapshot.connectionState ==
-                              ConnectionState.done) {
-                            return Text(
-                              snapshot.data ?? '',
-                              style: const TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            );
-                          } else {
-                            return CircularProgressIndicator();
-                          }
-                        },
-                      ),
-                    ),
-                    const SizedBox(height: 10.0),
-                    Center(
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 30.0),
-                        child: FutureBuilder<String>(
-                          future: translateDescription,
-                          builder: (context, snapshot) {
-                            if (snapshot.connectionState ==
-                                ConnectionState.done) {
-                              return Text(
-                                snapshot.data ?? '',
-                                style: const TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              );
-                            } else {
-                              return CircularProgressIndicator();
-                            }
-                          },
+                    Padding(
+                      padding: EdgeInsets.all(15),
+                      child: Center(
+                        child: Text(
+                          title,
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
                     ),
                     const SizedBox(height: 20.0),
-                    if (_selectedMarker != null &&
-                        !hasCheckedIn &&
-                        !showTextField)
-                      Column(
+                    if (_selectedMarker != null)
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Padding(
-                            padding: const EdgeInsets.all(8.0),
-                            child: ElevatedButton(
+                          if (hasCheckedIn)
+                            const Padding(
+                              padding: EdgeInsets.only(right: 10),
+                              child: Text(
+                                '✔︎Checked in',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.grey,
+                                ),
+                              ),
+                            )
+                          else
+                            ElevatedButton(
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: _canCheckIn
                                     ? const Color(0xFF00008b)
@@ -635,28 +641,44 @@ class _MapEnScreenState extends State<MapEnScreen> {
                                     }
                                   : null,
                               child: const Text(
-                                'Check In',
+                                '︎Check-in',
                                 style: TextStyle(
                                   color: Colors.white,
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
                             ),
-                          ),
-                          if (!_canCheckIn)
-                            const Padding(
-                              padding: EdgeInsets.all(8.0),
-                              child: Text(
-                                'Cannot check in as you are too far from the current location',
-                                style: TextStyle(
-                                  color: Colors.red,
-                                  fontSize: 14,
-                                ),
-                                textAlign: TextAlign.center,
+                          const SizedBox(width: 10),
+                          ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF00008b),
+                            ),
+                            onPressed: () {
+                              Navigator.pop(context);
+                              _showNavigationModalBottomSheet(
+                                  context, _selectedMarker!.position);
+                            },
+                            child: const Text(
+                              'Go to here',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
                               ),
                             ),
-                          const SizedBox(height: 15.0),
+                          ),
                         ],
+                      ),
+                    if (!_canCheckIn && !hasCheckedIn)
+                      const Padding(
+                        padding: EdgeInsets.all(8.0),
+                        child: Text(
+                          'Unable to check in because you are far from your current location',
+                          style: TextStyle(
+                            color: Colors.red,
+                            fontSize: 14,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
                       ),
                     if (_canCheckIn && !hasCheckedIn && showTextField)
                       Padding(
@@ -666,7 +688,7 @@ class _MapEnScreenState extends State<MapEnScreen> {
                             TextField(
                               controller: textController,
                               decoration: const InputDecoration(
-                                hintText: 'Please enter the title',
+                                hintText: 'Please enter a title',
                                 border: OutlineInputBorder(),
                               ),
                               keyboardType: TextInputType.text,
@@ -680,44 +702,66 @@ class _MapEnScreenState extends State<MapEnScreen> {
                               },
                             ),
                             const SizedBox(height: 8),
-                            ElevatedButton(
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: _isSubmitting
-                                    ? Colors.grey
-                                    : const Color(0xFF00008b),
-                              ),
-                              onPressed: _isSubmitting
-                                  ? null
-                                  : () {
-                                      String comment = textController.text;
-                                      _checkIn(comment, title, isCorrect,
-                                          _selectedMarker!.markerId.value);
-                                      Navigator.of(context).pop();
-                                    },
-                              child: const Text(
-                                'Submit',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                              children: [
+                                ElevatedButton(
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.grey,
+                                  ),
+                                  onPressed: () {
+                                    setState(() {
+                                      showTextField = false;
+                                    });
+                                  },
+                                  child: const Text(
+                                    'back',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
                                 ),
-                              ),
+                                ElevatedButton(
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: _isSubmitting
+                                        ? Colors.grey
+                                        : const Color(0xFF00008b),
+                                  ),
+                                  onPressed: _isSubmitting
+                                      ? null
+                                      : () {
+                                          String comment = textController.text;
+                                          _checkIn(comment, title, isCorrect,
+                                              _selectedMarker!.markerId.value);
+                                          Navigator.of(context).pop();
+                                        },
+                                  child: const Text(
+                                    'send',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
                           ],
                         ),
                       ),
-                    if (hasCheckedIn)
-                      const Padding(
-                        padding: EdgeInsets.all(8.0),
-                        child: Text(
-                          '✔︎ Checked In',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.grey,
-                          ),
-                        ),
-                      ),
-                    const SizedBox(height: 15.0),
+                    // if (hasCheckedIn)
+                    //   const Padding(
+                    //     padding: EdgeInsets.all(8.0),
+                    //     child: Text(
+                    //       '✔︎チェックイン済み',
+                    //       style: TextStyle(
+                    //         fontSize: 16,
+                    //         fontWeight: FontWeight.bold,
+                    //         color: Colors.grey,
+                    //       ),
+                    //     ),
+                    //   ),
+                    const SizedBox(height: 20.0),
                   ],
                 ),
               ),
@@ -735,6 +779,344 @@ class _MapEnScreenState extends State<MapEnScreen> {
         });
       }
     });
+  }
+
+  StreamSubscription<DocumentSnapshot>? _favoriteSubscription;
+
+  void _showNavigationModalBottomSheet(
+      BuildContext context, LatLng destination) async {
+    // Firebase Firestoreのリスナーを設定
+    _favoriteSubscription = FirebaseFirestore.instance
+        .collection('favorites') // コレクション名を適宜変更
+        .doc(_selectedMarker!.markerId.value) // ドキュメントIDを使用
+        .snapshots()
+        .listen((snapshot) {
+      if (snapshot.exists) {
+        setState(() {
+          _isFavorite = snapshot['isFavorite'];
+        });
+      }
+    });
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (BuildContext context) {
+        return DraggableScrollableSheet(
+          initialChildSize: 0.5,
+          minChildSize: 0.2,
+          maxChildSize: 0.9,
+          expand: false,
+          builder: (_, controller) {
+            return SingleChildScrollView(
+              controller: controller,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const SizedBox(height: 20),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      Column(
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.directions),
+                            onPressed: () {
+                              _launchMapsUrl(
+                                  destination.latitude, destination.longitude);
+                            },
+                          ),
+                          const Text('Navigation'),
+                        ],
+                      ),
+                      Column(
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.more_horiz),
+                            onPressed: () async {
+                              DocumentSnapshot snapshot =
+                                  await FirebaseFirestore.instance
+                                      .collection('locations')
+                                      .doc(_selectedMarker!.markerId.value)
+                                      .get();
+
+                              if (snapshot.exists) {
+                                Map<String, dynamic>? data =
+                                    snapshot.data() as Map<String, dynamic>?;
+                                if (data != null) {
+                                  // subMediaの処理を追加
+                                  List<Map<String, dynamic>> subMediaList = [];
+                                  if (data['subMedia'] != null &&
+                                      data['subMedia'] is List) {
+                                    subMediaList =
+                                        (data['subMedia'] as List).map((item) {
+                                      return {
+                                        'type': item['type'] as String? ?? '',
+                                        'url': item['url'] as String? ?? '',
+                                        'title': item['title'] as String? ?? '',
+                                      };
+                                    }).toList();
+                                  }
+
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => SpotDetailScreen(
+                                        locationId:
+                                            _selectedMarker!.markerId.value,
+                                        title: data['title'] ?? '',
+                                        description: data['description'] ?? '',
+                                        latitude: data['latitude'] != null
+                                            ? (data['latitude'] as num)
+                                                .toDouble()
+                                            : 0.0,
+                                        longitude: data['longitude'] != null
+                                            ? (data['longitude'] as num)
+                                                .toDouble()
+                                            : 0.0,
+                                        imageUrl: data['imageUrl'] ?? '',
+                                        sourceTitle: data['sourceTitle'] ?? '',
+                                        sourceLink: data['sourceLink'] ?? '',
+                                        url: data['url'] ?? '',
+                                        subMedia: subMediaList,
+                                      ),
+                                    ),
+                                  );
+                                }
+                              }
+                            },
+                          ),
+                          const Text('Another'),
+                        ],
+                      ),
+                      Column(
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.post_add),
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => PostScreen(
+                                    locationId: _selectedMarker!.markerId.value,
+                                    userId: _userId,
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                          const Text('Post'),
+                        ],
+                      ),
+                      Column(
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.link),
+                            onPressed: () async {
+                              DocumentSnapshot snapshot =
+                                  await FirebaseFirestore.instance
+                                      .collection('locations')
+                                      .doc(_selectedMarker!.markerId.value)
+                                      .get();
+                              if (snapshot.exists) {
+                                Map<String, dynamic>? data =
+                                    snapshot.data() as Map<String, dynamic>?;
+                                if (data != null &&
+                                    data.containsKey('sourceLink')) {
+                                  final String sourceLink = data['sourceLink'];
+                                  //Open URL
+                                  if (await canLaunch(sourceLink)) {
+                                    await launch(sourceLink);
+                                  } else {
+                                    //No Open URL
+                                    print('Could not launch $sourceLink');
+                                  }
+                                }
+                              }
+                            },
+                          ),
+                          const Text('Links'),
+                        ],
+                      ),
+                      Column(
+                        children: [
+                          IconButton(
+                            icon: Icon(
+                              _isFavorite
+                                  ? Icons.favorite
+                                  : Icons.favorite_border,
+                            ),
+                            onPressed: () {
+                              setState(() {
+                                _isFavorite = !_isFavorite;
+                              });
+                              _toggleFavorite(_selectedMarker!.markerId.value);
+                            },
+                          ),
+                          const Text('Favorites'),
+                        ],
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                  FutureBuilder<List<Map<String, dynamic>>>(
+                    future: _getPostedImages(_selectedMarker!.markerId.value),
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return const CircularProgressIndicator();
+                      } else if (snapshot.hasError) {
+                        return const Text('An error has occurred');
+                      } else if (snapshot.hasData &&
+                          snapshot.data!.isNotEmpty) {
+                        return GridView.builder(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          gridDelegate:
+                              const SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 3,
+                            crossAxisSpacing: 4,
+                            mainAxisSpacing: 4,
+                          ),
+                          itemCount: snapshot.data!.length,
+                          itemBuilder: (context, index) {
+                            return GestureDetector(
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => PostDetailScreen(
+                                        postData: snapshot.data![index]),
+                                  ),
+                                );
+                              },
+                              child: Image.network(
+                                snapshot.data![index]['imageUrl'],
+                                fit: BoxFit.cover,
+                              ),
+                            );
+                          },
+                        );
+                      } else {
+                        return const Text('Not Posts');
+                      }
+                    },
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    ).whenComplete(() {
+      // モーダルが閉じたときにリスナーを解除
+      _favoriteSubscription?.cancel();
+    });
+
+    _showRouteOnMap(destination);
+  }
+
+  Future<void> _toggleFavorite(String locationId) async {
+    try {
+      DocumentReference userFavoriteRef = FirebaseFirestore.instance
+          .collection('users')
+          .doc(_userId)
+          .collection('favorites')
+          .doc(locationId);
+
+      DocumentSnapshot favoriteSnapshot = await userFavoriteRef.get();
+
+      if (favoriteSnapshot.exists) {
+        // お気に入りから削除
+        await userFavoriteRef.delete();
+        setState(() {
+          _isFavorite = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Removed from favorites')),
+        );
+      } else {
+        // お気に入りに追加
+        await userFavoriteRef.set({
+          'locationId': locationId,
+          'timestamp': FieldValue.serverTimestamp(),
+        });
+        setState(() {
+          _isFavorite = true;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Added to favorites')),
+        );
+      }
+    } catch (e) {
+      print('Error toggling favorite: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Failed to update favorites')),
+      );
+    }
+  }
+
+  Future<bool> _checkFavoriteStatus(String locationId) async {
+    DocumentSnapshot favoriteSnapshot = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(_userId)
+        .collection('favorites')
+        .doc(locationId)
+        .get();
+
+    return favoriteSnapshot.exists;
+  }
+
+  Future<void> _uploadImage(String locationId) async {
+    final ImagePicker _picker = ImagePicker();
+    final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
+
+    if (image != null) {
+      File file = File(image.path);
+      try {
+        String fileName = '${DateTime.now().millisecondsSinceEpoch}.jpg';
+        Reference ref = FirebaseStorage.instance
+            .ref()
+            .child('location_images')
+            .child(locationId)
+            .child(fileName);
+
+        await ref.putFile(file);
+        String downloadURL = await ref.getDownloadURL();
+
+        await FirebaseFirestore.instance
+            .collection('locations')
+            .doc(locationId)
+            .collection('images')
+            .add({
+          'url': downloadURL,
+          'userId': _userId,
+          'timestamp': FieldValue.serverTimestamp(),
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Uploaded the image')),
+        );
+      } catch (e) {
+        print('Error uploading image: $e');
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Image upload failed')),
+        );
+      }
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> _getPostedImages(String locationId) async {
+    QuerySnapshot snapshot = await FirebaseFirestore.instance
+        .collection('locations')
+        .doc(locationId)
+        .collection('posts')
+        .orderBy('timestamp', descending: true)
+        .limit(10)
+        .get();
+
+    return snapshot.docs
+        .map((doc) => doc.data() as Map<String, dynamic>)
+        .toList();
   }
 
   void _checkIn(
@@ -773,8 +1155,7 @@ class _MapEnScreenState extends State<MapEnScreen> {
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-              isCorrect ? 'Check-in successful!' : 'The title is incorrect.'),
+          content: Text(isCorrect ? 'Checked in!' : 'Title is different。'),
           duration: const Duration(seconds: 2),
         ),
       );
@@ -787,7 +1168,7 @@ class _MapEnScreenState extends State<MapEnScreen> {
       print('Error during check-in: $error');
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Check-in failed.'),
+          content: Text('Check-in failed'),
           duration: Duration(seconds: 2),
         ),
       );
@@ -795,6 +1176,55 @@ class _MapEnScreenState extends State<MapEnScreen> {
       setState(() {
         _isSubmitting = false;
       });
+    }
+  }
+
+  void _launchMapsUrl(double lat, double lng) async {
+    final url = 'https://www.google.com/maps/dir/?api=1&destination=$lat,$lng';
+    if (await canLaunch(url)) {
+      await launch(url);
+    } else {
+      throw 'Could not launch $url';
+    }
+  }
+
+  void _showRouteOnMap(LatLng destination) {
+    if (_currentPosition != null) {
+      setState(() {
+        _polylines.clear();
+        _polylines.add(
+          Polyline(
+            polylineId: const PolylineId("route"),
+            points: [_currentPosition!, destination],
+            color: Colors.blue,
+            width: 5,
+          ),
+        );
+      });
+
+      _mapController?.animateCamera(
+        CameraUpdate.newLatLngBounds(
+          LatLngBounds(
+            southwest: LatLng(
+              _currentPosition!.latitude < destination.latitude
+                  ? _currentPosition!.latitude
+                  : destination.latitude,
+              _currentPosition!.longitude < destination.longitude
+                  ? _currentPosition!.longitude
+                  : destination.longitude,
+            ),
+            northeast: LatLng(
+              _currentPosition!.latitude > destination.latitude
+                  ? _currentPosition!.latitude
+                  : destination.latitude,
+              _currentPosition!.longitude > destination.longitude
+                  ? _currentPosition!.longitude
+                  : destination.longitude,
+            ),
+          ),
+          100.0,
+        ),
+      );
     }
   }
 
@@ -807,23 +1237,56 @@ class _MapEnScreenState extends State<MapEnScreen> {
           _isLoading
               ? const Center(child: CircularProgressIndicator())
               : _errorOccurred
-                  ? const Center(child: Text('An error occurred.'))
-                  : GoogleMap(
-                      initialCameraPosition: const CameraPosition(
-                        target: LatLng(35.658581, 139.745433),
-                        zoom: 16.0,
-                        bearing: 30.0,
-                        tilt: 60.0,
+                  ? Center(
+                      child: FutureBuilder<String>(
+                        future: translator
+                            .translate('An error occurred.', to: 'en')
+                            .then((translation) => translation.text), // 修正
+                        builder: (context, snapshot) {
+                          if (snapshot.hasData) {
+                            return Text(snapshot.data!);
+                          } else if (snapshot.hasError) {
+                            return Text('Error: ${snapshot.error}');
+                          } else {
+                            return const CircularProgressIndicator();
+                          }
+                        },
                       ),
-                      markers: _markers,
-                      circles: _circles,
-                      myLocationEnabled: true,
-                      myLocationButtonEnabled: true,
-                      onMapCreated: (GoogleMapController controller) {
-                        _mapController = controller;
-                        controller.setMapStyle(_mapStyle);
-                        _moveToCurrentLocation();
-                      },
+                    )
+                  : Stack(
+                      children: [
+                        GoogleMap(
+                          initialCameraPosition: const CameraPosition(
+                            target: LatLng(35.658581, 139.745433),
+                            zoom: 16.0,
+                            bearing: 30.0,
+                            tilt: 60.0,
+                          ),
+                          markers: _markers,
+                          circles: _circles,
+                          polylines: _polylines,
+                          myLocationEnabled: true,
+                          myLocationButtonEnabled: true,
+                          onMapCreated: (GoogleMapController controller) {
+                            _mapController = controller;
+                            controller.setMapStyle(_mapStyle);
+                            _moveToCurrentLocation();
+                          },
+                          onCameraMove: (CameraPosition position) {
+                            if (_currentPosition != null) {
+                              double distance = Geolocator.distanceBetween(
+                                _currentPosition!.latitude,
+                                _currentPosition!.longitude,
+                                position.target.latitude,
+                                position.target.longitude,
+                              );
+                              if (distance > _maxDisplayRadius) {
+                                _moveToCurrentLocation();
+                              }
+                            }
+                          },
+                        ),
+                      ],
                     ),
           if (_showConfirmation)
             Center(
@@ -857,6 +1320,83 @@ class _MapEnScreenState extends State<MapEnScreen> {
               ),
             ),
         ],
+      ),
+    );
+  }
+}
+
+class PostDetailScreen extends StatelessWidget {
+  final Map<String, dynamic> postData;
+
+  const PostDetailScreen({Key? key, required this.postData}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    final translator = GoogleTranslator();
+    return Scaffold(
+      appBar: AppBar(
+        title: FutureBuilder<String>(
+          future: translator
+              .translate('Post', to: 'en')
+              .then((translation) => translation.text),
+          builder: (context, snapshot) {
+            if (snapshot.hasData) {
+              return Text(
+                snapshot.data!,
+                style: const TextStyle(
+                  color: Color(0xFF00008b),
+                  fontWeight: FontWeight.bold,
+                ),
+              );
+            } else {
+              return const CircularProgressIndicator();
+            }
+          },
+        ),
+      ),
+      body: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Image.network(
+              postData['imageUrl'],
+              fit: BoxFit.cover,
+              width: double.infinity,
+            ),
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '${postData['userDisplayName']} (@${postData['userId']})',
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(postData['caption']),
+                  const SizedBox(height: 8),
+                  FutureBuilder<String>(
+                    future: translator
+                        .translate(
+                            'Posted at: ${(postData['timestamp'] as Timestamp).toDate().toString()}',
+                            to: 'en')
+                        .then((translation) => translation.text),
+                    builder: (context, snapshot) {
+                      if (snapshot.hasData) {
+                        return Text(
+                          snapshot.data!,
+                          style: const TextStyle(color: Colors.grey),
+                        );
+                      } else {
+                        return const CircularProgressIndicator();
+                      }
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
