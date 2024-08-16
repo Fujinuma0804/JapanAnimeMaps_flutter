@@ -5,7 +5,7 @@ import 'package:parts/spot_page/check_in_en.dart';
 import 'package:translator/translator.dart';
 
 import 'anime_list_detail_en.dart';
-import 'customer_anime_request.dart';
+import 'customer_anime_request_en.dart';
 import 'liked_post.dart';
 
 class AnimeListEnPage extends StatefulWidget {
@@ -122,7 +122,7 @@ class _AnimeListEnPageState extends State<AnimeListEnPage> {
                 Navigator.push(
                     context,
                     MaterialPageRoute(
-                        builder: (context) => AnimeRequestCustomerForm()));
+                        builder: (context) => AnimeRequestCustomerFormEn()));
               },
             ),
             IconButton(
