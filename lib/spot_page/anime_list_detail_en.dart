@@ -1,14 +1,29 @@
+import 'dart:io' show Platform;
+
+import 'package:chewie/chewie.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:translator/translator.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:video_player/video_player.dart';
 
 class AnimeDetailsEnPage extends StatelessWidget {
   final String animeName;
   final translator = GoogleTranslator();
 
   AnimeDetailsEnPage({required this.animeName});
+
+  Future<String> translateToEnglish(String text) async {
+    try {
+      var translation = await translator.translate(text, to: 'en');
+      return translation.text;
+    } catch (e) {
+      print('Translation error: $e');
+      return text;
+    }
+  }
 
   Future<List<Map<String, dynamic>>> _fetchLocationsForAnime() async {
     List<Map<String, dynamic>> locations = [];
@@ -21,13 +36,16 @@ class AnimeDetailsEnPage extends StatelessWidget {
       for (var doc in snapshot.docs) {
         var data = doc.data() as Map<String, dynamic>;
         locations.add({
-          'title': data['title'] ?? '',
+          'id': doc.id,
+          'title': await translateToEnglish(data['title'] ?? ''),
           'imageUrl': data['imageUrl'] ?? '',
-          'description': data['description'] ?? '',
+          'description': await translateToEnglish(data['description'] ?? ''),
           'latitude': data['latitude'] ?? 0.0,
           'longitude': data['longitude'] ?? 0.0,
-          'sourceTitle': data['sourceTitle'] ?? '',
+          'sourceTitle': await translateToEnglish(data['sourceTitle'] ?? ''),
           'sourceLink': data['sourceLink'] ?? '',
+          'url': data['url'] ?? '',
+          'subMedia': data['subMedia'] ?? [],
         });
       }
     } catch (e) {
@@ -36,25 +54,15 @@ class AnimeDetailsEnPage extends StatelessWidget {
     return locations;
   }
 
-  Future<String> translateText(String text, String to) async {
-    try {
-      var translation = await translator.translate(text, to: to);
-      return translation.text;
-    } catch (e) {
-      print("Translation error: $e");
-      return text;
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: FutureBuilder<String>(
-          future: translateText(animeName, 'en'),
+          future: translateToEnglish(animeName),
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
-              return CircularProgressIndicator();
+              return Text('Translating...');
             }
             return Text(
               snapshot.data ?? animeName,
@@ -91,6 +99,7 @@ class AnimeDetailsEnPage extends StatelessWidget {
                 final title = location['title'] as String;
                 final description = location['description'] as String;
                 final imageUrl = location['imageUrl'] as String;
+                final locationId = location['id'] as String;
 
                 return GestureDetector(
                   onTap: () {
@@ -105,6 +114,12 @@ class AnimeDetailsEnPage extends StatelessWidget {
                           longitude: location['longitude'] as double,
                           sourceLink: location['sourceLink'] as String,
                           sourceTitle: location['sourceTitle'] as String,
+                          url: location['url'] as String,
+                          subMedia: (location['subMedia'] as List)
+                              .where((item) => item is Map<String, dynamic>)
+                              .cast<Map<String, dynamic>>()
+                              .toList(),
+                          locationId: locationId,
                         ),
                       ),
                     );
@@ -115,32 +130,38 @@ class AnimeDetailsEnPage extends StatelessWidget {
                       children: [
                         ClipRRect(
                           borderRadius: BorderRadius.circular(9.0),
-                          child: Image.network(
-                            imageUrl,
-                            width: 200,
-                            height: 100,
-                            fit: BoxFit.cover,
-                          ),
+                          child: imageUrl.isNotEmpty
+                              ? Image.network(
+                                  imageUrl,
+                                  width: 200,
+                                  height: 100,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) {
+                                    return Image.asset(
+                                      'assets/placeholder_image.png',
+                                      width: 200,
+                                      height: 100,
+                                      fit: BoxFit.cover,
+                                    );
+                                  },
+                                )
+                              : Image.asset(
+                                  'assets/placeholder_image.png',
+                                  width: 200,
+                                  height: 100,
+                                  fit: BoxFit.cover,
+                                ),
                         ),
                         SizedBox(height: 8.0),
-                        FutureBuilder<String>(
-                          future: translateText(title, 'en'),
-                          builder: (context, snapshot) {
-                            if (snapshot.connectionState ==
-                                ConnectionState.waiting) {
-                              return CircularProgressIndicator();
-                            }
-                            return Text(
-                              snapshot.data ?? title,
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                fontSize: 14.0,
-                                fontWeight: FontWeight.bold,
-                              ),
-                              overflow: TextOverflow.ellipsis,
-                              maxLines: 1,
-                            );
-                          },
+                        Text(
+                          title,
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 14.0,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 1,
                         ),
                       ],
                     ),
@@ -155,7 +176,7 @@ class AnimeDetailsEnPage extends StatelessWidget {
   }
 }
 
-class SpotDetailScreen extends StatelessWidget {
+class SpotDetailScreen extends StatefulWidget {
   final String title;
   final String description;
   final double latitude;
@@ -163,9 +184,11 @@ class SpotDetailScreen extends StatelessWidget {
   final String imageUrl;
   final String sourceTitle;
   final String sourceLink;
-  final translator = GoogleTranslator();
+  final String url;
+  final List<Map<String, dynamic>> subMedia;
+  final String locationId;
 
-  SpotDetailScreen({
+  const SpotDetailScreen({
     Key? key,
     required this.title,
     required this.description,
@@ -174,167 +197,366 @@ class SpotDetailScreen extends StatelessWidget {
     required this.imageUrl,
     required this.sourceTitle,
     required this.sourceLink,
+    required this.url,
+    required this.subMedia,
+    required this.locationId,
   }) : super(key: key);
 
-  Future<String> translateText(String text, String to) async {
+  @override
+  _SpotDetailScreenState createState() => _SpotDetailScreenState();
+}
+
+class _SpotDetailScreenState extends State<SpotDetailScreen> {
+  VideoPlayerController? _videoPlayerController;
+  ChewieController? _chewieController;
+  bool _isPictureInPicture = false;
+  bool _isFavorite = false;
+  final translator = GoogleTranslator();
+
+  Future<String> translateToEnglish(String text) async {
     try {
-      var translation = await translator.translate(text, to: to);
+      var translation = await translator.translate(text, to: 'en');
       return translation.text;
     } catch (e) {
-      print("Translation error: $e");
+      print('Translation error: $e');
       return text;
     }
   }
 
   Future<void> _openMapOptions(BuildContext context) async {
     final googleMapsUrl =
-        "https://www.google.com/maps/search/?api=1&query=$latitude,$longitude";
-    final appleMapsUrl = "http://maps.apple.com/?q=$latitude,$longitude";
+        "https://www.google.com/maps/search/?api=1&query=${widget.latitude},${widget.longitude}";
+    final appleMapsUrl =
+        "http://maps.apple.com/?q=${widget.latitude},${widget.longitude}";
 
-    // Show a dialog to let the user choose between Google Maps and Apple Maps
-    showDialog(
+    showModalBottomSheet(
       context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: Text('Open in Maps'),
-          content: Text('Choose your preferred map application:'),
-          actions: [
-            TextButton(
-              onPressed: () async {
-                if (await canLaunchUrl(Uri.parse(googleMapsUrl))) {
-                  await launchUrl(Uri.parse(googleMapsUrl));
-                } else {
-                  throw 'Could not launch Google Maps';
-                }
-                Navigator.of(context).pop();
-              },
-              child: Text('Google Maps'),
-            ),
-            TextButton(
-              onPressed: () async {
-                if (await canLaunchUrl(Uri.parse(appleMapsUrl))) {
-                  await launchUrl(Uri.parse(appleMapsUrl));
-                } else {
-                  throw 'Could not launch Apple Maps';
-                }
-                Navigator.of(context).pop();
-              },
-              child: Text('Apple Maps'),
-            ),
-          ],
+      builder: (BuildContext context) {
+        return SafeArea(
+          child: Wrap(
+            children: [
+              ListTile(
+                leading: Icon(Icons.map),
+                title: Text('Google Maps'),
+                onTap: () async {
+                  if (await canLaunch(googleMapsUrl)) {
+                    await launch(googleMapsUrl);
+                  } else {
+                    throw 'Could not open Google Maps.';
+                  }
+                },
+              ),
+              if (Platform.isIOS)
+                ListTile(
+                  leading: Icon(Icons.map),
+                  title: Text('Apple Maps'),
+                  onTap: () async {
+                    if (await canLaunch(appleMapsUrl)) {
+                      await launch(appleMapsUrl);
+                    } else {
+                      throw 'Could not open Apple Maps.';
+                    }
+                  },
+                ),
+            ],
+          ),
         );
       },
     );
   }
 
   @override
+  void initState() {
+    super.initState();
+    _initializeMedia();
+    _checkIfFavorite();
+  }
+
+  Future<void> _initializeMedia() async {
+    if (widget.url.isNotEmpty && widget.url.toLowerCase().endsWith('.mp4')) {
+      await _initializeVideoPlayer(widget.url);
+    }
+    for (var subMedia in widget.subMedia) {
+      if (subMedia['type'] == 'video') {
+        await _initializeVideoPlayer(subMedia['url']);
+        break;
+      }
+    }
+  }
+
+  Future<void> _checkIfFavorite() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      final docSnapshot = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .collection('favorites')
+          .doc(widget.locationId)
+          .get();
+
+      setState(() {
+        _isFavorite = docSnapshot.exists;
+      });
+    }
+  }
+
+  Future<void> _toggleFavorite() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      final favoriteRef = FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .collection('favorites')
+          .doc(widget.locationId);
+
+      setState(() {
+        _isFavorite = !_isFavorite;
+      });
+
+      if (_isFavorite) {
+        await favoriteRef.set({
+          'locationId': widget.locationId,
+          'timestamp': FieldValue.serverTimestamp(),
+        });
+      } else {
+        await favoriteRef.delete();
+      }
+    }
+  }
+
+  Future<void> _initializeVideoPlayer(String url) async {
+    try {
+      _videoPlayerController = VideoPlayerController.network(url);
+      await _videoPlayerController!.initialize();
+      _chewieController = ChewieController(
+        videoPlayerController: _videoPlayerController!,
+        autoPlay: true,
+        looping: true,
+      );
+      setState(() {});
+    } catch (e) {
+      print("Error initializing video player: $e");
+    }
+  }
+
+  @override
+  void dispose() {
+    _videoPlayerController?.dispose();
+    _chewieController?.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
-          'Details',
-          style: TextStyle(
-            color: Color(0xFF00008b),
-            fontWeight: FontWeight.bold,
-          ),
+        title: FutureBuilder<String>(
+          future: translateToEnglish('Details'),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return Text('Translating...');
+            }
+            return Text(
+              snapshot.data ?? 'Details',
+              style: TextStyle(
+                color: Color(0xFF00008b),
+                fontWeight: FontWeight.bold,
+              ),
+            );
+          },
         ),
+        actions: [
+          IconButton(
+            icon: Icon(
+              _isFavorite ? Icons.favorite : Icons.favorite_border,
+              color: _isFavorite ? Colors.red : null,
+            ),
+            onPressed: _toggleFavorite,
+          )
+        ],
       ),
-      body: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+      body: NotificationListener<ScrollNotification>(
+        onNotification: (scrollNotification) {
+          if (scrollNotification is ScrollUpdateNotification) {
+            if (scrollNotification.metrics.pixels > 0 && !_isPictureInPicture) {
+              setState(() {
+                _isPictureInPicture = true;
+              });
+            } else if (scrollNotification.metrics.pixels == 0 &&
+                _isPictureInPicture) {
+              setState(() {
+                _isPictureInPicture = false;
+              });
+            }
+          }
+          return true;
+        },
+        child: Stack(
           children: [
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: FutureBuilder<String>(
-                future: translateText(title, 'en'),
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return CircularProgressIndicator();
-                  }
-                  return Text(
-                    snapshot.data ?? title,
-                    style: const TextStyle(
-                        fontSize: 24, fontWeight: FontWeight.bold),
-                  );
-                },
-              ),
-            ),
-            if (imageUrl.isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Image.network(
-                  imageUrl,
-                  fit: BoxFit.cover,
-                  height: 200,
-                  width: double.infinity,
-                ),
-              ),
-            Align(
-              alignment: FractionalOffset.centerRight,
-              child: Text(
-                sourceTitle,
-                style: TextStyle(
-                  color: Colors.grey,
-                  fontSize: 10.0,
-                ),
-              ),
-            ),
-            Align(
-              alignment: FractionalOffset.centerRight,
-              child: Text(
-                sourceLink,
-                style: TextStyle(
-                  fontSize: 10.0,
-                  color: Colors.grey,
-                ),
-              ),
-            ),
-            SizedBox(
-              height: 200,
-              child: GoogleMap(
-                initialCameraPosition: CameraPosition(
-                  target: LatLng(latitude, longitude),
-                  zoom: 15,
-                ),
-                markers: {
-                  Marker(
-                    markerId: const MarkerId('spot_location'),
-                    position: LatLng(latitude, longitude),
-                  ),
-                },
-              ),
-            ),
-            Center(
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: ElevatedButton(
-                  onPressed: () => _openMapOptions(context),
-                  child: Text('Go To Here'),
-                  style: ElevatedButton.styleFrom(
-                    foregroundColor: Colors.white,
-                    backgroundColor: Color(0xFF00008b),
-                  ),
-                ),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: FutureBuilder<String>(
-                future: translateText(description, 'en'),
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return CircularProgressIndicator();
-                  }
-                  return Text(
-                    snapshot.data ?? description,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      color: Colors.black,
+            SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Text(
+                      widget.title,
+                      style: const TextStyle(
+                          fontSize: 24, fontWeight: FontWeight.bold),
                     ),
-                  );
-                },
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Image.network(
+                      widget.imageUrl,
+                      fit: BoxFit.cover,
+                      width: double.infinity,
+                      height: 200,
+                    ),
+                  ),
+                  if (_chewieController != null)
+                    Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: AspectRatio(
+                        aspectRatio: _videoPlayerController!.value.aspectRatio,
+                        child: Chewie(controller: _chewieController!),
+                      ),
+                    )
+                  else if (widget.url.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Image.network(
+                        widget.url,
+                        fit: BoxFit.cover,
+                        height: 200,
+                        width: double.infinity,
+                        errorBuilder: (context, error, stackTrace) {
+                          return Container(
+                            height: 200,
+                            width: double.infinity,
+                            color: Colors.grey,
+                            child: Center(
+                              child: Icon(Icons.error, color: Colors.white),
+                            ),
+                          );
+                        },
+                      ),
+                    )
+                  else if (widget.subMedia.isNotEmpty &&
+                      (widget.subMedia.first['type'] == 'image' ||
+                          widget.subMedia.first['type'] == 'video'))
+                    Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: widget.subMedia.first['type'] == 'image'
+                          ? Image.network(
+                              widget.subMedia.first['url'],
+                              fit: BoxFit.cover,
+                              height: 200,
+                              width: double.infinity,
+                              errorBuilder: (context, error, stackTrace) {
+                                return Container(
+                                  height: 200,
+                                  width: double.infinity,
+                                  color: Colors.grey,
+                                  child: Center(
+                                    child:
+                                        Icon(Icons.error, color: Colors.white),
+                                  ),
+                                );
+                              },
+                            )
+                          : AspectRatio(
+                              aspectRatio:
+                                  _videoPlayerController!.value.aspectRatio,
+                              child: Chewie(controller: _chewieController!),
+                            ),
+                    )
+                  else
+                    SizedBox(
+                      height: 200,
+                      child: GoogleMap(
+                        initialCameraPosition: CameraPosition(
+                          target: LatLng(widget.latitude, widget.longitude),
+                          zoom: 15,
+                        ),
+                        markers: {
+                          Marker(
+                            markerId: const MarkerId('spot_location'),
+                            position: LatLng(widget.latitude, widget.longitude),
+                          ),
+                        },
+                      ),
+                    ),
+                  Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: ElevatedButton(
+                        onPressed: () => _openMapOptions(context),
+                        child: Text('ここへ行く'),
+                        style: ElevatedButton.styleFrom(
+                          foregroundColor: Colors.white,
+                          backgroundColor: Color(0xFF00008b),
+                        ),
+                      ),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Text(
+                      widget.description,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        color: Colors.black,
+                      ),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          widget.sourceTitle,
+                          style: TextStyle(
+                            color: Colors.grey,
+                            fontSize: 10.0,
+                          ),
+                        ),
+                        Text(
+                          widget.sourceLink,
+                          style: TextStyle(
+                            color: Colors.grey,
+                            fontSize: 10.0,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(
+                    height: 20.0,
+                  ),
+                ],
               ),
             ),
+            if (_isPictureInPicture && _chewieController != null)
+              Positioned(
+                right: 16,
+                bottom: 16,
+                child: GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      _isPictureInPicture = false;
+                    });
+                  },
+                  child: SizedBox(
+                    width: MediaQuery.of(context).size.width * 0.5,
+                    height: MediaQuery.of(context).size.width *
+                        0.8 /
+                        _videoPlayerController!.value.aspectRatio,
+                    child: Chewie(controller: _chewieController!),
+                  ),
+                ),
+              ),
           ],
         ),
       ),
