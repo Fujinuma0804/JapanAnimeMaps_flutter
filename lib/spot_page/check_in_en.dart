@@ -94,13 +94,14 @@ class _SpotTestEnScreenState extends State<SpotTestEnScreen> {
         context,
         MaterialPageRoute(
           builder: (context) => SpotDetailScreen(
-            title: locationData['title'] ?? '',
+            title: locationData['title'] ?? 'No Title',
             imageUrl: locationData['imageUrl'] ?? '',
-            description: locationData['description'] ?? '',
+            description: locationData['description'] ?? 'No Description',
             latitude: locationData['latitude'] as double? ?? 0.0,
             longitude: locationData['longitude'] as double? ?? 0.0,
             sourceLink: locationData['sourceLink'] as String? ?? '',
-            sourceTitle: locationData['sourceTitle'] as String? ?? '',
+            sourceTitle:
+                locationData['sourceTitle'] as String? ?? 'No Source Title',
             url: locationData['url'] as String? ?? '',
             subMedia: (locationData['subMedia'] as List?)
                     ?.where((item) => item is Map<String, dynamic>)
@@ -164,9 +165,9 @@ class _SpotTestEnScreenState extends State<SpotTestEnScreen> {
               bool isCorrect = data['isCorrect'] ?? false;
 
               return ListTile(
-                title: Text(data['title'] ?? ''),
+                title: Text(data['title'] ?? 'No Title'),
                 subtitle: Text(
-                  data['description'] ?? '',
+                  data['description'] ?? 'No Description',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
