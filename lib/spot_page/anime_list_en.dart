@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:parts/spot_page/check_in_en.dart';
 import 'package:translator/translator.dart';
 
-import 'anime_list_detail.dart';
+import 'anime_list_detail_en.dart';
 import 'customer_anime_request.dart';
 import 'liked_post.dart';
 
@@ -32,13 +32,15 @@ class _AnimeListEnPageState extends State<AnimeListEnPage> {
       QuerySnapshot animeSnapshot = await firestore.collection('animes').get();
       _allAnimeData = await Future.wait(animeSnapshot.docs.map((doc) async {
         var data = doc.data() as Map<String, dynamic>;
+        String originalName = data['name'] ?? '';
         Translation translatedName = await translator.translate(
-          data['name'] ?? '',
+          originalName,
           from: 'ja',
           to: 'en',
         );
         return {
           'name': translatedName.text,
+          'originalName': originalName, // 元の日本語名を保存
           'imageUrl': data['imageUrl'] ?? '',
         };
       }).toList());
@@ -99,7 +101,7 @@ class _AnimeListEnPageState extends State<AnimeListEnPage> {
               onPressed: () => Navigator.push(
                 context,
                 MaterialPageRoute(
-                    builder: (context) => const SpotTestScreenEn()),
+                    builder: (context) => const SpotTestEnScreen()),
               ),
               icon: const Icon(Icons.check_circle, color: Color(0xFF00008b)),
             ),
@@ -163,13 +165,17 @@ class _AnimeListEnPageState extends State<AnimeListEnPage> {
                           itemCount: filteredAnimeData.length,
                           itemBuilder: (context, index) {
                             final animeName = filteredAnimeData[index]['name'];
+                            final originalAnimeName =
+                                filteredAnimeData[index]['originalName'];
                             final imageUrl =
                                 filteredAnimeData[index]['imageUrl'];
                             return GestureDetector(
-                              onTap: () =>
-                                  _navigateToDetails(context, animeName),
+                              onTap: () => _navigateToDetails(
+                                  context, originalAnimeName),
                               child: AnimeGridItem(
-                                  animeName: animeName, imageUrl: imageUrl),
+                                animeName: animeName,
+                                imageUrl: imageUrl,
+                              ),
                             );
                           },
                         ),
@@ -180,11 +186,11 @@ class _AnimeListEnPageState extends State<AnimeListEnPage> {
     );
   }
 
-  void _navigateToDetails(BuildContext context, String animeName) {
+  void _navigateToDetails(BuildContext context, String originalAnimeName) {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => AnimeDetailsPage(animeName: animeName),
+        builder: (context) => AnimeDetailsEnPage(animeName: originalAnimeName),
       ),
     );
   }

@@ -1,110 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
 
-class SpotDetailScreen extends StatelessWidget {
-  final String title;
-  final String description;
-  final double latitude;
-  final double longitude;
-  final String imageUrl;
-  final String sourceTitle;
-  final String sourceLink;
-
-  const SpotDetailScreen({
-    Key? key,
-    required this.title,
-    required this.description,
-    required this.latitude,
-    required this.longitude,
-    required this.imageUrl,
-    required this.sourceTitle,
-    required this.sourceLink,
-  }) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text(
-          '詳細',
-          style: TextStyle(
-            color: Color(0xFF00008b),
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-      ),
-      body: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Text(
-                title,
-                style:
-                    const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-              ),
-            ),
-            if (imageUrl.isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Image.network(
-                  imageUrl,
-                  fit: BoxFit.cover,
-                  height: 200,
-                  width: double.infinity,
-                ),
-              ),
-            Align(
-              alignment: FractionalOffset.centerRight,
-              child: Text(
-                sourceTitle,
-                style: TextStyle(
-                  color: Colors.grey,
-                  fontSize: 10.0,
-                ),
-              ),
-            ),
-            Align(
-              alignment: FractionalOffset.centerRight,
-              child: Text(
-                sourceLink,
-                style: TextStyle(
-                  fontSize: 10.0,
-                  color: Colors.grey,
-                ),
-              ),
-            ),
-            SizedBox(
-              height: 200,
-              child: GoogleMap(
-                initialCameraPosition: CameraPosition(
-                  target: LatLng(latitude, longitude),
-                  zoom: 15,
-                ),
-                markers: {
-                  Marker(
-                    markerId: const MarkerId('spot_location'),
-                    position: LatLng(latitude, longitude),
-                  ),
-                },
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Text(
-                description,
-                style: const TextStyle(fontSize: 16),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
+import 'anime_list_detail.dart';
 
 class SpotTestScreen extends StatefulWidget {
   const SpotTestScreen({Key? key}) : super(key: key);
@@ -182,6 +80,44 @@ class _SpotTestScreenState extends State<SpotTestScreen> {
     });
   }
 
+  void _navigateToDetails(BuildContext context, String locationId) async {
+    DocumentSnapshot locationSnapshot = await FirebaseFirestore.instance
+        .collection('locations')
+        .doc(locationId)
+        .get();
+
+    if (locationSnapshot.exists) {
+      Map<String, dynamic> locationData =
+          locationSnapshot.data() as Map<String, dynamic>;
+
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => SpotDetailScreen(
+            title: locationData['title'] ?? '',
+            imageUrl: locationData['imageUrl'] ?? '',
+            description: locationData['description'] ?? '',
+            latitude: locationData['latitude'] as double? ?? 0.0,
+            longitude: locationData['longitude'] as double? ?? 0.0,
+            sourceLink: locationData['sourceLink'] as String? ?? '',
+            sourceTitle: locationData['sourceTitle'] as String? ?? '',
+            url: locationData['url'] as String? ?? '',
+            subMedia: (locationData['subMedia'] as List?)
+                    ?.where((item) => item is Map<String, dynamic>)
+                    .cast<Map<String, dynamic>>()
+                    .toList() ??
+                [],
+            locationId: locationId,
+          ),
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Location details not found.')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -227,63 +163,19 @@ class _SpotTestScreenState extends State<SpotTestScreen> {
               String locationId = data['locationId'] ?? '';
               bool isCorrect = data['isCorrect'] ?? false;
 
-              return FutureBuilder<DocumentSnapshot>(
-                future: FirebaseFirestore.instance
-                    .collection('locations')
-                    .doc(locationId)
-                    .get(),
-                builder: (BuildContext context,
-                    AsyncSnapshot<DocumentSnapshot> locationSnapshot) {
-                  if (locationSnapshot.connectionState ==
-                      ConnectionState.done) {
-                    if (locationSnapshot.hasError) {
-                      return ListTile(
-                          title: Text('Error: ${locationSnapshot.error}'));
-                    }
-
-                    if (locationSnapshot.hasData &&
-                        locationSnapshot.data!.exists) {
-                      Map<String, dynamic> locationData =
-                          locationSnapshot.data!.data() as Map<String, dynamic>;
-                      String title = locationData['title'] ?? '';
-                      String description = locationData['description'] ?? '';
-                      double latitude = locationData['latitude'] ?? 0.0;
-                      double longitude = locationData['longitude'] ?? 0.0;
-                      String imageUrl = locationData['imageUrl'] ?? '';
-                      String sourceTitle = locationData['sourceTitle'] ?? '';
-                      String sourceLink = locationData['sourceLink'] ?? '';
-
-                      return ListTile(
-                        title: Text(title),
-                        subtitle: Text(
-                          description,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        trailing: Icon(
-                          isCorrect ? Icons.check_circle : Icons.cancel,
-                          color: isCorrect ? Colors.green : Colors.red,
-                        ),
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => SpotDetailScreen(
-                                title: title,
-                                description: description,
-                                latitude: latitude,
-                                longitude: longitude,
-                                imageUrl: imageUrl,
-                                sourceTitle: sourceTitle,
-                                sourceLink: sourceLink,
-                              ),
-                            ),
-                          );
-                        },
-                      );
-                    }
-                  }
-                  return ListTile(title: Text('Loading...'));
+              return ListTile(
+                title: Text(data['title'] ?? 'タイトルなし'),
+                subtitle: Text(
+                  data['description'] ?? 'サブタイトルなし',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                trailing: Icon(
+                  isCorrect ? Icons.check_circle : Icons.cancel,
+                  color: isCorrect ? Colors.green : Colors.red,
+                ),
+                onTap: () {
+                  _navigateToDetails(context, locationId);
                 },
               );
             }).toList(),
