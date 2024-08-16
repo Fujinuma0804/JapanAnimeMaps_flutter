@@ -7,7 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:image/image.dart' as img;
 import 'package:image_picker/image_picker.dart';
 
-import 'customer_anime_history.dart';
+import 'customer_anime_history_en.dart';
 
 class AnimeRequestCustomerFormEn extends StatefulWidget {
   @override
@@ -182,7 +182,7 @@ class _AnimeRequestCustomerFormEnState
               Navigator.push(
                   context,
                   MaterialPageRoute(
-                      builder: (context) => CustomerRequestHistory()));
+                      builder: (context) => CustomerRequestHistoryEn()));
             },
           ),
         ],

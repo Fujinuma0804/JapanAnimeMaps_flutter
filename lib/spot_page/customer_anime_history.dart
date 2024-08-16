@@ -65,6 +65,7 @@ class _CustomerRequestHistoryState extends State<CustomerRequestHistory> {
                           : Text('未入力'),
                       title: Text(data['animeName'] ?? '未入力'),
                       subtitle: Text(data['location'] ?? '未入力'),
+                      trailing: Text(data['status'] ?? 'エラー'),
                       onTap: () {
                         Navigator.push(
                           context,
@@ -112,8 +113,11 @@ class DetailScreen extends StatelessWidget {
                 ),
               ),
               Text(
-                  'リクエスト日時: ${data['timestamp'] != null ? (data['timestamp'] as Timestamp).toDate().toString() : '未入力'}'),
+                'ステータス: ${data['status'] ?? 'エラー'}',
+              ),
               SizedBox(height: 8),
+              Text(
+                  'リクエスト日時: ${data['timestamp'] != null ? (data['timestamp'] as Timestamp).toDate().toString() : '未入力'}'),
               Text('場所: ${data['location'] ?? '未入力'}'),
               Text('シーン: ${data['scene'] ?? '未入力'}'),
               SizedBox(height: 8),

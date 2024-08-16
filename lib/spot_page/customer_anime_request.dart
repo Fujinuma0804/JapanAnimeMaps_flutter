@@ -106,6 +106,7 @@ class _AnimeRequestCustomerFormState extends State<AnimeRequestCustomerForm> {
           'animeImageUrl': animeImageUrl,
           'userImageUrl': userImageUrl,
           'timestamp': FieldValue.serverTimestamp(),
+          'status': 'request',
         });
 
         _clearForm();
