@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:translator/translator.dart';
 
 import 'anime_list_detail.dart';
 
@@ -17,6 +18,7 @@ class _SpotTestEnScreenState extends State<SpotTestEnScreen> {
   late Stream<QuerySnapshot> _checkInsStream;
   bool _sortByTimestamp = true;
   int _correctCount = 0;
+  final translator = GoogleTranslator();
 
   @override
   void initState() {
@@ -119,6 +121,16 @@ class _SpotTestEnScreenState extends State<SpotTestEnScreen> {
     }
   }
 
+  Future<String> translateToEnglish(String text) async {
+    try {
+      var translation = await translator.translate(text, to: 'en');
+      return translation.text;
+    } catch (e) {
+      print('Translation error: $e');
+      return text; // エラーが発生した場合、元のテキストを返す
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -164,19 +176,38 @@ class _SpotTestEnScreenState extends State<SpotTestEnScreen> {
               String locationId = data['locationId'] ?? '';
               bool isCorrect = data['isCorrect'] ?? false;
 
-              return ListTile(
-                title: Text(data['title'] ?? 'No Title'),
-                subtitle: Text(
-                  data['description'] ?? 'No Description',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                trailing: Icon(
-                  isCorrect ? Icons.check_circle : Icons.cancel,
-                  color: isCorrect ? Colors.green : Colors.red,
-                ),
-                onTap: () {
-                  _navigateToDetails(context, locationId);
+              return FutureBuilder<List<String>>(
+                future: Future.wait([
+                  translateToEnglish(data['title'] ?? 'No Title'),
+                  translateToEnglish(data['description'] ?? 'No Description'),
+                ]),
+                builder:
+                    (context, AsyncSnapshot<List<String>> translationSnapshot) {
+                  if (translationSnapshot.connectionState ==
+                      ConnectionState.waiting) {
+                    return ListTile(title: Text('Translating...'));
+                  }
+
+                  String translatedTitle =
+                      translationSnapshot.data?[0] ?? 'No Title';
+                  String translatedDescription =
+                      translationSnapshot.data?[1] ?? 'No Description';
+
+                  return ListTile(
+                    title: Text(translatedTitle),
+                    subtitle: Text(
+                      translatedDescription,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    trailing: Icon(
+                      isCorrect ? Icons.check_circle : Icons.cancel,
+                      color: isCorrect ? Colors.green : Colors.red,
+                    ),
+                    onTap: () {
+                      _navigateToDetails(context, locationId);
+                    },
+                  );
                 },
               );
             }).toList(),
