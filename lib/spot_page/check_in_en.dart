@@ -3,7 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:translator/translator.dart';
 
-import 'anime_list_detail.dart';
+import 'anime_list_detail_en.dart';
 
 class SpotTestEnScreen extends StatefulWidget {
   const SpotTestEnScreen({Key? key}) : super(key: key);
@@ -92,18 +92,25 @@ class _SpotTestEnScreenState extends State<SpotTestEnScreen> {
       Map<String, dynamic> locationData =
           locationSnapshot.data() as Map<String, dynamic>;
 
+      // Translate the necessary fields
+      String translatedTitle =
+          await translateToEnglish(locationData['title'] ?? 'No Title');
+      String translatedDescription = await translateToEnglish(
+          locationData['description'] ?? 'No Description');
+      String translatedSourceTitle = await translateToEnglish(
+          locationData['sourceTitle'] ?? 'No Source Title');
+
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) => SpotDetailScreen(
-            title: locationData['title'] ?? 'No Title',
+          builder: (context) => SpotDetailEnScreen(
+            title: translatedTitle,
             imageUrl: locationData['imageUrl'] ?? '',
-            description: locationData['description'] ?? 'No Description',
+            description: translatedDescription,
             latitude: locationData['latitude'] as double? ?? 0.0,
             longitude: locationData['longitude'] as double? ?? 0.0,
             sourceLink: locationData['sourceLink'] as String? ?? '',
-            sourceTitle:
-                locationData['sourceTitle'] as String? ?? 'No Source Title',
+            sourceTitle: translatedSourceTitle,
             url: locationData['url'] as String? ?? '',
             subMedia: (locationData['subMedia'] as List?)
                     ?.where((item) => item is Map<String, dynamic>)

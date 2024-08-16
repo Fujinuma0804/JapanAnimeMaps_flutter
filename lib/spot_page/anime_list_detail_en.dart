@@ -106,7 +106,7 @@ class AnimeDetailsEnPage extends StatelessWidget {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => SpotDetailScreen(
+                        builder: (context) => SpotDetailEnScreen(
                           title: title,
                           imageUrl: imageUrl,
                           description: description,
@@ -176,11 +176,11 @@ class AnimeDetailsEnPage extends StatelessWidget {
   }
 }
 
-class SpotDetailScreen extends StatefulWidget {
+class SpotDetailEnScreen extends StatefulWidget {
   final String title;
   final String description;
-  final double latitude;
-  final double longitude;
+  final double? latitude;
+  final double? longitude;
   final String imageUrl;
   final String sourceTitle;
   final String sourceLink;
@@ -188,12 +188,12 @@ class SpotDetailScreen extends StatefulWidget {
   final List<Map<String, dynamic>> subMedia;
   final String locationId;
 
-  const SpotDetailScreen({
+  const SpotDetailEnScreen({
     Key? key,
     required this.title,
     required this.description,
-    required this.latitude,
-    required this.longitude,
+    this.latitude,
+    this.longitude,
     required this.imageUrl,
     required this.sourceTitle,
     required this.sourceLink,
@@ -203,10 +203,10 @@ class SpotDetailScreen extends StatefulWidget {
   }) : super(key: key);
 
   @override
-  _SpotDetailScreenState createState() => _SpotDetailScreenState();
+  _SpotDetailEnScreenState createState() => _SpotDetailEnScreenState();
 }
 
-class _SpotDetailScreenState extends State<SpotDetailScreen> {
+class _SpotDetailEnScreenState extends State<SpotDetailEnScreen> {
   VideoPlayerController? _videoPlayerController;
   ChewieController? _chewieController;
   bool _isPictureInPicture = false;
@@ -224,6 +224,12 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
   }
 
   Future<void> _openMapOptions(BuildContext context) async {
+    if (widget.latitude == null || widget.longitude == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Location data not available')),
+      );
+      return;
+    }
     final googleMapsUrl =
         "https://www.google.com/maps/search/?api=1&query=${widget.latitude},${widget.longitude}";
     final appleMapsUrl =
@@ -336,6 +342,9 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
       setState(() {});
     } catch (e) {
       print("Error initializing video player: $e");
+      _videoPlayerController?.dispose();
+      _videoPlayerController = null;
+      _chewieController = null;
     }
   }
 
@@ -474,25 +483,29 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
                   else
                     SizedBox(
                       height: 200,
-                      child: GoogleMap(
-                        initialCameraPosition: CameraPosition(
-                          target: LatLng(widget.latitude, widget.longitude),
-                          zoom: 15,
-                        ),
-                        markers: {
-                          Marker(
-                            markerId: const MarkerId('spot_location'),
-                            position: LatLng(widget.latitude, widget.longitude),
-                          ),
-                        },
-                      ),
+                      child: widget.latitude != null && widget.longitude != null
+                          ? GoogleMap(
+                              initialCameraPosition: CameraPosition(
+                                target:
+                                    LatLng(widget.latitude!, widget.longitude!),
+                                zoom: 15,
+                              ),
+                              markers: {
+                                Marker(
+                                  markerId: const MarkerId('spot_location'),
+                                  position: LatLng(
+                                      widget.latitude!, widget.longitude!),
+                                ),
+                              },
+                            )
+                          : Center(child: Text('Location data not available')),
                     ),
                   Center(
                     child: Padding(
                       padding: const EdgeInsets.all(16.0),
                       child: ElevatedButton(
                         onPressed: () => _openMapOptions(context),
-                        child: Text('ここへ行く'),
+                        child: Text('Go To here'),
                         style: ElevatedButton.styleFrom(
                           foregroundColor: Colors.white,
                           backgroundColor: Color(0xFF00008b),
