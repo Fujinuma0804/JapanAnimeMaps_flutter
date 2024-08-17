@@ -253,7 +253,7 @@ class _FavoriteLocationsPageState extends State<FavoriteLocationsPage> {
                                 Text(
                                   location['description'] ?? 'Not Description',
                                   style: TextStyle(fontSize: 14),
-                                  maxLines: 2,
+                                  maxLines: 4,
                                   overflow: TextOverflow.ellipsis,
                                 ),
                               ],
