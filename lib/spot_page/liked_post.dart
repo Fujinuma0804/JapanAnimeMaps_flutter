@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -19,7 +20,7 @@ class _FavoriteLocationsPageState extends State<FavoriteLocationsPage> {
     try {
       User? user = auth.currentUser;
       if (user == null) {
-        throw 'No user is logged in';
+        throw 'ユーザーがログインしていません';
       }
       String userID = user.uid;
       print('User ID: $userID');
@@ -43,22 +44,18 @@ class _FavoriteLocationsPageState extends State<FavoriteLocationsPage> {
               locationDoc.data() as Map<String, dynamic>;
           locationData['isFavorite'] = true;
           locationData['id'] = locationId;
-          if (locationData.containsKey('subMedia')) {
-            locationData['subMedia'] =
-                (locationData['subMedia'] as List<dynamic>?)
-                        ?.map((item) => item as Map<String, dynamic>)
-                        .toList() ??
-                    [];
-          } else {
-            locationData['subMedia'] = [];
-          }
+          locationData['subMedia'] =
+              (locationData['subMedia'] as List<dynamic>?)
+                      ?.map((item) => item as Map<String, dynamic>)
+                      .toList() ??
+                  [];
           favoriteLocations.add(locationData);
         } else {
           print("Location ID $locationId does not exist.");
         }
       }
     } catch (e) {
-      print("Error fetching favorite locations: $e");
+      print("お気に入りの場所の取得中にエラーが発生しました: $e");
     }
     return favoriteLocations;
   }
@@ -68,7 +65,7 @@ class _FavoriteLocationsPageState extends State<FavoriteLocationsPage> {
     try {
       User? user = auth.currentUser;
       if (user == null) {
-        throw 'No user is logged in';
+        throw 'ユーザーがログインしていません';
       }
       String userID = user.uid;
 
@@ -90,7 +87,8 @@ class _FavoriteLocationsPageState extends State<FavoriteLocationsPage> {
           String title = locationData['title'] ?? '';
           String description = locationData['description'] ?? '';
 
-          if (title.contains(query) || description.contains(query)) {
+          if (title.toLowerCase().contains(query.toLowerCase()) ||
+              description.toLowerCase().contains(query.toLowerCase())) {
             locationData['isFavorite'] = true;
             locationData['id'] = locationId;
             locationData['subMedia'] =
@@ -103,7 +101,7 @@ class _FavoriteLocationsPageState extends State<FavoriteLocationsPage> {
         }
       }
     } catch (e) {
-      print("Error searching favorites: $e");
+      print("お気に入りの検索中にエラーが発生しました: $e");
     }
     return searchResults;
   }
@@ -112,7 +110,7 @@ class _FavoriteLocationsPageState extends State<FavoriteLocationsPage> {
     try {
       User? user = auth.currentUser;
       if (user == null) {
-        throw 'No user is logged in';
+        throw 'ユーザーがログインしていません';
       }
       String userID = user.uid;
 
@@ -132,9 +130,11 @@ class _FavoriteLocationsPageState extends State<FavoriteLocationsPage> {
         print('Added to favorites');
       }
 
-      setState(() {});
+      if (mounted) {
+        setState(() {});
+      }
     } catch (e) {
-      print("Error toggling favorite: $e");
+      print("お気に入りの切り替え中にエラーが発生しました: $e");
     }
   }
 
@@ -175,7 +175,7 @@ class _FavoriteLocationsPageState extends State<FavoriteLocationsPage> {
           } else if (snapshot.hasError) {
             return Center(child: Text('Error: ${snapshot.error}'));
           } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            return Center(child: Text('Favorite spot not found.'));
+            return Center(child: Text('お気に入りのスポットが見つかりません。'));
           } else {
             final favoriteLocations = snapshot.data!;
             return Padding(
@@ -185,29 +185,41 @@ class _FavoriteLocationsPageState extends State<FavoriteLocationsPage> {
                   crossAxisCount: 2,
                   crossAxisSpacing: 8.0,
                   mainAxisSpacing: 8.0,
-                  childAspectRatio: 0.75,
+                  childAspectRatio: 0.7,
                 ),
                 itemCount: favoriteLocations.length,
                 itemBuilder: (context, index) {
                   final location = favoriteLocations[index];
                   return GestureDetector(
                     onTap: () => _navigateToDetails(context, location),
-                    child: GridTile(
+                    child: Card(
+                      elevation: 2,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Stack(
                             alignment: Alignment.topRight,
                             children: [
-                              Expanded(
-                                child: ClipRRect(
-                                  borderRadius:
-                                      BorderRadius.circular(9.0), // 角を丸くする半径を指定
-                                  child: Image.network(
-                                    location['imageUrl'] ?? '',
-                                    width: 200,
-                                    height: 100,
-                                    fit: BoxFit.cover,
+                              ClipRRect(
+                                borderRadius: BorderRadius.vertical(
+                                    top: Radius.circular(10)),
+                                child: CachedNetworkImage(
+                                  imageUrl: location['imageUrl'] ?? '',
+                                  width: double.infinity,
+                                  height: 120,
+                                  fit: BoxFit.cover,
+                                  placeholder: (context, url) => Container(
+                                    color: Colors.grey[300],
+                                    child: Center(
+                                        child: CircularProgressIndicator()),
+                                  ),
+                                  errorWidget: (context, url, error) =>
+                                      Container(
+                                    color: Colors.grey[300],
+                                    child: Icon(Icons.error),
                                   ),
                                 ),
                               ),
@@ -335,7 +347,7 @@ class LocationSearchDelegate extends SearchDelegate {
                 crossAxisCount: 2,
                 crossAxisSpacing: 8.0,
                 mainAxisSpacing: 8.0,
-                childAspectRatio: 0.75,
+                childAspectRatio: 0.7,
               ),
               itemCount: searchResults.length,
               itemBuilder: (context, index) {
@@ -365,21 +377,33 @@ class LocationSearchDelegate extends SearchDelegate {
                       ),
                     );
                   },
-                  child: GridTile(
+                  child: Card(
+                    elevation: 2,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Stack(
                           alignment: Alignment.topRight,
                           children: [
-                            Expanded(
-                              child: ClipRRect(
-                                borderRadius: BorderRadius.circular(9.0),
-                                child: Image.network(
-                                  location['imageUrl'] ?? '',
-                                  width: 200,
-                                  height: 100,
-                                  fit: BoxFit.cover,
+                            ClipRRect(
+                              borderRadius: BorderRadius.vertical(
+                                  top: Radius.circular(10)),
+                              child: CachedNetworkImage(
+                                imageUrl: location['imageUrl'] ?? '',
+                                width: double.infinity,
+                                height: 120,
+                                fit: BoxFit.cover,
+                                placeholder: (context, url) => Container(
+                                  color: Colors.grey[300],
+                                  child: Center(
+                                      child: CircularProgressIndicator()),
+                                ),
+                                errorWidget: (context, url, error) => Container(
+                                  color: Colors.grey[300],
+                                  child: Icon(Icons.error),
                                 ),
                               ),
                             ),

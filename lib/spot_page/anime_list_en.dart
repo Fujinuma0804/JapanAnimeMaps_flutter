@@ -6,7 +6,7 @@ import 'package:translator/translator.dart';
 
 import 'anime_list_detail_en.dart';
 import 'customer_anime_request_en.dart';
-import 'liked_post.dart';
+import 'liked_post_en.dart';
 
 class AnimeListEnPage extends StatefulWidget {
   @override
@@ -109,7 +109,7 @@ class _AnimeListEnPageState extends State<AnimeListEnPage> {
               onPressed: () => Navigator.push(
                 context,
                 MaterialPageRoute(
-                    builder: (context) => FavoriteLocationsPage()),
+                    builder: (context) => FavoriteLocationsEnPage()),
               ),
               icon: const Icon(Icons.favorite, color: Color(0xFF00008b)),
             ),
