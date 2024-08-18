@@ -911,7 +911,7 @@ class _MapEnScreenState extends State<MapEnScreen> {
                               }
                             },
                           ),
-                          const Text('Another'),
+                          const Text('Detail'),
                         ],
                       ),
                       Column(

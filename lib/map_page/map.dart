@@ -895,7 +895,7 @@ class _MapScreenState extends State<MapScreen> {
                               }
                             },
                           ),
-                          const Text('その他'),
+                          const Text('詳細'),
                         ],
                       ),
                       Column(
