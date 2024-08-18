@@ -75,6 +75,7 @@ dependencies:
   chewie: ^1.8.3
   vibration: ^1.9.0
   google_translate: ^0.0.3
+  geocoding: ^3.0.0
 
 dev_dependencies:
   flutter_test:

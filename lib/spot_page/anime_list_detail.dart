@@ -4,6 +4,7 @@ import 'package:chewie/chewie.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart'; // FirebaseAuthをインポート
 import 'package:flutter/material.dart';
+import 'package:geocoding/geocoding.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:video_player/video_player.dart';
@@ -243,6 +244,34 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
     _checkIfFavorite();
   }
 
+  Future<Map<String, String>> _getAddress() async {
+    try {
+      List<Placemark> placemarks = await placemarkFromCoordinates(
+        widget.latitude,
+        widget.longitude,
+      );
+
+      if (placemarks.isNotEmpty) {
+        Placemark place = placemarks[0];
+        String postalCode = place.postalCode ?? '';
+        String address =
+            '${place.administrativeArea ?? ''} ${place.locality ?? ''} ${place.street ?? ''}';
+
+        return {
+          'postalCode': postalCode,
+          'address': address,
+        };
+      }
+    } catch (e) {
+      print('Error getting address: $e');
+    }
+
+    return {
+      'postalCode': '取得できませんでした',
+      'address': '取得できませんでした',
+    };
+  }
+
   Future<void> _initializeMedia() async {
     if (widget.url.isNotEmpty && widget.url.toLowerCase().endsWith('.mp4')) {
       await _initializeVideoPlayer(widget.url);
@@ -452,6 +481,68 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
                         },
                       ),
                     ),
+                  SizedBox(
+                    height: 10.0,
+                  ),
+                  //以下緯度と経度より郵便番号と住所を取得し表示。
+                  //Simulatorでは取得できませんでしたとなるが、実機ではならない。
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                    child: FutureBuilder<Map<String, String>>(
+                      future: _getAddress(),
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState ==
+                            ConnectionState.waiting) {
+                          return CircularProgressIndicator();
+                        } else if (snapshot.hasError) {
+                          return Text('エラーが発生しました');
+                        } else {
+                          final address = snapshot.data!;
+                          return SizedBox(
+                            width: double.infinity,
+                            child: Card(
+                              color: Colors.blue,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Padding(
+                                padding: const EdgeInsets.all(16.0),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(
+                                      widget.title,
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    SizedBox(height: 8),
+                                    Text(
+                                      '〒${address['postalCode']!}',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                    Text(
+                                      address['address']!,
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          );
+                        }
+                      },
+                    ),
+                  ),
                   Center(
                     child: Padding(
                       padding: const EdgeInsets.all(16.0),

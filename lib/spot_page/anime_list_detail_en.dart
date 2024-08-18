@@ -4,6 +4,7 @@ import 'package:chewie/chewie.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:geocoding/geocoding.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:translator/translator.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -210,8 +211,8 @@ class _SpotDetailEnScreenState extends State<SpotDetailEnScreen> {
   VideoPlayerController? _videoPlayerController;
   ChewieController? _chewieController;
   bool _isPictureInPicture = false;
-  double _pipWidth = 200.0; // PiPのデフォルト幅
-  Offset _pipPosition = Offset(16, 16); // PiPのデフォルト位置
+  double _pipWidth = 200.0;
+  Offset _pipPosition = Offset(16, 16);
   bool _isFavorite = false;
   final translator = GoogleTranslator();
 
@@ -223,6 +224,34 @@ class _SpotDetailEnScreenState extends State<SpotDetailEnScreen> {
       print('Translation error: $e');
       return text;
     }
+  }
+
+  Future<Map<String, String>> _getAddress() async {
+    try {
+      List<Placemark> placemarks = await placemarkFromCoordinates(
+        widget.latitude!,
+        widget.longitude!,
+      );
+
+      if (placemarks.isNotEmpty) {
+        Placemark place = placemarks[0];
+        String postalCode = place.postalCode ?? '';
+        String address =
+            '${place.administrativeArea ?? ''} ${place.locality ?? ''} ${place.street ?? ''}';
+
+        return {
+          'postalCode': postalCode,
+          'address': address,
+        };
+      }
+    } catch (e) {
+      print('Error getting address: $e');
+    }
+
+    return {
+      'postalCode': 'Not available',
+      'address': 'Not available',
+    };
   }
 
   Future<void> _openMapOptions(BuildContext context) async {
@@ -502,6 +531,83 @@ class _SpotDetailEnScreenState extends State<SpotDetailEnScreen> {
                             )
                           : Center(child: Text('Location data not available')),
                     ),
+                  SizedBox(
+                    height: 10.0,
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                    child: FutureBuilder<Map<String, String>>(
+                      future: _getAddress(),
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState ==
+                            ConnectionState.waiting) {
+                          return CircularProgressIndicator();
+                        } else if (snapshot.hasError) {
+                          return Text('An error occurred');
+                        } else {
+                          final address = snapshot.data!;
+                          return FutureBuilder<String>(
+                            future: translateToEnglish(
+                                '${address['postalCode']!}\n${address['address']!}'),
+                            builder: (context, translationSnapshot) {
+                              if (translationSnapshot.connectionState ==
+                                  ConnectionState.waiting) {
+                                return CircularProgressIndicator();
+                              }
+                              final translatedAddress =
+                                  translationSnapshot.data ?? '';
+                              final addressParts =
+                                  translatedAddress.split('\n');
+                              return SizedBox(
+                                width: double.infinity,
+                                child: Card(
+                                  color: Colors.blue,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(16.0),
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Text(
+                                          widget.title,
+                                          style: TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 18,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                        SizedBox(height: 8),
+                                        Text(
+                                          addressParts[0], // Postal code
+                                          style: TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 14,
+                                          ),
+                                        ),
+                                        Text(
+                                          addressParts.length > 1
+                                              ? addressParts[1]
+                                              : 'Address not available',
+                                          style: TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 14,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              );
+                            },
+                          );
+                        }
+                      },
+                    ),
+                  ),
                   Center(
                     child: Padding(
                       padding: const EdgeInsets.all(16.0),
