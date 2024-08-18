@@ -27,6 +27,36 @@ class _CustomerRequestHistoryState extends State<CustomerRequestHistory> {
     }
   }
 
+  String getStatusText(String? status) {
+    switch (status) {
+      case 'request':
+        return 'リクエスト';
+      case 'Processing':
+        return '処理中';
+      case 'completion':
+        return '完了';
+      case 'Cancel':
+        return 'キャンセル';
+      default:
+        return 'エラー';
+    }
+  }
+
+  Color getStatusColor(String? status) {
+    switch (status) {
+      case 'request':
+        return Colors.blue;
+      case 'Processing':
+        return Colors.orange;
+      case 'completion':
+        return Colors.green;
+      case 'Cancel':
+        return Colors.red;
+      default:
+        return Colors.grey;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -61,11 +91,28 @@ class _CustomerRequestHistoryState extends State<CustomerRequestHistory> {
                     var data = snapshot.data!.docs[index];
                     return ListTile(
                       leading: data['animeImageUrl'] != null
-                          ? Image.network(data['animeImageUrl'])
-                          : Text('未入力'),
+                          ? SizedBox(
+                              width: 50,
+                              height: 50,
+                              child: Image.network(
+                                data['animeImageUrl'],
+                                fit: BoxFit.cover,
+                              ),
+                            )
+                          : SizedBox(
+                              width: 50,
+                              height: 50,
+                              child: Center(child: Text('未入力')),
+                            ),
                       title: Text(data['animeName'] ?? '未入力'),
                       subtitle: Text(data['location'] ?? '未入力'),
-                      trailing: Text(data['status'] ?? 'エラー'),
+                      trailing: Text(
+                        getStatusText(data['status']),
+                        style: TextStyle(
+                          color: getStatusColor(data['status']),
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                       onTap: () {
                         Navigator.push(
                           context,
@@ -87,6 +134,36 @@ class DetailScreen extends StatelessWidget {
   final QueryDocumentSnapshot data;
 
   DetailScreen({required this.data});
+
+  String getStatusText(String? status) {
+    switch (status) {
+      case 'request':
+        return 'リクエスト';
+      case 'Processing':
+        return '処理中';
+      case 'completion':
+        return '完了';
+      case 'Cancel':
+        return 'キャンセル';
+      default:
+        return 'エラー';
+    }
+  }
+
+  Color getStatusColor(String? status) {
+    switch (status) {
+      case 'request':
+        return Colors.blue;
+      case 'Processing':
+        return Colors.orange;
+      case 'completion':
+        return Colors.green;
+      case 'Cancel':
+        return Colors.red;
+      default:
+        return Colors.grey;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -113,7 +190,11 @@ class DetailScreen extends StatelessWidget {
                 ),
               ),
               Text(
-                'ステータス: ${data['status'] ?? 'エラー'}',
+                'ステータス: ${getStatusText(data['status'])}',
+                style: TextStyle(
+                  color: getStatusColor(data['status']),
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               SizedBox(height: 8),
               Text(

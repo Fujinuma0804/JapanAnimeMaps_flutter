@@ -1,7 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:translator/translator.dart';
 
 class CustomerRequestHistoryEn extends StatefulWidget {
   @override
@@ -12,7 +11,6 @@ class CustomerRequestHistoryEn extends StatefulWidget {
 class _CustomerRequestHistoryEnState extends State<CustomerRequestHistoryEn> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   User? user;
-  final translator = GoogleTranslator();
 
   @override
   void initState() {
@@ -30,9 +28,34 @@ class _CustomerRequestHistoryEnState extends State<CustomerRequestHistoryEn> {
     }
   }
 
-  Future<String> translateText(String text) async {
-    var translation = await translator.translate(text, to: 'en');
-    return translation.text;
+  String getStatusText(String? status) {
+    switch (status) {
+      case 'request':
+        return 'Request';
+      case 'Processing':
+        return 'Processing';
+      case 'completion':
+        return 'Completion';
+      case 'Cancel':
+        return 'Cancel';
+      default:
+        return 'Error';
+    }
+  }
+
+  Color getStatusColor(String? status) {
+    switch (status) {
+      case 'request':
+        return Colors.blue;
+      case 'Processing':
+        return Colors.orange;
+      case 'completion':
+        return Colors.green;
+      case 'Cancel':
+        return Colors.red;
+      default:
+        return Colors.grey;
+    }
   }
 
   @override
@@ -40,7 +63,7 @@ class _CustomerRequestHistoryEnState extends State<CustomerRequestHistoryEn> {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          'Request history',
+          'Request History',
           style: TextStyle(
             color: Color(0xFF00008b),
             fontWeight: FontWeight.bold,
@@ -48,7 +71,7 @@ class _CustomerRequestHistoryEnState extends State<CustomerRequestHistoryEn> {
         ),
       ),
       body: user == null
-          ? Center(child: Text('User not logged in'))
+          ? Center(child: Text('Not Login Now'))
           : StreamBuilder<QuerySnapshot>(
               stream: FirebaseFirestore.instance
                   .collection('customer_animerequest')
@@ -67,28 +90,36 @@ class _CustomerRequestHistoryEnState extends State<CustomerRequestHistoryEn> {
                   itemCount: snapshot.data!.docs.length,
                   itemBuilder: (context, index) {
                     var data = snapshot.data!.docs[index];
-                    return FutureBuilder(
-                      future: translateText(data['animeName'] ?? 'No Data'),
-                      builder:
-                          (context, AsyncSnapshot<String> translatedSnapshot) {
-                        if (translatedSnapshot.connectionState ==
-                            ConnectionState.waiting) {
-                          return ListTile(title: Text('Translating...'));
-                        }
-                        return ListTile(
-                          leading: data['animeImageUrl'] != null
-                              ? Image.network(data['animeImageUrl'])
-                              : Text('No Image'),
-                          title: Text(translatedSnapshot.data ?? 'No Data'),
-                          subtitle: Text(data['location'] ?? 'No Data'),
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => DetailScreen(data: data),
+                    return ListTile(
+                      leading: data['animeImageUrl'] != null
+                          ? SizedBox(
+                              width: 50,
+                              height: 50,
+                              child: Image.network(
+                                data['animeImageUrl'],
+                                fit: BoxFit.cover,
                               ),
-                            );
-                          },
+                            )
+                          : SizedBox(
+                              width: 50,
+                              height: 50,
+                              child: Center(child: Text('No Data')),
+                            ),
+                      title: Text(data['animeName'] ?? 'No Data'),
+                      subtitle: Text(data['location'] ?? 'No Data'),
+                      trailing: Text(
+                        getStatusText(data['status']),
+                        style: TextStyle(
+                          color: getStatusColor(data['status']),
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => DetailScreen(data: data),
+                          ),
                         );
                       },
                     );
@@ -102,33 +133,49 @@ class _CustomerRequestHistoryEnState extends State<CustomerRequestHistoryEn> {
 
 class DetailScreen extends StatelessWidget {
   final QueryDocumentSnapshot data;
-  final translator = GoogleTranslator();
 
   DetailScreen({required this.data});
 
-  Future<String> translateText(String text) async {
-    var translation = await translator.translate(text, to: 'en');
-    return translation.text;
+  String getStatusText(String? status) {
+    switch (status) {
+      case 'request':
+        return 'Request';
+      case 'Processing':
+        return 'Processing';
+      case 'completion':
+        return 'Completion';
+      case 'Cancel':
+        return 'Cancel';
+      default:
+        return 'Error';
+    }
+  }
+
+  Color getStatusColor(String? status) {
+    switch (status) {
+      case 'request':
+        return Colors.blue;
+      case 'Processing':
+        return Colors.orange;
+      case 'completion':
+        return Colors.green;
+      case 'Cancel':
+        return Colors.red;
+      default:
+        return Colors.grey;
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: FutureBuilder(
-          future: translateText(data['animeName'] ?? 'No Data'),
-          builder: (context, AsyncSnapshot<String> translatedSnapshot) {
-            if (translatedSnapshot.connectionState == ConnectionState.waiting) {
-              return Text('Translating...');
-            }
-            return Text(
-              translatedSnapshot.data ?? 'No Data',
-              style: TextStyle(
-                color: Color(0xFF00008b),
-                fontWeight: FontWeight.bold,
-              ),
-            );
-          },
+        title: Text(
+          data['animeName'] ?? 'No Data',
+          style: TextStyle(
+            color: Color(0xFF00008b),
+            fontWeight: FontWeight.bold,
+          ),
         ),
       ),
       body: Padding(
@@ -137,25 +184,22 @@ class DetailScreen extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              FutureBuilder(
-                future: translateText(
-                    'Anime Name: ${data['animeName'] ?? 'No Data'}'),
-                builder: (context, AsyncSnapshot<String> translatedSnapshot) {
-                  if (translatedSnapshot.connectionState ==
-                      ConnectionState.waiting) {
-                    return Text('Translating...');
-                  }
-                  return Text(
-                    translatedSnapshot.data ?? 'No Data',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                    ),
-                  );
-                },
+              Text(
+                'Anime Name: ${data['animeName'] ?? 'No Data'}',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               Text(
-                  'Request date and time: ${data['timestamp'] != null ? (data['timestamp'] as Timestamp).toDate().toString() : 'No Data'}'),
+                'Status: ${getStatusText(data['status'])}',
+                style: TextStyle(
+                  color: getStatusColor(data['status']),
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
               SizedBox(height: 8),
+              Text(
+                  'Request Date: ${data['timestamp'] != null ? (data['timestamp'] as Timestamp).toDate().toString() : 'No Data'}'),
               Text('Place: ${data['location'] ?? 'No Data'}'),
               Text('Scene: ${data['scene'] ?? 'No Data'}'),
               SizedBox(height: 8),
