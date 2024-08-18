@@ -76,6 +76,7 @@ dependencies:
   vibration: ^1.9.0
   google_translate: ^0.0.3
   geocoding: ^3.0.0
+  tutorial_coach_mark: ^1.2.11
 
 dev_dependencies:
   flutter_test:

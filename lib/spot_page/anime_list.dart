@@ -2,6 +2,8 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:parts/spot_page/check_in.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:tutorial_coach_mark/tutorial_coach_mark.dart';
 
 import 'anime_list_detail.dart';
 import 'customer_anime_request.dart';
@@ -19,10 +21,121 @@ class _AnimeListPageState extends State<AnimeListPage> {
   bool _isSearching = false;
   List<Map<String, dynamic>> _allAnimeData = [];
 
+  late TutorialCoachMark tutorialCoachMark;
+  List<TargetFocus> targets = [];
+
+  GlobalKey searchKey = GlobalKey();
+  GlobalKey addKey = GlobalKey();
+  GlobalKey favoriteKey = GlobalKey();
+  GlobalKey checkInKey = GlobalKey();
+  GlobalKey firstItemKey = GlobalKey();
+
   @override
   void initState() {
     super.initState();
     _fetchAnimeData();
+    _initTargets();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _showTutorial());
+  }
+
+  void _initTargets() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      targets = [
+        TargetFocus(
+          identify: "Search Button",
+          keyTarget: searchKey,
+          contents: [
+            TargetContent(
+              align: ContentAlign.bottom,
+              child: Text(
+                "アニメを検索するにはここから！",
+                style: TextStyle(color: Colors.white),
+              ),
+            ),
+          ],
+        ),
+        TargetFocus(
+          identify: "Add Button",
+          keyTarget: addKey,
+          contents: [
+            TargetContent(
+              align: ContentAlign.bottom,
+              child: Text(
+                "新しいアニメをリクエストするにはここから！",
+                style: TextStyle(color: Colors.white),
+              ),
+            ),
+          ],
+        ),
+        TargetFocus(
+          identify: "Favorite Button",
+          keyTarget: favoriteKey,
+          contents: [
+            TargetContent(
+              align: ContentAlign.bottom,
+              child: Text(
+                "お気に入りのスポットを見るにはここから！",
+                style: TextStyle(color: Colors.white),
+              ),
+            ),
+          ],
+        ),
+        TargetFocus(
+          identify: "Check In Button",
+          keyTarget: checkInKey,
+          contents: [
+            TargetContent(
+              align: ContentAlign.bottom,
+              child: Text(
+                "チェックインしたスポットの確認はここから！",
+                style: TextStyle(color: Colors.white),
+              ),
+            ),
+          ],
+        ),
+        TargetFocus(
+          identify: "First Anime Item",
+          keyTarget: firstItemKey,
+          contents: [
+            TargetContent(
+              align: ContentAlign.bottom,
+              child: Text(
+                "アニメごとのスポットはここから！",
+                style: TextStyle(color: Colors.white),
+              ),
+            ),
+          ],
+        ),
+      ];
+    });
+  }
+
+  Future<void> _showTutorial() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    bool showTutorial = prefs.getBool('showTutorial') ?? true;
+
+    if (showTutorial) {
+      tutorialCoachMark = TutorialCoachMark(
+        targets: targets,
+        colorShadow: Colors.black,
+        textSkip: "スキップ",
+        paddingFocus: 10,
+        opacityShadow: 0.8,
+        onFinish: () {
+          print("チュートリアル完了");
+        },
+        onClickTarget: (target) {
+          print('${target.identify} がクリックされました');
+        },
+        onSkip: () {
+          print("チュートリアルをスキップしました");
+          return false;
+        },
+      );
+
+      tutorialCoachMark.show(context: context);
+      await prefs.setBool('showTutorial', false);
+    }
   }
 
   Future<void> _fetchAnimeData() async {
@@ -64,7 +177,26 @@ class _AnimeListPageState extends State<AnimeListPage> {
         .toList();
 
     return WillPopScope(
-      onWillPop: () async => false,
+      onWillPop: () async {
+        return await showDialog<bool>(
+              context: context,
+              builder: (context) => AlertDialog(
+                title: Text('アプリを終了しますか？'),
+                content: Text('アプリを閉じてもよろしいですか？'),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(false),
+                    child: Text('キャンセル'),
+                  ),
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(true),
+                    child: Text('終了'),
+                  ),
+                ],
+              ),
+            ) ??
+            false;
+      },
       child: Scaffold(
         appBar: AppBar(
           automaticallyImplyLeading: false,
@@ -89,6 +221,7 @@ class _AnimeListPageState extends State<AnimeListPage> {
                 ),
           actions: [
             IconButton(
+              key: checkInKey,
               onPressed: () => Navigator.push(
                 context,
                 MaterialPageRoute(builder: (context) => const SpotTestScreen()),
@@ -96,6 +229,7 @@ class _AnimeListPageState extends State<AnimeListPage> {
               icon: const Icon(Icons.check_circle, color: Color(0xFF00008b)),
             ),
             IconButton(
+              key: favoriteKey,
               onPressed: () => Navigator.push(
                 context,
                 MaterialPageRoute(
@@ -104,6 +238,7 @@ class _AnimeListPageState extends State<AnimeListPage> {
               icon: const Icon(Icons.favorite, color: Color(0xFF00008b)),
             ),
             IconButton(
+              key: addKey,
               icon: Icon(
                 Icons.add,
                 color: Color(0xFF00008b),
@@ -116,6 +251,7 @@ class _AnimeListPageState extends State<AnimeListPage> {
               },
             ),
             IconButton(
+              key: searchKey,
               icon: Icon(
                 _isSearching ? Icons.close : Icons.search,
                 color: Color(0xFF00008b),
@@ -157,7 +293,9 @@ class _AnimeListPageState extends State<AnimeListPage> {
                             final animeName = filteredAnimeData[index]['name'];
                             final imageUrl =
                                 filteredAnimeData[index]['imageUrl'];
+                            final key = index == 0 ? firstItemKey : GlobalKey();
                             return GestureDetector(
+                              key: key, // 各アイテムにキーを設定
                               onTap: () =>
                                   _navigateToDetails(context, animeName),
                               child: AnimeGridItem(

@@ -2,7 +2,9 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:parts/spot_page/check_in_en.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:translator/translator.dart';
+import 'package:tutorial_coach_mark/tutorial_coach_mark.dart';
 
 import 'anime_list_detail_en.dart';
 import 'customer_anime_request_en.dart';
@@ -21,10 +23,121 @@ class _AnimeListEnPageState extends State<AnimeListEnPage> {
   bool _isSearching = false;
   List<Map<String, dynamic>> _allAnimeData = [];
 
+  late TutorialCoachMark tutorialCoachMark;
+  List<TargetFocus> targets = [];
+
+  GlobalKey searchKey = GlobalKey();
+  GlobalKey addKey = GlobalKey();
+  GlobalKey favoriteKey = GlobalKey();
+  GlobalKey checkInKey = GlobalKey();
+  GlobalKey firstItemKey = GlobalKey();
+
   @override
   void initState() {
     super.initState();
     _fetchAnimeData();
+    _initTargets();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _showTutorial());
+  }
+
+  void _initTargets() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      targets = [
+        TargetFocus(
+          identify: "Search Button",
+          keyTarget: searchKey,
+          contents: [
+            TargetContent(
+              align: ContentAlign.bottom,
+              child: Text(
+                "Click here to search for anime!!",
+                style: TextStyle(color: Colors.white),
+              ),
+            ),
+          ],
+        ),
+        TargetFocus(
+          identify: "Add Button",
+          keyTarget: addKey,
+          contents: [
+            TargetContent(
+              align: ContentAlign.bottom,
+              child: Text(
+                "Click here to request new anime!!",
+                style: TextStyle(color: Colors.white),
+              ),
+            ),
+          ],
+        ),
+        TargetFocus(
+          identify: "Favorite Button",
+          keyTarget: favoriteKey,
+          contents: [
+            TargetContent(
+              align: ContentAlign.bottom,
+              child: Text(
+                "Click here to see your favorite spots!!",
+                style: TextStyle(color: Colors.white),
+              ),
+            ),
+          ],
+        ),
+        TargetFocus(
+          identify: "Check In Button",
+          keyTarget: checkInKey,
+          contents: [
+            TargetContent(
+              align: ContentAlign.bottom,
+              child: Text(
+                "Click here to check the spot you checked in to!!",
+                style: TextStyle(color: Colors.white),
+              ),
+            ),
+          ],
+        ),
+        TargetFocus(
+          identify: "First Anime Item",
+          keyTarget: firstItemKey,
+          contents: [
+            TargetContent(
+              align: ContentAlign.bottom,
+              child: Text(
+                "Click here for spots for each anime!!",
+                style: TextStyle(color: Colors.white),
+              ),
+            ),
+          ],
+        ),
+      ];
+    });
+  }
+
+  Future<void> _showTutorial() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    bool showTutorial = prefs.getBool('showTutorial') ?? true;
+
+    if (showTutorial) {
+      tutorialCoachMark = TutorialCoachMark(
+        targets: targets,
+        colorShadow: Colors.black,
+        textSkip: "Skip",
+        paddingFocus: 10,
+        opacityShadow: 0.8,
+        onFinish: () {
+          print("Tutorial completed!!");
+        },
+        onClickTarget: (target) {
+          print('${target.identify} was clicked!!');
+        },
+        onSkip: () {
+          print("I skipped the tutorial!!");
+          return false;
+        },
+      );
+
+      tutorialCoachMark.show(context: context);
+      await prefs.setBool('showTutorial', false);
+    }
   }
 
   Future<void> _fetchAnimeData() async {
@@ -73,7 +186,26 @@ class _AnimeListEnPageState extends State<AnimeListEnPage> {
         .toList();
 
     return WillPopScope(
-      onWillPop: () async => false,
+      onWillPop: () async {
+        return await showDialog(
+              context: context,
+              builder: (context) => AlertDialog(
+                title: Text('Do you want to close the app??'),
+                content: Text('Are you sure you want to close the app??'),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(false),
+                    child: Text('Cancel'),
+                  ),
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(true),
+                    child: Text('Complete'),
+                  ),
+                ],
+              ),
+            ) ??
+            false;
+      },
       child: Scaffold(
         appBar: AppBar(
           automaticallyImplyLeading: false,
@@ -169,13 +301,13 @@ class _AnimeListEnPageState extends State<AnimeListEnPage> {
                                 filteredAnimeData[index]['originalName'];
                             final imageUrl =
                                 filteredAnimeData[index]['imageUrl'];
+                            final key = index == 0 ? firstItemKey : GlobalKey();
                             return GestureDetector(
-                              onTap: () => _navigateToDetails(
-                                  context, originalAnimeName),
+                              key: key, // 各アイテムにキーを設定
+                              onTap: () =>
+                                  _navigateToDetails(context, animeName),
                               child: AnimeGridItem(
-                                animeName: animeName,
-                                imageUrl: imageUrl,
-                              ),
+                                  animeName: animeName, imageUrl: imageUrl),
                             );
                           },
                         ),
