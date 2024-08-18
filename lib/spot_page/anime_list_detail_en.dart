@@ -210,6 +210,8 @@ class _SpotDetailEnScreenState extends State<SpotDetailEnScreen> {
   VideoPlayerController? _videoPlayerController;
   ChewieController? _chewieController;
   bool _isPictureInPicture = false;
+  double _pipWidth = 200.0; // PiPのデフォルト幅
+  Offset _pipPosition = Offset(16, 16); // PiPのデフォルト位置
   bool _isFavorite = false;
   final translator = GoogleTranslator();
 
@@ -551,22 +553,71 @@ class _SpotDetailEnScreenState extends State<SpotDetailEnScreen> {
                 ],
               ),
             ),
-            if (_isPictureInPicture && _chewieController != null)
+            if (_isPictureInPicture &&
+                _chewieController != null &&
+                _videoPlayerController != null)
               Positioned(
-                right: 16,
-                bottom: 16,
+                left: _pipPosition.dx,
+                top: _pipPosition.dy,
                 child: GestureDetector(
-                  onTap: () {
+                  onPanUpdate: (details) {
                     setState(() {
-                      _isPictureInPicture = false;
+                      _pipPosition += details.delta;
                     });
                   },
-                  child: SizedBox(
-                    width: MediaQuery.of(context).size.width * 0.5,
-                    height: MediaQuery.of(context).size.width *
-                        0.8 /
-                        _videoPlayerController!.value.aspectRatio,
-                    child: Chewie(controller: _chewieController!),
+                  child: Stack(
+                    children: [
+                      SizedBox(
+                        width: _pipWidth,
+                        height: _pipWidth /
+                            _videoPlayerController!.value.aspectRatio,
+                        child: Chewie(controller: _chewieController!),
+                      ),
+                      Positioned(
+                        right: 0,
+                        top: 0,
+                        child: Row(
+                          children: [
+                            IconButton(
+                              icon: Icon(Icons.fullscreen, color: Colors.white),
+                              onPressed: () {
+                                setState(() {
+                                  _isPictureInPicture = false;
+                                });
+                              },
+                            ),
+                            IconButton(
+                              icon: Icon(Icons.close, color: Colors.white),
+                              onPressed: () {
+                                setState(() {
+                                  _isPictureInPicture = false;
+                                  _videoPlayerController?.pause();
+                                });
+                              },
+                            ),
+                          ],
+                        ),
+                      ),
+                      Positioned(
+                        right: 0,
+                        bottom: 0,
+                        child: GestureDetector(
+                          onPanUpdate: (details) {
+                            setState(() {
+                              _pipWidth = (_pipWidth - details.delta.dx)
+                                  .clamp(100.0, 300.0);
+                            });
+                          },
+                          child: Container(
+                            width: 20,
+                            height: 20,
+                            color: Colors.transparent,
+                            child: Icon(Icons.drag_handle,
+                                color: Colors.white, size: 20),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
