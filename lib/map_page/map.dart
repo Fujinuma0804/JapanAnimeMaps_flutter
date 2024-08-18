@@ -485,8 +485,8 @@ class _MapScreenState extends State<MapScreen> {
             position,
             imageUrl,
             locationId,
-            280,
-            180,
+            300,
+            200,
             title,
             description,
           );
@@ -517,20 +517,33 @@ class _MapScreenState extends State<MapScreen> {
 
     // 吹き出しの描画（先端を下に移動）
     final Path path = Path();
-    path.moveTo(0, 0);
-    path.lineTo(0, height + 20);
-    path.lineTo((width + 40) / 2 - 10, height + 20);
-    path.lineTo((width + 40) / 2, height + 40);
-    path.lineTo((width + 40) / 2 + 10, height + 20);
-    path.lineTo(width + 40, height + 20);
-    path.lineTo(width + 40, 0);
-    path.close();
+    path.moveTo(0, 0); // 左上の角から開始
+    path.lineTo(0, height + 20); // 左辺
+    path.lineTo((width + 40) / 2 - 10, height + 20); // 下辺の左半分
+    path.lineTo((width + 40) / 2, height + 40); // 吹き出しの先端（下向き）
+    path.lineTo((width + 40) / 2 + 10, height + 20); // 吹き出しの先端から下辺の右半分
+    path.lineTo(width + 40, height + 20); // 下辺の残り
+    path.lineTo(width + 40, 0); // 右辺
+    path.close(); // 上辺（開始点に戻る）
 
     canvas.drawPath(path, paint);
 
     // 画像の描画
     final ui.Image image = await decodeImageFromList(markerIcon);
-    canvas.drawImage(image, Offset(20, 10), Paint());
+
+// 画像のスケーリングを調整して少し小さくする
+    const double scaleFactor = 0.95; // 縮小率（80%のサイズに縮小）
+    final double scaledWidth = (width + 40) * scaleFactor;
+    final double scaledHeight = (height + 20) * scaleFactor;
+    final double offsetX = ((width + 40) - scaledWidth) / 2;
+    final double offsetY = ((height + 20) - scaledHeight) / 2;
+
+    canvas.drawImageRect(
+      image,
+      Rect.fromLTWH(0, 0, image.width.toDouble(), image.height.toDouble()),
+      Rect.fromLTWH(offsetX, offsetY, scaledWidth, scaledHeight),
+      Paint(),
+    );
 
     final img =
         await pictureRecorder.endRecording().toImage(width + 40, height + 60);

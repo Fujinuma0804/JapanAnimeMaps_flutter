@@ -546,7 +546,20 @@ class _MapEnScreenState extends State<MapEnScreen> {
 
     // 画像の描画
     final ui.Image image = await decodeImageFromList(markerIcon);
-    canvas.drawImage(image, Offset(20, 10), Paint());
+
+// 画像のスケーリングを調整して少し小さくする
+    const double scaleFactor = 0.95; // 縮小率（80%のサイズに縮小）
+    final double scaledWidth = (width + 40) * scaleFactor;
+    final double scaledHeight = (height + 20) * scaleFactor;
+    final double offsetX = ((width + 40) - scaledWidth) / 2;
+    final double offsetY = ((height + 20) - scaledHeight) / 2;
+
+    canvas.drawImageRect(
+      image,
+      Rect.fromLTWH(0, 0, image.width.toDouble(), image.height.toDouble()),
+      Rect.fromLTWH(offsetX, offsetY, scaledWidth, scaledHeight),
+      Paint(),
+    );
 
     final img =
         await pictureRecorder.endRecording().toImage(width + 40, height + 60);
