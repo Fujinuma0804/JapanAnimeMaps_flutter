@@ -527,17 +527,42 @@ class _MapEnScreenState extends State<MapEnScreen> {
     final Uint8List markerIcon =
         await _getBytesFromUrl(imageUrl, width, height);
 
+    final ui.PictureRecorder pictureRecorder = ui.PictureRecorder();
+    final Canvas canvas = Canvas(pictureRecorder);
+    final Paint paint = Paint()..color = Colors.white;
+
+    // 吹き出しの描画（先端を下に移動）
+    final Path path = Path();
+    path.moveTo(0, 0);
+    path.lineTo(0, height + 20);
+    path.lineTo((width + 40) / 2 - 10, height + 20);
+    path.lineTo((width + 40) / 2, height + 40);
+    path.lineTo((width + 40) / 2 + 10, height + 20);
+    path.lineTo(width + 40, height + 20);
+    path.lineTo(width + 40, 0);
+    path.close();
+
+    canvas.drawPath(path, paint);
+
+    // 画像の描画
+    final ui.Image image = await decodeImageFromList(markerIcon);
+    canvas.drawImage(image, Offset(20, 10), Paint());
+
+    final img =
+        await pictureRecorder.endRecording().toImage(width + 40, height + 60);
+    final data = await img.toByteData(format: ui.ImageByteFormat.png);
+
     return Marker(
       markerId: MarkerId(markerId),
       position: position,
-      icon: BitmapDescriptor.fromBytes(markerIcon),
+      icon: BitmapDescriptor.fromBytes(data!.buffer.asUint8List()),
       onTap: () async {
         bool hasCheckedIn = await _hasCheckedIn(markerId);
         setState(() {
           _selectedMarker = Marker(
             markerId: MarkerId(markerId),
             position: position,
-            icon: BitmapDescriptor.fromBytes(markerIcon),
+            icon: BitmapDescriptor.fromBytes(data.buffer.asUint8List()),
           );
           _calculateDistance(position);
           _showModalBottomSheet(
