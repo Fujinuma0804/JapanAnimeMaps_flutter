@@ -21,7 +21,7 @@ class PresentDetailScreen extends StatelessWidget {
         .collection('users')
         .doc(user.uid)
         .get();
-    final currentPoints = userDoc.data()?['correctCount'] ?? 0;
+    final currentPoints = userDoc.data()?['Point'] ?? 0;
     final requiredPoints = present['points'];
 
     if (currentPoints < requiredPoints) {
@@ -36,7 +36,7 @@ class PresentDetailScreen extends StatelessWidget {
     await FirebaseFirestore.instance.runTransaction((transaction) async {
       // ユーザーのポイントを減らす
       transaction.update(userDoc.reference, {
-        'correctCount': FieldValue.increment(-requiredPoints),
+        'Point': FieldValue.increment(-requiredPoints),
       });
 
       // リクエストを作成
@@ -98,7 +98,7 @@ class PresentDetailScreen extends StatelessWidget {
                   if (userSnapshot.connectionState == ConnectionState.waiting) {
                     return CircularProgressIndicator();
                   }
-                  final currentPoints = userSnapshot.data?['correctCount'] ?? 0;
+                  final currentPoints = userSnapshot.data?['Point'] ?? 0;
                   return Container(
                     padding: EdgeInsets.all(16),
                     child: Text(

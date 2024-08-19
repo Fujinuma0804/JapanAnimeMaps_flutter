@@ -89,7 +89,7 @@ class _PresentListScreenState extends State<PresentListScreen> {
               if (userSnapshot.connectionState == ConnectionState.waiting) {
                 return CircularProgressIndicator();
               }
-              final currentPoints = userSnapshot.data?['correctCount'] ?? 0;
+              final currentPoints = userSnapshot.data?['Point'] ?? 0;
               return Container(
                 padding: EdgeInsets.all(16),
                 color: Colors.grey[200],
