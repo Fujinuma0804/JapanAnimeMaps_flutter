@@ -15,16 +15,19 @@ class _UserPointPageState extends State<UserPointPage> {
   String _language = 'English';
   final FirebaseAuth _auth = FirebaseAuth.instance;
   late StreamSubscription<DocumentSnapshot> _languageSubscription;
+  late StreamSubscription<DocumentSnapshot> _pointSubscription;
 
   @override
   void initState() {
     super.initState();
     _monitorLanguageChange();
+    _monitorPointChange();
   }
 
   @override
   void dispose() {
     _languageSubscription.cancel();
+    _pointSubscription.cancel();
     super.dispose();
   }
 
@@ -42,6 +45,46 @@ class _UserPointPageState extends State<UserPointPage> {
             setState(() {
               _language = newLanguage == 'Japanese' ? '日本語' : 'English';
             });
+          }
+        }
+      });
+    }
+  }
+
+  void _monitorPointChange() {
+    User? user = _auth.currentUser;
+    if (user != null) {
+      _pointSubscription = FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .snapshots()
+          .listen((snapshot) async {
+        if (snapshot.exists) {
+          final correctCount = snapshot.data()?['correctCount'] as int?;
+          final lastCorrectCount = snapshot.data()?['lastCorrectCount'] as int?;
+          final point = snapshot.data()?['Point'] as int?;
+
+          if (correctCount != null) {
+            if (lastCorrectCount == null) {
+              // 初回の場合、現在のcorrectCountをPointとして設定
+              await FirebaseFirestore.instance
+                  .collection('users')
+                  .doc(user.uid)
+                  .update({
+                'Point': correctCount,
+                'lastCorrectCount': correctCount
+              });
+            } else if (correctCount > lastCorrectCount) {
+              // correctCountが増加した場合、増加分をPointに追加
+              int increase = correctCount - lastCorrectCount;
+              await FirebaseFirestore.instance
+                  .collection('users')
+                  .doc(user.uid)
+                  .update({
+                'Point': FieldValue.increment(increase),
+                'lastCorrectCount': correctCount
+              });
+            }
           }
         }
       });
@@ -91,7 +134,7 @@ class _UserPointPageState extends State<UserPointPage> {
                     ),
                   );
                 }
-                final correctCount = snapshot.data!.get('correctCount') ?? 0;
+                final point = snapshot.data!.get('Point') ?? 0;
                 return Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -120,7 +163,7 @@ class _UserPointPageState extends State<UserPointPage> {
                           ],
                         ),
                         child: Text(
-                          '$correctCount pt',
+                          '$point pt',
                           style: const TextStyle(
                             fontSize: 48,
                             fontWeight: FontWeight.bold,
