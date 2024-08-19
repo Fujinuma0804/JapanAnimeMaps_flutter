@@ -193,6 +193,7 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
   bool _isPictureInPicture = false;
   double _pipWidth = 200.0; // PiPのデフォルト幅
   Offset _pipPosition = Offset(16, 16); // PiPのデフォルト位置
+  bool _isPipClosed = false; // 新しい変数を追加
   bool _isFavorite = false;
 
   Future<void> _openMapOptions(BuildContext context) async {
@@ -372,7 +373,9 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
       body: NotificationListener<ScrollNotification>(
         onNotification: (scrollNotification) {
           if (scrollNotification is ScrollUpdateNotification) {
-            if (scrollNotification.metrics.pixels > 0 && !_isPictureInPicture) {
+            if (scrollNotification.metrics.pixels > 0 &&
+                !_isPictureInPicture &&
+                !_isPipClosed) {
               setState(() {
                 _isPictureInPicture = true;
               });
@@ -596,7 +599,8 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
             ),
             if (_isPictureInPicture &&
                 _chewieController != null &&
-                _videoPlayerController != null)
+                _videoPlayerController != null &&
+                !_isPipClosed) // 条件を修正
               Positioned(
                 left: _pipPosition.dx,
                 top: _pipPosition.dy,
@@ -632,6 +636,7 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
                               onPressed: () {
                                 setState(() {
                                   _isPictureInPicture = false;
+                                  _isPipClosed = true; // PiPが閉じられたことを記録
                                   _videoPlayerController?.pause();
                                 });
                               },
