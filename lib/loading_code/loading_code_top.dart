@@ -70,6 +70,7 @@ class _LoadingCodeTopState extends State<LoadingCodeTop> {
     return null;
   }
 
+  // 修正: _processCodeメソッドを更新
   void _processCode(String code) async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
@@ -90,31 +91,7 @@ class _LoadingCodeTopState extends State<LoadingCodeTop> {
       final data = querySnapshot.docs.first.data() as Map<String, dynamic>;
 
       if (data['isUsed'] == false) {
-        // Update the code document
-        await docRef.update({
-          'isUsed': true,
-          'usedAt': FieldValue.serverTimestamp(),
-          'usedBy': user.email,
-        });
-
-        // Update user's correctCount
-        final userDoc = await FirebaseFirestore.instance
-            .collection('users')
-            .doc(user.uid)
-            .get();
-
-        if (userDoc.exists) {
-          int currentCorrectCount = userDoc.data()?['correctCount'] ?? 0;
-          int pointsToAdd = data['points'] ?? 0;
-          await userDoc.reference.update({
-            'correctCount': currentCorrectCount + pointsToAdd,
-          });
-        }
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-              content: Text('コードが正常に処理されました。${data['points']}ポイント追加されました。')),
-        );
+        _showConfirmationDialog(code, data['points'] ?? 0);
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('このコードは既に使用されています')),
@@ -125,6 +102,77 @@ class _LoadingCodeTopState extends State<LoadingCodeTop> {
         const SnackBar(content: Text('無効なコードです')),
       );
     }
+  }
+
+  // 追加: 確認ダイアログを表示するメソッド
+  void _showConfirmationDialog(String code, int points) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('QRコードスキャン'),
+          content: Text('$codeがスキャンされました。\n$pointsポイントを追加しますか？'),
+          actions: <Widget>[
+            TextButton(
+              child: Text('いいえ'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+            TextButton(
+              child: Text('はい'),
+              onPressed: () {
+                Navigator.of(context).pop();
+                _addPoints(code, points);
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  // 追加: ポイントを追加するメソッド
+  void _addPoints(String code, int points) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    final docRef = await FirebaseFirestore.instance
+        .collection('codes')
+        .where('code', isEqualTo: code)
+        .limit(1)
+        .get()
+        .then((snapshot) => snapshot.docs.first.reference);
+
+    // Update the code document
+    await docRef.update({
+      'isUsed': true,
+      'usedAt': FieldValue.serverTimestamp(),
+      'usedBy': user.email,
+    });
+
+    // Update user's Point
+    final userDoc = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(user.uid)
+        .get();
+
+    if (userDoc.exists) {
+      int currentPoints = userDoc.data()?['Point'] ?? 0;
+      await userDoc.reference.update({
+        'Point': currentPoints + points,
+      });
+    }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('コードが正常に処理されました。$pointsポイント追加されました。')),
+    );
+
+    // LoadingCodeTopを表示
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => LoadingCodeTop()),
+    );
   }
 
   void _showQRScanner() {
@@ -141,14 +189,14 @@ class _LoadingCodeTopState extends State<LoadingCodeTop> {
     ));
   }
 
+  // 修正: _onQRViewCreatedメソッドを更新
   void _onQRViewCreated(QRViewController controller) {
     this.controller = controller;
     controller.scannedDataStream.listen((scanData) {
       if (scanData.code != null) {
-        setState(() {
-          _codeController.text = scanData.code!;
-        });
+        controller.pauseCamera();
         Navigator.of(context).pop(); // QRスキャン画面を閉じる
+        _processCode(scanData.code!);
       }
     });
   }
