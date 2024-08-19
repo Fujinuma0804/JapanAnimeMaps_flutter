@@ -213,6 +213,7 @@ class _SpotDetailEnScreenState extends State<SpotDetailEnScreen> {
   bool _isPictureInPicture = false;
   double _pipWidth = 200.0;
   Offset _pipPosition = Offset(16, 16);
+  bool _isPipClosed = false; // 新しい変数を追加
   bool _isFavorite = false;
   final translator = GoogleTranslator();
 
@@ -661,7 +662,8 @@ class _SpotDetailEnScreenState extends State<SpotDetailEnScreen> {
             ),
             if (_isPictureInPicture &&
                 _chewieController != null &&
-                _videoPlayerController != null)
+                _videoPlayerController != null &&
+                !_isPipClosed) // 条件を修正
               Positioned(
                 left: _pipPosition.dx,
                 top: _pipPosition.dy,
@@ -697,6 +699,7 @@ class _SpotDetailEnScreenState extends State<SpotDetailEnScreen> {
                               onPressed: () {
                                 setState(() {
                                   _isPictureInPicture = false;
+                                  _isPipClosed = true; // PiPが閉じられたことを記録
                                   _videoPlayerController?.pause();
                                 });
                               },

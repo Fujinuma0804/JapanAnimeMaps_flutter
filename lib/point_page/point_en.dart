@@ -108,7 +108,7 @@ class _PointEnPageState extends State<PointEnPage> {
                             builder: (context) => PresentListScreen()));
                   },
                   title: Text(
-                    _language == '日本語' ? 'ポイントの使い方' : 'Use of points',
+                    _language == '日本語' ? 'ポイント交換' : 'Change of points',
                   ),
                 ),
                 SettingsTile.navigation(
