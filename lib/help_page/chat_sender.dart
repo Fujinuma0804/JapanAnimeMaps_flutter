@@ -110,8 +110,7 @@ class ChatRoomState extends State<ChatRoom> {
             TextButton(
               child: Text('キャンセル'),
               onPressed: () {
-                Navigator.of(context).pop();
-                Navigator.of(context).pop(); // チャットルームを閉じる
+                // Navigator.of(context).pop(); // チャットルームを閉じる
               },
             ),
             TextButton(
