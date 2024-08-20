@@ -8,6 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../apps_about/apps_about.dart';
 import '../help_page/help.dart';
+import '../login_page/welcome_page/welcome_1.dart';
 import '../manual_page/privacypolicy_screen.dart';
 import '../manual_page/terms_screen.dart';
 import '../notification/notification.dart';
@@ -244,6 +245,18 @@ class _SettingsEnState extends State<SettingsEn> {
                   onPressed: (context) {
                     Navigator.push(context,
                         MaterialPageRoute(builder: (context) => AppsAbout()));
+                  },
+                ),
+                SettingsTile.navigation(
+                  leading: const Icon(Icons.help_outline),
+                  title: Text(
+                    _language == '日本語' ? 'テスト削除必須' : 'Help Center',
+                    style: TextStyle(color: Colors.red),
+                  ),
+                  value: const Text(''),
+                  onPressed: (context) {
+                    Navigator.push(context,
+                        MaterialPageRoute(builder: (context) => Welcome1()));
                   },
                 ),
               ],

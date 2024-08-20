@@ -7,6 +7,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:parts/login_page/mail_sign_up2.dart';
+import 'package:parts/login_page/welcome_page/welcome_1.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 
 import '../../src/page_route.dart';
@@ -58,9 +59,9 @@ class _SignUpPageState extends State<SignUpPage> {
 
       if (existingUsers.docs.isNotEmpty) {
         Navigator.of(context).pushReplacement(
-          MaterialPageRoute(
-            builder: (context) => MainScreen(),
-          ),
+          MaterialPageRoute(builder: (context) => Welcome1()
+              // MainScreen(),
+              ),
         );
       } else {
         await FirebaseFirestore.instance

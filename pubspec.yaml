@@ -77,6 +77,7 @@ dependencies:
   google_translate: ^0.0.3
   geocoding: ^3.0.0
   tutorial_coach_mark: ^1.2.11
+  flutter_local_notifications: ^17.2.2
 
 dev_dependencies:
   flutter_test:
