@@ -50,6 +50,7 @@ class _MainScreenState extends State<MainScreen> {
           _userLanguage =
               (snapshot.data() as Map<String, dynamic>)['language'] ??
                   'English';
+          print('User language: $_userLanguage'); // デバッグ用ログ
         });
       }
     });

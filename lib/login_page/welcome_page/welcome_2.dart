@@ -1,7 +1,13 @@
+import 'dart:async';
+
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
-import 'package:parts/login_page/welcome_page/welcome_3.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+import 'welcome_3.dart'; // Update import based on your directory structure
 
 class Welcome2 extends StatefulWidget {
   @override
@@ -9,10 +15,13 @@ class Welcome2 extends StatefulWidget {
 }
 
 class _Welcome2State extends State<Welcome2> {
+  String _notificationText = '欲しい情報をプッシュ通知で受け取ろう'; // Default to Japanese text
+
   @override
   void initState() {
     super.initState();
     _checkFirstTime();
+    _getUserLanguage();
   }
 
   void _checkFirstTime() async {
@@ -21,25 +30,56 @@ class _Welcome2State extends State<Welcome2> {
 
     if (isFirstTime) {
       prefs.setBool('isFirstTime', false);
-      _requestNotificationPermissions(firstTime: true);
-    } else {
-      _requestNotificationPermissions(firstTime: false);
     }
   }
 
-  Future<void> _requestNotificationPermissions(
-      {required bool firstTime}) async {
-    PermissionStatus status = await Permission.notification.status;
-    print("Initial status: $status");
+  Future<void> _getUserLanguage() async {
+    User? user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      DocumentSnapshot userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .get();
 
-    if (status.isGranted) {
-      print("Notification permissions already granted");
+      if (userDoc.exists) {
+        String language =
+            (userDoc.data() as Map<String, dynamic>)['language'] ?? 'English';
+        setState(() {
+          _notificationText = language == 'Japanese'
+              ? '欲しい情報をプッシュ通知で受け取ろう'
+              : 'Receive desired information via push notifications';
+        });
+      }
+    }
+  }
+
+  Future<void> _requestNotificationPermissions() async {
+    final messaging = FirebaseMessaging.instance;
+    NotificationSettings settings = await messaging.requestPermission(
+      alert: true,
+      announcement: false,
+      badge: true,
+      carPlay: false,
+      criticalAlert: false,
+      provisional: false,
+      sound: true,
+    );
+
+    print('FCM permission status: ${settings.authorizationStatus}');
+
+    if (settings.authorizationStatus == AuthorizationStatus.authorized) {
+      print("FCM Notification permissions granted");
       _navigateToWelcome3();
-    } else if (status.isDenied || status.isRestricted) {
-      if (firstTime) {
-        // Use the reference function to request permission
-        await requestNotificationPermission(); // Now this is valid
-        status = await Permission.notification.status; // Check the status again
+    } else {
+      PermissionStatus status = await Permission.notification.status;
+      print("Initial permission_handler status: $status");
+
+      if (status.isGranted) {
+        print("Notification permissions already granted");
+        _navigateToWelcome3();
+      } else if (status.isDenied) {
+        await requestNotificationPermission();
+        status = await Permission.notification.status;
         if (status.isGranted) {
           print("Notification permissions granted");
           _navigateToWelcome3();
@@ -49,13 +89,10 @@ class _Welcome2State extends State<Welcome2> {
         } else {
           print("Notification permissions denied");
         }
-      } else {
-        print("Opening app settings");
+      } else if (status.isPermanentlyDenied) {
+        print("Notification permissions permanently denied");
         openAppSettings();
       }
-    } else if (status.isPermanentlyDenied) {
-      print("Notification permissions permanently denied");
-      openAppSettings();
     }
   }
 
@@ -98,7 +135,7 @@ class _Welcome2State extends State<Welcome2> {
             ),
             SizedBox(height: 40),
             Text(
-              '欲しい情報をプッシュ通知で受け取ろう',
+              _notificationText,
               style: TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
@@ -107,7 +144,9 @@ class _Welcome2State extends State<Welcome2> {
             ),
             SizedBox(height: 16),
             Text(
-              'お得な情報や商品の注文状況など、欲しい情報だけを受け取れます。',
+              _notificationText == '欲しい情報をプッシュ通知で受け取ろう'
+                  ? 'お得な情報や商品の注文状況など、欲しい情報だけを受け取れます。'
+                  : 'Receive only the information you want, such as special offers and order status.',
               style: TextStyle(
                 fontSize: 16,
                 color: Colors.black54,
@@ -121,9 +160,7 @@ class _Welcome2State extends State<Welcome2> {
                   child: SizedBox(
                     height: 60,
                     child: ElevatedButton(
-                      onPressed: () {
-                        _requestNotificationPermissions(firstTime: true);
-                      },
+                      onPressed: _requestNotificationPermissions,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Color(0xFF0B3D91),
                         shape: RoundedRectangleBorder(
@@ -131,7 +168,9 @@ class _Welcome2State extends State<Welcome2> {
                         ),
                       ),
                       child: Text(
-                        '許可',
+                        _notificationText == '欲しい情報をプッシュ通知で受け取ろう'
+                            ? '許可'
+                            : 'Allow',
                         style: TextStyle(
                           fontSize: 18,
                           color: Colors.white,
@@ -154,7 +193,9 @@ class _Welcome2State extends State<Welcome2> {
                         side: BorderSide(color: Colors.black),
                       ),
                       child: Text(
-                        'スキップ',
+                        _notificationText == '欲しい情報をプッシュ通知で受け取ろう'
+                            ? 'スキップ'
+                            : 'Skip',
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
