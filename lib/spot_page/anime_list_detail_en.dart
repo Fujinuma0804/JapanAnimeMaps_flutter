@@ -31,7 +31,7 @@ class AnimeDetailsEnPage extends StatelessWidget {
     try {
       QuerySnapshot snapshot = await FirebaseFirestore.instance
           .collection('locations')
-          .where('animeName', isEqualTo: animeName)
+          .where('animeName', isEqualTo: animeName) // 元のアニメ名を使用
           .get();
 
       for (var doc in snapshot.docs) {

@@ -318,7 +318,10 @@ class _AnimeListEnPageState extends State<AnimeListEnPage> {
     );
   }
 
-  void _navigateToDetails(BuildContext context, String originalAnimeName) {
+  void _navigateToDetails(BuildContext context, String animeName) {
+    // originalAnimeNameを使用して遷移
+    String originalAnimeName = _allAnimeData
+        .firstWhere((anime) => anime['name'] == animeName)['originalName'];
     Navigator.push(
       context,
       MaterialPageRoute(
