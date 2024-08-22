@@ -1,5 +1,6 @@
 import 'dart:io' show Platform;
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:chewie/chewie.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -10,11 +11,74 @@ import 'package:translator/translator.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:video_player/video_player.dart';
 
-class AnimeDetailsEnPage extends StatelessWidget {
+class AnimeDetailsEnPage extends StatefulWidget {
   final String animeName;
-  final translator = GoogleTranslator();
 
   AnimeDetailsEnPage({required this.animeName});
+
+  @override
+  _AnimeDetailsEnPageState createState() => _AnimeDetailsEnPageState();
+}
+
+class _AnimeDetailsEnPageState extends State<AnimeDetailsEnPage> {
+  final translator = GoogleTranslator();
+  List<Map<String, dynamic>> _locations = [];
+  bool _isLoading = true;
+  String? _translatedAnimeName;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchLocationsAndTranslate();
+  }
+
+  Future<void> _fetchLocationsAndTranslate() async {
+    setState(() => _isLoading = true);
+
+    try {
+      QuerySnapshot snapshot = await FirebaseFirestore.instance
+          .collection('locations')
+          .where('animeName', isEqualTo: widget.animeName)
+          .get();
+
+      List<Map<String, dynamic>> locations = snapshot.docs.map((doc) {
+        var data = doc.data() as Map<String, dynamic>;
+        return {
+          'id': doc.id,
+          'title': data['title'] ?? '',
+          'imageUrl': data['imageUrl'] ?? '',
+          'description': data['description'] ?? '',
+          'latitude': data['latitude'] ?? 0.0,
+          'longitude': data['longitude'] ?? 0.0,
+          'sourceTitle': data['sourceTitle'] ?? '',
+          'sourceLink': data['sourceLink'] ?? '',
+          'url': data['url'] ?? '',
+          'subMedia': (data['subMedia'] as List<dynamic>?)
+                  ?.where((item) => item is Map<String, dynamic>)
+                  .cast<Map<String, dynamic>>()
+                  .toList() ??
+              [],
+        };
+      }).toList();
+
+      // Translate anime name
+      _translatedAnimeName = await translateToEnglish(widget.animeName);
+
+      // Translate location titles in parallel
+      await Future.wait(locations.map((location) async {
+        location['translatedTitle'] =
+            await translateToEnglish(location['title']);
+      }));
+
+      setState(() {
+        _locations = locations;
+        _isLoading = false;
+      });
+    } catch (e) {
+      print("Error fetching locations: $e");
+      setState(() => _isLoading = false);
+    }
+  }
 
   Future<String> translateToEnglish(String text) async {
     try {
@@ -26,152 +90,96 @@ class AnimeDetailsEnPage extends StatelessWidget {
     }
   }
 
-  Future<List<Map<String, dynamic>>> _fetchLocationsForAnime() async {
-    List<Map<String, dynamic>> locations = [];
-    try {
-      QuerySnapshot snapshot = await FirebaseFirestore.instance
-          .collection('locations')
-          .where('animeName', isEqualTo: animeName) // 元のアニメ名を使用
-          .get();
-
-      for (var doc in snapshot.docs) {
-        var data = doc.data() as Map<String, dynamic>;
-        locations.add({
-          'id': doc.id,
-          'title': await translateToEnglish(data['title'] ?? ''),
-          'imageUrl': data['imageUrl'] ?? '',
-          'description': await translateToEnglish(data['description'] ?? ''),
-          'latitude': data['latitude'] ?? 0.0,
-          'longitude': data['longitude'] ?? 0.0,
-          'sourceTitle': await translateToEnglish(data['sourceTitle'] ?? ''),
-          'sourceLink': data['sourceLink'] ?? '',
-          'url': data['url'] ?? '',
-          'subMedia': data['subMedia'] ?? [],
-        });
-      }
-    } catch (e) {
-      print("Error fetching locations: $e");
-    }
-    return locations;
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: FutureBuilder<String>(
-          future: translateToEnglish(animeName),
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return Text('Translating...');
-            }
-            return Text(
-              snapshot.data ?? animeName,
-              style: TextStyle(
-                color: Color(0xFF00008b),
-                fontWeight: FontWeight.bold,
-              ),
-            );
-          },
+        title: Text(
+          _translatedAnimeName ?? widget.animeName,
+          style: TextStyle(
+            color: Color(0xFF00008b),
+            fontWeight: FontWeight.bold,
+          ),
         ),
       ),
-      body: FutureBuilder<List<Map<String, dynamic>>>(
-        future: _fetchLocationsForAnime(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return Center(child: CircularProgressIndicator());
-          } else if (snapshot.hasError) {
-            return Center(child: Text('Error: ${snapshot.error}'));
-          } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            return Center(child: Text('No locations found for $animeName.'));
-          } else {
-            final locations = snapshot.data!;
-
-            return GridView.builder(
-              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                childAspectRatio: 1.3,
-                mainAxisSpacing: 10.0,
-                crossAxisSpacing: 10.0,
-              ),
-              itemCount: locations.length,
-              itemBuilder: (context, index) {
-                final location = locations[index];
-                final title = location['title'] as String;
-                final description = location['description'] as String;
-                final imageUrl = location['imageUrl'] as String;
-                final locationId = location['id'] as String;
-
-                return GestureDetector(
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => SpotDetailEnScreen(
-                          title: title,
-                          imageUrl: imageUrl,
-                          description: description,
-                          latitude: location['latitude'] as double,
-                          longitude: location['longitude'] as double,
-                          sourceLink: location['sourceLink'] as String,
-                          sourceTitle: location['sourceTitle'] as String,
-                          url: location['url'] as String,
-                          subMedia: (location['subMedia'] as List)
-                              .where((item) => item is Map<String, dynamic>)
-                              .cast<Map<String, dynamic>>()
-                              .toList(),
-                          locationId: locationId,
-                        ),
-                      ),
-                    );
-                  },
-                  child: Padding(
-                    padding: const EdgeInsets.all(8.0),
-                    child: Column(
-                      children: [
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(9.0),
-                          child: imageUrl.isNotEmpty
-                              ? Image.network(
-                                  imageUrl,
-                                  width: 200,
-                                  height: 100,
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (context, error, stackTrace) {
-                                    return Image.asset(
-                                      'assets/placeholder_image.png',
-                                      width: 200,
-                                      height: 100,
-                                      fit: BoxFit.cover,
-                                    );
-                                  },
-                                )
-                              : Image.asset(
+      body: _isLoading
+          ? Center(child: CircularProgressIndicator())
+          : _locations.isEmpty
+              ? Center(
+                  child: Text('No locations found for ${widget.animeName}.'))
+              : GridView.builder(
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    childAspectRatio: 1.3,
+                    mainAxisSpacing: 10.0,
+                    crossAxisSpacing: 10.0,
+                  ),
+                  itemCount: _locations.length,
+                  itemBuilder: (context, index) {
+                    final location = _locations[index];
+                    return GestureDetector(
+                      onTap: () => _navigateToDetails(context, location),
+                      child: Padding(
+                        padding: const EdgeInsets.all(8.0),
+                        child: Column(
+                          children: [
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(9.0),
+                              child: CachedNetworkImage(
+                                imageUrl: location['imageUrl'],
+                                width: 200,
+                                height: 100,
+                                fit: BoxFit.cover,
+                                placeholder: (context, url) => Container(
+                                  color: Colors.grey[300],
+                                  child: Center(
+                                      child: CircularProgressIndicator()),
+                                ),
+                                errorWidget: (context, url, error) =>
+                                    Image.asset(
                                   'assets/placeholder_image.png',
                                   width: 200,
                                   height: 100,
                                   fit: BoxFit.cover,
                                 ),
+                              ),
+                            ),
+                            SizedBox(height: 8.0),
+                            Text(
+                              location['translatedTitle'],
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontSize: 14.0,
+                                fontWeight: FontWeight.bold,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                              maxLines: 1,
+                            ),
+                          ],
                         ),
-                        SizedBox(height: 8.0),
-                        Text(
-                          title,
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontSize: 14.0,
-                            fontWeight: FontWeight.bold,
-                          ),
-                          overflow: TextOverflow.ellipsis,
-                          maxLines: 1,
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              },
-            );
-          }
-        },
+                      ),
+                    );
+                  },
+                ),
+    );
+  }
+
+  void _navigateToDetails(BuildContext context, Map<String, dynamic> location) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => SpotDetailEnScreen(
+          title: location['translatedTitle'],
+          imageUrl: location['imageUrl'],
+          description: location['description'],
+          latitude: location['latitude'],
+          longitude: location['longitude'],
+          sourceLink: location['sourceLink'],
+          sourceTitle: location['sourceTitle'],
+          url: location['url'],
+          subMedia: location['subMedia'] as List<Map<String, dynamic>>,
+          locationId: location['id'],
+        ),
       ),
     );
   }
