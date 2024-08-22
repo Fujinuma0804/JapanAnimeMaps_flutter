@@ -3,8 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
-
-import '../src/bottomnavigationbar.dart';
+import 'package:parts/login_page/welcome_page/welcome_1.dart';
 
 class SecondSignUpPage extends StatefulWidget {
   final UserCredential userCredential;
@@ -334,7 +333,7 @@ class _SecondSignUpPageState extends State<SecondSignUpPage> {
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) => MainScreen(),
+          builder: (context) => Welcome1(),
         ),
       );
     } catch (e) {
