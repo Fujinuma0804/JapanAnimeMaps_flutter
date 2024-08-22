@@ -8,10 +8,19 @@ import 'package:flutter_chat_types/flutter_chat_types.dart' as types;
 import 'package:flutter_chat_ui/flutter_chat_ui.dart';
 import 'package:intl/intl.dart';
 
+import 'chat_history.dart';
+
 String randomString() {
   final random = Random.secure();
   final values = List<int>.generate(16, (i) => random.nextInt(255));
   return base64UrlEncode(values);
+}
+
+String generateManagementNumber() {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  final random = Random.secure();
+  return List.generate(15, (index) => chars[random.nextInt(chars.length)])
+      .join();
 }
 
 class ChatRoom extends StatefulWidget {
@@ -34,6 +43,7 @@ class ChatRoomState extends State<ChatRoom> {
   bool _isInputDisabled = false;
   bool _isLoading = true;
   bool _hasCompletedChat = false;
+  String _currentManagementNumber = '';
 
   @override
   void initState() {
@@ -42,6 +52,7 @@ class ChatRoomState extends State<ChatRoom> {
     _fetchUserData();
     _listenForMessages();
     _checkForCompletedChat();
+    _currentManagementNumber = generateManagementNumber();
   }
 
   void _initializeFirebase() async {
@@ -110,58 +121,20 @@ class ChatRoomState extends State<ChatRoom> {
             TextButton(
               child: Text('キャンセル'),
               onPressed: () {
-                // Navigator.of(context).pop(); // チャットルームを閉じる
+                Navigator.of(context).pop();
               },
             ),
             TextButton(
               child: Text('再開する'),
               onPressed: () {
                 Navigator.of(context).pop();
-                _restartChat();
+                _startNewChat();
               },
             ),
           ],
         );
       },
     );
-  }
-
-  void _restartChat() async {
-    // 既存のメッセージを完了状態に更新
-    await FirebaseFirestore.instance
-        .collection('messages')
-        .where('userId', isEqualTo: widget.userId)
-        .get()
-        .then((snapshot) {
-      for (DocumentSnapshot doc in snapshot.docs) {
-        doc.reference.update({'isCompleted': true});
-      }
-    });
-
-    // 新しいチャットセッションを開始
-    final newSessionMessage = types.TextMessage(
-      author: _admin,
-      createdAt: DateTime.now().millisecondsSinceEpoch,
-      id: randomString(),
-      text: "新しいチャットセッションが開始されました。",
-    );
-
-    // Firestoreに新しいメッセージを追加
-    await FirebaseFirestore.instance.collection('messages').add({
-      'userId': widget.userId,
-      'authorId': newSessionMessage.author.id,
-      'createdAt': newSessionMessage.createdAt,
-      'text': newSessionMessage.text,
-      'isCompleted': false,
-    });
-
-    setState(() {
-      _messages.clear();
-      _isInputDisabled = false;
-      _hasCompletedChat = false;
-    });
-
-    _addWelcomeMessage();
   }
 
   void _addWelcomeMessage() {
@@ -178,6 +151,7 @@ class ChatRoomState extends State<ChatRoom> {
     FirebaseFirestore.instance
         .collection('messages')
         .where('userId', isEqualTo: widget.userId)
+        .where('managementNumber', isEqualTo: _currentManagementNumber)
         .orderBy('createdAt', descending: true)
         .snapshots()
         .listen((snapshot) {
@@ -207,7 +181,7 @@ class ChatRoomState extends State<ChatRoom> {
         appBar: AppBar(
           backgroundColor: Colors.white,
           title: const Text(
-            'チャットでお問い合わせ',
+            'チャット',
             style: TextStyle(
               color: Color(0xFF00008b),
               fontWeight: FontWeight.bold,
@@ -225,6 +199,10 @@ class ChatRoomState extends State<ChatRoom> {
                 icon: Icon(Icons.check),
                 onPressed: _handleSendComplete,
               ),
+            IconButton(
+              icon: Icon(Icons.update),
+              onPressed: _showChatHistory,
+            ),
           ],
         ),
         body: _isLoading
@@ -240,7 +218,10 @@ class ChatRoomState extends State<ChatRoom> {
                 customBottomWidget: _isInputDisabled
                     ? Container(
                         padding: EdgeInsets.all(16),
-                        child: Text('このチャットは終了しました。'),
+                        child: ElevatedButton(
+                          child: Text('新しいチャットを開始'),
+                          onPressed: _startNewChat,
+                        ),
                       )
                     : null,
               ),
@@ -272,6 +253,7 @@ class ChatRoomState extends State<ChatRoom> {
       'createdAt': message.createdAt,
       'text': message.text,
       'isCompleted': false,
+      'managementNumber': _currentManagementNumber,
     });
   }
 
@@ -289,14 +271,76 @@ class ChatRoomState extends State<ChatRoom> {
 
     _addMessage(completeMessage);
 
+    // チャット履歴をFirestoreに保存
+    _saveChatHistory();
+
     FirebaseFirestore.instance
         .collection('messages')
         .where('userId', isEqualTo: widget.userId)
+        .where('managementNumber', isEqualTo: _currentManagementNumber)
         .get()
         .then((snapshot) {
       for (DocumentSnapshot doc in snapshot.docs) {
         doc.reference.update({'isCompleted': true});
       }
     });
+
+    // チャット履歴ページに遷移
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+          builder: (context) => ChatHistoryPage(userId: widget.userId)),
+    );
+  }
+
+  void _saveChatHistory() {
+    final chatHistory = _messages
+        .map((message) => {
+              'authorId': message.author.id,
+              'text': (message as types.TextMessage).text,
+              'createdAt': message.createdAt,
+            })
+        .toList();
+
+    // 新しいコレクションに管理番号とトーク履歴を格納
+    FirebaseFirestore.instance
+        .collection('chatSessions')
+        .doc(_currentManagementNumber)
+        .set({
+      'userId': widget.userId,
+      'history': chatHistory,
+      'lastUpdated': DateTime.now().millisecondsSinceEpoch,
+    });
+
+    // ユーザーのチャット履歴も更新
+    FirebaseFirestore.instance
+        .collection('chatHistories')
+        .doc(widget.userId)
+        .set({
+      'history': FieldValue.arrayUnion([
+        {
+          'managementNumber': _currentManagementNumber,
+          'lastMessage': chatHistory.last['text'],
+          'lastUpdated': DateTime.now().millisecondsSinceEpoch,
+        }
+      ]),
+    }, SetOptions(merge: true));
+  }
+
+  void _startNewChat() {
+    setState(() {
+      _messages.clear();
+      _isInputDisabled = false;
+      _currentManagementNumber = generateManagementNumber();
+    });
+    _addWelcomeMessage();
+  }
+
+  void _showChatHistory() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+          builder: (context) => ChatHistoryPage(userId: widget.userId)),
+    );
   }
 }
