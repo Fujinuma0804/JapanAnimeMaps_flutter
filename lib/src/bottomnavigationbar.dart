@@ -57,24 +57,44 @@ class _MainScreenState extends State<MainScreen> {
   }
 
   Future<void> _updateCorrectCount() async {
-    int correctCount = 0;
-    QuerySnapshot snapshot = await FirebaseFirestore.instance
-        .collection('users')
-        .doc(_user.uid)
-        .collection('check_ins')
-        .get();
+    try {
+      int correctCount = 0;
+      QuerySnapshot snapshot = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(_user.uid)
+          .collection('check_ins')
+          .get();
 
-    for (var doc in snapshot.docs) {
-      var data = doc.data() as Map<String, dynamic>;
-      if (data['isCorrect'] == true) {
-        correctCount++;
+      for (var doc in snapshot.docs) {
+        var data = doc.data() as Map<String, dynamic>;
+        if (data['isCorrect'] == true) {
+          correctCount++;
+        }
       }
-    }
 
-    await FirebaseFirestore.instance
-        .collection('users')
-        .doc(_user.uid)
-        .update({'correctCount': correctCount});
+      // ユーザードキュメントの存在を確認
+      DocumentSnapshot userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(_user.uid)
+          .get();
+
+      if (userDoc.exists) {
+        // ドキュメントが存在する場合は更新
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(_user.uid)
+            .update({'correctCount': correctCount});
+      } else {
+        // ドキュメントが存在しない場合は新規作成
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(_user.uid)
+            .set({'correctCount': correctCount});
+      }
+    } catch (e) {
+      print('Error updating correct count: $e');
+      // エラーハンドリングをここに追加（例：ユーザーへの通知など）
+    }
   }
 
   void _onItemTapped(int index) async {
@@ -98,6 +118,12 @@ class _MainScreenState extends State<MainScreen> {
           return Scaffold(
             body: Center(child: CircularProgressIndicator()),
           );
+        }
+
+        if (snapshot.hasData && snapshot.data != null) {
+          _userLanguage =
+              (snapshot.data!.data() as Map<String, dynamic>)['language'] ??
+                  'English';
         }
 
         return Scaffold(

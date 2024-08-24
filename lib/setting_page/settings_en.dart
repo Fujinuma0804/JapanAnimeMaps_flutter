@@ -76,9 +76,11 @@ class _SettingsEnState extends State<SettingsEn> {
       builder: (context) {
         return AlertDialog(
           title: Column(children: [
-            Text('Language Settings'),
+            Text(_language == '日本語' ? '言語設定' : 'Language Settings'),
             Text(
-              'Please restart the app after making changes.',
+              _language == '日本語'
+                  ? '変更後はアプリを再起動してください。'
+                  : 'Please restart the app after making changes.',
               style: TextStyle(
                 color: Colors.black,
                 fontSize: 15.0,
@@ -134,10 +136,91 @@ class _SettingsEnState extends State<SettingsEn> {
     Navigator.of(context).pushAndRemoveUntil(
       MaterialPageRoute(
         builder: (context) => WelcomePage(),
-        settings: RouteSettings(name: '/welcome'), // ルート名を設定
+        settings: RouteSettings(name: '/welcome'),
       ),
       (Route<dynamic> route) => false,
     );
+  }
+
+  // アカウント削除の確認ダイアログを表示する関数
+  Future<void> _showDeleteAccountDialog() async {
+    return showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text(
+              _language == '日本語' ? 'アカウント削除の確認' : 'Confirm Account Deletion'),
+          content: SingleChildScrollView(
+            child: ListBody(
+              children: <Widget>[
+                Text(_language == '日本語'
+                    ? '本当にアカウントを削除しますか？'
+                    : 'Are you sure you want to delete your account?'),
+                Text(_language == '日本語'
+                    ? 'この操作は取り消すことができません。'
+                    : 'This action cannot be undone.'),
+              ],
+            ),
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: Text(_language == '日本語' ? 'キャンセル' : 'Cancel'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+            TextButton(
+              child: Text(_language == '日本語' ? '削除' : 'Delete'),
+              onPressed: () {
+                Navigator.of(context).pop();
+                _deleteAccount();
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  // Firestoreからユーザーデータを削除する関数
+  Future<void> _deleteUserData() async {
+    User? user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .delete();
+    }
+  }
+
+  // Firebase Authenticationからユーザーを削除する関数
+  Future<void> _deleteUserAuth() async {
+    User? user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      await user.delete();
+    }
+  }
+
+  // アカウント削除のメイン処理
+  Future<void> _deleteAccount() async {
+    try {
+      await _deleteUserData();
+      await _deleteUserAuth();
+      // 削除成功後、ウェルカームページへ遷移
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (context) => WelcomePage()),
+        (Route<dynamic> route) => false,
+      );
+    } catch (e) {
+      // エラーハンドリング
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+            content: Text(_language == '日本語'
+                ? 'アカウントの削除に失敗しました。再度お試しください。'
+                : 'Failed to delete account. Please try again.')),
+      );
+    }
   }
 
   @override
@@ -265,18 +348,34 @@ class _SettingsEnState extends State<SettingsEn> {
               tiles: <SettingsTile>[
                 SettingsTile.navigation(
                   leading: const Icon(
-                    Icons.waving_hand_sharp,
-                    color: Colors.red,
+                    Icons.logout,
+                    color: Colors.black,
                   ),
                   title: Text(
                     _language == '日本語' ? 'サインアウト' : 'Sign Out',
                     style: TextStyle(
-                      color: Colors.red,
+                      color: Colors.black,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
                   onPressed: (context) async {
                     await _signOut(context);
+                  },
+                ),
+                SettingsTile.navigation(
+                  leading: const Icon(
+                    Icons.waving_hand_sharp,
+                    color: Colors.red,
+                  ),
+                  title: Text(
+                    _language == '日本語' ? 'アカウント削除' : 'Delete Account',
+                    style: TextStyle(
+                      color: Colors.red,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  onPressed: (context) {
+                    _showDeleteAccountDialog();
                   },
                 ),
               ],

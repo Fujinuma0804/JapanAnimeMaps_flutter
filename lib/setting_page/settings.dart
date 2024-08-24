@@ -99,6 +99,79 @@ class _SettingsState extends State<Settings> {
     );
   }
 
+  // アカウント削除の確認ダイアログを表示する関数
+  Future<void> _showDeleteAccountDialog() async {
+    return showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('アカウント削除の確認'),
+          content: SingleChildScrollView(
+            child: ListBody(
+              children: <Widget>[
+                Text('本当にアカウントを削除しますか？'),
+                Text('この操作は取り消すことができません。'),
+              ],
+            ),
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: Text('キャンセル'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+            TextButton(
+              child: Text('削除'),
+              onPressed: () {
+                Navigator.of(context).pop();
+                _deleteAccount();
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  // Firestoreからユーザーデータを削除する関数
+  Future<void> _deleteUserData() async {
+    User? user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .delete();
+    }
+  }
+
+  // Firebase Authenticationからユーザーを削除する関数
+  Future<void> _deleteUserAuth() async {
+    User? user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      await user.delete();
+    }
+  }
+
+  // アカウント削除のメイン処理
+  Future<void> _deleteAccount() async {
+    try {
+      await _deleteUserData();
+      await _deleteUserAuth();
+      // 削除成功後、ウェルカームページへ遷移
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (context) => WelcomePage()),
+        (Route<dynamic> route) => false,
+      );
+    } catch (e) {
+      // エラーハンドリング
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('アカウントの削除に失敗しました。再度お試しください。')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return WillPopScope(
@@ -135,7 +208,6 @@ class _SettingsState extends State<Settings> {
                         context,
                         MaterialPageRoute(
                             builder: (context) => ProfileScreen()));
-                    // 画面遷移処理
                   },
                 ),
               ],
@@ -176,7 +248,6 @@ class _SettingsState extends State<Settings> {
                         context,
                         MaterialPageRoute(
                             builder: (context) => PrivacyPolicyScreen()));
-                    // 画面遷移処理
                   },
                 ),
                 SettingsTile.navigation(
@@ -186,7 +257,6 @@ class _SettingsState extends State<Settings> {
                   onPressed: (context) {
                     Navigator.push(context,
                         MaterialPageRoute(builder: (context) => TermsScreen()));
-                    // 画面遷移処理
                   },
                 ),
                 SettingsTile.navigation(
@@ -196,7 +266,6 @@ class _SettingsState extends State<Settings> {
                   onPressed: (context) {
                     Navigator.push(context,
                         MaterialPageRoute(builder: (context) => HelpCenter()));
-                    // 画面遷移処理
                   },
                 ),
                 SettingsTile.navigation(
@@ -206,7 +275,6 @@ class _SettingsState extends State<Settings> {
                   onPressed: (context) {
                     Navigator.push(context,
                         MaterialPageRoute(builder: (context) => AppsAbout()));
-                    // 画面遷移処理
                   },
                 ),
               ],
@@ -215,13 +283,13 @@ class _SettingsState extends State<Settings> {
               tiles: <SettingsTile>[
                 SettingsTile.navigation(
                   leading: const Icon(
-                    Icons.waving_hand_sharp,
-                    color: Colors.red,
+                    Icons.logout,
+                    color: Colors.black,
                   ),
                   title: const Text(
                     'サインアウト',
                     style: TextStyle(
-                      color: Colors.red,
+                      color: Colors.black,
                     ),
                   ),
                   onPressed: (context) async {
@@ -230,6 +298,21 @@ class _SettingsState extends State<Settings> {
                       context,
                       MaterialPageRoute(builder: (context) => WelcomePage()),
                     );
+                  },
+                ),
+                SettingsTile.navigation(
+                  leading: const Icon(
+                    Icons.waving_hand_sharp,
+                    color: Colors.red,
+                  ),
+                  title: const Text(
+                    'アカウント削除',
+                    style: TextStyle(
+                      color: Colors.red,
+                    ),
+                  ),
+                  onPressed: (context) {
+                    _showDeleteAccountDialog();
                   },
                 ),
               ],

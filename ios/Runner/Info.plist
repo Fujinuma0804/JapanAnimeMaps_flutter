@@ -80,8 +80,6 @@
       <string>fetch</string>
       <string>remote-notification</string>
     </array>
-    <key>NSUserTrackingUsageDescription</key>
-    <string>We will use your data to provide better services</string>
     <key>UIRequiredDeviceCapabilities</key>
     <array>
       <string>arm64</string>

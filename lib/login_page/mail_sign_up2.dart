@@ -177,8 +177,8 @@ class _SecondSignUpPageState extends State<SecondSignUpPage> {
                               ),
                               decoration: InputDecoration(
                                 labelText: _language == '日本語'
-                                    ? '名前を入力'
-                                    : 'Enter Your Name',
+                                    ? '名前を入力 (任意)'
+                                    : 'Enter Your Name (Optional)',
                                 labelStyle: const TextStyle(
                                   color: Colors.white,
                                 ),
@@ -216,8 +216,8 @@ class _SecondSignUpPageState extends State<SecondSignUpPage> {
                                 child: TextFormField(
                                   decoration: InputDecoration(
                                     labelText: _language == '日本語'
-                                        ? '誕生日を選択'
-                                        : 'Select Birthday',
+                                        ? '誕生日を選択 (任意)'
+                                        : 'Select Birthday (Optional)',
                                     labelStyle: const TextStyle(
                                       color: Colors.white,
                                     ),
@@ -296,12 +296,12 @@ class _SecondSignUpPageState extends State<SecondSignUpPage> {
   }
 
   void _next() async {
-    if (id.isEmpty || name.isEmpty || selectedDate == null) {
+    if (id.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(_language == '日本語'
-              ? '全てのフィールドを入力してください。'
-              : 'Please fill in all fields.'),
+              ? 'ユーザーIDを入力してください。'
+              : 'Please enter a User ID.'),
         ),
       );
       return;
@@ -312,15 +312,23 @@ class _SecondSignUpPageState extends State<SecondSignUpPage> {
     });
 
     try {
+      Map<String, dynamic> userData = {
+        'id': id,
+        'created_at': FieldValue.serverTimestamp(),
+      };
+
+      if (name.isNotEmpty) {
+        userData['name'] = name;
+      }
+
+      if (selectedDate != null) {
+        userData['birthday'] = selectedDate;
+      }
+
       await _firestore
           .collection('users')
           .doc(widget.userCredential.user?.uid)
-          .update({
-        'name': name,
-        'id': id,
-        'birthday': selectedDate,
-        'created_at': FieldValue.serverTimestamp(),
-      });
+          .update(userData);
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
