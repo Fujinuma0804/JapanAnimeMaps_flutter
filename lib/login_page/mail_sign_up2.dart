@@ -29,6 +29,7 @@ class _SecondSignUpPageState extends State<SecondSignUpPage> {
   @override
   void initState() {
     super.initState();
+    _language = '日本語';
     _loadUserLanguage();
   }
 
@@ -41,6 +42,11 @@ class _SecondSignUpPageState extends State<SecondSignUpPage> {
     if (userDoc.exists && userDoc['language'] != null) {
       setState(() {
         _language = userDoc['language'];
+      });
+    } else {
+      // ユーザーのドキュメントが存在しないか、言語設定がない場合、日本語をデフォルトとする
+      setState(() {
+        _language = '日本語';
       });
     }
   }
@@ -104,7 +110,7 @@ class _SecondSignUpPageState extends State<SecondSignUpPage> {
         children: [
           Positioned.fill(
             child: Image.asset(
-              'assets/images/sky10.png',
+              'assets/images/login.png',
               fit: BoxFit.cover,
             ),
           ),

@@ -21,7 +21,7 @@ class _WelcomePageState extends State<WelcomePage> {
             // 背景画像
             Positioned.fill(
               child: Image.asset(
-                'assets/images/sky8.png',
+                'assets/images/welcome.png',
                 fit: BoxFit.cover,
               ),
             ),
@@ -36,7 +36,7 @@ class _WelcomePageState extends State<WelcomePage> {
                 child: const Text(
                   'start',
                   style: TextStyle(
-                    color: Colors.white,
+                    color: Colors.black,
                     fontSize: 30,
                     fontWeight: FontWeight.bold,
                     shadows: [

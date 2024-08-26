@@ -38,7 +38,7 @@ class _MailLoginPageState extends State<MailLoginPage> {
         children: [
           Positioned.fill(
             child: Image.asset(
-              'assets/images/sky10.png',
+              'assets/images/login.png',
               fit: BoxFit.cover,
             ),
           ),
@@ -268,7 +268,7 @@ Future<void> _showPasswordResetDialog(BuildContext context) async {
           child: Text(
             'パスワードリセット',
             style: TextStyle(
-              color: Colors.black,
+              color: Color(0xFF00008b),
               fontWeight: FontWeight.bold,
             ),
           ),
@@ -321,7 +321,7 @@ Future<void> _showPasswordResetDialog(BuildContext context) async {
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.black,
+              backgroundColor: Color(0xFF00008b),
             ),
             onPressed: () async {
               String email = emailController.text.trim();

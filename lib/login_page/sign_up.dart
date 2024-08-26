@@ -160,6 +160,99 @@ class _SignUpPageState extends State<SignUpPage> {
     }
   }
 
+  Future<void> _signInAnonymously() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      UserCredential userCredential = await _auth.signInAnonymously();
+
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(userCredential.user?.uid)
+          .set({
+        'isGuest': true,
+        'language': '日本語',
+      });
+
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (context) => MainScreen()),
+      );
+    } catch (e) {
+      print('Error signing in anonymously: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('ゲストログインに失敗しました。もう一度お試しください。'),
+        ),
+      );
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _showGuestWarningDialog() async {
+    return showDialog<void>(
+      context: context,
+      barrierDismissible: false, // ダイアログ外をタップしても閉じないようにする
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text(
+            'ゲスト利用の注意',
+            style: TextStyle(
+              color: Color(0xFF00008b),
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          content: SingleChildScrollView(
+            child: ListBody(
+              children: <Widget>[
+                Text('ゲストとして利用する場合、以下の制限があります：'),
+                SizedBox(height: 10),
+                Text('• データは端末に保存されません'),
+                Text('※ 30日が経過するとデータは削除されます。'),
+                Text('• アカウントやデータの復元はできません'),
+                Text('• 一部の機能が制限される可能性があります'),
+                Text('• チェックインをされてもポイントはお貯めいただけません'),
+                SizedBox(height: 10),
+                Text('続行されますか？'),
+              ],
+            ),
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: Text(
+                'キャンセル',
+                style: TextStyle(
+                  color: Colors.grey,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+            TextButton(
+              child: Text(
+                '続行',
+                style: TextStyle(
+                  color: Color(0xFF00008b),
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              onPressed: () {
+                Navigator.of(context).pop();
+                _signInAnonymously();
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   String generateNonce([int length = 32]) {
     final charset =
         '0123456789ABCDEFGHIJKLMNOPQRSTUVXYZabcdefghijklmnopqrstuvwxyz-._';
@@ -176,115 +269,139 @@ class _SignUpPageState extends State<SignUpPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Stack(
-        children: [
-          Positioned.fill(
-            child: Image.asset(
-              'assets/images/sky10.png',
-              fit: BoxFit.cover,
-            ),
-          ),
-          Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                SizedBox(
-                  width: 300.0,
-                  height: 50.0,
-                  child: ElevatedButton(
-                    onPressed: () {
-                      Navigator.of(context).push(
-                        elasticTransition(const MailSignUpPage()),
-                      );
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.transparent,
-                      side: const BorderSide(
-                        color: Colors.white,
-                        width: 1.5,
-                      ),
-                    ),
-                    child: const Text(
-                      'メールアドレスで登録',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
+    return WillPopScope(
+        onWillPop: () async => false,
+        child: Scaffold(
+          body: Stack(
+            children: [
+              Positioned.fill(
+                child: Image.asset(
+                  'assets/images/login.png',
+                  fit: BoxFit.cover,
                 ),
-                const SizedBox(height: 20.0),
-                SizedBox(
-                  width: 300.0,
-                  height: 50.0,
-                  child: ElevatedButton(
-                    onPressed: _isLoading ? null : _signInWithGoogle,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.transparent,
-                      side: const BorderSide(
-                        color: Colors.white,
-                        width: 1.5,
-                      ),
-                    ),
-                    child: const Text(
-                      'Googleで登録',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 20.0),
-                SizedBox(
-                  width: 300.0,
-                  height: 50.0,
-                  child: ElevatedButton(
-                    onPressed: _isLoading ? null : _signInWithApple,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.transparent,
-                      side: const BorderSide(
-                        color: Colors.white,
-                        width: 1.5,
-                      ),
-                    ),
-                    child: const Text(
-                      'Appleで登録',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 20.0),
-                TextButton(
-                  onPressed: () {
-                    Navigator.of(context).push(
-                      elasticTransition(const LoginPage()),
-                    );
-                  },
-                  child: const Text(
-                    'ログインはこちら',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          if (_isLoading)
-            Container(
-              color: Colors.black.withOpacity(0.5),
-              child: Center(
-                child: CircularProgressIndicator(),
               ),
-            ),
-        ],
-      ),
-    );
+              Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    SizedBox(
+                      width: 300.0,
+                      height: 50.0,
+                      child: ElevatedButton(
+                        onPressed: () {
+                          Navigator.of(context).push(
+                            elasticTransition(const MailSignUpPage()),
+                          );
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.transparent,
+                          side: const BorderSide(
+                            color: Colors.white,
+                            width: 1.5,
+                          ),
+                        ),
+                        child: const Text(
+                          'メールアドレスで登録',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 20.0),
+                    SizedBox(
+                      width: 300.0,
+                      height: 50.0,
+                      child: ElevatedButton(
+                        onPressed: _isLoading ? null : _signInWithGoogle,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.transparent,
+                          side: const BorderSide(
+                            color: Colors.white,
+                            width: 1.5,
+                          ),
+                        ),
+                        child: const Text(
+                          'Googleで登録',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 20.0),
+                    SizedBox(
+                      width: 300.0,
+                      height: 50.0,
+                      child: ElevatedButton(
+                        onPressed: _isLoading ? null : _signInWithApple,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.transparent,
+                          side: const BorderSide(
+                            color: Colors.white,
+                            width: 1.5,
+                          ),
+                        ),
+                        child: const Text(
+                          'Appleで登録',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 20.0),
+                    SizedBox(
+                      width: 300.0,
+                      height: 50.0,
+                      child: ElevatedButton(
+                        onPressed: _isLoading ? null : _showGuestWarningDialog,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.transparent,
+                          side: const BorderSide(
+                            color: Colors.white,
+                            width: 1.5,
+                          ),
+                        ),
+                        child: const Text(
+                          'ゲストで利用',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 20.0),
+                    TextButton(
+                      onPressed: () {
+                        Navigator.of(context).push(
+                          elasticTransition(const LoginPage()),
+                        );
+                      },
+                      child: const Text(
+                        'ログインはこちら',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (_isLoading)
+                Container(
+                  color: Colors.black.withOpacity(0.5),
+                  child: Center(
+                    child: CircularProgressIndicator(),
+                  ),
+                ),
+            ],
+          ),
+        ));
   }
 }

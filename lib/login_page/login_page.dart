@@ -186,7 +186,7 @@ class _LoginPageState extends State<LoginPage> {
           // 背景画像
           Positioned.fill(
             child: Image.asset(
-              'assets/images/sky10.png',
+              'assets/images/login.png',
               fit: BoxFit.cover,
             ),
           ),
