@@ -180,7 +180,7 @@ class SpotDetailScreen extends StatefulWidget {
     required this.sourceLink,
     required this.url,
     required this.subMedia,
-    required this.locationId, // 追加：ロケーションID
+    required this.locationId,
   }) : super(key: key);
 
   @override
@@ -287,42 +287,52 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
 
   Future<void> _checkIfFavorite() async {
     final user = FirebaseAuth.instance.currentUser;
-    if (user != null) {
-      final docSnapshot = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(user.uid)
-          .collection('favorites')
-          .doc(widget.locationId)
-          .get();
+    if (user != null && widget.locationId.isNotEmpty) {
+      try {
+        final docSnapshot = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .collection('favorites')
+            .doc(widget.locationId)
+            .get();
 
-      setState(() {
-        _isFavorite = docSnapshot.exists;
-      });
+        setState(() {
+          _isFavorite = docSnapshot.exists;
+        });
+      } catch (e) {
+        print('Error checking favorite status: $e');
+      }
     }
   }
 
   Future<void> _toggleFavorite() async {
     final user = FirebaseAuth.instance.currentUser;
-    if (user != null) {
-      final favoriteRef = FirebaseFirestore.instance
-          .collection('users')
-          .doc(user.uid)
-          .collection('favorites')
-          .doc(widget.locationId);
+    if (user != null && widget.locationId.isNotEmpty) {
+      try {
+        final favoriteRef = FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .collection('favorites')
+            .doc(widget.locationId);
 
-      setState(() {
-        _isFavorite = !_isFavorite;
-      });
-
-      if (_isFavorite) {
-        // お気に入りに追加
-        await favoriteRef.set({
-          'locationId': widget.locationId,
-          'timestamp': FieldValue.serverTimestamp(),
+        setState(() {
+          _isFavorite = !_isFavorite;
         });
-      } else {
-        // お気に入りから削除
-        await favoriteRef.delete();
+
+        if (_isFavorite) {
+          await favoriteRef.set({
+            'locationId': widget.locationId,
+            'timestamp': FieldValue.serverTimestamp(),
+          });
+        } else {
+          await favoriteRef.delete();
+        }
+      } catch (e) {
+        print('Error toggling favorite: $e');
+        // Revert the state if the operation fails
+        setState(() {
+          _isFavorite = !_isFavorite;
+        });
       }
     }
   }
@@ -351,6 +361,20 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (widget.locationId.isEmpty) {
+      return Scaffold(
+        appBar: AppBar(
+          title: Text(
+            'Error',
+          ),
+        ),
+        body: Center(
+          child: Text(
+            'Error: Invalid location ID',
+          ),
+        ),
+      );
+    }
     return Scaffold(
       appBar: AppBar(
         title: const Text(

@@ -295,7 +295,7 @@ class _AnimeListPageState extends State<AnimeListPage> {
                                 filteredAnimeData[index]['imageUrl'];
                             final key = index == 0 ? firstItemKey : GlobalKey();
                             return GestureDetector(
-                              key: key, // 各アイテムにキーを設定
+                              key: key,
                               onTap: () =>
                                   _navigateToDetails(context, animeName),
                               child: AnimeGridItem(
@@ -320,29 +320,36 @@ class _AnimeListPageState extends State<AnimeListPage> {
   }
 }
 
+// ... (前のコードは変更なし)
+
 class AnimeGridItem extends StatelessWidget {
   final String animeName;
   final String imageUrl;
 
-  const AnimeGridItem(
-      {Key? key, required this.animeName, required this.imageUrl})
-      : super(key: key);
+  const AnimeGridItem({
+    Key? key,
+    required this.animeName,
+    required this.imageUrl,
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
+        final textStyle = TextStyle(
+          fontSize: 12.0, // フォントサイズを小さくして、より多くのテキストを表示
+          fontWeight: FontWeight.bold,
+          height: 1.2,
+        );
+
         final textPainter = TextPainter(
-          text: TextSpan(
-            text: animeName,
-            style: TextStyle(fontSize: 14.0, fontWeight: FontWeight.bold),
-          ),
-          maxLines: 2,
+          text: TextSpan(text: animeName, style: textStyle),
+          maxLines: 3, // 最大3行まで表示を許可
           textDirection: TextDirection.ltr,
         )..layout(maxWidth: constraints.maxWidth);
 
         final textHeight = textPainter.height;
-        final itemHeight = 100 + textHeight + 12.0;
+        final itemHeight = 100 + textHeight + 16.0;
 
         return Container(
           height: itemHeight,
@@ -353,7 +360,7 @@ class AnimeGridItem extends StatelessWidget {
                 borderRadius: BorderRadius.circular(9.0),
                 child: CachedNetworkImage(
                   imageUrl: imageUrl,
-                  width: 200,
+                  width: constraints.maxWidth,
                   height: 100,
                   fit: BoxFit.cover,
                   placeholder: (context, url) => Container(
@@ -363,16 +370,13 @@ class AnimeGridItem extends StatelessWidget {
                   errorWidget: (context, url, error) => Icon(Icons.error),
                 ),
               ),
-              SizedBox(height: 4.0),
+              SizedBox(height: 8.0),
               Expanded(
                 child: Text(
                   animeName,
                   textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 14.0,
-                    fontWeight: FontWeight.bold,
-                  ),
-                  maxLines: 2,
+                  style: textStyle,
+                  maxLines: 3, // 最大3行まで表示
                   overflow: TextOverflow.ellipsis,
                 ),
               ),

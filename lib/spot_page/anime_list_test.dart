@@ -137,21 +137,21 @@ class _AnimeListTestPageState extends State<AnimeListTestPage>
   ];
 
   int _currentTabIndex = 0;
+  bool _isPrefectureDataFetched = false;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
-    _tabController.addListener(_handleTabChange); // タブ変更リスナーを追加
+    _tabController.addListener(_handleTabChange);
     _fetchAnimeData();
-    _fetchPrefectureData();
     _initTargets();
     WidgetsBinding.instance.addPostFrameCallback((_) => _showTutorial());
   }
 
   @override
   void dispose() {
-    _tabController.removeListener(_handleTabChange); // リスナーを削除
+    _tabController.removeListener(_handleTabChange);
     _tabController.dispose();
     _searchController.dispose();
     super.dispose();
@@ -162,6 +162,9 @@ class _AnimeListTestPageState extends State<AnimeListTestPage>
       setState(() {
         _currentTabIndex = _tabController.index;
       });
+      if (_currentTabIndex == 1 && !_isPrefectureDataFetched) {
+        _fetchPrefectureData();
+      }
     }
   }
 
@@ -280,6 +283,8 @@ class _AnimeListTestPageState extends State<AnimeListTestPage>
   }
 
   Future<void> _fetchPrefectureData() async {
+    if (_isPrefectureDataFetched) return;
+
     try {
       QuerySnapshot spotSnapshot =
           await firestore.collection('locations').get();
@@ -289,9 +294,6 @@ class _AnimeListTestPageState extends State<AnimeListTestPage>
         List<Map<String, dynamic>> prefSpots = spotSnapshot.docs
             .map((doc) {
               var data = doc.data() as Map<String, dynamic>;
-              print("Processing document: ${doc.id}");
-              print(
-                  "Latitude: ${data['latitude']}, Longitude: ${data['longitude']}");
               return {
                 'name': data['sourceTitle'] ?? '',
                 'imageUrl': data['imageUrl'] ?? '',
@@ -311,7 +313,9 @@ class _AnimeListTestPageState extends State<AnimeListTestPage>
         print("${prefSpots.length} spots added to $prefecture");
       }
 
-      setState(() {});
+      setState(() {
+        _isPrefectureDataFetched = true;
+      });
     } catch (e) {
       print("Error fetching prefecture data: $e");
     }
@@ -456,10 +460,13 @@ class _AnimeListTestPageState extends State<AnimeListTestPage>
           controller: _tabController,
           children: [
             _buildAnimeList(),
-            PrefectureListPage(
-              prefectureSpots: _prefectureSpots,
-              searchQuery: _searchQuery,
-            ),
+            _currentTabIndex == 1
+                ? PrefectureListPage(
+                    prefectureSpots: _prefectureSpots,
+                    searchQuery: _searchQuery,
+                    onFetchPrefectureData: _fetchPrefectureData,
+                  )
+                : Container(),
           ],
         ),
       ),
@@ -536,11 +543,13 @@ class _AnimeListTestPageState extends State<AnimeListTestPage>
 class PrefectureListPage extends StatefulWidget {
   final Map<String, List<Map<String, dynamic>>> prefectureSpots;
   final String searchQuery;
+  final Function onFetchPrefectureData;
 
   const PrefectureListPage({
     Key? key,
     required this.prefectureSpots,
     required this.searchQuery,
+    required this.onFetchPrefectureData,
   }) : super(key: key);
 
   @override
@@ -560,6 +569,12 @@ class _PrefectureListPageState extends State<PrefectureListPage> {
 
   Set<String> selectedPrefectures = {};
   String currentRegion = '';
+
+  @override
+  void initState() {
+    super.initState();
+    widget.onFetchPrefectureData();
+  }
 
   Future<String> getPrefectureImageUrl(String prefectureName) async {
     try {
@@ -690,38 +705,41 @@ class _PrefectureListPageState extends State<PrefectureListPage> {
           ),
         ),
         Expanded(
-          child: GridView.builder(
-            padding: EdgeInsets.all(16.0),
-            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
-              childAspectRatio: 1.3,
-              crossAxisSpacing: 10,
-              mainAxisSpacing: 10,
-            ),
-            itemCount: filteredPrefectures.length,
-            itemBuilder: (context, index) {
-              final prefecture = filteredPrefectures[index];
-              final spotCount = widget.prefectureSpots[prefecture]?.length ?? 0;
-              return GestureDetector(
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => PrefectureSpotListPage(
-                        prefecture: prefecture,
-                        spots: widget.prefectureSpots[prefecture] ?? [],
+          child: widget.prefectureSpots.isEmpty
+              ? Center(child: CircularProgressIndicator())
+              : GridView.builder(
+                  padding: EdgeInsets.all(16.0),
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    childAspectRatio: 1.3,
+                    crossAxisSpacing: 10,
+                    mainAxisSpacing: 10,
+                  ),
+                  itemCount: filteredPrefectures.length,
+                  itemBuilder: (context, index) {
+                    final prefecture = filteredPrefectures[index];
+                    final spotCount =
+                        widget.prefectureSpots[prefecture]?.length ?? 0;
+                    return GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => PrefectureSpotListPage(
+                              prefecture: prefecture,
+                              spots: widget.prefectureSpots[prefecture] ?? [],
+                            ),
+                          ),
+                        );
+                      },
+                      child: PrefectureGridItem(
+                        prefectureName: prefecture,
+                        spotCount: spotCount,
+                        getImageUrl: getPrefectureImageUrl,
                       ),
-                    ),
-                  );
-                },
-                child: PrefectureGridItem(
-                  prefectureName: prefecture,
-                  spotCount: spotCount,
-                  getImageUrl: getPrefectureImageUrl,
+                    );
+                  },
                 ),
-              );
-            },
-          ),
         ),
       ],
     );
@@ -856,11 +874,11 @@ class PrefectureSpotListPage extends StatelessWidget {
                       context,
                       MaterialPageRoute(
                         builder: (context) => SpotDetailScreen(
-                          title: spot['name'],
-                          imageUrl: spot['imageUrl'],
+                          title: spot['name'] ?? '',
+                          imageUrl: spot['imageUrl'] ?? '',
                           description: spot['description'] ?? '',
-                          latitude: spot['latitude'],
-                          longitude: spot['longitude'],
+                          latitude: spot['latitude'] ?? 0.0,
+                          longitude: spot['longitude'] ?? 0.0,
                           sourceLink: spot['sourceLink'] ?? '',
                           sourceTitle: spot['sourceTitle'] ?? '',
                           url: spot['url'] ?? '',

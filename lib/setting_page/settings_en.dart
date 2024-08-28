@@ -141,9 +141,8 @@ class _SettingsEnState extends State<SettingsEn> {
     );
   }
 
-  // アカウント削除の確認ダイアログを表示する関数
   Future<void> _showDeleteAccountDialog() async {
-    return showDialog<void>(
+    final bool? shouldDelete = await showDialog<bool>(
       context: context,
       barrierDismissible: false,
       builder: (BuildContext context) {
@@ -166,23 +165,25 @@ class _SettingsEnState extends State<SettingsEn> {
             TextButton(
               child: Text(_language == '日本語' ? 'キャンセル' : 'Cancel'),
               onPressed: () {
-                Navigator.of(context).pop();
+                Navigator.of(context).pop(false);
               },
             ),
             TextButton(
               child: Text(_language == '日本語' ? '削除' : 'Delete'),
               onPressed: () {
-                Navigator.of(context).pop();
-                _deleteAccount();
+                Navigator.of(context).pop(true);
               },
             ),
           ],
         );
       },
     );
+
+    if (shouldDelete == true) {
+      await _deleteAccount();
+    }
   }
 
-  // Firestoreからユーザーデータを削除する関数
   Future<void> _deleteUserData() async {
     User? user = FirebaseAuth.instance.currentUser;
     if (user != null) {
@@ -193,7 +194,6 @@ class _SettingsEnState extends State<SettingsEn> {
     }
   }
 
-  // Firebase Authenticationからユーザーを削除する関数
   Future<void> _deleteUserAuth() async {
     User? user = FirebaseAuth.instance.currentUser;
     if (user != null) {
@@ -201,23 +201,30 @@ class _SettingsEnState extends State<SettingsEn> {
     }
   }
 
-  // アカウント削除のメイン処理
   Future<void> _deleteAccount() async {
     try {
       await _deleteUserData();
       await _deleteUserAuth();
+
+      // コンテキストが有効かチェック
+      if (!mounted) return;
+
       // 削除成功後、ウェルカームページへ遷移
       Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(builder: (context) => WelcomePage()),
         (Route<dynamic> route) => false,
       );
     } catch (e) {
+      // コンテキストが有効かチェック
+      if (!mounted) return;
+
       // エラーハンドリング
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-            content: Text(_language == '日本語'
-                ? 'アカウントの削除に失敗しました。再度お試しください。'
-                : 'Failed to delete account. Please try again.')),
+          content: Text(_language == '日本語'
+              ? 'アカウントの削除に失敗しました。再度お試しください。'
+              : 'Failed to delete account. Please try again.'),
+        ),
       );
     }
   }
