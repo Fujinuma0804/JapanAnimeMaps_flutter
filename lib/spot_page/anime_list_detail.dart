@@ -24,8 +24,10 @@ class AnimeDetailsPage extends StatelessWidget {
 
       for (var doc in snapshot.docs) {
         var data = doc.data() as Map<String, dynamic>;
+        print("Fetched document ID: ${doc.id}"); // 追加
+        print("Fetched document data: $data"); // 追加
         locations.add({
-          'id': doc.id, // ドキュメントIDを追加
+          'id': doc.id,
           'title': data['title'] ?? '',
           'imageUrl': data['imageUrl'] ?? '',
           'description': data['description'] ?? '',
@@ -84,6 +86,8 @@ class AnimeDetailsPage extends StatelessWidget {
 
                 return GestureDetector(
                   onTap: () {
+                    print(
+                        "Navigating to SpotDetailScreen with locationId: $locationId"); // 追加
                     Navigator.push(
                       context,
                       MaterialPageRoute(

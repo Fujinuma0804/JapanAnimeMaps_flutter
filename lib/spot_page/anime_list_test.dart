@@ -503,7 +503,9 @@ class _AnimeListTestPageState extends State<AnimeListTestPage>
           child: _allAnimeData.isEmpty
               ? Center(child: CircularProgressIndicator())
               : filteredAnimeData.isEmpty
-                  ? Center(child: Text('何も見つかりませんでした。。'))
+                  ? Center(
+                      child: Text('何も見つかりませんでした。。'),
+                    )
                   : GridView.builder(
                       padding: EdgeInsets.only(bottom: 16.0),
                       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
@@ -578,7 +580,6 @@ class _PrefectureListPageState extends State<PrefectureListPage> {
 
   Future<String> getPrefectureImageUrl(String prefectureName) async {
     try {
-      // prefecturesフォルダ内の画像を参照
       final ref = storage.ref().child('prefectures/$prefectureName.jpg');
       return await ref.getDownloadURL();
     } catch (e) {
@@ -587,18 +588,35 @@ class _PrefectureListPageState extends State<PrefectureListPage> {
     }
   }
 
+  List<String> getFilteredPrefectures() {
+    return widget.prefectureSpots.keys.where((prefecture) {
+      bool matchesSearch =
+          prefecture.toLowerCase().contains(widget.searchQuery.toLowerCase()) ||
+              (widget.prefectureSpots[prefecture]?.any((spot) {
+                    bool animeMatch = spot['anime']
+                            ?.toString()
+                            .toLowerCase()
+                            .contains(widget.searchQuery.toLowerCase()) ??
+                        false;
+                    bool nameMatch = spot['name']
+                            ?.toString()
+                            .toLowerCase()
+                            .contains(widget.searchQuery.toLowerCase()) ??
+                        false;
+                    return animeMatch || nameMatch;
+                  }) ??
+                  false); // explicitly set to false if null
+
+      bool matchesRegion = selectedPrefectures.isEmpty ||
+          selectedPrefectures.contains(prefecture);
+
+      return matchesSearch && matchesRegion;
+    }).toList();
+  }
+
   @override
   Widget build(BuildContext context) {
-    List<String> filteredPrefectures = widget.prefectureSpots.keys
-        .where((prefecture) =>
-            prefecture
-                .toLowerCase()
-                .contains(widget.searchQuery.toLowerCase()) ||
-            (widget.prefectureSpots[prefecture]?.any((spot) => spot['anime']
-                    .toLowerCase()
-                    .contains(widget.searchQuery.toLowerCase())) ??
-                false))
-        .toList();
+    List<String> filteredPrefectures = getFilteredPrefectures();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -640,7 +658,11 @@ class _PrefectureListPageState extends State<PrefectureListPage> {
                     onChanged: (String? newValue) {
                       if (newValue != null) {
                         setState(() {
-                          selectedPrefectures.add(newValue);
+                          if (selectedPrefectures.contains(newValue)) {
+                            selectedPrefectures.remove(newValue);
+                          } else {
+                            selectedPrefectures.add(newValue);
+                          }
                           currentRegion = region;
                         });
                       }
@@ -653,7 +675,7 @@ class _PrefectureListPageState extends State<PrefectureListPage> {
         ),
         Container(
           padding: EdgeInsets.all(8.0),
-          color: Color(0xFFE6E6FA), // 薄い紫色
+          color: Color(0xFFE6E6FA),
           child: Row(
             children: [
               Icon(Icons.place, color: Color(0xFF00008b)),
@@ -685,6 +707,7 @@ class _PrefectureListPageState extends State<PrefectureListPage> {
                 onPressed: () {
                   setState(() {
                     selectedPrefectures.clear();
+                    currentRegion = '';
                   });
                 },
                 style: ElevatedButton.styleFrom(
@@ -824,14 +847,21 @@ class PrefectureSpotListPage extends StatelessWidget {
   final String prefecture;
   final List<Map<String, dynamic>> spots;
 
-  const PrefectureSpotListPage({
+  PrefectureSpotListPage({
     Key? key,
     required this.prefecture,
     required this.spots,
-  }) : super(key: key);
+  }) : super(key: key) {
+    print('Debug: PrefectureSpotListPage constructor');
+    print('Prefecture: $prefecture');
+    print('Number of spots: ${spots.length}');
+  }
 
   @override
   Widget build(BuildContext context) {
+    print('Debug: PrefectureSpotListPage build method');
+    print('Building for prefecture: $prefecture');
+    print('Number of spots: ${spots.length}');
     return Scaffold(
       appBar: AppBar(
         title: Text(
@@ -858,40 +888,60 @@ class PrefectureSpotListPage extends StatelessWidget {
           ),
           Expanded(
             child: GridView.builder(
-              padding: EdgeInsets.all(8.0),
+              padding: EdgeInsets.only(bottom: 16.0),
               gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: 2,
-                childAspectRatio: 0.75,
-                crossAxisSpacing: 10,
-                mainAxisSpacing: 10,
+                childAspectRatio: 1.3,
+                crossAxisSpacing: 1.0,
+                mainAxisSpacing: 3.0,
               ),
               itemCount: spots.length,
               itemBuilder: (context, index) {
+                print('Debug: Building grid item at index $index');
                 final spot = spots[index];
+                print('Spot data: ${spot.toString()}');
+
+                final locationId = spot['locationID']?.toString() ?? '';
+                final title = spot['title'] as String? ?? 'No Title';
+                final animeName = spot['anime'] as String? ?? 'Unknown Anime';
+                final imageUrl = spot['imageUrl'] as String? ?? '';
+
+                print('LocationID: $locationId');
+                print('Title: $title');
+                print('Anime Name: $animeName');
+                print('Image URL: $imageUrl');
+
                 return GestureDetector(
                   onTap: () {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
                         builder: (context) => SpotDetailScreen(
-                          title: spot['name'] ?? '',
-                          imageUrl: spot['imageUrl'] ?? '',
-                          description: spot['description'] ?? '',
-                          latitude: spot['latitude'] ?? 0.0,
-                          longitude: spot['longitude'] ?? 0.0,
-                          sourceLink: spot['sourceLink'] ?? '',
-                          sourceTitle: spot['sourceTitle'] ?? '',
-                          url: spot['url'] ?? '',
-                          subMedia: spot['subMedia'] ?? [],
-                          locationId: spot['id'] ?? '',
+                          title: spot['title'] as String? ?? '',
+                          imageUrl: spot['imageUrl'] as String? ?? '',
+                          description: spot['description'] as String? ?? '',
+                          latitude:
+                              (spot['latitude'] as num?)?.toDouble() ?? 0.0,
+                          longitude:
+                              (spot['longitude'] as num?)?.toDouble() ?? 0.0,
+                          sourceLink: spot['sourceLink'] as String? ?? '',
+                          sourceTitle: spot['sourceTitle'] as String? ?? '',
+                          url: spot['url'] as String? ?? '',
+                          subMedia: (spot['subMedia'] as List?)
+                                  ?.where(
+                                      (item) => item is Map<String, dynamic>)
+                                  .cast<Map<String, dynamic>>()
+                                  .toList() ??
+                              [],
+                          locationId: locationId,
                         ),
                       ),
                     );
                   },
                   child: SpotGridItem(
-                    spotName: spot['name'],
-                    animeName: spot['anime'],
-                    imageUrl: spot['imageUrl'],
+                    title: spot['title'] as String? ?? '', // ここを修正
+                    animeName: spot['anime'] as String? ?? '',
+                    imageUrl: spot['imageUrl'] as String? ?? '',
                   ),
                 );
               },
@@ -904,13 +954,13 @@ class PrefectureSpotListPage extends StatelessWidget {
 }
 
 class SpotGridItem extends StatelessWidget {
-  final String spotName;
+  final String title;
   final String animeName;
   final String imageUrl;
 
-  const SpotGridItem({
+  SpotGridItem({
     Key? key,
-    required this.spotName,
+    required this.title,
     required this.animeName,
     required this.imageUrl,
   }) : super(key: key);
@@ -936,12 +986,10 @@ class SpotGridItem extends StatelessWidget {
                   color: Colors.grey[200],
                   child: Center(child: CircularProgressIndicator()),
                 ),
-                errorWidget: (context, error, stackTrace) {
-                  return Container(
-                    color: Colors.grey[200],
-                    child: Icon(Icons.image_not_supported, size: 50),
-                  );
-                },
+                errorWidget: (context, url, error) => Container(
+                  color: Colors.grey[200],
+                  child: Icon(Icons.image_not_supported, size: 50),
+                ),
               ),
             ),
           ),
@@ -951,7 +999,7 @@ class SpotGridItem extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  spotName,
+                  title,
                   style: TextStyle(
                     fontSize: 14.0,
                     fontWeight: FontWeight.bold,
