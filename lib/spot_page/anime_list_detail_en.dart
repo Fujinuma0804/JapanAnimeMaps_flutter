@@ -26,6 +26,14 @@ class _AnimeDetailsEnPageState extends State<AnimeDetailsEnPage> {
   bool _isLoading = true;
   String? _translatedAnimeName;
 
+  double _getResponsiveFontSize(BuildContext context, double baseSize) {
+    double screenWidth = MediaQuery.of(context).size.width;
+    double scaleFactor =
+        screenWidth / 375; // 375 is used as a base width (iPhone 6/7/8)
+    return baseSize *
+        scaleFactor.clamp(0.8, 1.2); // Limit scaling between 80% and 120%
+  }
+
   @override
   void initState() {
     super.initState();
@@ -99,14 +107,21 @@ class _AnimeDetailsEnPageState extends State<AnimeDetailsEnPage> {
           style: TextStyle(
             color: Color(0xFF00008b),
             fontWeight: FontWeight.bold,
+            fontSize: _getResponsiveFontSize(context, 18),
           ),
+          maxLines: 2, // 2行まで表示を許可
+          overflow: TextOverflow.ellipsis, // 2行を超える場合は省略
         ),
       ),
       body: _isLoading
           ? Center(child: CircularProgressIndicator())
           : _locations.isEmpty
               ? Center(
-                  child: Text('No locations found for ${widget.animeName}.'))
+                  child: Text(
+                  'No locations found for ${widget.animeName}.',
+                  style:
+                      TextStyle(fontSize: _getResponsiveFontSize(context, 16)),
+                ))
               : GridView.builder(
                   gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                     crossAxisCount: 2,
@@ -144,16 +159,16 @@ class _AnimeDetailsEnPageState extends State<AnimeDetailsEnPage> {
                                 ),
                               ),
                             ),
-                            SizedBox(height: 8.0),
+                            SizedBox(height: 5.0),
                             Text(
                               location['translatedTitle'],
                               textAlign: TextAlign.center,
                               style: TextStyle(
-                                fontSize: 14.0,
+                                fontSize: _getResponsiveFontSize(context, 10),
                                 fontWeight: FontWeight.bold,
                               ),
                               overflow: TextOverflow.ellipsis,
-                              maxLines: 1,
+                              maxLines: 2,
                             ),
                           ],
                         ),
@@ -224,6 +239,14 @@ class _SpotDetailEnScreenState extends State<SpotDetailEnScreen> {
   bool _isPipClosed = false; // 新しい変数を追加
   bool _isFavorite = false;
   final translator = GoogleTranslator();
+
+  double _getResponsiveFontSize(BuildContext context, double baseSize) {
+    double screenWidth = MediaQuery.of(context).size.width;
+    double scaleFactor =
+        screenWidth / 375; // 375 is used as a base width (iPhone 6/7/8)
+    return baseSize *
+        scaleFactor.clamp(0.8, 1.2); // Limit scaling between 80% and 120%
+  }
 
   Future<String> translateToEnglish(String text) async {
     try {
@@ -403,13 +426,16 @@ class _SpotDetailEnScreenState extends State<SpotDetailEnScreen> {
           future: translateToEnglish('Details'),
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
-              return Text('Translating...');
+              return Text('Translating...',
+                  style:
+                      TextStyle(fontSize: _getResponsiveFontSize(context, 18)));
             }
             return Text(
               snapshot.data ?? 'Details',
               style: TextStyle(
                 color: Color(0xFF00008b),
                 fontWeight: FontWeight.bold,
+                fontSize: _getResponsiveFontSize(context, 20),
               ),
             );
           },
@@ -450,8 +476,10 @@ class _SpotDetailEnScreenState extends State<SpotDetailEnScreen> {
                     padding: const EdgeInsets.all(16.0),
                     child: Text(
                       widget.title,
-                      style: const TextStyle(
-                          fontSize: 24, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                        fontSize: _getResponsiveFontSize(context, 24),
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
                   Padding(
@@ -605,6 +633,9 @@ class _SpotDetailEnScreenState extends State<SpotDetailEnScreen> {
                                             color: Colors.white,
                                             fontSize: 14,
                                           ),
+                                          maxLines: 3, // 3行まで表示を許可
+                                          overflow: TextOverflow
+                                              .ellipsis, // 3行を超える場合は省略
                                         ),
                                       ],
                                     ),
@@ -633,11 +664,13 @@ class _SpotDetailEnScreenState extends State<SpotDetailEnScreen> {
                   Padding(
                     padding: const EdgeInsets.all(16.0),
                     child: Text(
-                      widget.description,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        color: Colors.black,
+                      widget.title,
+                      style: TextStyle(
+                        fontSize: _getResponsiveFontSize(context, 24),
+                        fontWeight: FontWeight.bold,
                       ),
+                      maxLines: 3, // 3行まで表示を許可
+                      overflow: TextOverflow.ellipsis, // 3行を超える場合は省略
                     ),
                   ),
                   Padding(
@@ -649,15 +682,19 @@ class _SpotDetailEnScreenState extends State<SpotDetailEnScreen> {
                           widget.sourceTitle,
                           style: TextStyle(
                             color: Colors.grey,
-                            fontSize: 10.0,
+                            fontSize: _getResponsiveFontSize(context, 10),
                           ),
+                          maxLines: 2, // 2行まで表示を許可
+                          overflow: TextOverflow.ellipsis, // 2行を超える場合は省略
                         ),
                         Text(
                           widget.sourceLink,
                           style: TextStyle(
                             color: Colors.grey,
-                            fontSize: 10.0,
+                            fontSize: _getResponsiveFontSize(context, 10),
                           ),
+                          maxLines: 2, // 2行まで表示を許可
+                          overflow: TextOverflow.ellipsis, // 2行を超える場合は省略
                         ),
                       ],
                     ),

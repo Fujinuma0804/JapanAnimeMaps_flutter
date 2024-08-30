@@ -2,12 +2,12 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_vibrate/flutter_vibrate.dart';
-import 'package:parts/spot_page/anime_list_test.dart';
 
 import '../manual_page/manual_en.dart';
 import '../map_page/map.dart';
 import '../map_page/map_en.dart';
 import '../point_page/point_en.dart';
+import '../spot_page/anime_list.dart';
 import '../spot_page/anime_list_en.dart';
 import '../web_page/website.dart';
 import '../web_page/website_en.dart';
@@ -136,9 +136,7 @@ class _MainScreenState extends State<MainScreen> {
               });
             },
             children: [
-              _userLanguage == 'Japanese'
-                  ? AnimeListTestPage()
-                  : AnimeListEnPage(),
+              _userLanguage == 'Japanese' ? AnimeListPage() : AnimeListEnPage(),
               _userLanguage == 'Japanese' ? WebsiteScreen() : WebsiteEnScreen(),
               _userLanguage == 'Japanese'
                   ? MapScreen(latitude: _latitude, longitude: _longitude)

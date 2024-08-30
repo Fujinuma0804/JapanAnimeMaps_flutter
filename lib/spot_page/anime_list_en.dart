@@ -1,3 +1,4 @@
+import 'package:auto_size_text/auto_size_text.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
@@ -343,48 +344,42 @@ class AnimeGridItem extends StatelessWidget {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final textPainter = TextPainter(
-          text: TextSpan(
-            text: animeName,
-            style: TextStyle(fontSize: 14.0, fontWeight: FontWeight.bold),
-          ),
-          maxLines: 2,
-          textDirection: TextDirection.ltr,
-        )..layout(maxWidth: constraints.maxWidth);
-
-        final textHeight = textPainter.height;
-        final itemHeight = 100 + textHeight + 12.0;
-
         return Container(
-          height: itemHeight,
           padding: const EdgeInsets.all(4.0),
           child: Column(
             children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(9.0),
-                child: CachedNetworkImage(
-                  imageUrl: imageUrl,
-                  width: 200,
-                  height: 100,
-                  fit: BoxFit.cover,
-                  placeholder: (context, url) => Container(
-                    color: Colors.grey[300],
-                    child: Center(child: CircularProgressIndicator()),
+              Expanded(
+                flex: 7,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(9.0),
+                  child: CachedNetworkImage(
+                    imageUrl: imageUrl,
+                    width: double.infinity,
+                    fit: BoxFit.cover,
+                    placeholder: (context, url) => Container(
+                      color: Colors.grey[300],
+                      child: Center(child: CircularProgressIndicator()),
+                    ),
+                    errorWidget: (context, url, error) => Icon(Icons.error),
                   ),
-                  errorWidget: (context, url, error) => Icon(Icons.error),
                 ),
               ),
               SizedBox(height: 4.0),
               Expanded(
-                child: Text(
-                  animeName,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 14.0,
-                    fontWeight: FontWeight.bold,
+                flex: 3,
+                child: Center(
+                  child: AutoSizeText(
+                    animeName,
+                    style: TextStyle(
+                      fontSize: 14.0,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    maxLines: 2,
+                    textAlign: TextAlign.center,
+                    minFontSize: 8.0,
+                    maxFontSize: 14.0,
+                    overflow: TextOverflow.ellipsis,
                   ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
                 ),
               ),
             ],

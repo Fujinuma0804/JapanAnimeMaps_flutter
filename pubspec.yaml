@@ -79,6 +79,7 @@ dependencies:
   tutorial_coach_mark: ^1.2.11
   flutter_local_notifications: ^17.2.2
   firebase_messaging: ^14.9.4
+  auto_size_text: ^3.0.0
 
 dev_dependencies:
   flutter_test:
