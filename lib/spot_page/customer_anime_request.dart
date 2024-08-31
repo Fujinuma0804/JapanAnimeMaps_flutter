@@ -22,6 +22,9 @@ class _AnimeRequestCustomerFormState extends State<AnimeRequestCustomerForm> {
   final TextEditingController _locationController = TextEditingController();
   final TextEditingController _latitudeController = TextEditingController();
   final TextEditingController _longitudeController = TextEditingController();
+  final TextEditingController _referenceLinkController =
+      TextEditingController();
+  final TextEditingController _notesController = TextEditingController();
 
   XFile? _animeImage;
   XFile? _userImage;
@@ -46,6 +49,8 @@ class _AnimeRequestCustomerFormState extends State<AnimeRequestCustomerForm> {
     _locationController.clear();
     _latitudeController.clear();
     _longitudeController.clear();
+    _referenceLinkController.clear();
+    _notesController.clear();
     setState(() {
       _animeImage = null;
       _userImage = null;
@@ -102,6 +107,8 @@ class _AnimeRequestCustomerFormState extends State<AnimeRequestCustomerForm> {
           'location': _locationController.text,
           'latitude': _latitudeController.text,
           'longitude': _longitudeController.text,
+          'referenceLink': _referenceLinkController.text,
+          'notes': _notesController.text,
           'userEmail': user.email,
           'animeImageUrl': animeImageUrl,
           'userImageUrl': userImageUrl,
@@ -232,24 +239,56 @@ class _AnimeRequestCustomerFormState extends State<AnimeRequestCustomerForm> {
                   decoration: InputDecoration(labelText: '経度（任意）'),
                   keyboardType: TextInputType.number,
                 ),
+                TextFormField(
+                  controller: _referenceLinkController,
+                  decoration: InputDecoration(labelText: '参照リンク（任意）'),
+                  keyboardType: TextInputType.url,
+                ),
+                TextFormField(
+                  controller: _notesController,
+                  decoration: InputDecoration(labelText: '備考（任意）'),
+                  maxLines: 3,
+                ),
                 const SizedBox(height: 15.0),
-                ElevatedButton(
+                ElevatedButton.icon(
                   onPressed: () => _pickImage(false),
-                  child: Text(
-                    '撮影した画像をアップロード（任意）',
+                  icon: Icon(
+                    _userImage != null
+                        ? Icons.check_circle
+                        : Icons.add_photo_alternate,
+                    color:
+                        _userImage != null ? Colors.green : Color(0xFF00008b),
+                  ),
+                  label: Text(
+                    _userImage != null ? '撮影した画像を変更' : '撮影した画像をアップロード（任意）',
                     style: TextStyle(
                       color: Color(0xFF00008b),
                     ),
                   ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor:
+                        _userImage != null ? Colors.grey[200] : null,
+                  ),
                 ),
                 const SizedBox(height: 15.0),
-                ElevatedButton(
+                ElevatedButton.icon(
                   onPressed: () => _pickImage(true),
-                  child: Text(
-                    'アニメ画像をアップロード（任意）',
+                  icon: Icon(
+                    _animeImage != null
+                        ? Icons.check_circle
+                        : Icons.add_photo_alternate,
+                    color:
+                        _animeImage != null ? Colors.green : Color(0xFF00008b),
+                  ),
+                  label: Text(
+                    _animeImage != null ? 'アニメ画像を変更' : 'アニメ画像をアップロード（任意）',
                     style: TextStyle(
                       color: Color(0xFF00008b),
                     ),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor:
+                        _animeImage != null ? Colors.grey[200] : null,
                   ),
                 ),
                 const SizedBox(height: 20),

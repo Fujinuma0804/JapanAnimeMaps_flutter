@@ -1,10 +1,14 @@
+import 'dart:async';
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:parts/spot_page/check_in.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:tutorial_coach_mark/tutorial_coach_mark.dart';
 
+import '../login_page/sign_up.dart';
 import 'anime_list_detail.dart';
 import 'customer_anime_request.dart';
 import 'liked_post.dart';
@@ -244,10 +248,110 @@ class _AnimeListPageState extends State<AnimeListPage> {
                 color: Color(0xFF00008b),
               ),
               onPressed: () {
-                Navigator.push(
+                // 現在のユーザーを取得
+                User? user = FirebaseAuth.instance.currentUser;
+
+                // 匿名ユーザーの場合の処理
+                if (user != null && user.isAnonymous) {
+                  // 匿名ユーザー向けの画面を表示
+                  Navigator.push(
                     context,
                     MaterialPageRoute(
-                        builder: (context) => AnimeRequestCustomerForm()));
+                      builder: (context) => WillPopScope(
+                        onWillPop: () async => false,
+                        child: Scaffold(
+                          appBar: AppBar(
+                            leading: IconButton(
+                              icon: Icon(Icons.arrow_back,
+                                  color: Color(0xFF00008b)),
+                              onPressed: () {
+                                Navigator.pop(context); // 戻る処理
+                              },
+                            ),
+                            automaticallyImplyLeading: false,
+                            backgroundColor: Colors.white,
+                            title: Text(
+                              '登録が必要です',
+                              style: const TextStyle(
+                                color: Color(0xFF00008b),
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                          body: Container(
+                            width: double.infinity,
+                            height: double.infinity,
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                colors: [
+                                  Colors.blueAccent.shade100,
+                                  Colors.blue.shade200
+                                ],
+                                begin: Alignment.topCenter,
+                                end: Alignment.bottomCenter,
+                              ),
+                            ),
+                            child: Padding(
+                              padding: const EdgeInsets.all(16.0),
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.person_outline,
+                                    size: 100,
+                                    color: Colors.white.withOpacity(0.8),
+                                  ),
+                                  const SizedBox(height: 20),
+                                  Text(
+                                    '現在、ゲストログインでご利用いただいております。\nそのため、ポイントをお貯めいただけません。\n以下より登録をお願いします。',
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      color: Colors.white.withOpacity(0.9),
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 30),
+                                  ElevatedButton(
+                                    style: ElevatedButton.styleFrom(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 40, vertical: 15),
+                                      backgroundColor: Colors.orangeAccent,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(20),
+                                      ),
+                                    ),
+                                    onPressed: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                            builder: (context) =>
+                                                const SignUpPage()),
+                                      );
+                                    },
+                                    child: Text(
+                                      '登録はこちら',
+                                      style: const TextStyle(fontSize: 16),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                } else {
+                  // 通常のユーザーはリクエストフォーム画面に遷移
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => AnimeRequestCustomerForm(),
+                    ),
+                  );
+                }
               },
             ),
             IconButton(

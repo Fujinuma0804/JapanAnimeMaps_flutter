@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
 class CustomerRequestHistory extends StatefulWidget {
   @override
@@ -170,49 +171,176 @@ class DetailScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          data['animeName'] ?? '未入力',
+          data['animeName'] ?? '',
           style: TextStyle(
             color: Color(0xFF00008b),
             fontWeight: FontWeight.bold,
           ),
         ),
+        elevation: 0,
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'アニメ名: ${data['animeName'] ?? '未入力'}',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                ),
+      body: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      if (data['animeImageUrl'] != null)
+                        Expanded(
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: Image.network(
+                              data['animeImageUrl'],
+                              fit: BoxFit.cover,
+                              height: 150,
+                            ),
+                          ),
+                        ),
+                      SizedBox(width: 8),
+                      if (data['userImageUrl'] != null)
+                        Expanded(
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: Image.network(
+                              data['userImageUrl'],
+                              fit: BoxFit.cover,
+                              height: 150,
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                  SizedBox(height: 16),
+                  Text(
+                    data['animeName'] ?? '',
+                    style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  SizedBox(height: 8),
+                  Container(
+                    padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: getStatusColor(data['status']),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Text(
+                      getStatusText(data['status']),
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                  SizedBox(height: 16),
+                  InfoTile(
+                    icon: Icons.calendar_today,
+                    title: 'リクエスト日時',
+                    content: data['timestamp'] != null
+                        ? DateFormat('yyyy/MM/dd HH:mm')
+                            .format((data['timestamp'] as Timestamp).toDate())
+                        : '',
+                  ),
+                  SizedBox(height: 8),
+                  InfoTile(
+                    icon: Icons.movie,
+                    title: 'シーン',
+                    content: data['scene'] ?? '',
+                  ),
+                  SizedBox(height: 8),
+                  InfoTile(
+                    icon: Icons.location_on,
+                    title: '場所',
+                    content: data['location'] ?? '',
+                  ),
+                  if (data['latitude'] != null && data['longitude'] != null)
+                    Padding(
+                      padding: const EdgeInsets.only(left: 28.0),
+                      child: Text(
+                        '緯度: ${data['latitude']}\n経度: ${data['longitude']}',
+                        style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+                      ),
+                    ),
+                  SizedBox(height: 32),
+                  Text(
+                    'コメント',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  SizedBox(height: 8),
+                  Container(
+                    padding: EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.grey[200],
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      (data.data() as Map<String, dynamic>?)
+                                  ?.containsKey('comment') ==
+                              true
+                          ? data['comment']
+                          : 'コメントはありません',
+                    ),
+                  ),
+                ],
               ),
-              Text(
-                'ステータス: ${getStatusText(data['status'])}',
-                style: TextStyle(
-                  color: getStatusColor(data['status']),
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              SizedBox(height: 8),
-              Text(
-                  'リクエスト日時: ${data['timestamp'] != null ? (data['timestamp'] as Timestamp).toDate().toString() : '未入力'}'),
-              Text('場所: ${data['location'] ?? '未入力'}'),
-              Text('シーン: ${data['scene'] ?? '未入力'}'),
-              SizedBox(height: 8),
-              data['animeImageUrl'] != null
-                  ? Image.network(data['animeImageUrl'])
-                  : Text('未入力'),
-              SizedBox(height: 8),
-              data['userImageUrl'] != null
-                  ? Image.network(data['userImageUrl'])
-                  : Text('未入力'),
-              SizedBox(height: 8),
-            ],
-          ),
+            ),
+          ],
         ),
+      ),
+    );
+  }
+}
+
+class InfoTile extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String content;
+
+  const InfoTile({
+    Key? key,
+    required this.icon,
+    required this.title,
+    required this.content,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, size: 20, color: Colors.grey[600]),
+          SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.grey[600],
+                  ),
+                ),
+                SizedBox(height: 4),
+                Text(
+                  content,
+                  style: TextStyle(fontSize: 16),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
