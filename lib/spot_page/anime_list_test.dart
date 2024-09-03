@@ -751,7 +751,8 @@ class _PrefectureListPageState extends State<PrefectureListPage> {
                           MaterialPageRoute(
                             builder: (context) => PrefectureSpotListPage(
                               prefecture: prefecture,
-                              spots: widget.prefectureSpots[prefecture] ?? [],
+                              locations:
+                                  widget.prefectureSpots[prefecture] ?? [],
                             ),
                           ),
                         );
@@ -846,23 +847,23 @@ class PrefectureGridItem extends StatelessWidget {
 
 class PrefectureSpotListPage extends StatelessWidget {
   final String prefecture;
-  final List<Map<String, dynamic>> spots;
+  final List<Map<String, dynamic>> locations;
 
   PrefectureSpotListPage({
     Key? key,
     required this.prefecture,
-    required this.spots,
+    required this.locations,
   }) : super(key: key) {
     print('Debug: PrefectureSpotListPage constructor');
     print('Prefecture: $prefecture');
-    print('Number of spots: ${spots.length}');
+    print('Number of spots: ${locations.length}');
   }
 
   @override
   Widget build(BuildContext context) {
     print('Debug: PrefectureSpotListPage build method');
     print('Building for prefecture: $prefecture');
-    print('Number of spots: ${spots.length}');
+    print('Number of spots: ${locations.length}');
     return Scaffold(
       appBar: AppBar(
         title: Text(
@@ -889,28 +890,22 @@ class PrefectureSpotListPage extends StatelessWidget {
           ),
           Expanded(
             child: GridView.builder(
-              padding: EdgeInsets.only(bottom: 16.0),
+              padding: const EdgeInsets.all(8.0),
               gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: 2,
                 childAspectRatio: 1.3,
-                crossAxisSpacing: 1.0,
-                mainAxisSpacing: 3.0,
+                crossAxisSpacing: 10.0,
+                mainAxisSpacing: 10.0,
               ),
-              itemCount: spots.length,
+              itemCount: locations.length,
               itemBuilder: (context, index) {
-                print('Debug: Building grid item at index $index');
-                final spot = spots[index];
-                print('Spot data: ${spot.toString()}');
-
-                final locationId = spot['locationID'] ?? '';
-                final title = spot['title'] as String? ?? 'No Title';
-                final animeName = spot['anime'] as String? ?? 'Unknown Anime';
-                final imageUrl = spot['imageUrl'] as String? ?? '';
-
-                print('LocationID: $locationId');
-                print('Title: $title');
-                print('Anime Name: $animeName');
-                print('Image URL: $imageUrl');
+                final location = locations[index];
+                final locationId = location['locationID'] ?? '';
+                final title = location['name'] as String? ??
+                    'No Title'; // Changed from 'title' to 'name'
+                final animeName =
+                    location['animeName'] as String? ?? 'Unknown Anime';
+                final imageUrl = location['imageUrl'] as String? ?? '';
 
                 return GestureDetector(
                   onTap: () {
@@ -918,17 +913,18 @@ class PrefectureSpotListPage extends StatelessWidget {
                       context,
                       MaterialPageRoute(
                         builder: (context) => SpotDetailScreen(
-                          title: spot['title'] as String? ?? '',
-                          imageUrl: spot['imageUrl'] as String? ?? '',
-                          description: spot['description'] as String? ?? '',
+                          title: title, // Use the 'name' field for the title
+                          imageUrl: location['imageUrl'] as String? ?? '',
+                          description: location['description'] as String? ?? '',
                           latitude:
-                              (spot['latitude'] as num?)?.toDouble() ?? 0.0,
+                              (location['latitude'] as num?)?.toDouble() ?? 0.0,
                           longitude:
-                              (spot['longitude'] as num?)?.toDouble() ?? 0.0,
-                          sourceLink: spot['sourceLink'] as String? ?? '',
-                          sourceTitle: spot['sourceTitle'] as String? ?? '',
-                          url: spot['url'] as String? ?? '',
-                          subMedia: (spot['subMedia'] as List?)
+                              (location['longitude'] as num?)?.toDouble() ??
+                                  0.0,
+                          sourceLink: location['sourceLink'] as String? ?? '',
+                          sourceTitle: location['sourceTitle'] as String? ?? '',
+                          url: location['url'] as String? ?? '',
+                          subMedia: (location['subMedia'] as List?)
                                   ?.where(
                                       (item) => item is Map<String, dynamic>)
                                   .cast<Map<String, dynamic>>()
@@ -940,9 +936,9 @@ class PrefectureSpotListPage extends StatelessWidget {
                     );
                   },
                   child: SpotGridItem(
-                    title: spot['title'] as String? ?? '',
-                    animeName: spot['anime'] as String? ?? '',
-                    imageUrl: spot['imageUrl'] as String? ?? '',
+                    title: title,
+                    animeName: animeName,
+                    imageUrl: imageUrl,
                   ),
                 );
               },
