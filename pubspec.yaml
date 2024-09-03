@@ -80,6 +80,7 @@ dependencies:
   flutter_local_notifications: ^17.2.2
   firebase_messaging: ^14.9.4
   auto_size_text: ^3.0.0
+  firebase_in_app_messaging: ^0.7.5+7
 
 dev_dependencies:
   flutter_test:

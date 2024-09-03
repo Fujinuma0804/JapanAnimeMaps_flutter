@@ -304,6 +304,7 @@ class _AnimeListTestPageState extends State<AnimeListTestPage>
                 'longitude': (data['longitude'] is num)
                     ? (data['longitude'] as num).toDouble()
                     : 0.0,
+                'locationID': doc.id,
               };
             })
             .where((spot) => _isInPrefecture(spot, prefecture))
@@ -901,7 +902,7 @@ class PrefectureSpotListPage extends StatelessWidget {
                 final spot = spots[index];
                 print('Spot data: ${spot.toString()}');
 
-                final locationId = spot['locationID']?.toString() ?? '';
+                final locationId = spot['locationID'] ?? '';
                 final title = spot['title'] as String? ?? 'No Title';
                 final animeName = spot['anime'] as String? ?? 'Unknown Anime';
                 final imageUrl = spot['imageUrl'] as String? ?? '';
@@ -939,7 +940,7 @@ class PrefectureSpotListPage extends StatelessWidget {
                     );
                   },
                   child: SpotGridItem(
-                    title: spot['title'] as String? ?? '', // ここを修正
+                    title: spot['title'] as String? ?? '',
                     animeName: spot['anime'] as String? ?? '',
                     imageUrl: spot['imageUrl'] as String? ?? '',
                   ),

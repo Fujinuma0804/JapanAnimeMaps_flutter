@@ -2,7 +2,9 @@ import 'dart:async';
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_in_app_messaging/firebase_in_app_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:parts/spot_page/check_in.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -19,6 +21,8 @@ class AnimeListPage extends StatefulWidget {
 }
 
 class _AnimeListPageState extends State<AnimeListPage> {
+  final FirebaseInAppMessaging fiam = FirebaseInAppMessaging.instance;
+  final FirebaseAnalytics analytics = FirebaseAnalytics.instance;
   final FirebaseFirestore firestore = FirebaseFirestore.instance;
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
@@ -39,7 +43,18 @@ class _AnimeListPageState extends State<AnimeListPage> {
     super.initState();
     _fetchAnimeData();
     _initTargets();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _showTutorial());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _showTutorial();
+      _triggerInAppMessage();
+    });
+  }
+
+  void _triggerInAppMessage() async {
+    // アナリティクスイベントをトリガーしてIn-App Messageを表示
+    await analytics.logEvent(
+      name: 'anime_list_viewed',
+      parameters: {'user_type': 'returning_user'},
+    );
   }
 
   void _initTargets() {
@@ -182,6 +197,8 @@ class _AnimeListPageState extends State<AnimeListPage> {
 
     return WillPopScope(
       onWillPop: () async {
+        // アプリ終了時にIn-App Messagingを無効化
+        await fiam.setMessagesSuppressed(true);
         return await showDialog<bool>(
               context: context,
               builder: (context) => AlertDialog(
@@ -415,6 +432,10 @@ class _AnimeListPageState extends State<AnimeListPage> {
   }
 
   void _navigateToDetails(BuildContext context, String animeName) {
+    analytics.logEvent(
+      name: 'view_anime_details',
+      parameters: {'anime_name': animeName},
+    );
     Navigator.push(
       context,
       MaterialPageRoute(
