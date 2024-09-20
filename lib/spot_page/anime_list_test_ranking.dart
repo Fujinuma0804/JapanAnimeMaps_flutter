@@ -1,5 +1,8 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_database/firebase_database.dart' as rtdb;
+import 'package:firebase_database/firebase_database.dart';
+import 'package:firebase_in_app_messaging/firebase_in_app_messaging.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:parts/spot_page/check_in.dart';
@@ -11,18 +14,22 @@ import 'anime_list_detail.dart';
 import 'customer_anime_request.dart';
 import 'liked_post.dart';
 
-class AnimeListTestPage extends StatefulWidget {
+class AnimeListTestRanking extends StatefulWidget {
   @override
-  _AnimeListTestPageState createState() => _AnimeListTestPageState();
+  _AnimeListTestRankingState createState() => _AnimeListTestRankingState();
 }
 
-class _AnimeListTestPageState extends State<AnimeListTestPage>
+class _AnimeListTestRankingState extends State<AnimeListTestRanking>
     with SingleTickerProviderStateMixin {
   final FirebaseFirestore firestore = FirebaseFirestore.instance;
+  late rtdb.DatabaseReference databaseReference;
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
   bool _isSearching = false;
+  bool _isRankingExpanded = true;
   List<Map<String, dynamic>> _allAnimeData = [];
+  List<Map<String, dynamic>> _sortedAnimeData = [];
+  List<Map<String, dynamic>> _topRankedAnime = [];
   Map<String, List<Map<String, dynamic>>> _prefectureSpots = {};
 
   late TabController _tabController;
@@ -35,6 +42,9 @@ class _AnimeListTestPageState extends State<AnimeListTestPage>
   GlobalKey favoriteKey = GlobalKey();
   GlobalKey checkInKey = GlobalKey();
   GlobalKey firstItemKey = GlobalKey();
+  GlobalKey rankingKey = GlobalKey();
+
+  final FirebaseInAppMessaging fiam = FirebaseInAppMessaging.instance;
 
   final Map<String, Map<String, double>> prefectureBounds = {
     '北海道': {'minLat': 41.3, 'maxLat': 45.6, 'minLng': 139.3, 'maxLng': 148.9},
@@ -142,11 +152,62 @@ class _AnimeListTestPageState extends State<AnimeListTestPage>
   @override
   void initState() {
     super.initState();
+    databaseReference =
+        rtdb.FirebaseDatabase.instance.reference().child('anime_rankings');
     _tabController = TabController(length: 2, vsync: this);
     _tabController.addListener(_handleTabChange);
     _fetchAnimeData();
     _initTargets();
     WidgetsBinding.instance.addPostFrameCallback((_) => _showTutorial());
+    _listenToRankingChanges();
+    _setupInAppMessaging();
+  }
+
+  void _setupInAppMessaging() {
+    //アプリ起動時にトリガーイベントを発火
+    fiam.triggerEvent('app_open');
+
+    //メッセージの表示を許可
+    fiam.setMessagesSuppressed(false);
+  }
+
+  void _listenToRankingChanges() {
+    databaseReference.onValue.listen((event) {
+      if (event.snapshot.value != null) {
+        Map<dynamic, dynamic> rankings =
+            event.snapshot.value as Map<dynamic, dynamic>;
+        _updateRankings(rankings);
+      }
+    });
+  }
+
+  void _updateRankings(Map<dynamic, dynamic> rankings) {
+    List<MapEntry<String, int>> sortedRankings = rankings.entries
+        .map((entry) =>
+            MapEntry(entry.key.toString(), (entry.value as num).toInt()))
+        .toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+
+    setState(() {
+      _topRankedAnime = sortedRankings.take(10).map((entry) {
+        return _allAnimeData.firstWhere(
+          (anime) => anime['name'] == entry.key,
+          orElse: () =>
+              {'name': entry.key, 'imageUrl': '', 'count': entry.value},
+        );
+      }).toList();
+
+      // Update counts in _allAnimeData
+      for (var anime in _allAnimeData) {
+        anime['count'] = rankings[anime['name']] != null
+            ? (rankings[anime['name']] as num).toInt()
+            : 0;
+      }
+
+      // Sort _allAnimeData by count
+      _allAnimeData
+          .sort((a, b) => (b['count'] as int).compareTo(a['count'] as int));
+    });
   }
 
   @override
@@ -171,14 +232,27 @@ class _AnimeListTestPageState extends State<AnimeListTestPage>
   void _initTargets() {
     targets = [
       TargetFocus(
+        identify: "Ranking",
+        keyTarget: rankingKey,
+        contents: [
+          TargetContent(
+            align: ContentAlign.bottom,
+            child: Text(
+              "ここでは人気のアニメランキングを見ることができます。",
+              style: TextStyle(color: Colors.white, fontSize: 16),
+            ),
+          ),
+        ],
+      ),
+      TargetFocus(
         identify: "Search Button",
         keyTarget: searchKey,
         contents: [
           TargetContent(
             align: ContentAlign.bottom,
             child: Text(
-              "アニメを検索するにはここから！",
-              style: TextStyle(color: Colors.white),
+              "アニメや都道府県を検索するにはここをタップしてください。",
+              style: TextStyle(color: Colors.white, fontSize: 16),
             ),
           ),
         ],
@@ -190,8 +264,8 @@ class _AnimeListTestPageState extends State<AnimeListTestPage>
           TargetContent(
             align: ContentAlign.bottom,
             child: Text(
-              "新しいアニメをリクエストするにはここから！",
-              style: TextStyle(color: Colors.white),
+              "新しいアニメをリクエストしたい場合はここをタップしてください。",
+              style: TextStyle(color: Colors.white, fontSize: 16),
             ),
           ),
         ],
@@ -203,8 +277,8 @@ class _AnimeListTestPageState extends State<AnimeListTestPage>
           TargetContent(
             align: ContentAlign.bottom,
             child: Text(
-              "お気に入りのスポットを見るにはここから！",
-              style: TextStyle(color: Colors.white),
+              "お気に入りのスポットを見るにはここをタップしてください。",
+              style: TextStyle(color: Colors.white, fontSize: 16),
             ),
           ),
         ],
@@ -216,21 +290,21 @@ class _AnimeListTestPageState extends State<AnimeListTestPage>
           TargetContent(
             align: ContentAlign.bottom,
             child: Text(
-              "チェックインしたスポットの確認はここから！",
-              style: TextStyle(color: Colors.white),
+              "チェックインしたスポットの確認はここをタップしてください。",
+              style: TextStyle(color: Colors.white, fontSize: 16),
             ),
           ),
         ],
       ),
       TargetFocus(
-        identify: "First Anime Item",
+        identify: "Anime Item",
         keyTarget: firstItemKey,
         contents: [
           TargetContent(
             align: ContentAlign.bottom,
             child: Text(
-              "アニメごとのスポットはここから！",
-              style: TextStyle(color: Colors.white),
+              "アニメをタップすると、関連するスポットを見ることができます。",
+              style: TextStyle(color: Colors.white, fontSize: 16),
             ),
           ),
         ],
@@ -257,7 +331,7 @@ class _AnimeListTestPageState extends State<AnimeListTestPage>
         },
         onSkip: () {
           print("チュートリアルをスキップしました");
-          return false;
+          return true;
         },
       );
 
@@ -274,8 +348,22 @@ class _AnimeListTestPageState extends State<AnimeListTestPage>
         return {
           'name': data['name'] ?? '',
           'imageUrl': data['imageUrl'] ?? '',
+          'count': 0,
         };
       }).toList();
+
+      // 五十音順でソートされたリストを作成
+      _sortedAnimeData = List.from(_allAnimeData);
+      _sortedAnimeData.sort((a, b) => a['name'].compareTo(b['name']));
+
+      // Fetch initial rankings
+      DatabaseEvent event = await databaseReference.once();
+      if (event.snapshot.value != null) {
+        Map<dynamic, dynamic> rankings =
+            event.snapshot.value as Map<dynamic, dynamic>;
+        _updateRankings(rankings);
+      }
+
       setState(() {});
     } catch (e) {
       print("Error fetching anime data: $e");
@@ -475,7 +563,7 @@ class _AnimeListTestPageState extends State<AnimeListTestPage>
   }
 
   Widget _buildAnimeList() {
-    List<Map<String, dynamic>> filteredAnimeData = _allAnimeData
+    List<Map<String, dynamic>> filteredAnimeData = _sortedAnimeData
         .where((anime) =>
             anime['name'].toLowerCase().contains(_searchQuery) ||
             _allPrefectures.any((prefecture) =>
@@ -486,10 +574,127 @@ class _AnimeListTestPageState extends State<AnimeListTestPage>
                     false)))
         .toList();
 
+    Future<void> _incrementAnimeCount(String animeName) async {
+      try {
+        rtdb.DatabaseReference animeRef = databaseReference.child(animeName);
+        rtdb.TransactionResult result =
+            await animeRef.runTransaction((Object? currentValue) {
+          if (currentValue == null) {
+            return rtdb.Transaction.success(1);
+          }
+          return rtdb.Transaction.success((currentValue as int) + 1);
+        });
+
+        if (result.committed) {
+          print("Incremented count for $animeName");
+        } else {
+          print("Failed to increment count for $animeName");
+        }
+      } catch (e) {
+        print("Error incrementing anime count: $e");
+      }
+    }
+
+    void _navigateToDetails(BuildContext context, String animeName) {
+      _incrementAnimeCount(animeName);
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => AnimeDetailsPage(animeName: animeName),
+        ),
+      );
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Padding(
+        ExpansionTile(
+          title: Text(
+            key: rankingKey,
+            '■ ランキング (Top 10)',
+            style: TextStyle(
+              color: Color(0xFF00008b),
+              fontWeight: FontWeight.bold,
+              fontSize: 16,
+            ),
+          ),
+          initiallyExpanded: _isRankingExpanded,
+          onExpansionChanged: (expanded) {
+            setState(() {
+              _isRankingExpanded = expanded;
+            });
+          },
+          children: [
+            SizedBox(
+              height: 200,
+              child: ListView.builder(
+                padding: EdgeInsets.symmetric(horizontal: 16.0),
+                scrollDirection: Axis.horizontal,
+                itemCount: _topRankedAnime.length,
+                itemBuilder: (context, index) {
+                  final anime = _topRankedAnime[index];
+                  return GestureDetector(
+                    onTap: () => _navigateToDetails(context, anime['name']),
+                    child: Container(
+                      width: 160,
+                      margin: EdgeInsets.only(right: 16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Stack(
+                            children: [
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(8),
+                                child: CachedNetworkImage(
+                                  imageUrl: anime['imageUrl'],
+                                  height: 150,
+                                  width: 250,
+                                  fit: BoxFit.cover,
+                                  placeholder: (context, url) => Center(
+                                      child: CircularProgressIndicator()),
+                                  errorWidget: (context, url, error) =>
+                                      Icon(Icons.error),
+                                ),
+                              ),
+                              Positioned(
+                                top: 8,
+                                left: 8,
+                                child: Container(
+                                  padding: EdgeInsets.symmetric(
+                                      horizontal: 8, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: Colors.black.withOpacity(0.7),
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Text(
+                                    '${index + 1}',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          SizedBox(height: 8),
+                          Text(
+                            anime['name'],
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+        Padding(
           padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
           child: Text(
             '■ アニメ一覧',
@@ -530,15 +735,6 @@ class _AnimeListTestPageState extends State<AnimeListTestPage>
                     ),
         ),
       ],
-    );
-  }
-
-  void _navigateToDetails(BuildContext context, String animeName) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => AnimeDetailsPage(animeName: animeName),
-      ),
     );
   }
 }
@@ -870,30 +1066,10 @@ class PrefectureSpotListPage extends StatelessWidget {
     required this.locations,
     required this.animeName,
     required this.prefectureBounds,
-  }) : super(key: key) {
-    print('Debug: PrefectureSpotListPage constructor');
-    print('Prefecture: $prefecture');
-    print('Number of spots: ${locations.length}');
-
-    for (var location in locations) {
-      print('------ スポット詳細 ------');
-      print('LocationID: ${location['locationID'] ?? 'ID未設定'}');
-      print('Name: ${location['title'] ?? 'No Title'}');
-      print('Anime: ${location['animeName'] ?? 'Unknown Anime'}');
-      print('ImageUrl: ${location['imageUrl'] ?? 'No Image'}');
-      print('Description: ${location['description'] ?? 'No Description'}');
-      print('Latitude: ${location['latitude'] ?? 'No Latitude'}');
-      print('Longitude: ${location['longitude'] ?? 'No Longitude'}');
-      print('-------------------------');
-    }
-  }
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    print('Debug: PrefectureSpotListPage build method');
-    print('Building for prefecture: $prefecture');
-    print('Number of spots: ${locations.length}');
-
     return Scaffold(
       appBar: AppBar(
         title: Text(
@@ -941,32 +1117,53 @@ class PrefectureSpotListPage extends StatelessWidget {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => SpotDetailScreen(
-                          title: title,
-                          imageUrl: imageUrl,
-                          description: location['description'] as String? ?? '',
-                          latitude:
-                              (location['latitude'] as num?)?.toDouble() ?? 0.0,
-                          longitude:
-                              (location['longitude'] as num?)?.toDouble() ??
-                                  0.0,
-                          sourceLink: location['sourceLink'] as String? ?? '',
-                          sourceTitle: location['sourceTitle'] as String? ?? '',
-                          url: location['url'] as String? ?? '',
-                          subMedia: (location['subMedia'] as List?)
-                                  ?.where(
-                                      (item) => item is Map<String, dynamic>)
-                                  .cast<Map<String, dynamic>>()
-                                  .toList() ??
-                              [],
-                          locationId: locationId,
+                        builder: (context) => FutureBuilder<DocumentSnapshot>(
+                          future: FirebaseFirestore.instance
+                              .collection('locations')
+                              .doc(locationId)
+                              .get(),
+                          builder: (BuildContext context,
+                              AsyncSnapshot<DocumentSnapshot> snapshot) {
+                            if (snapshot.connectionState ==
+                                ConnectionState.waiting) {
+                              return Center(child: CircularProgressIndicator());
+                            }
+                            if (snapshot.hasError) {
+                              return Center(child: Text("エラーが発生しました"));
+                            }
+                            if (!snapshot.hasData || !snapshot.data!.exists) {
+                              return Center(child: Text("スポットが見つかりません"));
+                            }
+
+                            Map<String, dynamic> data =
+                                snapshot.data!.data() as Map<String, dynamic>;
+
+                            return SpotDetailScreen(
+                              title: data['sourceTitle'] ?? '',
+                              imageUrl: data['imageUrl'] ?? '',
+                              description: data['description'] ?? '',
+                              latitude:
+                                  (data['latitude'] as num?)?.toDouble() ?? 0.0,
+                              longitude:
+                                  (data['longitude'] as num?)?.toDouble() ??
+                                      0.0,
+                              sourceLink: data['sourceLink'] ?? '',
+                              sourceTitle: data['sourceTitle'] ?? '',
+                              url: data['url'] ?? '',
+                              subMedia: (data['subMedia'] as List?)
+                                      ?.where((item) =>
+                                          item is Map<String, dynamic>)
+                                      .cast<Map<String, dynamic>>()
+                                      .toList() ??
+                                  [],
+                              locationId: locationId,
+                            );
+                          },
                         ),
                       ),
                     );
                   },
                   child: SpotGridItem(
-                    title: title,
-                    animeName: animeName,
                     imageUrl: imageUrl,
                   ),
                 );
@@ -1053,14 +1250,10 @@ class PrefectureSpotListPage extends StatelessWidget {
 // ),
 
 class SpotGridItem extends StatelessWidget {
-  final String title;
-  final String animeName;
   final String imageUrl;
 
   SpotGridItem({
     Key? key,
-    required this.title,
-    required this.animeName,
     required this.imageUrl,
   }) : super(key: key);
 
@@ -1071,55 +1264,21 @@ class SpotGridItem extends StatelessWidget {
         border: Border.all(color: Colors.grey[300]!),
         borderRadius: BorderRadius.circular(8),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            child: ClipRRect(
-              borderRadius: BorderRadius.vertical(top: Radius.circular(8)),
-              child: CachedNetworkImage(
-                imageUrl: imageUrl,
-                fit: BoxFit.cover,
-                width: double.infinity,
-                placeholder: (context, url) => Container(
-                  color: Colors.grey[200],
-                  child: Center(child: CircularProgressIndicator()),
-                ),
-                errorWidget: (context, url, error) => Container(
-                  color: Colors.grey[200],
-                  child: Icon(Icons.image_not_supported, size: 50),
-                ),
-              ),
-            ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(8),
+        child: CachedNetworkImage(
+          imageUrl: imageUrl,
+          fit: BoxFit.cover,
+          width: double.infinity,
+          placeholder: (context, url) => Container(
+            color: Colors.grey[200],
+            child: Center(child: CircularProgressIndicator()),
           ),
-          Padding(
-            padding: EdgeInsets.all(8.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: TextStyle(
-                    fontSize: 14.0,
-                    fontWeight: FontWeight.bold,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                SizedBox(height: 4),
-                Text(
-                  animeName,
-                  style: TextStyle(
-                    fontSize: 12.0,
-                    color: Colors.grey[600],
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
-            ),
+          errorWidget: (context, url, error) => Container(
+            color: Colors.grey[200],
+            child: Icon(Icons.image_not_supported, size: 50),
           ),
-        ],
+        ),
       ),
     );
   }

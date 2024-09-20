@@ -23,7 +23,7 @@ class MyApp extends StatelessWidget {
         useMaterial3: true,
       ),
       home: FutureBuilder(
-        future: Future.delayed(Duration(seconds: 2)),
+        future: Future.delayed(Duration(seconds: 1)),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return WelcomePage(); // Show Top screen for 2 seconds

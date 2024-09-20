@@ -2,12 +2,14 @@ import 'dart:io' show Platform;
 
 import 'package:chewie/chewie.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart'; // FirebaseAuthをインポート
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:video_player/video_player.dart';
+
+import 'anime_detail.dart';
 
 class AnimeDetailsPage extends StatelessWidget {
   final String animeName;
@@ -24,11 +26,12 @@ class AnimeDetailsPage extends StatelessWidget {
 
       for (var doc in snapshot.docs) {
         var data = doc.data() as Map<String, dynamic>;
-        print("Fetched document ID: ${doc.id}"); // 追加
-        print("Fetched document data: $data"); // 追加
+        print("Fetched document ID: ${doc.id}");
+        print("Fetched document data: $data");
         locations.add({
           'id': doc.id,
-          'title': data['title'] ?? '',
+          'title': data['title'] ??
+              '', // Make sure 'title' is correctly fetched here
           'imageUrl': data['imageUrl'] ?? '',
           'description': data['description'] ?? '',
           'latitude': data['latitude'] ?? 0.0,
@@ -56,6 +59,22 @@ class AnimeDetailsPage extends StatelessWidget {
             fontWeight: FontWeight.bold,
           ),
         ),
+        actions: [
+          IconButton(
+            onPressed: () {
+              Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (context) => AnimeDetail(
+                            animeName: animeName,
+                          )));
+            },
+            icon: Icon(
+              Icons.info_outline_rounded,
+              color: Color(0xFF00008b),
+            ),
+          ),
+        ],
       ),
       body: FutureBuilder<List<Map<String, dynamic>>>(
         future: _fetchLocationsForAnime(),
@@ -79,15 +98,16 @@ class AnimeDetailsPage extends StatelessWidget {
               itemCount: locations.length,
               itemBuilder: (context, index) {
                 final location = locations[index];
-                final title = location['title'] as String;
+                final title = location['title']
+                    as String; // Ensure we're using 'title', not 'sourceTitle'
                 final description = location['description'] as String;
                 final imageUrl = location['imageUrl'] as String;
-                final locationId = location['id'] as String; // ドキュメントIDを取得
+                final locationId = location['id'] as String;
 
                 return GestureDetector(
                   onTap: () {
                     print(
-                        "Navigating to SpotDetailScreen with locationId: $locationId"); // 追加
+                        "Navigating to SpotDetailScreen with locationId: $locationId");
                     Navigator.push(
                       context,
                       MaterialPageRoute(
@@ -104,7 +124,7 @@ class AnimeDetailsPage extends StatelessWidget {
                               .where((item) => item is Map<String, dynamic>)
                               .cast<Map<String, dynamic>>()
                               .toList(),
-                          locationId: locationId, // locationIdを渡す
+                          locationId: locationId,
                         ),
                       ),
                     );
@@ -139,7 +159,7 @@ class AnimeDetailsPage extends StatelessWidget {
                         ),
                         SizedBox(height: 8.0),
                         Text(
-                          title,
+                          title, // This should now correctly display the 'title' field
                           textAlign: TextAlign.center,
                           style: TextStyle(
                             fontSize: 14.0,

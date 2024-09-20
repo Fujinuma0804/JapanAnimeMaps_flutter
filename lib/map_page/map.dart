@@ -479,6 +479,7 @@ class _MapScreenState extends State<MapScreen> {
           String imageUrl = data['imageUrl'];
           String locationId = doc.id;
           String title = data['title'];
+          String animeName = data['animeName'];
           String description = data['description'];
 
           Marker marker = await _createMarkerWithImage(
@@ -488,6 +489,7 @@ class _MapScreenState extends State<MapScreen> {
             300,
             200,
             title,
+            animeName,
             description,
           );
 
@@ -506,6 +508,7 @@ class _MapScreenState extends State<MapScreen> {
     int width,
     int height,
     String title,
+    String animeName,
     String snippet,
   ) async {
     final Uint8List markerIcon =
@@ -563,7 +566,7 @@ class _MapScreenState extends State<MapScreen> {
           );
           _calculateDistance(position);
           _showModalBottomSheet(
-              context, imageUrl, title, snippet, hasCheckedIn);
+              context, imageUrl, title, animeName, snippet, hasCheckedIn);
         });
       },
     );
@@ -594,7 +597,7 @@ class _MapScreenState extends State<MapScreen> {
   }
 
   void _showModalBottomSheet(BuildContext context, String imageUrl,
-      String title, String snippet, bool hasCheckedIn) {
+      String title, String animeName, String snippet, bool hasCheckedIn) {
     TextEditingController textController = TextEditingController();
     bool isCorrect = false;
     bool showTextField = false;
@@ -619,17 +622,27 @@ class _MapScreenState extends State<MapScreen> {
                       child: Image.network(imageUrl),
                     ),
                     const SizedBox(height: 10.0),
-                    Padding(
-                      padding: EdgeInsets.all(15),
-                      child: Center(
-                        child: Text(
-                          title,
+                    Column(
+                      children: [
+                        Text(
+                          animeName,
                           style: const TextStyle(
-                            fontSize: 16,
+                            fontSize: 13,
                             fontWeight: FontWeight.bold,
+                            color: Colors.grey,
                           ),
                         ),
-                      ),
+                        Padding(
+                          padding: EdgeInsets.all(15),
+                          child: Text(
+                            title,
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 20.0),
                     if (_selectedMarker != null)
