@@ -6,11 +6,11 @@ import 'package:flutter_vibrate/flutter_vibrate.dart';
 import '../manual_page/manual_en.dart';
 import '../map_page/map.dart';
 import '../map_page/map_en.dart';
+import '../news/news_top.dart';
 import '../point_page/point_en.dart';
 import '../point_page/point_update.dart';
 import '../spot_page/anime_list_en.dart';
 import '../spot_page/anime_list_test_ranking.dart';
-import '../web_page/website.dart';
 import '../web_page/website_en.dart';
 
 class MainScreen extends StatefulWidget {
@@ -140,7 +140,7 @@ class _MainScreenState extends State<MainScreen> {
               _userLanguage == 'Japanese'
                   ? AnimeListTestRanking()
                   : AnimeListEnPage(),
-              _userLanguage == 'Japanese' ? WebsiteScreen() : WebsiteEnScreen(),
+              _userLanguage == 'Japanese' ? NewsTopPage() : WebsiteEnScreen(),
               _userLanguage == 'Japanese'
                   ? MapScreen(latitude: _latitude, longitude: _longitude)
                   : MapEnScreen(latitude: _latitude, longitude: _longitude),

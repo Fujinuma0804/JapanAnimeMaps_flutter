@@ -85,6 +85,7 @@ dependencies:
   flutter_rating_bar: ^4.0.1
   firebase_database: ^10.5.7
   firebase_remote_config: ^4.4.7
+  share_plus: ^10.0.0
 
 dev_dependencies:
   flutter_test:
