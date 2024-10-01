@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io' show Platform;
 
 import 'package:chewie/chewie.dart';
@@ -11,17 +12,120 @@ import 'package:video_player/video_player.dart';
 
 import 'anime_detail.dart';
 
-class AnimeDetailsPage extends StatelessWidget {
+class AnimeDetailsPage extends StatefulWidget {
   final String animeName;
 
   AnimeDetailsPage({required this.animeName});
+
+  @override
+  _AnimeDetailsPageState createState() => _AnimeDetailsPageState();
+}
+
+class _AnimeDetailsPageState extends State<AnimeDetailsPage> {
+  late Future<DocumentSnapshot> _animeData;
+  OverlayEntry? _overlayEntry;
+  final GlobalKey _infoIconKey = GlobalKey();
+
+  @override
+  void initState() {
+    super.initState();
+    _animeData = _fetchAnimeData();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _showTutorialTooltip());
+  }
+
+  @override
+  void dispose() {
+    _removeOverlay();
+    super.dispose();
+  }
+
+  void _showTutorialTooltip() {
+    _removeOverlay();
+    _overlayEntry = _createOverlayEntry();
+    Overlay.of(context).insert(_overlayEntry!);
+    Timer(Duration(seconds: 2), () {
+      _removeOverlay();
+    });
+  }
+
+  void _removeOverlay() {
+    _overlayEntry?.remove();
+    _overlayEntry = null;
+  }
+
+  OverlayEntry _createOverlayEntry() {
+    return OverlayEntry(
+      builder: (context) {
+        final RenderBox? renderBox =
+            _infoIconKey.currentContext?.findRenderObject() as RenderBox?;
+        final size = renderBox?.size ?? Size.zero;
+        final offset = renderBox?.localToGlobal(Offset.zero) ?? Offset.zero;
+
+        // 画面のサイズを取得
+        final screenSize = MediaQuery.of(context).size;
+
+        // 吹き出しのサイズを定義（おおよその値）
+        const tooltipWidth = 200.0;
+        const tooltipHeight = 40.0;
+
+        // 吹き出しの位置を計算
+        double left = offset.dx - tooltipWidth + size.width;
+        double top = offset.dy + size.height + 5.0;
+
+        // 画面右端からはみ出す場合、左に寄せる
+        if (left + tooltipWidth > screenSize.width) {
+          left = screenSize.width - tooltipWidth - 10.0;
+        }
+
+        // 画面下端からはみ出す場合、上に表示する
+        if (top + tooltipHeight > screenSize.height) {
+          top = offset.dy - tooltipHeight - 5.0;
+        }
+
+        return Positioned(
+          left: left,
+          top: top,
+          child: Material(
+            color: Colors.transparent,
+            child: Container(
+              width: tooltipWidth,
+              padding: EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
+              decoration: BoxDecoration(
+                color: Colors.black87,
+                borderRadius: BorderRadius.circular(8.0),
+              ),
+              child: Text(
+                'タップしてアニメの詳細を見る↑',
+                style: TextStyle(color: Colors.white, fontSize: 12.0),
+                textAlign: TextAlign.center,
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Future<DocumentSnapshot> _fetchAnimeData() async {
+    return await FirebaseFirestore.instance
+        .collection('animes')
+        .where('name', isEqualTo: widget.animeName)
+        .get()
+        .then((querySnapshot) {
+      if (querySnapshot.docs.isNotEmpty) {
+        return querySnapshot.docs.first;
+      } else {
+        throw Exception('Anime not found');
+      }
+    });
+  }
 
   Future<List<Map<String, dynamic>>> _fetchLocationsForAnime() async {
     List<Map<String, dynamic>> locations = [];
     try {
       QuerySnapshot snapshot = await FirebaseFirestore.instance
           .collection('locations')
-          .where('animeName', isEqualTo: animeName)
+          .where('animeName', isEqualTo: widget.animeName)
           .get();
 
       for (var doc in snapshot.docs) {
@@ -30,8 +134,7 @@ class AnimeDetailsPage extends StatelessWidget {
         print("Fetched document data: $data");
         locations.add({
           'id': doc.id,
-          'title': data['title'] ??
-              '', // Make sure 'title' is correctly fetched here
+          'title': data['title'] ?? '',
           'imageUrl': data['imageUrl'] ?? '',
           'description': data['description'] ?? '',
           'latitude': data['latitude'] ?? 0.0,
@@ -40,6 +143,7 @@ class AnimeDetailsPage extends StatelessWidget {
           'sourceLink': data['sourceLink'] ?? '',
           'url': data['url'] ?? '',
           'subMedia': data['subMedia'] ?? [],
+          'userEmail': data['userEmail'] ?? [],
         });
       }
     } catch (e) {
@@ -53,7 +157,7 @@ class AnimeDetailsPage extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          animeName,
+          widget.animeName,
           style: TextStyle(
             color: Color(0xFF00008b),
             fontWeight: FontWeight.bold,
@@ -61,13 +165,16 @@ class AnimeDetailsPage extends StatelessWidget {
         ),
         actions: [
           IconButton(
+            key: _infoIconKey,
             onPressed: () {
               Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                      builder: (context) => AnimeDetail(
-                            animeName: animeName,
-                          )));
+                context,
+                MaterialPageRoute(
+                  builder: (context) => AnimeDetail(
+                    animeName: widget.animeName,
+                  ),
+                ),
+              );
             },
             icon: Icon(
               Icons.info_outline_rounded,
@@ -76,103 +183,184 @@ class AnimeDetailsPage extends StatelessWidget {
           ),
         ],
       ),
-      body: FutureBuilder<List<Map<String, dynamic>>>(
-        future: _fetchLocationsForAnime(),
+      body: FutureBuilder<DocumentSnapshot>(
+        future: _animeData,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return Center(child: CircularProgressIndicator());
           } else if (snapshot.hasError) {
             return Center(child: Text('Error: ${snapshot.error}'));
-          } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            return Center(child: Text('No locations found for $animeName.'));
+          } else if (!snapshot.hasData || !snapshot.data!.exists) {
+            return Center(child: Text('Anime not found'));
           } else {
-            final locations = snapshot.data!;
-
-            return GridView.builder(
-              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                childAspectRatio: 1.3,
-                mainAxisSpacing: 10.0,
-                crossAxisSpacing: 10.0,
-              ),
-              itemCount: locations.length,
-              itemBuilder: (context, index) {
-                final location = locations[index];
-                final title = location['title']
-                    as String; // Ensure we're using 'title', not 'sourceTitle'
-                final description = location['description'] as String;
-                final imageUrl = location['imageUrl'] as String;
-                final locationId = location['id'] as String;
-
-                return GestureDetector(
-                  onTap: () {
-                    print(
-                        "Navigating to SpotDetailScreen with locationId: $locationId");
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => SpotDetailScreen(
-                          title: title,
-                          imageUrl: imageUrl,
-                          description: description,
-                          latitude: location['latitude'] as double,
-                          longitude: location['longitude'] as double,
-                          sourceLink: location['sourceLink'] as String,
-                          sourceTitle: location['sourceTitle'] as String,
-                          url: location['url'] as String,
-                          subMedia: (location['subMedia'] as List)
-                              .where((item) => item is Map<String, dynamic>)
-                              .cast<Map<String, dynamic>>()
-                              .toList(),
-                          locationId: locationId,
-                        ),
+            Map<String, dynamic> animeData =
+                snapshot.data!.data() as Map<String, dynamic>;
+            String imageUrl = animeData['imageUrl'] ?? '';
+            String userId = animeData['userId'] ?? '';
+            return Column(
+              children: [
+                imageUrl.isNotEmpty
+                    ? Image.network(
+                        imageUrl,
+                        width: double.infinity,
+                        height: 200,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) {
+                          return Image.asset(
+                            'assets/placeholder_image.png',
+                            width: double.infinity,
+                            height: 200,
+                            fit: BoxFit.cover,
+                          );
+                        },
+                      )
+                    : Image.asset(
+                        'assets/placeholder_image.png',
+                        width: double.infinity,
+                        height: 200,
+                        fit: BoxFit.cover,
                       ),
-                    );
-                  },
-                  child: Padding(
-                    padding: const EdgeInsets.all(8.0),
-                    child: Column(
-                      children: [
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(9.0),
-                          child: imageUrl.isNotEmpty
-                              ? Image.network(
-                                  imageUrl,
-                                  width: 200,
-                                  height: 100,
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (context, error, stackTrace) {
-                                    return Image.asset(
-                                      'assets/placeholder_image.png',
-                                      width: 200,
-                                      height: 100,
-                                      fit: BoxFit.cover,
-                                    );
-                                  },
-                                )
-                              : Image.asset(
-                                  'assets/placeholder_image.png',
-                                  width: 200,
-                                  height: 100,
-                                  fit: BoxFit.cover,
-                                ),
-                        ),
-                        SizedBox(height: 8.0),
-                        Text(
-                          title, // This should now correctly display the 'title' field
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontSize: 14.0,
-                            fontWeight: FontWeight.bold,
-                          ),
-                          overflow: TextOverflow.ellipsis,
-                          maxLines: 1,
-                        ),
-                      ],
+                Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: Align(
+                    alignment: Alignment.centerRight,
+                    child: Text(
+                      userId.isNotEmpty ? '投稿者: @$userId' : 'エラー',
+                      style: TextStyle(
+                        fontSize: 10,
+                        color: Colors.grey,
+                      ),
                     ),
                   ),
-                );
-              },
+                ),
+                Expanded(
+                  child: FutureBuilder<List<Map<String, dynamic>>>(
+                    future: _fetchLocationsForAnime(),
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return Center(child: CircularProgressIndicator());
+                      } else if (snapshot.hasError) {
+                        return Center(child: Text('Error: ${snapshot.error}'));
+                      } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                        return Center(
+                            child: Text(
+                                'No locations found for ${widget.animeName}.'));
+                      } else {
+                        final locations = snapshot.data!;
+
+                        return GridView.builder(
+                          gridDelegate:
+                              SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 2,
+                            childAspectRatio: 1.1,
+                            mainAxisSpacing: 10.0,
+                            crossAxisSpacing: 10.0,
+                          ),
+                          itemCount: locations.length,
+                          itemBuilder: (context, index) {
+                            final location = locations[index];
+                            final title = location['title'] as String;
+                            final description =
+                                location['description'] as String;
+                            final imageUrl = location['imageUrl'] as String;
+                            final locationId = location['id'] as String;
+                            final userEmail =
+                                location['userEmail'] as String? ?? '';
+                            final userId = userEmail.split('@').first;
+
+                            return GestureDetector(
+                              onTap: () {
+                                print(
+                                    "Navigating to SpotDetailScreen with locationId: $locationId");
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => SpotDetailScreen(
+                                      title: title,
+                                      imageUrl: imageUrl,
+                                      description: description,
+                                      latitude: location['latitude'] as double,
+                                      longitude:
+                                          location['longitude'] as double,
+                                      sourceLink:
+                                          location['sourceLink'] as String,
+                                      sourceTitle:
+                                          location['sourceTitle'] as String,
+                                      url: location['url'] as String,
+                                      subMedia: (location['subMedia'] as List)
+                                          .where((item) =>
+                                              item is Map<String, dynamic>)
+                                          .cast<Map<String, dynamic>>()
+                                          .toList(),
+                                      locationId: locationId,
+                                    ),
+                                  ),
+                                );
+                              },
+                              child: Padding(
+                                padding: const EdgeInsets.all(8.0),
+                                child: Column(
+                                  children: [
+                                    ClipRRect(
+                                      borderRadius: BorderRadius.circular(9.0),
+                                      child: imageUrl.isNotEmpty
+                                          ? Image.network(
+                                              imageUrl,
+                                              width: 200,
+                                              height: 100,
+                                              fit: BoxFit.cover,
+                                              errorBuilder:
+                                                  (context, error, stackTrace) {
+                                                return Image.asset(
+                                                  'assets/placeholder_image.png',
+                                                  width: 200,
+                                                  height: 100,
+                                                  fit: BoxFit.cover,
+                                                );
+                                              },
+                                            )
+                                          : Image.asset(
+                                              'assets/placeholder_image.png',
+                                              width: 200,
+                                              height: 100,
+                                              fit: BoxFit.cover,
+                                            ),
+                                    ),
+                                    SizedBox(height: 4.0),
+                                    Text(
+                                      title,
+                                      textAlign: TextAlign.center,
+                                      style: TextStyle(
+                                        fontSize: 14.0,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                      overflow: TextOverflow.ellipsis,
+                                      maxLines: 1,
+                                    ),
+                                    const SizedBox(
+                                      height: 2.0,
+                                    ),
+                                    Text(
+                                      '投稿者:@'
+                                      '$userId',
+                                      style: TextStyle(
+                                        fontSize: 12.0,
+                                        color: Colors.grey,
+                                      ),
+                                      overflow: TextOverflow.ellipsis,
+                                      maxLines: 1,
+                                    )
+                                  ],
+                                ),
+                              ),
+                            );
+                          },
+                        );
+                      }
+                    },
+                  ),
+                )
+              ],
             );
           }
         },

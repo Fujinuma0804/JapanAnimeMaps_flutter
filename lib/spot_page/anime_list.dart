@@ -457,6 +457,45 @@ class AnimeGridItem extends StatelessWidget {
     required this.imageUrl,
   }) : super(key: key);
 
+  Future<void> _checkAndUpdateTap(BuildContext context) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('ログインが必要です')),
+      );
+      return;
+    }
+
+    final userId = user.uid;
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+
+    final tapRef = FirebaseFirestore.instance
+        .collection('anime_taps')
+        .doc('${userId}_${animeName}_${today.toIso8601String()}');
+
+    try {
+      final tapDoc = await tapRef.get();
+      if (!tapDoc.exists) {
+        await tapRef.set({
+          'userId': userId,
+          'animeName': animeName,
+          'date': today,
+          'count': 1,
+        });
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('ランキングへの反映は1日1回まで！')),
+        );
+      }
+    } catch (e) {
+      print('Error checking/updating tap: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('エラーが発生しました')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
@@ -476,36 +515,47 @@ class AnimeGridItem extends StatelessWidget {
         final textHeight = textPainter.height;
         final itemHeight = 100 + textHeight + 16.0;
 
-        return Container(
-          height: itemHeight,
-          padding: const EdgeInsets.all(4.0),
-          child: Column(
-            children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(9.0),
-                child: CachedNetworkImage(
-                  imageUrl: imageUrl,
-                  width: constraints.maxWidth,
-                  height: 100,
-                  fit: BoxFit.cover,
-                  placeholder: (context, url) => Container(
-                    color: Colors.grey[300],
-                    child: Center(child: CircularProgressIndicator()),
+        return GestureDetector(
+          onTap: () async {
+            await _checkAndUpdateTap(context);
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => AnimeDetailsPage(animeName: animeName),
+              ),
+            );
+          },
+          child: Container(
+            height: itemHeight,
+            padding: const EdgeInsets.all(4.0),
+            child: Column(
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(9.0),
+                  child: CachedNetworkImage(
+                    imageUrl: imageUrl,
+                    width: constraints.maxWidth,
+                    height: 100,
+                    fit: BoxFit.cover,
+                    placeholder: (context, url) => Container(
+                      color: Colors.grey[300],
+                      child: Center(child: CircularProgressIndicator()),
+                    ),
+                    errorWidget: (context, url, error) => Icon(Icons.error),
                   ),
-                  errorWidget: (context, url, error) => Icon(Icons.error),
                 ),
-              ),
-              SizedBox(height: 8.0),
-              Expanded(
-                child: Text(
-                  animeName,
-                  textAlign: TextAlign.center,
-                  style: textStyle,
-                  maxLines: 3, // 最大3行まで表示
-                  overflow: TextOverflow.ellipsis,
+                SizedBox(height: 8.0),
+                Expanded(
+                  child: Text(
+                    animeName,
+                    textAlign: TextAlign.center,
+                    style: textStyle,
+                    maxLines: 3, // 最大3行まで表示
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         );
       },
