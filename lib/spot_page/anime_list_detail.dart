@@ -4,9 +4,11 @@ import 'dart:io' show Platform;
 import 'package:chewie/chewie.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:share/share.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:video_player/video_player.dart';
 
@@ -252,7 +254,7 @@ class _AnimeDetailsPageState extends State<AnimeDetailsPage> {
                           gridDelegate:
                               SliverGridDelegateWithFixedCrossAxisCount(
                             crossAxisCount: 2,
-                            childAspectRatio: 1.1,
+                            childAspectRatio: 1.3,
                             mainAxisSpacing: 10.0,
                             crossAxisSpacing: 10.0,
                           ),
@@ -293,6 +295,7 @@ class _AnimeDetailsPageState extends State<AnimeDetailsPage> {
                                           .cast<Map<String, dynamic>>()
                                           .toList(),
                                       locationId: locationId,
+                                      animeName: widget.animeName,
                                     ),
                                   ),
                                 );
@@ -380,6 +383,7 @@ class SpotDetailScreen extends StatefulWidget {
   final String url;
   final List<Map<String, dynamic>> subMedia;
   final String locationId; // 追加：ロケーションID
+  final String animeName;
 
   const SpotDetailScreen({
     Key? key,
@@ -393,6 +397,7 @@ class SpotDetailScreen extends StatefulWidget {
     required this.url,
     required this.subMedia,
     required this.locationId,
+    required this.animeName,
   }) : super(key: key);
 
   @override
@@ -407,6 +412,23 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
   Offset _pipPosition = Offset(16, 16); // PiPのデフォルト位置
   bool _isPipClosed = false; // 新しい変数を追加
   bool _isFavorite = false;
+
+  void _shareContent() {
+    final String mapsUrl =
+        "https://www.google.com/maps/search/?api=1&query=${widget.latitude},${widget.longitude}";
+    final String shareText = '''
+『${widget.animeName}』の聖地
+${widget.title}
+
+場所を確認する：
+$mapsUrl
+
+素晴らしい聖地巡礼はこちら：
+https://japananimemaps.page.link/ios
+''';
+
+    Share.share(shareText);
+  }
 
   Future<void> _openMapOptions(BuildContext context) async {
     final googleMapsUrl =
@@ -589,6 +611,7 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
     }
     return Scaffold(
       appBar: AppBar(
+        centerTitle: true,
         title: const Text(
           '詳細',
           style: TextStyle(
@@ -603,7 +626,13 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
               color: _isFavorite ? Colors.red : null,
             ),
             onPressed: _toggleFavorite,
-          )
+          ),
+          IconButton(
+            icon: Icon(
+              CupertinoIcons.share_up,
+            ),
+            onPressed: _shareContent,
+          ),
         ],
       ),
       body: NotificationListener<ScrollNotification>(

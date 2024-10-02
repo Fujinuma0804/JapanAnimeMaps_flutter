@@ -108,6 +108,7 @@ class _SpotTestScreenState extends State<SpotTestScreen> {
                     .toList() ??
                 [],
             locationId: locationId,
+            animeName: '',
           ),
         ),
       );

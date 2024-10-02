@@ -1157,6 +1157,7 @@ class PrefectureSpotListPage extends StatelessWidget {
                                       .toList() ??
                                   [],
                               locationId: locationId,
+                              animeName: animeName,
                             );
                           },
                         ),

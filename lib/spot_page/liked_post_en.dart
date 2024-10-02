@@ -320,6 +320,7 @@ class _FavoriteLocationsEnPageState extends State<FavoriteLocationsEnPage> {
           sourceLink: location['sourceLink'] ?? 'No link',
           url: location['url'] ?? '',
           subMedia: location['subMedia'] ?? [],
+          animeName: '',
         ),
       ),
     );
@@ -428,6 +429,7 @@ class LocationSearchDelegate extends SearchDelegate {
                         sourceLink: location['sourceLink'] ?? 'No link',
                         url: location['url'] ?? '',
                         subMedia: location['subMedia'] ?? [],
+                        animeName: '',
                       ),
                     ),
                   );

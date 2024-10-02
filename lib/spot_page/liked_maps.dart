@@ -858,6 +858,7 @@ class _LikedMapsState extends State<LikedMaps> {
                                         subMedia: subMediaList,
                                         locationId: _selectedMarker!
                                             .markerId.value, // ここを修正
+                                        animeName: '',
                                       ),
                                     ),
                                   );

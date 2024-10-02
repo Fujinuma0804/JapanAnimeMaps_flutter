@@ -914,6 +914,7 @@ class _MapScreenState extends State<MapScreen> {
                                         sourceLink: data['sourceLink'] ?? '',
                                         url: data['url'] ?? '',
                                         subMedia: subMediaList,
+                                        animeName: '',
                                       ),
                                     ),
                                   );
