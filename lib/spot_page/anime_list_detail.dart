@@ -254,7 +254,7 @@ class _AnimeDetailsPageState extends State<AnimeDetailsPage> {
                           gridDelegate:
                               SliverGridDelegateWithFixedCrossAxisCount(
                             crossAxisCount: 2,
-                            childAspectRatio: 1.3,
+                            childAspectRatio: 1.3, //Adjust spot line spacing
                             mainAxisSpacing: 10.0,
                             crossAxisSpacing: 10.0,
                           ),
