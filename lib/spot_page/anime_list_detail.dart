@@ -266,9 +266,17 @@ class _AnimeDetailsPageState extends State<AnimeDetailsPage> {
                                 location['description'] as String;
                             final imageUrl = location['imageUrl'] as String;
                             final locationId = location['id'] as String;
-                            final userEmail =
-                                location['userEmail'] as String? ?? '';
-                            final userId = userEmail.split('@').first;
+                            final userEmail = location['userEmail'];
+                            String userId;
+                            if (userEmail is List) {
+                              userId = userEmail.isNotEmpty
+                                  ? userEmail[0].toString().split('@')[0]
+                                  : 'unknown';
+                            } else if (userEmail is String) {
+                              userId = userEmail.split('@')[0];
+                            } else {
+                              userId = 'unknown';
+                            }
 
                             return GestureDetector(
                               onTap: () {
