@@ -1131,6 +1131,18 @@ class PrefectureSpotListPage extends StatelessWidget {
     required this.prefectureBounds,
   }) : super(key: key);
 
+  Future<String> getPrefectureImageUrl(String prefectureName) async {
+    try {
+      final ref = FirebaseStorage.instance
+          .ref()
+          .child('prefectures/$prefectureName.jpg');
+      return await ref.getDownloadURL();
+    } catch (e) {
+      print('Error getting image URL for $prefectureName: $e');
+      return '';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -1146,6 +1158,34 @@ class PrefectureSpotListPage extends StatelessWidget {
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          Container(
+            height: 200,
+            width: double.infinity,
+            child: FutureBuilder<String>(
+              future: getPrefectureImageUrl(prefecture),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return Center(child: CircularProgressIndicator());
+                } else if (snapshot.hasError || !snapshot.hasData) {
+                  return Container(
+                    color: Colors.grey[200],
+                    child: Icon(
+                      Icons.image_not_supported_outlined,
+                      size: 50,
+                    ),
+                  );
+                } else {
+                  return CachedNetworkImage(
+                    imageUrl: snapshot.data!,
+                    fit: BoxFit.cover,
+                    placeholder: (context, url) =>
+                        Center(child: CircularProgressIndicator()),
+                    errorWidget: (context, url, error) => Icon(Icons.error),
+                  );
+                }
+              },
+            ),
+          ),
           Padding(
             padding: EdgeInsets.all(16.0),
             child: Text(
@@ -1163,14 +1203,14 @@ class PrefectureSpotListPage extends StatelessWidget {
               gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: 2,
                 childAspectRatio: 1.3,
-                crossAxisSpacing: 10.0,
-                mainAxisSpacing: 10.0,
+                mainAxisSpacing: 1.0,
+                crossAxisSpacing: 3.0,
               ),
               itemCount: locations.length,
               itemBuilder: (context, index) {
                 final location = locations[index];
+                final title = location['title'] as String? ?? '';
                 final locationId = location['locationID'] ?? '';
-                final title = location['title'] as String? ?? 'No Title';
                 final animeName =
                     location['animeName'] as String? ?? 'Unknown Anime';
                 final imageUrl = location['imageUrl'] as String? ?? '';
@@ -1200,9 +1240,10 @@ class PrefectureSpotListPage extends StatelessWidget {
 
                             Map<String, dynamic> data =
                                 snapshot.data!.data() as Map<String, dynamic>;
+                            String title = data['title'] ?? 'No Title';
 
                             return SpotDetailScreen(
-                              title: data['sourceTitle'] ?? '',
+                              title: title,
                               imageUrl: data['imageUrl'] ?? '',
                               description: data['description'] ?? '',
                               latitude:
@@ -1227,8 +1268,48 @@ class PrefectureSpotListPage extends StatelessWidget {
                       ),
                     );
                   },
-                  child: SpotGridItem(
-                    imageUrl: imageUrl,
+                  child: Column(
+                    children: [
+                      Expanded(
+                        child: Container(
+                          decoration: BoxDecoration(
+                            border: Border.all(color: Colors.grey[300]!),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: CachedNetworkImage(
+                              imageUrl: imageUrl,
+                              fit: BoxFit.cover,
+                              width: double.infinity,
+                              placeholder: (context, url) => Container(
+                                color: Colors.grey[200],
+                                child:
+                                    Center(child: CircularProgressIndicator()),
+                              ),
+                              errorWidget: (context, url, error) => Container(
+                                color: Colors.grey[200],
+                                child:
+                                    Icon(Icons.image_not_supported, size: 50),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      Padding(
+                        padding: EdgeInsets.symmetric(vertical: 8.0),
+                        child: Text(
+                          title,
+                          style: TextStyle(
+                            fontSize: 12.0,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    ],
                   ),
                 );
               },
@@ -1312,38 +1393,3 @@ class PrefectureSpotListPage extends StatelessWidget {
 //     ),
 //   ],
 // ),
-
-class SpotGridItem extends StatelessWidget {
-  final String imageUrl;
-
-  SpotGridItem({
-    Key? key,
-    required this.imageUrl,
-  }) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        border: Border.all(color: Colors.grey[300]!),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(8),
-        child: CachedNetworkImage(
-          imageUrl: imageUrl,
-          fit: BoxFit.cover,
-          width: double.infinity,
-          placeholder: (context, url) => Container(
-            color: Colors.grey[200],
-            child: Center(child: CircularProgressIndicator()),
-          ),
-          errorWidget: (context, url, error) => Container(
-            color: Colors.grey[200],
-            child: Icon(Icons.image_not_supported, size: 50),
-          ),
-        ),
-      ),
-    );
-  }
-}
