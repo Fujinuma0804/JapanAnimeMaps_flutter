@@ -109,6 +109,7 @@ class _SpotTestScreenState extends State<SpotTestScreen> {
                 [],
             locationId: locationId,
             animeName: '',
+            userId: '',
           ),
         ),
       );

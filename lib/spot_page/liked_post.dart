@@ -287,6 +287,7 @@ class _FavoriteLocationsPageState extends State<FavoriteLocationsPage> {
           sourceLink: location['sourceLink'] ?? 'Not Link',
           url: location['url'] ?? '',
           animeName: '',
+          userId: '',
           subMedia: (location['subMedia'] as List<dynamic>?)
                   ?.map((item) => item as Map<String, dynamic>)
                   .toList() ??
@@ -371,6 +372,7 @@ class LocationSearchDelegate extends SearchDelegate {
                           sourceLink: location['sourceLink'] ?? 'Not Link',
                           url: location['url'] ?? '',
                           animeName: '',
+                          userId: '',
                           subMedia: (location['subMedia'] as List<dynamic>?)
                                   ?.map((item) => item as Map<String, dynamic>)
                                   .toList() ??

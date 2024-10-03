@@ -918,6 +918,7 @@ class _MapEnScreenState extends State<MapEnScreen> {
                                         url: data['url'] ?? '',
                                         subMedia: subMediaList,
                                         animeName: '',
+                                        userId: '',
                                       ),
                                     ),
                                   );

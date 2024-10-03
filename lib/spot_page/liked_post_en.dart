@@ -321,6 +321,7 @@ class _FavoriteLocationsEnPageState extends State<FavoriteLocationsEnPage> {
           url: location['url'] ?? '',
           subMedia: location['subMedia'] ?? [],
           animeName: '',
+          userId: '',
         ),
       ),
     );
@@ -430,6 +431,7 @@ class LocationSearchDelegate extends SearchDelegate {
                         url: location['url'] ?? '',
                         subMedia: location['subMedia'] ?? [],
                         animeName: '',
+                        userId: '',
                       ),
                     ),
                   );

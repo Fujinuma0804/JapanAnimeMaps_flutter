@@ -1244,6 +1244,7 @@ class PrefectureSpotListPage extends StatelessWidget {
 
                             return SpotDetailScreen(
                               title: title,
+                              userId: '',
                               imageUrl: data['imageUrl'] ?? '',
                               description: data['description'] ?? '',
                               latitude:

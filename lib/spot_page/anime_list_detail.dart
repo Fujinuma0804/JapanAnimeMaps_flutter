@@ -288,6 +288,7 @@ class _AnimeDetailsPageState extends State<AnimeDetailsPage> {
                                     builder: (context) => SpotDetailScreen(
                                       title: title,
                                       imageUrl: imageUrl,
+                                      userId: userId,
                                       description: description,
                                       latitude: location['latitude'] as double,
                                       longitude:
@@ -392,6 +393,7 @@ class SpotDetailScreen extends StatefulWidget {
   final List<Map<String, dynamic>> subMedia;
   final String locationId; // 追加：ロケーションID
   final String animeName;
+  final String userId;
 
   const SpotDetailScreen({
     Key? key,
@@ -406,6 +408,7 @@ class SpotDetailScreen extends StatefulWidget {
     required this.subMedia,
     required this.locationId,
     required this.animeName,
+    required this.userId,
   }) : super(key: key);
 
   @override
@@ -670,11 +673,40 @@ https://japananimemaps.page.link/ios
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Text(
-                    widget.title,
-                    style: const TextStyle(
-                        fontSize: 24, fontWeight: FontWeight.bold),
+                  padding: const EdgeInsets.all(8.0),
+                  child: Align(
+                    alignment: Alignment.center,
+                    child: Text(
+                      widget.title,
+                      style: const TextStyle(
+                          fontSize: 24, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: Align(
+                    alignment: Alignment.centerRight,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text(
+                          '『${widget.animeName}』のスポット',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.grey,
+                          ),
+                        ),
+                        Text(
+                          ' 投稿者：@${widget.userId}',
+                          textAlign: TextAlign.right,
+                          style: TextStyle(
+                            fontSize: 12.0,
+                            color: Colors.grey,
+                          ),
+                        )
+                      ],
+                    ),
                   ),
                 ),
                 Padding(

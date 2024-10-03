@@ -915,6 +915,7 @@ class _MapScreenState extends State<MapScreen> {
                                         url: data['url'] ?? '',
                                         subMedia: subMediaList,
                                         animeName: '',
+                                        userId: '',
                                       ),
                                     ),
                                   );

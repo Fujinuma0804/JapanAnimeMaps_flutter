@@ -859,6 +859,7 @@ class _LikedMapsState extends State<LikedMaps> {
                                         locationId: _selectedMarker!
                                             .markerId.value, // ここを修正
                                         animeName: '',
+                                        userId: '',
                                       ),
                                     ),
                                   );
