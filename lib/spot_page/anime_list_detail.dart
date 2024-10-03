@@ -415,10 +415,10 @@ class SpotDetailScreen extends StatefulWidget {
 class _SpotDetailScreenState extends State<SpotDetailScreen> {
   VideoPlayerController? _videoPlayerController;
   ChewieController? _chewieController;
-  bool _isPictureInPicture = false;
-  double _pipWidth = 200.0; // PiPのデフォルト幅
-  Offset _pipPosition = Offset(16, 16); // PiPのデフォルト位置
-  bool _isPipClosed = false; // 新しい変数を追加
+  // bool _isPictureInPicture = false;
+  // double _pipWidth = 200.0; // PiPのデフォルト幅
+  // Offset _pipPosition = Offset(16, 16); // PiPのデフォルト位置
+  // bool _isPipClosed = false; // 新しい変数を追加
   bool _isFavorite = false;
 
   void _shareContent() {
@@ -643,306 +643,306 @@ https://japananimemaps.page.link/ios
           ),
         ],
       ),
-      body: NotificationListener<ScrollNotification>(
-        onNotification: (scrollNotification) {
-          if (scrollNotification is ScrollUpdateNotification) {
-            if (scrollNotification.metrics.pixels > 0 &&
-                !_isPictureInPicture &&
-                !_isPipClosed) {
-              setState(() {
-                _isPictureInPicture = true;
-              });
-            } else if (scrollNotification.metrics.pixels == 0 &&
-                _isPictureInPicture) {
-              setState(() {
-                _isPictureInPicture = false;
-              });
-            }
-          }
-          return true;
-        },
-        child: Stack(
-          children: [
-            SingleChildScrollView(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
+      body:
+          // NotificationListener<ScrollNotification>(
+          //   onNotification: (scrollNotification) {
+          //     if (scrollNotification is ScrollUpdateNotification) {
+          //       if (scrollNotification.metrics.pixels > 0 &&
+          //           !_isPictureInPicture &&
+          //           !_isPipClosed) {
+          //         setState(() {
+          //           _isPictureInPicture = true;
+          //         });
+          //       } else if (scrollNotification.metrics.pixels == 0 &&
+          //           _isPictureInPicture) {
+          //         setState(() {
+          //           _isPictureInPicture = false;
+          //         });
+          //       }
+          //     }
+          //     return true;
+          //   },
+          //   child:
+          Stack(
+        children: [
+          SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Text(
+                    widget.title,
+                    style: const TextStyle(
+                        fontSize: 24, fontWeight: FontWeight.bold),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Image.network(
+                    widget.imageUrl,
+                    fit: BoxFit.cover,
+                    width: double.infinity,
+                    height: 200,
+                  ),
+                ),
+                if (_chewieController != null)
                   Padding(
                     padding: const EdgeInsets.all(16.0),
-                    child: Text(
-                      widget.title,
-                      style: const TextStyle(
-                          fontSize: 24, fontWeight: FontWeight.bold),
+                    child: AspectRatio(
+                      aspectRatio: _videoPlayerController!.value.aspectRatio,
+                      child: Chewie(controller: _chewieController!),
                     ),
-                  ),
+                  )
+                else if (widget.url.isNotEmpty)
                   Padding(
                     padding: const EdgeInsets.all(16.0),
                     child: Image.network(
-                      widget.imageUrl,
+                      widget.url,
                       fit: BoxFit.cover,
-                      width: double.infinity,
                       height: 200,
+                      width: double.infinity,
+                      errorBuilder: (context, error, stackTrace) {
+                        return Container(
+                          height: 200,
+                          width: double.infinity,
+                          color: Colors.grey,
+                          child: Center(
+                            child: Icon(Icons.error, color: Colors.white),
+                          ),
+                        );
+                      },
                     ),
-                  ),
-                  if (_chewieController != null)
-                    Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: AspectRatio(
-                        aspectRatio: _videoPlayerController!.value.aspectRatio,
-                        child: Chewie(controller: _chewieController!),
-                      ),
-                    )
-                  else if (widget.url.isNotEmpty)
-                    Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Image.network(
-                        widget.url,
-                        fit: BoxFit.cover,
-                        height: 200,
-                        width: double.infinity,
-                        errorBuilder: (context, error, stackTrace) {
-                          return Container(
+                  )
+                else if (widget.subMedia.isNotEmpty &&
+                    (widget.subMedia.first['type'] == 'image' ||
+                        widget.subMedia.first['type'] == 'video'))
+                  Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: widget.subMedia.first['type'] == 'image'
+                        ? Image.network(
+                            widget.subMedia.first['url'],
+                            fit: BoxFit.cover,
                             height: 200,
                             width: double.infinity,
-                            color: Colors.grey,
-                            child: Center(
-                              child: Icon(Icons.error, color: Colors.white),
-                            ),
-                          );
-                        },
-                      ),
-                    )
-                  else if (widget.subMedia.isNotEmpty &&
-                      (widget.subMedia.first['type'] == 'image' ||
-                          widget.subMedia.first['type'] == 'video'))
-                    Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: widget.subMedia.first['type'] == 'image'
-                          ? Image.network(
-                              widget.subMedia.first['url'],
-                              fit: BoxFit.cover,
-                              height: 200,
-                              width: double.infinity,
-                              errorBuilder: (context, error, stackTrace) {
-                                return Container(
-                                  height: 200,
-                                  width: double.infinity,
-                                  color: Colors.grey,
-                                  child: Center(
-                                    child:
-                                        Icon(Icons.error, color: Colors.white),
-                                  ),
-                                );
-                              },
-                            )
-                          : AspectRatio(
-                              aspectRatio:
-                                  _videoPlayerController!.value.aspectRatio,
-                              child: Chewie(controller: _chewieController!),
-                            ),
-                    )
-                  else
-                    SizedBox(
-                      height: 200,
-                      child: GoogleMap(
-                        initialCameraPosition: CameraPosition(
-                          target: LatLng(widget.latitude, widget.longitude),
-                          zoom: 15,
-                        ),
-                        markers: {
-                          Marker(
-                            markerId: const MarkerId('spot_location'),
-                            position: LatLng(widget.latitude, widget.longitude),
-                          ),
-                        },
-                      ),
-                    ),
-                  SizedBox(
-                    height: 10.0,
-                  ),
-                  //以下緯度と経度より郵便番号と住所を取得し表示。
-                  //Simulatorでは取得できませんでしたとなるが、実機ではならない。
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                    child: FutureBuilder<Map<String, String>>(
-                      future: _getAddress(),
-                      builder: (context, snapshot) {
-                        if (snapshot.connectionState ==
-                            ConnectionState.waiting) {
-                          return CircularProgressIndicator();
-                        } else if (snapshot.hasError) {
-                          return Text('エラーが発生しました');
-                        } else {
-                          final address = snapshot.data!;
-                          return SizedBox(
-                            width: double.infinity,
-                            child: Card(
-                              color: Colors.blue,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Padding(
-                                padding: const EdgeInsets.all(16.0),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Text(
-                                      widget.title,
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 18,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                    SizedBox(height: 8),
-                                    Text(
-                                      '〒${address['postalCode']!}',
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 14,
-                                      ),
-                                    ),
-                                    Text(
-                                      address['address']!,
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 14,
-                                      ),
-                                    ),
-                                  ],
+                            errorBuilder: (context, error, stackTrace) {
+                              return Container(
+                                height: 200,
+                                width: double.infinity,
+                                color: Colors.grey,
+                                child: Center(
+                                  child: Icon(Icons.error, color: Colors.white),
                                 ),
-                              ),
-                            ),
-                          );
-                        }
+                              );
+                            },
+                          )
+                        : AspectRatio(
+                            aspectRatio:
+                                _videoPlayerController!.value.aspectRatio,
+                            child: Chewie(controller: _chewieController!),
+                          ),
+                  )
+                else
+                  SizedBox(
+                    height: 200,
+                    child: GoogleMap(
+                      initialCameraPosition: CameraPosition(
+                        target: LatLng(widget.latitude, widget.longitude),
+                        zoom: 15,
+                      ),
+                      markers: {
+                        Marker(
+                          markerId: const MarkerId('spot_location'),
+                          position: LatLng(widget.latitude, widget.longitude),
+                        ),
                       },
                     ),
                   ),
-                  Center(
-                    child: Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: ElevatedButton(
-                        onPressed: () => _openMapOptions(context),
-                        child: Text('ここへ行く'),
-                        style: ElevatedButton.styleFrom(
-                          foregroundColor: Colors.white,
-                          backgroundColor: Color(0xFF00008b),
-                        ),
+                SizedBox(
+                  height: 10.0,
+                ),
+                //以下緯度と経度より郵便番号と住所を取得し表示。
+                //Simulatorでは取得できませんでしたとなるが、実機ではならない。
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                  child: FutureBuilder<Map<String, String>>(
+                    future: _getAddress(),
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return CircularProgressIndicator();
+                      } else if (snapshot.hasError) {
+                        return Text('エラーが発生しました');
+                      } else {
+                        final address = snapshot.data!;
+                        return SizedBox(
+                          width: double.infinity,
+                          child: Card(
+                            color: Colors.blue,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Padding(
+                              padding: const EdgeInsets.all(16.0),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    widget.title,
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  SizedBox(height: 8),
+                                  Text(
+                                    '〒${address['postalCode']!}',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                  Text(
+                                    address['address']!,
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        );
+                      }
+                    },
+                  ),
+                ),
+                Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: ElevatedButton(
+                      onPressed: () => _openMapOptions(context),
+                      child: Text('ここへ行く'),
+                      style: ElevatedButton.styleFrom(
+                        foregroundColor: Colors.white,
+                        backgroundColor: Color(0xFF00008b),
                       ),
                     ),
                   ),
-                  Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Text(
-                      widget.description,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        color: Colors.black,
-                      ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Text(
+                    widget.description,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      color: Colors.black,
                     ),
                   ),
-                  Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          widget.sourceTitle,
-                          style: TextStyle(
-                            color: Colors.grey,
-                            fontSize: 10.0,
-                          ),
-                        ),
-                        Text(
-                          widget.sourceLink,
-                          style: TextStyle(
-                            color: Colors.grey,
-                            fontSize: 10.0,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(
-                    height: 20.0,
-                  ),
-                ],
-              ),
-            ),
-            if (_isPictureInPicture &&
-                _chewieController != null &&
-                _videoPlayerController != null &&
-                !_isPipClosed) // 条件を修正
-              Positioned(
-                left: _pipPosition.dx,
-                top: _pipPosition.dy,
-                child: GestureDetector(
-                  onPanUpdate: (details) {
-                    setState(() {
-                      _pipPosition += details.delta;
-                    });
-                  },
-                  child: Stack(
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      SizedBox(
-                        width: _pipWidth,
-                        height: _pipWidth /
-                            _videoPlayerController!.value.aspectRatio,
-                        child: Chewie(controller: _chewieController!),
-                      ),
-                      Positioned(
-                        right: 0,
-                        top: 0,
-                        child: Row(
-                          children: [
-                            IconButton(
-                              icon: Icon(Icons.fullscreen, color: Colors.white),
-                              onPressed: () {
-                                setState(() {
-                                  _isPictureInPicture = false;
-                                });
-                              },
-                            ),
-                            IconButton(
-                              icon: Icon(Icons.close, color: Colors.white),
-                              onPressed: () {
-                                setState(() {
-                                  _isPictureInPicture = false;
-                                  _isPipClosed = true; // PiPが閉じられたことを記録
-                                  _videoPlayerController?.pause();
-                                });
-                              },
-                            ),
-                          ],
+                      Text(
+                        widget.sourceTitle,
+                        style: TextStyle(
+                          color: Colors.grey,
+                          fontSize: 10.0,
                         ),
                       ),
-                      Positioned(
-                        right: 0,
-                        bottom: 0,
-                        child: GestureDetector(
-                          onPanUpdate: (details) {
-                            setState(() {
-                              _pipWidth = (_pipWidth - details.delta.dx)
-                                  .clamp(100.0, 300.0);
-                            });
-                          },
-                          child: Container(
-                            width: 20,
-                            height: 20,
-                            color: Colors.transparent,
-                            child: Icon(Icons.drag_handle,
-                                color: Colors.white, size: 20),
-                          ),
+                      Text(
+                        widget.sourceLink,
+                        style: TextStyle(
+                          color: Colors.grey,
+                          fontSize: 10.0,
                         ),
                       ),
                     ],
                   ),
                 ),
-              ),
-          ],
-        ),
+                const SizedBox(
+                  height: 20.0,
+                ),
+              ],
+            ),
+          ),
+          // if (_isPictureInPicture &&
+          //     _chewieController != null &&
+          //     _videoPlayerController != null &&
+          //     !_isPipClosed) // 条件を修正
+          //   Positioned(
+          //     left: _pipPosition.dx,
+          //     top: _pipPosition.dy,
+          //     child: GestureDetector(
+          //       onPanUpdate: (details) {
+          //         setState(() {
+          //           _pipPosition += details.delta;
+          //         });
+          //       },
+          //       child: Stack(
+          //         children: [
+          //           SizedBox(
+          //             width: _pipWidth,
+          //             height: _pipWidth /
+          //                 _videoPlayerController!.value.aspectRatio,
+          //             child: Chewie(controller: _chewieController!),
+          //           ),
+          //           Positioned(
+          //             right: 0,
+          //             top: 0,
+          //             child: Row(
+          //               children: [
+          //                 IconButton(
+          //                   icon: Icon(Icons.fullscreen, color: Colors.white),
+          //                   onPressed: () {
+          //                     setState(() {
+          //                       _isPictureInPicture = false;
+          //                     });
+          //                   },
+          //                 ),
+          //                 IconButton(
+          //                   icon: Icon(Icons.close, color: Colors.white),
+          //                   onPressed: () {
+          //                     setState(() {
+          //                       _isPictureInPicture = false;
+          //                       _isPipClosed = true; // PiPが閉じられたことを記録
+          //                       _videoPlayerController?.pause();
+          //                     });
+          //                   },
+          //                 ),
+          //               ],
+          //             ),
+          //           ),
+          //           Positioned(
+          //             right: 0,
+          //             bottom: 0,
+          //             child: GestureDetector(
+          //               onPanUpdate: (details) {
+          //                 setState(() {
+          //                   _pipWidth = (_pipWidth - details.delta.dx)
+          //                       .clamp(100.0, 300.0);
+          //                 });
+          //               },
+          //               child: Container(
+          //                 width: 20,
+          //                 height: 20,
+          //                 color: Colors.transparent,
+          //                 child: Icon(Icons.drag_handle,
+          //                     color: Colors.white, size: 20),
+          //               ),
+          //             ),
+          //           ),
+          //         ],
+          //       ),
+          //     ),
+          //   ),
+        ],
       ),
+      // ),
     );
   }
 }

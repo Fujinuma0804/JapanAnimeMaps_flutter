@@ -576,22 +576,85 @@ class _AnimeListTestRankingState extends State<AnimeListTestRanking>
 
     Future<void> _incrementAnimeCount(String animeName) async {
       try {
-        rtdb.DatabaseReference animeRef = databaseReference.child(animeName);
-        rtdb.TransactionResult result =
-            await animeRef.runTransaction((Object? currentValue) {
-          if (currentValue == null) {
-            return rtdb.Transaction.success(1);
-          }
-          return rtdb.Transaction.success((currentValue as int) + 1);
-        });
+        // Get current date as string (YYYY-MM-DD format)
+        final String today = DateTime.now().toString().split(' ')[0];
 
-        if (result.committed) {
-          print("Incremented count for $animeName");
+        // Get SharedPreferences instance
+        final prefs = await SharedPreferences.getInstance();
+
+        // Check if user has already voted for this anime
+        final String? lastVoteDate = prefs.getString('lastVote_$animeName');
+
+        // If user has never voted for this anime or voted on a different day
+        if (lastVoteDate == null || lastVoteDate != today) {
+          // Get total votes for today
+          final List<String> votedAnimeToday =
+              prefs.getStringList('votedAnime_$today') ?? [];
+
+          // Check if user hasn't exceeded daily vote limit
+          if (votedAnimeToday.length < 1) {
+            rtdb.DatabaseReference animeRef =
+                databaseReference.child(animeName);
+            rtdb.TransactionResult result =
+                await animeRef.runTransaction((Object? currentValue) {
+              if (currentValue == null) {
+                return rtdb.Transaction.success(1);
+              }
+              return rtdb.Transaction.success((currentValue as int) + 1);
+            });
+
+            if (result.committed) {
+              // Save the vote date for this anime
+              await prefs.setString('lastVote_$animeName', today);
+
+              // Add anime to today's voted list
+              votedAnimeToday.add(animeName);
+              await prefs.setStringList('votedAnime_$today', votedAnimeToday);
+
+              print("Incremented count for $animeName");
+
+              // Show success message
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('$animeNameの投票を受け付けました。'),
+                  backgroundColor: Colors.green,
+                ),
+              );
+            } else {
+              print("Failed to increment count for $animeName");
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('投票に失敗しました。もう一度お試しください。'),
+                  backgroundColor: Colors.red,
+                ),
+              );
+            }
+          } else {
+            print("Daily vote limit reached");
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('本日の投票回数の上限に達しました。また明日お試しください。'),
+                backgroundColor: Colors.orange,
+              ),
+            );
+          }
         } else {
-          print("Failed to increment count for $animeName");
+          print("Already voted for this anime today");
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('このアニメには既に投票済みです。'),
+              backgroundColor: Colors.orange,
+            ),
+          );
         }
       } catch (e) {
         print("Error incrementing anime count: $e");
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('エラーが発生しました。もう一度お試しください。'),
+            backgroundColor: Colors.red,
+          ),
+        );
       }
     }
 
