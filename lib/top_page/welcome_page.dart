@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_remote_config/firebase_remote_config.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:parts/login_page/sign_up.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -48,7 +49,6 @@ class _WelcomePageState extends State<WelcomePage> {
 
     await _checkForUpdate();
 
-    // Remote Configの設定に基づいてダイアログを表示
     if (_isMaintenanceMode) {
       _showMaintenanceDialog();
     } else if (_needsUpdate) {
@@ -155,7 +155,7 @@ class _WelcomePageState extends State<WelcomePage> {
         pageBuilder: (context, animation, secondaryAnimation) =>
             const SignUpPage(),
         transitionsBuilder: (context, animation, secondaryAnimation, child) {
-          return child; // No transition animation
+          return child;
         },
       ),
     );
@@ -166,28 +166,12 @@ class _WelcomePageState extends State<WelcomePage> {
     return WillPopScope(
       onWillPop: () async => false,
       child: Scaffold(
-        body: Stack(
-          children: [
-            Positioned.fill(
-              child: Image.asset(
-                'assets/images/welcome.png',
-                fit: BoxFit.cover,
-              ),
-            ),
-            Center(
-              child: TextButton(
-                onPressed: _handleStartButtonPress,
-                child: const Text(
-                  'start',
-                  style: TextStyle(
-                    color: Colors.black,
-                    fontSize: 30,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-            )
-          ],
+        backgroundColor: Colors.white,
+        body: Center(
+          child: LoadingAnimationWidget.staggeredDotsWave(
+            color: Color(0xFF00008b),
+            size: 100,
+          ),
         ),
       ),
     );
