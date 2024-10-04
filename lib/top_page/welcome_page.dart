@@ -1,10 +1,12 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_remote_config/firebase_remote_config.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:parts/login_page/sign_up.dart';
+import 'package:parts/src/bottomnavigationbar.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class WelcomePage extends StatefulWidget {
@@ -17,12 +19,14 @@ class WelcomePage extends StatefulWidget {
 class _WelcomePageState extends State<WelcomePage> {
   final FirebaseRemoteConfig _remoteConfig = FirebaseRemoteConfig.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FirebaseAuth _auth = FirebaseAuth.instance;
 
   String _forceUpdateMessage = '';
   String _updateUrl = '';
   bool _isMaintenanceMode = false;
   String _maintenanceMessage = '';
   bool _needsUpdate = false;
+  bool _isLoading = true;
 
   @override
   void initState() {
@@ -53,13 +57,39 @@ class _WelcomePageState extends State<WelcomePage> {
       _showMaintenanceDialog();
     } else if (_needsUpdate) {
       _showUpdateDialog();
+    } else {
+      _checkAuthState();
     }
+  }
+
+  Future<void> _checkAuthState() async {
+    User? user = _auth.currentUser;
+
+    setState(() {
+      _isLoading = false;
+    });
+
+    if (user != null) {
+      _navigateToMainScreen();
+    } else {
+      _navigateToSignUpPage();
+    }
+  }
+
+  void _navigateToMainScreen() {
+    Navigator.of(context).pushReplacement(
+      PageRouteBuilder(
+        pageBuilder: (context, animation, secondaryAnimation) => MainScreen(),
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          return child;
+        },
+      ),
+    );
   }
 
   Future<void> _checkForUpdate() async {
     PackageInfo packageInfo = await PackageInfo.fromPlatform();
     String currentVersion = packageInfo.version;
-
     String minRequiredVersion = _remoteConfig.getString('min_required_version');
 
     setState(() {
@@ -139,18 +169,8 @@ class _WelcomePageState extends State<WelcomePage> {
     }
   }
 
-  void _handleStartButtonPress() {
-    if (_isMaintenanceMode) {
-      _showMaintenanceDialog();
-    } else if (_needsUpdate) {
-      _showUpdateDialog();
-    } else {
-      _navigateToSignUpPage();
-    }
-  }
-
   void _navigateToSignUpPage() {
-    Navigator.of(context).push(
+    Navigator.of(context).pushReplacement(
       PageRouteBuilder(
         pageBuilder: (context, animation, secondaryAnimation) =>
             const SignUpPage(),
@@ -167,11 +187,15 @@ class _WelcomePageState extends State<WelcomePage> {
       onWillPop: () async => false,
       child: Scaffold(
         backgroundColor: Colors.white,
-        body: Center(
-          child: LoadingAnimationWidget.staggeredDotsWave(
-            color: Color(0xFF00008b),
-            size: 100,
-          ),
+        body: Stack(
+          children: [
+            Center(
+              child: LoadingAnimationWidget.staggeredDotsWave(
+                color: const Color(0xFF00008b),
+                size: 100,
+              ),
+            ),
+          ],
         ),
       ),
     );
