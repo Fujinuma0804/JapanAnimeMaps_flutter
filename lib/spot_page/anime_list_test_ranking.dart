@@ -546,6 +546,7 @@ class _AnimeListTestRankingState extends State<AnimeListTestRanking>
           ),
         ),
         body: TabBarView(
+          physics: NeverScrollableScrollPhysics(),
           controller: _tabController,
           children: [
             _buildAnimeList(),
