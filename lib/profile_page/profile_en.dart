@@ -64,15 +64,11 @@ class _ProfileEnScreenState extends State<ProfileEnScreen> {
       String fileName = '${currentUser!.uid}_avatar.jpg';
 
       try {
-        // Upload image to Firebase Storage
         TaskSnapshot snapshot = await FirebaseStorage.instance
             .ref('avatars/$fileName')
             .putFile(file);
-
-        // Get download URL
         String downloadUrl = await snapshot.ref.getDownloadURL();
 
-        // Update Firestore document
         await FirebaseFirestore.instance
             .collection('users')
             .doc(currentUser!.uid)
@@ -95,25 +91,18 @@ class _ProfileEnScreenState extends State<ProfileEnScreen> {
     }
   }
 
-  String formatDate(dynamic date) {
-    if (date == null) return 'Not Settings';
-    if (date is Timestamp) {
-      return DateFormat('yyyy,MM,dd').format(date.toDate());
-    } else if (date is DateTime) {
-      return DateFormat('yyyy,MM,dd').format(date);
-    } else if (date is String) {
-      try {
-        return DateFormat('yyyy,MM,dd').format(DateTime.parse(date));
-      } catch (e) {
-        return date;
-      }
-    }
-    return 'Not Settings';
+  int getDaysSinceCreation() {
+    if (userData == null || userData!.data()?['created_at'] == null) return 0;
+
+    final createdAt = (userData!.data()?['created_at'] as Timestamp).toDate();
+    final now = DateTime.now();
+    return now.difference(createdAt).inDays;
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
         backgroundColor: Colors.white,
         leading: IconButton(
@@ -163,6 +152,20 @@ class _ProfileEnScreenState extends State<ProfileEnScreen> {
                   ),
                 ),
                 const SizedBox(height: 20),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    _buildStatisticBox(
+                      '使用日数',
+                      '${getDaysSinceCreation()}日',
+                    ),
+                    _buildStatisticBox(
+                      'チェックイン数',
+                      '${userData?.data()?['correctCount'] ?? 0}スポット',
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
                 buildProfileItem(
                     'Name', userData?.data()?['name'] ?? 'Not Settings'),
                 buildProfileItem(
@@ -187,6 +190,37 @@ class _ProfileEnScreenState extends State<ProfileEnScreen> {
     );
   }
 
+  Widget _buildStatisticBox(String title, String value) {
+    return Container(
+      width: MediaQuery.of(context).size.width * 0.45,
+      padding: const EdgeInsets.symmetric(vertical: 16),
+      decoration: BoxDecoration(
+        color: Colors.grey[200],
+        border: Border.all(color: Colors.grey.withOpacity(0.2)),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Column(
+        children: [
+          Text(
+            title,
+            style: const TextStyle(
+              color: Colors.black,
+              fontSize: 14,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            value,
+            style: const TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget buildProfileItem(String title, String value) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
@@ -198,5 +232,21 @@ class _ProfileEnScreenState extends State<ProfileEnScreen> {
         ],
       ),
     );
+  }
+
+  String formatDate(dynamic date) {
+    if (date == null) return 'Not Settings';
+    if (date is Timestamp) {
+      return DateFormat('yyyy,MM,dd').format(date.toDate());
+    } else if (date is DateTime) {
+      return DateFormat('yyyy,MM,dd').format(date);
+    } else if (date is String) {
+      try {
+        return DateFormat('yyyy,MM,dd').format(DateTime.parse(date));
+      } catch (e) {
+        return date;
+      }
+    }
+    return 'Not Settings';
   }
 }
