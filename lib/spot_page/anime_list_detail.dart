@@ -418,11 +418,13 @@ class SpotDetailScreen extends StatefulWidget {
 class _SpotDetailScreenState extends State<SpotDetailScreen> {
   VideoPlayerController? _videoPlayerController;
   ChewieController? _chewieController;
+  bool _isFavorite = false;
+  bool _isVideoInitialized = false;
+
   // bool _isPictureInPicture = false;
   // double _pipWidth = 200.0; // PiPのデフォルト幅
   // Offset _pipPosition = Offset(16, 16); // PiPのデフォルト位置
   // bool _isPipClosed = false; // 新しい変数を追加
-  bool _isFavorite = false;
 
   void _shareContent() {
     final String mapsUrl =
@@ -519,13 +521,19 @@ https://japananimemaps.page.link/ios
   }
 
   Future<void> _initializeMedia() async {
+    // First check the main url
     if (widget.url.isNotEmpty && widget.url.toLowerCase().endsWith('.mp4')) {
       await _initializeVideoPlayer(widget.url);
+      return; // Exit early if main video is initialized
     }
-    for (var subMedia in widget.subMedia) {
-      if (subMedia['type'] == 'video') {
-        await _initializeVideoPlayer(subMedia['url']);
-        break; // 最初の動画のみを初期化
+
+    // Only check subMedia if main url wasn't a video
+    if (!_isVideoInitialized) {
+      for (var subMedia in widget.subMedia) {
+        if (subMedia['type'] == 'video' && subMedia['url'] != null) {
+          await _initializeVideoPlayer(subMedia['url']);
+          break; // Exit after initializing first video
+        }
       }
     }
   }
@@ -586,14 +594,18 @@ https://japananimemaps.page.link/ios
     try {
       _videoPlayerController = VideoPlayerController.network(url);
       await _videoPlayerController!.initialize();
-      _chewieController = ChewieController(
-        videoPlayerController: _videoPlayerController!,
-        autoPlay: true,
-        looping: true,
-      );
-      setState(() {});
+
+      setState(() {
+        _chewieController = ChewieController(
+          videoPlayerController: _videoPlayerController!,
+          autoPlay: false,
+          looping: true,
+        );
+        _isVideoInitialized = true;
+      });
     } catch (e) {
       print("Error initializing video player: $e");
+      _isVideoInitialized = false;
     }
   }
 
@@ -646,27 +658,7 @@ https://japananimemaps.page.link/ios
           ),
         ],
       ),
-      body:
-          // NotificationListener<ScrollNotification>(
-          //   onNotification: (scrollNotification) {
-          //     if (scrollNotification is ScrollUpdateNotification) {
-          //       if (scrollNotification.metrics.pixels > 0 &&
-          //           !_isPictureInPicture &&
-          //           !_isPipClosed) {
-          //         setState(() {
-          //           _isPictureInPicture = true;
-          //         });
-          //       } else if (scrollNotification.metrics.pixels == 0 &&
-          //           _isPictureInPicture) {
-          //         setState(() {
-          //           _isPictureInPicture = false;
-          //         });
-          //       }
-          //     }
-          //     return true;
-          //   },
-          //   child:
-          Stack(
+      body: Stack(
         children: [
           SingleChildScrollView(
             child: Column(
@@ -718,15 +710,14 @@ https://japananimemaps.page.link/ios
                     height: 200,
                   ),
                 ),
-                if (_chewieController != null)
+                _buildMainContent(),
+                if (widget.subMedia.isNotEmpty)
                   Padding(
                     padding: const EdgeInsets.all(16.0),
-                    child: AspectRatio(
-                      aspectRatio: _videoPlayerController!.value.aspectRatio,
-                      child: Chewie(controller: _chewieController!),
-                    ),
+                    child: _buildSubMediaContent(),
                   )
-                else if (widget.url.isNotEmpty)
+                else if (widget.url.isNotEmpty &&
+                    !widget.url.toLowerCase().endsWith('.mp4'))
                   Padding(
                     padding: const EdgeInsets.all(16.0),
                     child: Image.network(
@@ -745,34 +736,11 @@ https://japananimemaps.page.link/ios
                         );
                       },
                     ),
-                  )
-                else if (widget.subMedia.isNotEmpty &&
-                    (widget.subMedia.first['type'] == 'image' ||
-                        widget.subMedia.first['type'] == 'video'))
+                  ),
+                if (widget.subMedia.isNotEmpty)
                   Padding(
                     padding: const EdgeInsets.all(16.0),
-                    child: widget.subMedia.first['type'] == 'image'
-                        ? Image.network(
-                            widget.subMedia.first['url'],
-                            fit: BoxFit.cover,
-                            height: 200,
-                            width: double.infinity,
-                            errorBuilder: (context, error, stackTrace) {
-                              return Container(
-                                height: 200,
-                                width: double.infinity,
-                                color: Colors.grey,
-                                child: Center(
-                                  child: Icon(Icons.error, color: Colors.white),
-                                ),
-                              );
-                            },
-                          )
-                        : AspectRatio(
-                            aspectRatio:
-                                _videoPlayerController!.value.aspectRatio,
-                            child: Chewie(controller: _chewieController!),
-                          ),
+                    child: _buildSubMediaContent(),
                   )
                 else
                   SizedBox(
@@ -790,11 +758,7 @@ https://japananimemaps.page.link/ios
                       },
                     ),
                   ),
-                SizedBox(
-                  height: 10.0,
-                ),
-                //以下緯度と経度より郵便番号と住所を取得し表示。
-                //Simulatorでは取得できませんでしたとなるが、実機ではならない。
+                SizedBox(height: 10.0),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16.0),
                   child: FutureBuilder<Map<String, String>>(
@@ -896,85 +860,81 @@ https://japananimemaps.page.link/ios
                     ],
                   ),
                 ),
-                const SizedBox(
-                  height: 20.0,
-                ),
+                const SizedBox(height: 20.0),
               ],
             ),
           ),
-          // if (_isPictureInPicture &&
-          //     _chewieController != null &&
-          //     _videoPlayerController != null &&
-          //     !_isPipClosed) // 条件を修正
-          //   Positioned(
-          //     left: _pipPosition.dx,
-          //     top: _pipPosition.dy,
-          //     child: GestureDetector(
-          //       onPanUpdate: (details) {
-          //         setState(() {
-          //           _pipPosition += details.delta;
-          //         });
-          //       },
-          //       child: Stack(
-          //         children: [
-          //           SizedBox(
-          //             width: _pipWidth,
-          //             height: _pipWidth /
-          //                 _videoPlayerController!.value.aspectRatio,
-          //             child: Chewie(controller: _chewieController!),
-          //           ),
-          //           Positioned(
-          //             right: 0,
-          //             top: 0,
-          //             child: Row(
-          //               children: [
-          //                 IconButton(
-          //                   icon: Icon(Icons.fullscreen, color: Colors.white),
-          //                   onPressed: () {
-          //                     setState(() {
-          //                       _isPictureInPicture = false;
-          //                     });
-          //                   },
-          //                 ),
-          //                 IconButton(
-          //                   icon: Icon(Icons.close, color: Colors.white),
-          //                   onPressed: () {
-          //                     setState(() {
-          //                       _isPictureInPicture = false;
-          //                       _isPipClosed = true; // PiPが閉じられたことを記録
-          //                       _videoPlayerController?.pause();
-          //                     });
-          //                   },
-          //                 ),
-          //               ],
-          //             ),
-          //           ),
-          //           Positioned(
-          //             right: 0,
-          //             bottom: 0,
-          //             child: GestureDetector(
-          //               onPanUpdate: (details) {
-          //                 setState(() {
-          //                   _pipWidth = (_pipWidth - details.delta.dx)
-          //                       .clamp(100.0, 300.0);
-          //                 });
-          //               },
-          //               child: Container(
-          //                 width: 20,
-          //                 height: 20,
-          //                 color: Colors.transparent,
-          //                 child: Icon(Icons.drag_handle,
-          //                     color: Colors.white, size: 20),
-          //               ),
-          //             ),
-          //           ),
-          //         ],
-          //       ),
-          //     ),
-          //   ),
         ],
       ),
-      // ),
     );
+  }
+
+  Widget _buildMainContent() {
+    // If we have an initialized video, show it
+    if (_isVideoInitialized &&
+        _chewieController != null &&
+        _videoPlayerController != null) {
+      return Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: AspectRatio(
+          aspectRatio: _videoPlayerController!.value.aspectRatio,
+          child: Chewie(controller: _chewieController!),
+        ),
+      );
+    }
+
+    // If main URL is an image, show it
+    if (widget.url.isNotEmpty && !widget.url.toLowerCase().endsWith('.mp4')) {
+      return Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Image.network(
+          widget.url,
+          fit: BoxFit.cover,
+          height: 200,
+          width: double.infinity,
+          errorBuilder: (context, error, stackTrace) {
+            return Container(
+              height: 200,
+              width: double.infinity,
+              color: Colors.grey,
+              child: Center(
+                child: Icon(Icons.error, color: Colors.white),
+              ),
+            );
+          },
+        ),
+      );
+    }
+
+    return SizedBox.shrink();
+  }
+
+  Widget _buildSubMediaContent() {
+    // Don't show subMedia video if we already have a main video playing
+    if (_isVideoInitialized) {
+      return SizedBox.shrink();
+    }
+
+    final firstMedia = widget.subMedia.first;
+    if (firstMedia['type'] == 'image') {
+      return Image.network(
+        firstMedia['url'],
+        fit: BoxFit.cover,
+        height: 200,
+        width: double.infinity,
+        errorBuilder: (context, error, stackTrace) {
+          return Container(
+            height: 200,
+            width: double.infinity,
+            color: Colors.grey,
+            child: Center(
+              child: Icon(Icons.error, color: Colors.white),
+            ),
+          );
+        },
+      );
+    }
+
+    return SizedBox.shrink();
   }
 }
