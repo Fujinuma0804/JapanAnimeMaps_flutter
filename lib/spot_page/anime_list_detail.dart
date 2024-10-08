@@ -715,34 +715,11 @@ https://japananimemaps.page.link/ios
                   Padding(
                     padding: const EdgeInsets.all(16.0),
                     child: _buildSubMediaContent(),
-                  )
-                else if (widget.url.isNotEmpty &&
-                    !widget.url.toLowerCase().endsWith('.mp4'))
-                  Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Image.network(
-                      widget.url,
-                      fit: BoxFit.cover,
-                      height: 200,
-                      width: double.infinity,
-                      errorBuilder: (context, error, stackTrace) {
-                        return Container(
-                          height: 200,
-                          width: double.infinity,
-                          color: Colors.grey,
-                          child: Center(
-                            child: Icon(Icons.error, color: Colors.white),
-                          ),
-                        );
-                      },
-                    ),
                   ),
-                if (widget.subMedia.isNotEmpty)
-                  Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: _buildSubMediaContent(),
-                  )
-                else
+                if (!_isVideoInitialized &&
+                    widget.subMedia.isEmpty &&
+                    (widget.url.isEmpty ||
+                        widget.url.toLowerCase().endsWith('.mp4')))
                   SizedBox(
                     height: 200,
                     child: GoogleMap(
