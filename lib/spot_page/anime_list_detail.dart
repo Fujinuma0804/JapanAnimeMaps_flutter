@@ -41,6 +41,52 @@ class _AnimeDetailsPageState extends State<AnimeDetailsPage> {
     super.dispose();
   }
 
+  Widget _buildNetworkImage(String imageUrl,
+      {double? width, double? height, BoxFit fit = BoxFit.cover}) {
+    return imageUrl.isNotEmpty
+        ? Image.network(
+            imageUrl,
+            width: width,
+            height: height,
+            fit: fit,
+            loadingBuilder: (BuildContext context, Widget child,
+                ImageChunkEvent? loadingProgress) {
+              if (loadingProgress == null) return child;
+              return Container(
+                width: width,
+                height: height,
+                color: Colors.grey[200],
+                child: Center(
+                  child: CircularProgressIndicator(
+                    value: loadingProgress.expectedTotalBytes != null
+                        ? loadingProgress.cumulativeBytesLoaded /
+                            loadingProgress.expectedTotalBytes!
+                        : null,
+                  ),
+                ),
+              );
+            },
+            errorBuilder: (context, error, stackTrace) {
+              return Container(
+                width: width,
+                height: height,
+                color: Colors.grey[300],
+                child: Center(
+                  child: Icon(Icons.error, color: Colors.grey[600]),
+                ),
+              );
+            },
+          )
+        : Container(
+            width: width,
+            height: height,
+            color: Colors.grey[300],
+            child: Center(
+              child: Icon(Icons.image_not_supported, color: Colors.grey[600]),
+            ),
+          );
+  }
+
   void _showTutorialTooltip() {
     _removeOverlay();
     _overlayEntry = _createOverlayEntry();
@@ -63,23 +109,17 @@ class _AnimeDetailsPageState extends State<AnimeDetailsPage> {
         final size = renderBox?.size ?? Size.zero;
         final offset = renderBox?.localToGlobal(Offset.zero) ?? Offset.zero;
 
-        // 画面のサイズを取得
         final screenSize = MediaQuery.of(context).size;
-
-        // 吹き出しのサイズを定義（おおよその値）
         const tooltipWidth = 200.0;
         const tooltipHeight = 40.0;
 
-        // 吹き出しの位置を計算
         double left = offset.dx - tooltipWidth + size.width;
         double top = offset.dy + size.height + 5.0;
 
-        // 画面右端からはみ出す場合、左に寄せる
         if (left + tooltipWidth > screenSize.width) {
           left = screenSize.width - tooltipWidth - 10.0;
         }
 
-        // 画面下端からはみ出す場合、上に表示する
         if (top + tooltipHeight > screenSize.height) {
           top = offset.dy - tooltipHeight - 5.0;
         }
@@ -132,8 +172,19 @@ class _AnimeDetailsPageState extends State<AnimeDetailsPage> {
 
       for (var doc in snapshot.docs) {
         var data = doc.data() as Map<String, dynamic>;
-        print("Fetched document ID: ${doc.id}");
-        print("Fetched document data: $data");
+        List<Map<String, dynamic>> processedSubMedia = [];
+        var rawSubMedia = data['subMedia'];
+        if (rawSubMedia != null) {
+          if (rawSubMedia is Map) {
+            processedSubMedia.add(Map<String, dynamic>.from(rawSubMedia));
+          } else if (rawSubMedia is List) {
+            processedSubMedia = (rawSubMedia as List)
+                .where((item) => item is Map)
+                .map((item) => Map<String, dynamic>.from(item))
+                .toList();
+          }
+        }
+
         locations.add({
           'id': doc.id,
           'title': data['title'] ?? '',
@@ -144,7 +195,7 @@ class _AnimeDetailsPageState extends State<AnimeDetailsPage> {
           'sourceTitle': data['sourceTitle'] ?? '',
           'sourceLink': data['sourceLink'] ?? '',
           'url': data['url'] ?? '',
-          'subMedia': data['subMedia'] ?? [],
+          'subMedia': processedSubMedia,
           'userEmail': data['userEmail'] ?? [],
         });
       }
@@ -190,192 +241,157 @@ class _AnimeDetailsPageState extends State<AnimeDetailsPage> {
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return Center(child: CircularProgressIndicator());
-          } else if (snapshot.hasError) {
+          }
+          if (snapshot.hasError) {
             return Center(child: Text('Error: ${snapshot.error}'));
-          } else if (!snapshot.hasData || !snapshot.data!.exists) {
+          }
+          if (!snapshot.hasData || !snapshot.data!.exists) {
             return Center(child: Text('Anime not found'));
-          } else {
-            Map<String, dynamic> animeData =
-                snapshot.data!.data() as Map<String, dynamic>;
-            String imageUrl = animeData['imageUrl'] ?? '';
-            String userId = animeData['userId'] ?? '';
-            return Column(
-              children: [
-                imageUrl.isNotEmpty
-                    ? Image.network(
-                        imageUrl,
-                        width: double.infinity,
-                        height: 200,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) {
-                          return Image.asset(
-                            'assets/placeholder_image.png',
-                            width: double.infinity,
-                            height: 200,
-                            fit: BoxFit.cover,
-                          );
-                        },
-                      )
-                    : Image.asset(
-                        'assets/placeholder_image.png',
-                        width: double.infinity,
-                        height: 200,
-                        fit: BoxFit.cover,
-                      ),
-                Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: Align(
-                    alignment: Alignment.centerRight,
-                    child: Text(
-                      userId.isNotEmpty ? '投稿者: @$userId' : 'エラー',
-                      style: TextStyle(
-                        fontSize: 10,
-                        color: Colors.grey,
-                      ),
+          }
+
+          Map<String, dynamic> animeData =
+              snapshot.data!.data() as Map<String, dynamic>;
+          String imageUrl = animeData['imageUrl'] ?? '';
+          String userId = animeData['userId'] ?? '';
+
+          return Column(
+            children: [
+              _buildNetworkImage(
+                imageUrl,
+                width: double.infinity,
+                height: 200,
+              ),
+              Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Align(
+                  alignment: Alignment.centerRight,
+                  child: Text(
+                    userId.isNotEmpty ? '投稿者: @$userId' : 'エラー',
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: Colors.grey,
                     ),
                   ),
                 ),
-                Expanded(
-                  child: FutureBuilder<List<Map<String, dynamic>>>(
-                    future: _fetchLocationsForAnime(),
-                    builder: (context, snapshot) {
-                      if (snapshot.connectionState == ConnectionState.waiting) {
-                        return Center(child: CircularProgressIndicator());
-                      } else if (snapshot.hasError) {
-                        return Center(child: Text('Error: ${snapshot.error}'));
-                      } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                        return Center(
-                            child: Text(
-                                'No locations found for ${widget.animeName}.'));
-                      } else {
-                        final locations = snapshot.data!;
+              ),
+              Expanded(
+                child: FutureBuilder<List<Map<String, dynamic>>>(
+                  future: _fetchLocationsForAnime(),
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return Center(child: CircularProgressIndicator());
+                    }
+                    if (snapshot.hasError) {
+                      return Center(child: Text('Error: ${snapshot.error}'));
+                    }
+                    if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                      return Center(
+                          child: Text(
+                              'No locations found for ${widget.animeName}.'));
+                    }
 
-                        return GridView.builder(
-                          gridDelegate:
-                              SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 2,
-                            childAspectRatio: 1.3, //Adjust spot line spacing
-                            mainAxisSpacing: 10.0,
-                            crossAxisSpacing: 10.0,
-                          ),
-                          itemCount: locations.length,
-                          itemBuilder: (context, index) {
-                            final location = locations[index];
-                            final title = location['title'] as String;
-                            final description =
-                                location['description'] as String;
-                            final imageUrl = location['imageUrl'] as String;
-                            final locationId = location['id'] as String;
-                            final userEmail = location['userEmail'];
-                            String userId;
-                            if (userEmail is List) {
-                              userId = userEmail.isNotEmpty
-                                  ? userEmail[0].toString().split('@')[0]
-                                  : 'unknown';
-                            } else if (userEmail is String) {
-                              userId = userEmail.split('@')[0];
-                            } else {
-                              userId = 'unknown';
-                            }
-
-                            return GestureDetector(
-                              onTap: () {
-                                print(
-                                    "Navigating to SpotDetailScreen with locationId: $locationId");
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => SpotDetailScreen(
-                                      title: title,
-                                      imageUrl: imageUrl,
-                                      userId: userId,
-                                      description: description,
-                                      latitude: location['latitude'] as double,
-                                      longitude:
-                                          location['longitude'] as double,
-                                      sourceLink:
-                                          location['sourceLink'] as String,
-                                      sourceTitle:
-                                          location['sourceTitle'] as String,
-                                      url: location['url'] as String,
-                                      subMedia: (location['subMedia'] as List)
-                                          .where((item) =>
-                                              item is Map<String, dynamic>)
-                                          .cast<Map<String, dynamic>>()
-                                          .toList(),
-                                      locationId: locationId,
-                                      animeName: widget.animeName,
-                                    ),
-                                  ),
-                                );
-                              },
-                              child: Padding(
-                                padding: const EdgeInsets.all(8.0),
-                                child: Column(
-                                  children: [
-                                    ClipRRect(
-                                      borderRadius: BorderRadius.circular(9.0),
-                                      child: imageUrl.isNotEmpty
-                                          ? Image.network(
-                                              imageUrl,
-                                              width: 200,
-                                              height: 100,
-                                              fit: BoxFit.cover,
-                                              errorBuilder:
-                                                  (context, error, stackTrace) {
-                                                return Image.asset(
-                                                  'assets/placeholder_image.png',
-                                                  width: 200,
-                                                  height: 100,
-                                                  fit: BoxFit.cover,
-                                                );
-                                              },
-                                            )
-                                          : Image.asset(
-                                              'assets/placeholder_image.png',
-                                              width: 200,
-                                              height: 100,
-                                              fit: BoxFit.cover,
-                                            ),
-                                    ),
-                                    SizedBox(height: 4.0),
-                                    Text(
-                                      title,
-                                      textAlign: TextAlign.center,
-                                      style: TextStyle(
-                                        fontSize: 14.0,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                      overflow: TextOverflow.ellipsis,
-                                      maxLines: 1,
-                                    ),
-                                    const SizedBox(
-                                      height: 2.0,
-                                    ),
-                                    Text(
-                                      '投稿者:@'
-                                      '$userId',
-                                      style: TextStyle(
-                                        fontSize: 12.0,
-                                        color: Colors.grey,
-                                      ),
-                                      overflow: TextOverflow.ellipsis,
-                                      maxLines: 1,
-                                    )
-                                  ],
-                                ),
-                              ),
-                            );
-                          },
-                        );
-                      }
-                    },
-                  ),
-                )
-              ],
-            );
-          }
+                    final locations = snapshot.data!;
+                    return GridView.builder(
+                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 2,
+                        childAspectRatio: 1.3,
+                        mainAxisSpacing: 10.0,
+                        crossAxisSpacing: 10.0,
+                      ),
+                      itemCount: locations.length,
+                      itemBuilder: (context, index) {
+                        final location = locations[index];
+                        return _buildLocationCard(location, context);
+                      },
+                    );
+                  },
+                ),
+              ),
+            ],
+          );
         },
+      ),
+    );
+  }
+
+  Widget _buildLocationCard(
+      Map<String, dynamic> location, BuildContext context) {
+    final String title = location['title'] as String;
+    final String imageUrl = location['imageUrl'] as String;
+    final String locationId = location['id'] as String;
+    final userEmail = location['userEmail'];
+    String userId;
+
+    if (userEmail is List) {
+      userId = userEmail.isNotEmpty
+          ? userEmail[0].toString().split('@')[0]
+          : 'unknown';
+    } else if (userEmail is String) {
+      userId = userEmail.split('@')[0];
+    } else {
+      userId = 'unknown';
+    }
+
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => SpotDetailScreen(
+              title: title,
+              imageUrl: imageUrl,
+              userId: userId,
+              description: location['description'] as String,
+              latitude: location['latitude'] as double,
+              longitude: location['longitude'] as double,
+              sourceLink: location['sourceLink'] as String,
+              sourceTitle: location['sourceTitle'] as String,
+              url: location['url'] as String,
+              subMedia: (location['subMedia'] as List)
+                  .where((item) => item is Map<String, dynamic>)
+                  .cast<Map<String, dynamic>>()
+                  .toList(),
+              locationId: locationId,
+              animeName: widget.animeName,
+            ),
+          ),
+        );
+      },
+      child: Padding(
+        padding: const EdgeInsets.all(8.0),
+        child: Column(
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(9.0),
+              child: _buildNetworkImage(
+                imageUrl,
+                width: 200,
+                height: 100,
+              ),
+            ),
+            SizedBox(height: 4.0),
+            Text(
+              title,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 14.0,
+                fontWeight: FontWeight.bold,
+              ),
+              overflow: TextOverflow.ellipsis,
+              maxLines: 1,
+            ),
+            const SizedBox(height: 2.0),
+            Text(
+              '投稿者:@$userId',
+              style: TextStyle(
+                fontSize: 12.0,
+                color: Colors.grey,
+              ),
+              overflow: TextOverflow.ellipsis,
+              maxLines: 1,
+            )
+          ],
+        ),
       ),
     );
   }
@@ -391,7 +407,7 @@ class SpotDetailScreen extends StatefulWidget {
   final String sourceLink;
   final String url;
   final List<Map<String, dynamic>> subMedia;
-  final String locationId; // 追加：ロケーションID
+  final String locationId;
   final String animeName;
   final String userId;
 
@@ -420,11 +436,6 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
   ChewieController? _chewieController;
   bool _isFavorite = false;
   bool _isVideoInitialized = false;
-
-  // bool _isPictureInPicture = false;
-  // double _pipWidth = 200.0; // PiPのデフォルト幅
-  // Offset _pipPosition = Offset(16, 16); // PiPのデフォルト位置
-  // bool _isPipClosed = false; // 新しい変数を追加
 
   void _shareContent() {
     final String mapsUrl =
@@ -461,8 +472,6 @@ https://japananimemaps.page.link/ios
                 onTap: () async {
                   if (await canLaunch(googleMapsUrl)) {
                     await launch(googleMapsUrl);
-                  } else {
-                    throw 'Could not open Google Maps.';
                   }
                 },
               ),
@@ -473,8 +482,6 @@ https://japananimemaps.page.link/ios
                   onTap: () async {
                     if (await canLaunch(appleMapsUrl)) {
                       await launch(appleMapsUrl);
-                    } else {
-                      throw 'Could not open Apple Maps.';
                     }
                   },
                 ),
@@ -521,18 +528,16 @@ https://japananimemaps.page.link/ios
   }
 
   Future<void> _initializeMedia() async {
-    // First check the main url
     if (widget.url.isNotEmpty && widget.url.toLowerCase().endsWith('.mp4')) {
       await _initializeVideoPlayer(widget.url);
-      return; // Exit early if main video is initialized
+      return;
     }
 
-    // Only check subMedia if main url wasn't a video
     if (!_isVideoInitialized) {
       for (var subMedia in widget.subMedia) {
         if (subMedia['type'] == 'video' && subMedia['url'] != null) {
           await _initializeVideoPlayer(subMedia['url']);
-          break; // Exit after initializing first video
+          break;
         }
       }
     }
@@ -582,7 +587,6 @@ https://japananimemaps.page.link/ios
         }
       } catch (e) {
         print('Error toggling favorite: $e');
-        // Revert the state if the operation fails
         setState(() {
           _isFavorite = !_isFavorite;
         });
@@ -600,6 +604,8 @@ https://japananimemaps.page.link/ios
           videoPlayerController: _videoPlayerController!,
           autoPlay: false,
           looping: true,
+          placeholder: Center(child: CircularProgressIndicator()),
+          allowPlaybackSpeedChanging: false,
         );
         _isVideoInitialized = true;
       });
@@ -616,22 +622,118 @@ https://japananimemaps.page.link/ios
     super.dispose();
   }
 
+  Widget _buildMainContent() {
+    if (_isVideoInitialized &&
+        _chewieController != null &&
+        _videoPlayerController != null) {
+      return Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            AspectRatio(
+              aspectRatio: _videoPlayerController!.value.aspectRatio,
+              child: Chewie(controller: _chewieController!),
+            ),
+            if (!_videoPlayerController!.value.isInitialized)
+              CircularProgressIndicator(),
+          ],
+        ),
+      );
+    }
+
+    if (widget.url.isNotEmpty && !widget.url.toLowerCase().endsWith('.mp4')) {
+      return Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: _buildNetworkImage(
+          widget.url,
+          height: 200,
+          width: double.infinity,
+        ),
+      );
+    }
+
+    return SizedBox.shrink();
+  }
+
+  Widget _buildSubMediaContent() {
+    if (_isVideoInitialized) {
+      return SizedBox.shrink();
+    }
+
+    if (widget.subMedia.isNotEmpty) {
+      final firstMedia = widget.subMedia.first;
+      if (firstMedia['type'] == 'image' && firstMedia['url'] != null) {
+        return _buildNetworkImage(
+          firstMedia['url'],
+          height: 200,
+          width: double.infinity,
+        );
+      }
+    }
+
+    return SizedBox.shrink();
+  }
+
+  Widget _buildNetworkImage(String imageUrl,
+      {double? width, double? height, BoxFit fit = BoxFit.cover}) {
+    return imageUrl.isNotEmpty
+        ? Image.network(
+            imageUrl,
+            width: width,
+            height: height,
+            fit: fit,
+            loadingBuilder: (BuildContext context, Widget child,
+                ImageChunkEvent? loadingProgress) {
+              if (loadingProgress == null) return child;
+              return Container(
+                width: width,
+                height: height,
+                color: Colors.grey[200],
+                child: Center(
+                  child: CircularProgressIndicator(
+                    value: loadingProgress.expectedTotalBytes != null
+                        ? loadingProgress.cumulativeBytesLoaded /
+                            loadingProgress.expectedTotalBytes!
+                        : null,
+                  ),
+                ),
+              );
+            },
+            errorBuilder: (context, error, stackTrace) {
+              return Container(
+                width: width,
+                height: height,
+                color: Colors.grey[300],
+                child: Center(
+                  child: Icon(Icons.error, color: Colors.grey[600]),
+                ),
+              );
+            },
+          )
+        : Container(
+            width: width,
+            height: height,
+            color: Colors.grey[300],
+            child: Center(
+              child: Icon(Icons.image_not_supported, color: Colors.grey[600]),
+            ),
+          );
+  }
+
   @override
   Widget build(BuildContext context) {
     if (widget.locationId.isEmpty) {
       return Scaffold(
         appBar: AppBar(
-          title: Text(
-            'Error',
-          ),
+          title: Text('Error'),
         ),
         body: Center(
-          child: Text(
-            'Error: Invalid location ID',
-          ),
+          child: Text('Error: Invalid location ID'),
         ),
       );
     }
+
     return Scaffold(
       appBar: AppBar(
         centerTitle: true,
@@ -651,267 +753,203 @@ https://japananimemaps.page.link/ios
             onPressed: _toggleFavorite,
           ),
           IconButton(
-            icon: Icon(
-              CupertinoIcons.share_up,
-            ),
+            icon: Icon(CupertinoIcons.share_up),
             onPressed: _shareContent,
           ),
         ],
       ),
-      body: Stack(
-        children: [
-          SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: Align(
-                    alignment: Alignment.center,
-                    child: Text(
-                      widget.title,
-                      style: const TextStyle(
-                          fontSize: 24, fontWeight: FontWeight.bold),
-                    ),
-                  ),
+      body: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Align(
+                alignment: Alignment.center,
+                child: Text(
+                  widget.title,
+                  style: const TextStyle(
+                      fontSize: 24, fontWeight: FontWeight.bold),
                 ),
-                Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: Align(
-                    alignment: Alignment.centerRight,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        Text(
-                          '『${widget.animeName}』のスポット',
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: Colors.grey,
-                          ),
-                        ),
-                        Text(
-                          ' 投稿者：@${widget.userId}',
-                          textAlign: TextAlign.right,
-                          style: TextStyle(
-                            fontSize: 12.0,
-                            color: Colors.grey,
-                          ),
-                        )
-                      ],
-                    ),
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Image.network(
-                    widget.imageUrl,
-                    fit: BoxFit.cover,
-                    width: double.infinity,
-                    height: 200,
-                  ),
-                ),
-                _buildMainContent(),
-                if (widget.subMedia.isNotEmpty)
-                  Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: _buildSubMediaContent(),
-                  ),
-                if (!_isVideoInitialized &&
-                    widget.subMedia.isEmpty &&
-                    (widget.url.isEmpty ||
-                        widget.url.toLowerCase().endsWith('.mp4')))
-                  SizedBox(
-                    height: 200,
-                    child: GoogleMap(
-                      initialCameraPosition: CameraPosition(
-                        target: LatLng(widget.latitude, widget.longitude),
-                        zoom: 15,
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Align(
+                alignment: Alignment.centerRight,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      '『${widget.animeName}』のスポット',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey,
                       ),
-                      markers: {
-                        Marker(
-                          markerId: const MarkerId('spot_location'),
-                          position: LatLng(widget.latitude, widget.longitude),
-                        ),
-                      },
                     ),
+                    Text(
+                      '投稿者：@${widget.userId}',
+                      textAlign: TextAlign.right,
+                      style: TextStyle(
+                        fontSize: 12.0,
+                        color: Colors.grey,
+                      ),
+                    )
+                  ],
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: _buildNetworkImage(
+                widget.imageUrl,
+                width: double.infinity,
+                height: 200,
+              ),
+            ),
+            _buildMainContent(),
+            if (widget.subMedia.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: _buildSubMediaContent(),
+              ),
+            if (widget.subMedia.isEmpty)
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Container(
+                  height: 200,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(12),
                   ),
-                SizedBox(height: 10.0),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                  child: FutureBuilder<Map<String, String>>(
-                    future: _getAddress(),
-                    builder: (context, snapshot) {
-                      if (snapshot.connectionState == ConnectionState.waiting) {
-                        return CircularProgressIndicator();
-                      } else if (snapshot.hasError) {
-                        return Text('エラーが発生しました');
-                      } else {
-                        final address = snapshot.data!;
-                        return SizedBox(
-                          width: double.infinity,
-                          child: Card(
-                            color: Colors.blue,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Padding(
-                              padding: const EdgeInsets.all(16.0),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Text(
-                                    widget.title,
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                  SizedBox(height: 8),
-                                  Text(
-                                    '〒${address['postalCode']!}',
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 14,
-                                    ),
-                                  ),
-                                  Text(
-                                    address['address']!,
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 14,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        );
-                      }
+                  child: GoogleMap(
+                    initialCameraPosition: CameraPosition(
+                      target: LatLng(widget.latitude, widget.longitude),
+                      zoom: 15,
+                    ),
+                    markers: {
+                      Marker(
+                        markerId: const MarkerId('spot_location'),
+                        position: LatLng(widget.latitude, widget.longitude),
+                      ),
                     },
                   ),
                 ),
-                Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: ElevatedButton(
-                      onPressed: () => _openMapOptions(context),
-                      child: Text('ここへ行く'),
-                      style: ElevatedButton.styleFrom(
-                        foregroundColor: Colors.white,
-                        backgroundColor: Color(0xFF00008b),
+              ),
+            SizedBox(height: 10.0),
+            _buildAddressCard(),
+            Center(
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: ElevatedButton(
+                  onPressed: () => _openMapOptions(context),
+                  child: Text('ここへ行く'),
+                  style: ElevatedButton.styleFrom(
+                    foregroundColor: Colors.white,
+                    backgroundColor: Color(0xFF00008b),
+                  ),
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Text(
+                widget.description,
+                style: const TextStyle(
+                  fontSize: 16,
+                  color: Colors.black,
+                ),
+              ),
+            ),
+            _buildSourceInfo(),
+            const SizedBox(height: 20.0),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAddressCard() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16.0),
+      child: FutureBuilder<Map<String, String>>(
+        future: _getAddress(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return Center(child: CircularProgressIndicator());
+          }
+          if (snapshot.hasError) {
+            return Text('エラーが発生しました');
+          }
+
+          final address = snapshot.data!;
+          return SizedBox(
+            width: double.infinity,
+            child: Card(
+              color: Colors.blue,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      widget.title,
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Text(
-                    widget.description,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      color: Colors.black,
+                    SizedBox(height: 8),
+                    Text(
+                      '〒${address['postalCode']!}',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 14,
+                      ),
                     ),
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        widget.sourceTitle,
-                        style: TextStyle(
-                          color: Colors.grey,
-                          fontSize: 10.0,
-                        ),
+                    Text(
+                      address['address']!,
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 14,
                       ),
-                      Text(
-                        widget.sourceLink,
-                        style: TextStyle(
-                          color: Colors.grey,
-                          fontSize: 10.0,
-                        ),
-                      ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 20.0),
-              ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildSourceInfo() {
+    return Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            widget.sourceTitle,
+            style: TextStyle(
+              color: Colors.grey,
+              fontSize: 10.0,
+            ),
+          ),
+          Text(
+            widget.sourceLink,
+            style: TextStyle(
+              color: Colors.grey,
+              fontSize: 10.0,
             ),
           ),
         ],
       ),
     );
-  }
-
-  Widget _buildMainContent() {
-    // If we have an initialized video, show it
-    if (_isVideoInitialized &&
-        _chewieController != null &&
-        _videoPlayerController != null) {
-      return Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: AspectRatio(
-          aspectRatio: _videoPlayerController!.value.aspectRatio,
-          child: Chewie(controller: _chewieController!),
-        ),
-      );
-    }
-
-    // If main URL is an image, show it
-    if (widget.url.isNotEmpty && !widget.url.toLowerCase().endsWith('.mp4')) {
-      return Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Image.network(
-          widget.url,
-          fit: BoxFit.cover,
-          height: 200,
-          width: double.infinity,
-          errorBuilder: (context, error, stackTrace) {
-            return Container(
-              height: 200,
-              width: double.infinity,
-              color: Colors.grey,
-              child: Center(
-                child: Icon(Icons.error, color: Colors.white),
-              ),
-            );
-          },
-        ),
-      );
-    }
-
-    return SizedBox.shrink();
-  }
-
-  Widget _buildSubMediaContent() {
-    // Don't show subMedia video if we already have a main video playing
-    if (_isVideoInitialized) {
-      return SizedBox.shrink();
-    }
-
-    final firstMedia = widget.subMedia.first;
-    if (firstMedia['type'] == 'image') {
-      return Image.network(
-        firstMedia['url'],
-        fit: BoxFit.cover,
-        height: 200,
-        width: double.infinity,
-        errorBuilder: (context, error, stackTrace) {
-          return Container(
-            height: 200,
-            width: double.infinity,
-            color: Colors.grey,
-            child: Center(
-              child: Icon(Icons.error, color: Colors.white),
-            ),
-          );
-        },
-      );
-    }
-
-    return SizedBox.shrink();
   }
 }

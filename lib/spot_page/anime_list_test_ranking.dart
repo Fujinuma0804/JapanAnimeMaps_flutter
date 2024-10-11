@@ -1177,6 +1177,7 @@ class _PrefectureSpotListPageState extends State<PrefectureSpotListPage> {
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // ヘッダー画像
           Container(
             height: 200,
             width: double.infinity,
@@ -1222,8 +1223,8 @@ class _PrefectureSpotListPageState extends State<PrefectureSpotListPage> {
               gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: 2,
                 childAspectRatio: 1.3,
-                mainAxisSpacing: 1.0,
-                crossAxisSpacing: 3.0,
+                mainAxisSpacing: 8.0, // スペースを調整
+                crossAxisSpacing: 8.0, // スペースを調整
               ),
               itemCount: widget.locations.length,
               itemBuilder: (context, index) {
@@ -1232,97 +1233,104 @@ class _PrefectureSpotListPageState extends State<PrefectureSpotListPage> {
 
                 return Column(
                   children: [
-                    GestureDetector(
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) =>
-                                FutureBuilder<DocumentSnapshot>(
-                              future: FirebaseFirestore.instance
-                                  .collection('locations')
-                                  .doc(locationId)
-                                  .get(),
-                              builder: (BuildContext context,
-                                  AsyncSnapshot<DocumentSnapshot> snapshot) {
-                                if (snapshot.connectionState ==
-                                    ConnectionState.waiting) {
-                                  return Center(
-                                      child: CircularProgressIndicator());
-                                }
-                                if (snapshot.hasError) {
-                                  return Center(child: Text("エラーが発生しました"));
-                                }
-                                if (!snapshot.hasData ||
-                                    !snapshot.data!.exists) {
-                                  return Center(child: Text("スポットが見つかりません"));
-                                }
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) =>
+                                  FutureBuilder<DocumentSnapshot>(
+                                future: FirebaseFirestore.instance
+                                    .collection('locations')
+                                    .doc(locationId)
+                                    .get(),
+                                builder: (BuildContext context,
+                                    AsyncSnapshot<DocumentSnapshot> snapshot) {
+                                  if (snapshot.connectionState ==
+                                      ConnectionState.waiting) {
+                                    return Center(
+                                        child: CircularProgressIndicator());
+                                  }
+                                  if (snapshot.hasError) {
+                                    return Center(child: Text("エラーが発生しました"));
+                                  }
+                                  if (!snapshot.hasData ||
+                                      !snapshot.data!.exists) {
+                                    return Center(child: Text("スポットが見つかりません"));
+                                  }
 
-                                Map<String, dynamic> data = snapshot.data!
-                                    .data() as Map<String, dynamic>;
-                                String title = data['title'] ?? 'No Title';
-                                String animeName =
-                                    data['animeName'] ?? 'Unknown Anime';
-
-                                return SpotDetailScreen(
-                                  title: title,
-                                  userId: '',
-                                  imageUrl: data['imageUrl'] ?? '',
-                                  description: data['description'] ?? '',
-                                  latitude:
-                                      (data['latitude'] as num?)?.toDouble() ??
-                                          0.0,
-                                  longitude:
-                                      (data['longitude'] as num?)?.toDouble() ??
-                                          0.0,
-                                  sourceLink: data['sourceLink'] ?? '',
-                                  sourceTitle: data['sourceTitle'] ?? '',
-                                  url: data['url'] ?? '',
-                                  subMedia: (data['subMedia'] as List?)
-                                          ?.where((item) =>
-                                              item is Map<String, dynamic>)
-                                          .cast<Map<String, dynamic>>()
-                                          .toList() ??
-                                      [],
-                                  locationId: locationId,
-                                  animeName: animeName,
-                                );
-                              },
+                                  Map<String, dynamic> data = snapshot.data!
+                                      .data() as Map<String, dynamic>;
+                                  // ... 残りのコードは変更なし ...
+                                  return SpotDetailScreen(
+                                    title: data['title'] ?? 'No Title',
+                                    userId: '',
+                                    imageUrl: data['imageUrl'] ?? '',
+                                    description: data['description'] ?? '',
+                                    latitude: (data['latitude'] as num?)
+                                            ?.toDouble() ??
+                                        0.0,
+                                    longitude: (data['longitude'] as num?)
+                                            ?.toDouble() ??
+                                        0.0,
+                                    sourceLink: data['sourceLink'] ?? '',
+                                    sourceTitle: data['sourceTitle'] ?? '',
+                                    url: data['url'] ?? '',
+                                    subMedia: (data['subMedia'] as List?)
+                                            ?.where((item) =>
+                                                item is Map<String, dynamic>)
+                                            .cast<Map<String, dynamic>>()
+                                            .toList() ??
+                                        [],
+                                    locationId: locationId,
+                                    animeName:
+                                        data['animeName'] ?? 'Unknown Anime',
+                                  );
+                                },
+                              ),
                             ),
+                          );
+                        },
+                        child: Container(
+                          decoration: BoxDecoration(
+                            border: Border.all(color: Colors.grey[300]!),
+                            borderRadius: BorderRadius.circular(8),
                           ),
-                        );
-                      },
-                      child: Container(
-                        decoration: BoxDecoration(
-                          border: Border.all(color: Colors.grey[300]!),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(8),
-                          child: CachedNetworkImage(
-                            imageUrl: location['imageUrl'] ?? '',
-                            fit: BoxFit.cover,
-                            width: double.infinity,
-                            placeholder: (context, url) => Container(
-                              color: Colors.grey[200],
-                              child: Center(child: CircularProgressIndicator()),
-                            ),
-                            errorWidget: (context, url, error) => Container(
-                              color: Colors.grey[200],
-                              child: Icon(Icons.image_not_supported, size: 50),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: Container(
+                              height: 120, // 固定の高さを設定
+                              width: double.infinity,
+                              child: CachedNetworkImage(
+                                imageUrl: location['imageUrl'] ?? '',
+                                fit: BoxFit.cover,
+                                placeholder: (context, url) => Container(
+                                  color: Colors.grey[200],
+                                  child: Center(
+                                      child: CircularProgressIndicator()),
+                                ),
+                                errorWidget: (context, url, error) => Container(
+                                  color: Colors.grey[200],
+                                  child:
+                                      Icon(Icons.image_not_supported, size: 50),
+                                ),
+                              ),
                             ),
                           ),
                         ),
                       ),
                     ),
-                    Padding(
-                      padding: EdgeInsets.symmetric(vertical: 8.0),
+                    SizedBox(height: 4), // 画像とテキストの間隔を調整
+                    Container(
+                      height: 20, // アニメ名の高さを固定
                       child: FutureBuilder<String>(
                         future: getAnimeName(locationId),
                         builder: (context, snapshot) {
                           if (snapshot.connectionState ==
                               ConnectionState.waiting) {
-                            return Text('Loading...');
+                            return Text('Loading...',
+                                style: TextStyle(fontSize: 12.0));
                           }
                           return GestureDetector(
                             onTap: () {
@@ -1338,13 +1346,12 @@ class _PrefectureSpotListPageState extends State<PrefectureSpotListPage> {
                             child: Text(
                               snapshot.data ?? 'Unknown Anime',
                               style: TextStyle(
-                                fontSize: 13.0,
+                                fontSize: 12.0,
                                 fontWeight: FontWeight.bold,
-                                color: Colors.blue, // タップ可能であることを示す
-                                decoration:
-                                    TextDecoration.underline, // タップ可能であることを示す
+                                color: Colors.blue,
+                                decoration: TextDecoration.underline,
                               ),
-                              maxLines: 2,
+                              maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               textAlign: TextAlign.center,
                             ),

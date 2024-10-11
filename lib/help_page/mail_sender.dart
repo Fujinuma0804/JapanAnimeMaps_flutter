@@ -15,7 +15,7 @@ class _MailScreenState extends State<MailScreen> {
   late TextEditingController _contactEmailController;
   String _registeredEmail = '';
 
-  final String _to = 'support@infomapanime.click';
+  final String _to = 'japananimemaps@gmail.com';
   final String _cc = '';
   final String _bcc = '';
 
@@ -136,7 +136,7 @@ class _MailScreenState extends State<MailScreen> {
                       TextFormField(
                         controller: _contactEmailController,
                         decoration: InputDecoration(
-                          labelText: '連絡先アドレス (任意)',
+                          labelText: '連絡先アドレス',
                         ),
                         keyboardType: TextInputType.emailAddress,
                         validator: (value) {

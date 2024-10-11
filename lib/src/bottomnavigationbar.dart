@@ -140,7 +140,11 @@ class _MainScreenState extends State<MainScreen> {
               _userLanguage == 'Japanese'
                   ? AnimeListTestRanking()
                   : AnimeListEnPage(),
-              _userLanguage == 'Japanese' ? WebsiteScreen() : WebsiteEnScreen(),
+              _userLanguage == 'Japanese'
+                  ? WebsiteScreen()
+                  // MyStorePassportScreen()
+                  //ランキングを表示する時は上記をコメントアウト解除。
+                  : WebsiteEnScreen(),
               _userLanguage == 'Japanese'
                   ? MapScreen(latitude: _latitude, longitude: _longitude)
                   : MapEnScreen(latitude: _latitude, longitude: _longitude),
