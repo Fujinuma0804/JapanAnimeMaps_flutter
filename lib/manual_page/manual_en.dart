@@ -58,6 +58,7 @@ class _ManualEnState extends State<ManualEn> {
       onWillPop: () async => false,
       child: MaterialApp(
         home: Scaffold(
+          backgroundColor: Colors.white,
           appBar: AppBar(
             backgroundColor: Colors.white,
             title: Text(
