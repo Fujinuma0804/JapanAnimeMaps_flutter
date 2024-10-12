@@ -6,6 +6,7 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:image/image.dart' as img;
 import 'package:image_picker/image_picker.dart';
+import 'package:parts/login_page/sign_up.dart';
 
 import 'customer_anime_history.dart';
 
@@ -30,6 +31,20 @@ class _AnimeRequestCustomerFormState extends State<AnimeRequestCustomerForm> {
   XFile? _userImage;
   bool _agreeToTerms = false;
   bool _isLoading = false;
+  bool _isAuthorizedUser = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkUserStatus();
+  }
+
+  void _checkUserStatus() {
+    final user = FirebaseAuth.instance.currentUser;
+    setState(() {
+      _isAuthorizedUser = user != null && !user.isAnonymous;
+    });
+  }
 
   Future<void> _pickImage(bool isAnimeImage) async {
     final ImagePicker _picker = ImagePicker();
@@ -166,183 +181,239 @@ class _AnimeRequestCustomerFormState extends State<AnimeRequestCustomerForm> {
     );
   }
 
+  void _navigateToSignUp() {
+    print('会員登録ページへ遷移');
+    Navigator.push(
+        context, MaterialPageRoute(builder: (context) => SignUpPage()));
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          'リクエストフォーム',
-          style: TextStyle(
-            color: Color(0xFF00008b),
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        actions: [
-          IconButton(
-            icon: Icon(
-              Icons.update,
+        appBar: AppBar(
+          title: Text(
+            'リクエストフォーム',
+            style: TextStyle(
               color: Color(0xFF00008b),
+              fontWeight: FontWeight.bold,
             ),
-            onPressed: () {
-              Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                      builder: (context) => CustomerRequestHistory()));
-            },
           ),
-        ],
-      ),
-      body: Stack(
-        children: [
-          Form(
-            key: _formKey,
-            child: ListView(
-              padding: EdgeInsets.all(16.0),
-              children: <Widget>[
-                TextFormField(
-                  controller: _animeNameController,
-                  decoration: InputDecoration(labelText: 'アニメ名'),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'アニメ名を入力してください';
-                    }
-                    return null;
-                  },
-                ),
-                TextFormField(
-                  controller: _sceneController,
-                  decoration: InputDecoration(labelText: '具体的なシーン（シーズン1の3話など）'),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'シーンを入力してください';
-                    }
-                    return null;
-                  },
-                ),
-                TextFormField(
-                  controller: _locationController,
-                  decoration: InputDecoration(labelText: '聖地の場所'),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return '聖地の場所を入力してください';
-                    }
-                    return null;
-                  },
-                ),
-                TextFormField(
-                  controller: _latitudeController,
-                  decoration: InputDecoration(labelText: '緯度（任意）'),
-                  keyboardType: TextInputType.number,
-                ),
-                TextFormField(
-                  controller: _longitudeController,
-                  decoration: InputDecoration(labelText: '経度（任意）'),
-                  keyboardType: TextInputType.number,
-                ),
-                TextFormField(
-                  controller: _referenceLinkController,
-                  decoration: InputDecoration(labelText: '参照リンク（任意）'),
-                  keyboardType: TextInputType.url,
-                ),
-                TextFormField(
-                  controller: _notesController,
-                  decoration: InputDecoration(labelText: '備考（任意）'),
-                  maxLines: 3,
-                ),
-                const SizedBox(height: 15.0),
-                ElevatedButton.icon(
-                  onPressed: () => _pickImage(false),
-                  icon: Icon(
-                    _userImage != null
-                        ? Icons.check_circle
-                        : Icons.add_photo_alternate,
-                    color:
-                        _userImage != null ? Colors.green : Color(0xFF00008b),
-                  ),
-                  label: Text(
-                    _userImage != null ? '撮影した画像を変更' : '撮影した画像をアップロード（任意）',
-                    style: TextStyle(
+          actions: _isAuthorizedUser
+              ? [
+                  IconButton(
+                    icon: Icon(
+                      Icons.update,
                       color: Color(0xFF00008b),
                     ),
+                    onPressed: () {
+                      Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (context) => CustomerRequestHistory()));
+                    },
                   ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor:
-                        _userImage != null ? Colors.grey[200] : null,
-                  ),
-                ),
-                const SizedBox(height: 15.0),
-                ElevatedButton.icon(
-                  onPressed: () => _pickImage(true),
-                  icon: Icon(
-                    _animeImage != null
-                        ? Icons.check_circle
-                        : Icons.add_photo_alternate,
-                    color:
-                        _animeImage != null ? Colors.green : Color(0xFF00008b),
-                  ),
-                  label: Text(
-                    _animeImage != null ? 'アニメ画像を変更' : 'アニメ画像をアップロード（任意）',
-                    style: TextStyle(
-                      color: Color(0xFF00008b),
-                    ),
-                  ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor:
-                        _animeImage != null ? Colors.grey[200] : null,
-                  ),
-                ),
-                const SizedBox(height: 20),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    TextButton(
-                      onPressed: _showTermsAndPolicy,
-                      child: Text(
-                        'プライバシーポリシーへの同意が必要です。',
-                        style: TextStyle(
-                          decoration: TextDecoration.underline,
-                          color: Color(0xFF00008b),
+                ]
+              : null,
+        ),
+        body: _isAuthorizedUser
+            ? Stack(
+                children: [
+                  Form(
+                    key: _formKey,
+                    child: ListView(
+                      padding: EdgeInsets.all(16.0),
+                      children: <Widget>[
+                        TextFormField(
+                          controller: _animeNameController,
+                          decoration: InputDecoration(labelText: 'アニメ名'),
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return 'アニメ名を入力してください';
+                            }
+                            return null;
+                          },
                         ),
+                        TextFormField(
+                          controller: _sceneController,
+                          decoration:
+                              InputDecoration(labelText: '具体的なシーン（シーズン1の3話など）'),
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return 'シーンを入力してください';
+                            }
+                            return null;
+                          },
+                        ),
+                        TextFormField(
+                          controller: _locationController,
+                          decoration: InputDecoration(labelText: '聖地の場所'),
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return '聖地の場所を入力してください';
+                            }
+                            return null;
+                          },
+                        ),
+                        TextFormField(
+                          controller: _latitudeController,
+                          decoration: InputDecoration(labelText: '緯度（任意）'),
+                          keyboardType: TextInputType.number,
+                        ),
+                        TextFormField(
+                          controller: _longitudeController,
+                          decoration: InputDecoration(labelText: '経度（任意）'),
+                          keyboardType: TextInputType.number,
+                        ),
+                        TextFormField(
+                          controller: _referenceLinkController,
+                          decoration: InputDecoration(labelText: '参照リンク（任意）'),
+                          keyboardType: TextInputType.url,
+                        ),
+                        TextFormField(
+                          controller: _notesController,
+                          decoration: InputDecoration(labelText: '備考（任意）'),
+                          maxLines: 3,
+                        ),
+                        const SizedBox(height: 15.0),
+                        ElevatedButton.icon(
+                          onPressed: () => _pickImage(false),
+                          icon: Icon(
+                            _userImage != null
+                                ? Icons.check_circle
+                                : Icons.add_photo_alternate,
+                            color: _userImage != null
+                                ? Colors.green
+                                : Color(0xFF00008b),
+                          ),
+                          label: Text(
+                            _userImage != null
+                                ? '撮影した画像を変更'
+                                : '撮影した画像をアップロード（任意）',
+                            style: TextStyle(
+                              color: Color(0xFF00008b),
+                            ),
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor:
+                                _userImage != null ? Colors.grey[200] : null,
+                          ),
+                        ),
+                        const SizedBox(height: 15.0),
+                        ElevatedButton.icon(
+                          onPressed: () => _pickImage(true),
+                          icon: Icon(
+                            _animeImage != null
+                                ? Icons.check_circle
+                                : Icons.add_photo_alternate,
+                            color: _animeImage != null
+                                ? Colors.green
+                                : Color(0xFF00008b),
+                          ),
+                          label: Text(
+                            _animeImage != null
+                                ? 'アニメ画像を変更'
+                                : 'アニメ画像をアップロード（任意）',
+                            style: TextStyle(
+                              color: Color(0xFF00008b),
+                            ),
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor:
+                                _animeImage != null ? Colors.grey[200] : null,
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            TextButton(
+                              onPressed: _showTermsAndPolicy,
+                              child: Text(
+                                'プライバシーポリシーへの同意が必要です。',
+                                style: TextStyle(
+                                  decoration: TextDecoration.underline,
+                                  color: Color(0xFF00008b),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Checkbox(
+                              value: _agreeToTerms,
+                              onChanged: (bool? value) {
+                                setState(() {
+                                  _agreeToTerms = value!;
+                                });
+                              },
+                            ),
+                            Text('同意します'),
+                          ],
+                        ),
+                        const SizedBox(height: 20),
+                        ElevatedButton(
+                          onPressed:
+                              _agreeToTerms && !_isLoading ? _submitForm : null,
+                          child: Text('送信'),
+                          style: ElevatedButton.styleFrom(
+                            foregroundColor: Colors.white,
+                            backgroundColor: Color(0xFF00008b),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (_isLoading)
+                    Container(
+                      color: Colors.black.withOpacity(0.5),
+                      child: Center(
+                        child: CircularProgressIndicator(),
                       ),
                     ),
-                  ],
-                ),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Checkbox(
-                      value: _agreeToTerms,
-                      onChanged: (bool? value) {
-                        setState(() {
-                          _agreeToTerms = value!;
-                        });
-                      },
+                ],
+              )
+            : Center(
+                child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    'このフォームを使用するにはログインが必要です。',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
                     ),
-                    Text('同意します'),
-                  ],
-                ),
-                const SizedBox(height: 20),
-                ElevatedButton(
-                  onPressed: _agreeToTerms && !_isLoading ? _submitForm : null,
-                  child: Text('送信'),
-                  style: ElevatedButton.styleFrom(
-                    foregroundColor: Colors.white,
-                    backgroundColor: Color(0xFF00008b),
                   ),
-                ),
-              ],
-            ),
-          ),
-          if (_isLoading)
-            Container(
-              color: Colors.black.withOpacity(0.5),
-              child: Center(
-                child: CircularProgressIndicator(),
-              ),
-            ),
-        ],
-      ),
-    );
+                  SizedBox(
+                    height: 20,
+                  ),
+                  ElevatedButton(
+                    onPressed: _navigateToSignUp,
+                    child: Text(
+                      '会員登録はこちら',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      foregroundColor: Colors.white,
+                      backgroundColor: Color(0xFF00008b),
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 30,
+                        vertical: 15,
+                      ),
+                      textStyle: TextStyle(
+                        fontSize: 18,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(30),
+                      ),
+                      elevation: 5,
+                    ),
+                  )
+                ],
+              )));
   }
 }
 

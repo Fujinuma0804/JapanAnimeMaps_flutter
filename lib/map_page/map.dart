@@ -807,10 +807,14 @@ class _MapScreenState extends State<MapScreen> {
     ).then((value) {
       if (_showConfirmation) {
         Timer(const Duration(seconds: 2), () {
-          setState(() {
-            _showConfirmation = false;
-            _canCheckIn = false;
-          });
+          print("Timer completed");
+          if (mounted) {
+            setState(() {
+              print("Setting state: hiding confirmation");
+              _showConfirmation = false;
+              _canCheckIn = false;
+            });
+          }
         });
       }
     });
