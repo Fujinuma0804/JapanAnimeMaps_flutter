@@ -15,7 +15,7 @@ class _MailScreenState extends State<MailScreen> {
   late TextEditingController _contactEmailController;
   String _registeredEmail = '';
 
-  final String _to = 'japananimemaps@gmail.com';
+  final String _to = 'jam@jam-info.com';
   final String _cc = '';
   final String _bcc = '';
 

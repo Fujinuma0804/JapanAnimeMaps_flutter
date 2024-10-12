@@ -2,7 +2,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_vibrate/flutter_vibrate.dart';
-import 'package:parts/web_page/website.dart';
 
 import '../manual_page/manual_en.dart';
 import '../map_page/map.dart';
@@ -11,6 +10,7 @@ import '../point_page/point_en.dart';
 import '../point_page/point_update.dart';
 import '../spot_page/anime_list_en.dart';
 import '../spot_page/anime_list_test_ranking.dart';
+import '../web_page/website.dart';
 import '../web_page/website_en.dart';
 
 class MainScreen extends StatefulWidget {
