@@ -1,12 +1,16 @@
 import 'dart:convert';
 import 'dart:math';
+import 'dart:typed_data';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_chat_types/flutter_chat_types.dart' as types;
 import 'package:flutter_chat_ui/flutter_chat_ui.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
+import 'package:mime/mime.dart';
 
 import 'chat_history.dart';
 
@@ -25,7 +29,13 @@ String generateManagementNumber() {
 
 class ChatRoom extends StatefulWidget {
   final String userId;
-  const ChatRoom({Key? key, required this.userId}) : super(key: key);
+  final String? managementNumber;
+
+  const ChatRoom({
+    Key? key,
+    required this.userId,
+    this.managementNumber,
+  }) : super(key: key);
 
   @override
   ChatRoomState createState() => ChatRoomState();
@@ -43,16 +53,17 @@ class ChatRoomState extends State<ChatRoom> {
   bool _isInputDisabled = false;
   bool _isLoading = true;
   bool _hasCompletedChat = false;
-  String _currentManagementNumber = '';
+  late String _currentManagementNumber;
 
   @override
   void initState() {
     super.initState();
+    _currentManagementNumber =
+        widget.managementNumber ?? generateManagementNumber();
     _initializeFirebase();
     _fetchUserData();
     _listenForMessages();
     _checkForCompletedChat();
-    _currentManagementNumber = generateManagementNumber();
   }
 
   void _initializeFirebase() async {
@@ -90,7 +101,7 @@ class ChatRoomState extends State<ChatRoom> {
       _isLoading = false;
     });
 
-    if (!_hasCompletedChat) {
+    if (!_hasCompletedChat && widget.managementNumber == null) {
       _addWelcomeMessage();
     }
   }
@@ -98,43 +109,21 @@ class ChatRoomState extends State<ChatRoom> {
   void _checkForCompletedChat() async {
     final completedChats = await FirebaseFirestore.instance
         .collection('messages')
-        .where('userId', isEqualTo: widget.userId)
-        .where('isCompleted', isEqualTo: true)
-        .get();
+        .snapshots()
+        .first;
 
-    if (completedChats.docs.isNotEmpty) {
+    final completedMessages = completedChats.docs
+        .where((doc) =>
+            doc.data()['managementNumber'] == _currentManagementNumber &&
+            doc.data()['isCompleted'] == true)
+        .toList();
+
+    if (completedMessages.isNotEmpty) {
       setState(() {
         _hasCompletedChat = true;
+        _isInputDisabled = true;
       });
-      _showRestartDialog();
     }
-  }
-
-  void _showRestartDialog() {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text('チャットを再開しますか？'),
-          content: Text('以前の会話が終了しています。新しい会話を始めますか？'),
-          actions: <Widget>[
-            TextButton(
-              child: Text('キャンセル'),
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-            ),
-            TextButton(
-              child: Text('再開する'),
-              onPressed: () {
-                Navigator.of(context).pop();
-                _startNewChat();
-              },
-            ),
-          ],
-        );
-      },
-    );
   }
 
   void _addWelcomeMessage() {
@@ -147,28 +136,82 @@ class ChatRoomState extends State<ChatRoom> {
     ));
   }
 
+  void _handleImageSelection() async {
+    final result = await ImagePicker().pickImage(
+      imageQuality: 70,
+      maxWidth: 1440,
+      source: ImageSource.gallery,
+    );
+
+    if (result != null) {
+      final bytes = await result.readAsBytes();
+      final image = await _uploadImage(bytes, result.name);
+
+      final message = types.ImageMessage(
+        author: _user,
+        createdAt: DateTime.now().millisecondsSinceEpoch,
+        id: randomString(),
+        name: result.name,
+        size: bytes.length,
+        uri: image,
+      );
+
+      _addMessage(message);
+    }
+  }
+
+  Future<String> _uploadImage(Uint8List bytes, String fileName) async {
+    final reference = FirebaseStorage.instance
+        .ref()
+        .child('chat_images')
+        .child(_currentManagementNumber)
+        .child('${DateTime.now().millisecondsSinceEpoch}_$fileName');
+
+    final metadata = SettableMetadata(
+      contentType: lookupMimeType(fileName),
+    );
+
+    await reference.putData(bytes, metadata);
+    return await reference.getDownloadURL();
+  }
+
   void _listenForMessages() {
     FirebaseFirestore.instance
         .collection('messages')
-        .where('userId', isEqualTo: widget.userId)
-        .where('managementNumber', isEqualTo: _currentManagementNumber)
-        .orderBy('createdAt', descending: true)
         .snapshots()
         .listen((snapshot) {
-      final messages = snapshot.docs.map((doc) {
-        final data = doc.data() as Map<String, dynamic>;
-        return types.TextMessage(
-          author: data['authorId'] == widget.userId ? _user : _admin,
-          createdAt: data['createdAt'],
-          id: doc.id,
-          text: data['text'],
-        );
-      }).toList();
+      final messages = snapshot.docs
+          .where((doc) =>
+              doc.data()['managementNumber'] == _currentManagementNumber)
+          .map((doc) {
+        final data = doc.data();
+        final author = data['authorId'] == widget.userId ? _user : _admin;
+
+        if (data['type'] == 'image') {
+          return types.ImageMessage(
+            author: author,
+            createdAt: data['createdAt'] ?? 0,
+            id: doc.id,
+            name: data['name'],
+            size: data['size'],
+            uri: data['uri'],
+          );
+        } else {
+          return types.TextMessage(
+            author: author,
+            createdAt: data['createdAt'] ?? 0,
+            id: doc.id,
+            text: data['text'],
+          );
+        }
+      }).toList()
+        ..sort((a, b) => (b.createdAt ?? 0).compareTo(a.createdAt ?? 0));
 
       setState(() {
         _messages.clear();
         _messages.addAll(messages);
         _isInputDisabled = messages.any((message) =>
+            message is types.TextMessage &&
             message.text == "このチャットは終了しました。" &&
             message.author.id == widget.userId);
         _hasCompletedChat = _isInputDisabled;
@@ -180,46 +223,73 @@ class ChatRoomState extends State<ChatRoom> {
   Widget build(BuildContext context) => Scaffold(
         appBar: AppBar(
           backgroundColor: Colors.white,
-          title: const Text(
-            'チャット',
-            style: TextStyle(
-              color: Color(0xFF00008b),
-              fontWeight: FontWeight.bold,
-            ),
+          title: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'チャット',
+                style: TextStyle(
+                  color: Color(0xFF00008b),
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              Text(
+                '管理番号: $_currentManagementNumber',
+                style: const TextStyle(
+                  color: Colors.grey,
+                  fontSize: 12,
+                ),
+              ),
+            ],
           ),
           leading: IconButton(
             icon: const Icon(Icons.arrow_back_ios_new),
-            onPressed: () {
-              Navigator.of(context).pop();
-            },
+            onPressed: () => Navigator.of(context).pop(),
           ),
           actions: [
             if (!_isInputDisabled)
               IconButton(
-                icon: Icon(Icons.check),
+                icon: const Icon(Icons.check),
                 onPressed: _handleSendComplete,
               ),
             IconButton(
-              icon: Icon(Icons.update),
+              icon: const Icon(Icons.update),
               onPressed: _showChatHistory,
             ),
           ],
         ),
         body: _isLoading
-            ? Center(child: CircularProgressIndicator())
+            ? const Center(
+                child: CircularProgressIndicator()) // Indicifierから Indicatorに修正
             : Chat(
-                user: _user,
-                messages: _messages,
+                theme: DefaultChatTheme(
+                  messageBorderRadius: 20,
+                  primaryColor: Colors.blue,
+                  secondaryColor: Colors.grey[200]!,
+                  backgroundColor: Colors.white,
+                  inputBackgroundColor: Colors.grey[200]!,
+                  sentMessageBodyTextStyle: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                  ),
+                  receivedMessageBodyTextStyle: const TextStyle(
+                    color: Colors.black,
+                    fontSize: 16,
+                  ),
+                ),
+                messages: _messages.toList(),
+                onAttachmentPressed: _handleImageSelection,
                 onSendPressed: _handleSendPressed,
                 showUserAvatars: true,
                 showUserNames: true,
+                user: _user,
                 dateFormat: DateFormat('MM月dd日'),
                 timeFormat: DateFormat('HH:mm'),
                 customBottomWidget: _isInputDisabled
                     ? Container(
-                        padding: EdgeInsets.all(16),
+                        padding: const EdgeInsets.all(16),
                         child: ElevatedButton(
-                          child: Text('新しいチャットを開始'),
+                          child: const Text('新しいチャットを開始'),
                           onPressed: _startNewChat,
                         ),
                       )
@@ -228,9 +298,7 @@ class ChatRoomState extends State<ChatRoom> {
       );
 
   void _handleSendPressed(types.PartialText message) {
-    if (_isInputDisabled) {
-      return;
-    }
+    if (_isInputDisabled) return;
 
     final textMessage = types.TextMessage(
       author: _user,
@@ -242,19 +310,30 @@ class ChatRoomState extends State<ChatRoom> {
     _addMessage(textMessage);
   }
 
-  void _addMessage(types.TextMessage message) {
+  void _addMessage(types.Message message) {
     setState(() {
-      _messages.insert(0, message);
+      _messages.add(message);
     });
 
-    FirebaseFirestore.instance.collection('messages').add({
+    final messageData = {
       'userId': widget.userId,
       'authorId': message.author.id,
       'createdAt': message.createdAt,
-      'text': message.text,
-      'isCompleted': false,
       'managementNumber': _currentManagementNumber,
-    });
+      'isCompleted': false,
+    };
+
+    if (message is types.TextMessage) {
+      messageData['type'] = 'text';
+      messageData['text'] = message.text;
+    } else if (message is types.ImageMessage) {
+      messageData['type'] = 'image';
+      messageData['uri'] = message.uri;
+      messageData['name'] = message.name;
+      messageData['size'] = message.size;
+    }
+
+    FirebaseFirestore.instance.collection('messages').add(messageData);
   }
 
   void _handleSendComplete() {
@@ -270,22 +349,23 @@ class ChatRoomState extends State<ChatRoom> {
     );
 
     _addMessage(completeMessage);
-
-    // チャット履歴をFirestoreに保存
     _saveChatHistory();
 
     FirebaseFirestore.instance
         .collection('messages')
-        .where('userId', isEqualTo: widget.userId)
-        .where('managementNumber', isEqualTo: _currentManagementNumber)
-        .get()
+        .snapshots()
+        .first
         .then((snapshot) {
-      for (DocumentSnapshot doc in snapshot.docs) {
+      final docs = snapshot.docs
+          .where((doc) =>
+              doc.data()['managementNumber'] == _currentManagementNumber)
+          .toList();
+
+      for (var doc in docs) {
         doc.reference.update({'isCompleted': true});
       }
     });
 
-    // チャット履歴ページに遷移
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(
@@ -294,15 +374,25 @@ class ChatRoomState extends State<ChatRoom> {
   }
 
   void _saveChatHistory() {
-    final chatHistory = _messages
-        .map((message) => {
-              'authorId': message.author.id,
-              'text': (message as types.TextMessage).text,
-              'createdAt': message.createdAt,
-            })
-        .toList();
+    final chatHistory = _messages.map((message) {
+      final Map<String, dynamic> messageData = {
+        'authorId': message.author.id,
+        'createdAt': message.createdAt,
+      };
 
-    // 新しいコレクションに管理番号とトーク履歴を格納
+      if (message is types.TextMessage) {
+        messageData['type'] = 'text';
+        messageData['text'] = message.text;
+      } else if (message is types.ImageMessage) {
+        messageData['type'] = 'image';
+        messageData['uri'] = message.uri;
+        messageData['name'] = message.name;
+        messageData['size'] = message.size;
+      }
+
+      return messageData;
+    }).toList();
+
     FirebaseFirestore.instance
         .collection('chatSessions')
         .doc(_currentManagementNumber)
@@ -312,7 +402,10 @@ class ChatRoomState extends State<ChatRoom> {
       'lastUpdated': DateTime.now().millisecondsSinceEpoch,
     });
 
-    // ユーザーのチャット履歴も更新
+    final lastMessage = _messages.last;
+    final lastMessageText =
+        lastMessage is types.TextMessage ? lastMessage.text : '画像が送信されました';
+
     FirebaseFirestore.instance
         .collection('chatHistories')
         .doc(widget.userId)
@@ -320,7 +413,7 @@ class ChatRoomState extends State<ChatRoom> {
       'history': FieldValue.arrayUnion([
         {
           'managementNumber': _currentManagementNumber,
-          'lastMessage': chatHistory.last['text'],
+          'lastMessage': lastMessageText,
           'lastUpdated': DateTime.now().millisecondsSinceEpoch,
         }
       ]),

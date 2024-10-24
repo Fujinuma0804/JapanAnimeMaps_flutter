@@ -1,5 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:html/parser.dart' show parse;
+import 'package:http/http.dart' as http;
 
 class MyStorePassportScreen extends StatefulWidget {
   const MyStorePassportScreen({Key? key}) : super(key: key);
@@ -34,7 +36,6 @@ class _MyStorePassportScreenState extends State<MyStorePassportScreen>
     // 以下略
   ];
 
-  // 残り日数を計算するメソッドを追加
   String _getRemainingDays() {
     DateTime now = DateTime.now();
     DateTime nextMonday = now.add(
@@ -43,21 +44,18 @@ class _MyStorePassportScreenState extends State<MyStorePassportScreen>
       ),
     );
 
-    // 現在が月曜日で、まだ更新時刻前の場合は、その日を次の更新日とする
     if (now.weekday == DateTime.monday) {
-      final updateTime =
-          DateTime(now.year, now.month, now.day, 5, 0); // 午前5時を更新時刻とする
+      final updateTime = DateTime(now.year, now.month, now.day, 5, 0);
       if (now.isBefore(updateTime)) {
         nextMonday = now;
       }
     }
 
-    // 次の更新日の午前5時に設定
     nextMonday = DateTime(
       nextMonday.year,
       nextMonday.month,
       nextMonday.day,
-      5, // 午前5時
+      5,
       0,
     );
 
@@ -162,9 +160,9 @@ class _MyStorePassportScreenState extends State<MyStorePassportScreen>
     return TabBar(
       controller: _tabController,
       tabs: [
-        Tab(text: 'スタンプ'),
         Tab(text: 'ランキング'),
-        Tab(text: 'イベント'),
+        Tab(text: 'ニュース'),
+        Tab(text: 'スタンプ'),
       ],
       labelColor: Color(0xFF00008b),
       unselectedLabelColor: Colors.black54,
@@ -176,9 +174,9 @@ class _MyStorePassportScreenState extends State<MyStorePassportScreen>
     return TabBarView(
       controller: _tabController,
       children: [
-        _buildStampGrid(),
         _buildMedalGrid(),
-        _buildHowToEnjoy(),
+        AnimeNewsScreen(),
+        _buildStampGrid(),
       ],
     );
   }
@@ -355,7 +353,6 @@ class _MyStorePassportScreenState extends State<MyStorePassportScreen>
                 ),
                 child: Row(
                   children: [
-                    // ランキング表示
                     Container(
                       width: 40,
                       height: 40,
@@ -375,7 +372,6 @@ class _MyStorePassportScreenState extends State<MyStorePassportScreen>
                       ),
                     ),
                     SizedBox(width: 16),
-                    // ユーザーアイコン
                     Container(
                       width: 50,
                       height: 50,
@@ -396,7 +392,6 @@ class _MyStorePassportScreenState extends State<MyStorePassportScreen>
                       ),
                     ),
                     SizedBox(width: 16),
-                    // ユーザー名
                     Expanded(
                       child: Text(
                         ranking['name'],
@@ -406,7 +401,6 @@ class _MyStorePassportScreenState extends State<MyStorePassportScreen>
                         ),
                       ),
                     ),
-                    // ポイント表示
                     Container(
                       padding: EdgeInsets.symmetric(
                         horizontal: 12,
@@ -437,17 +431,177 @@ class _MyStorePassportScreenState extends State<MyStorePassportScreen>
   Color _getRankColor(int rank) {
     switch (rank) {
       case 1:
-        return Colors.amber; // 金
+        return Colors.amber;
       case 2:
-        return Colors.grey[400]!; // 銀
+        return Colors.grey[400]!;
       case 3:
-        return Colors.brown[300]!; // 銅
+        return Colors.brown[300]!;
       default:
-        return Colors.grey[600]!; // その他
+        return Colors.grey[600]!;
+    }
+  }
+}
+
+class AnimeNewsScreen extends StatefulWidget {
+  @override
+  _AnimeNewsScreenState createState() => _AnimeNewsScreenState();
+}
+
+class _AnimeNewsScreenState extends State<AnimeNewsScreen> {
+  List<Map<String, String>> newsItems = [];
+  bool isLoading = true;
+  String errorMessage = '';
+
+  @override
+  void initState() {
+    super.initState();
+    fetchNews();
+  }
+
+  Future<void> fetchNews() async {
+    setState(() {
+      isLoading = true;
+      errorMessage = '';
+    });
+
+    final url =
+        'https://prtimes.jp/main/action.php?run=html&page=searchkey&search_word=%E3%82%A2%E3%83%8B%E3%83%A1';
+    try {
+      final response = await http.get(Uri.parse(url));
+
+      if (response.statusCode == 200) {
+        final document = parse(response.body);
+        final newsElements = document.querySelectorAll('div.list-article');
+
+        setState(() {
+          newsItems = newsElements.map((element) {
+            final titleElement =
+                element.querySelector('h3.list-article__title a');
+            final timeElement =
+                element.querySelector('time.list-article__time');
+            final companyElement =
+                element.querySelector('div.list-article__company');
+            final imageElement =
+                element.querySelector('div.list-article__img img');
+
+            return {
+              'title': titleElement?.text.trim() ?? '不明なタイトル',
+              'link':
+                  'https://prtimes.jp${titleElement?.attributes['href'] ?? ''}',
+              'time': timeElement?.text.trim() ?? '時間不明',
+              'company': companyElement?.text.trim() ?? '企業名不明',
+              'imageUrl': imageElement?.attributes['src'] ?? '',
+            };
+          }).toList();
+          isLoading = false;
+        });
+      } else {
+        throw Exception(
+            'Failed to load news. Status code: ${response.statusCode}');
+      }
+    } catch (e) {
+      setState(() {
+        isLoading = false;
+        errorMessage = 'ニュースの読み込みに失敗しました: $e';
+      });
     }
   }
 
-  Widget _buildHowToEnjoy() {
-    return Center(child: Text('現在はイベントは行われていません。'));
+  @override
+  Widget build(BuildContext context) {
+    if (isLoading) {
+      return Center(child: CircularProgressIndicator());
+    } else if (errorMessage.isNotEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(errorMessage),
+            ElevatedButton(
+              onPressed: fetchNews,
+              child: Text('再試行'),
+            ),
+          ],
+        ),
+      );
+    } else if (newsItems.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text('ニュースがありません'),
+            ElevatedButton(
+              onPressed: fetchNews,
+              child: Text('再読み込み'),
+            ),
+          ],
+        ),
+      );
+    } else {
+      return RefreshIndicator(
+        onRefresh: fetchNews,
+        child: ListView.separated(
+          itemCount: newsItems.length,
+          separatorBuilder: (context, index) => Divider(height: 1),
+          itemBuilder: (context, index) {
+            final item = newsItems[index];
+            return InkWell(
+              onTap: () {
+                // ここでニュース記事のリンクを開くロジックを実装できます
+                print('Open link: ${item['link']}');
+              },
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            item['title']!,
+                            style: TextStyle(
+                                fontWeight: FontWeight.bold, fontSize: 16),
+                          ),
+                          SizedBox(height: 8),
+                          Row(
+                            children: [
+                              Icon(Icons.access_time,
+                                  size: 14, color: Colors.grey),
+                              SizedBox(width: 4),
+                              Text(item['time']!,
+                                  style: TextStyle(
+                                      color: Colors.grey, fontSize: 12)),
+                            ],
+                          ),
+                          SizedBox(height: 4),
+                          Text(item['company']!,
+                              style:
+                                  TextStyle(color: Colors.grey, fontSize: 12)),
+                        ],
+                      ),
+                    ),
+                    SizedBox(width: 16),
+                    if (item['imageUrl']!.isNotEmpty)
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: Image.network(
+                          item['imageUrl']!,
+                          width: 80,
+                          height: 80,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) =>
+                              Icon(Icons.error),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            );
+          },
+        ),
+      );
+    }
   }
 }

@@ -69,7 +69,7 @@ class _SignUpPageState extends State<SignUpPage> {
             .doc(userCredential.user?.uid)
             .set({
           'email': userCredential.user?.email,
-          'language': '日本語',
+          'language': 'Japanese',
         });
 
         Navigator.of(context).push(
@@ -137,7 +137,7 @@ class _SignUpPageState extends State<SignUpPage> {
             .doc(userCredential.user?.uid)
             .set({
           'email': userCredential.user?.email,
-          'language': '日本語',
+          'language': 'Japanese',
         });
 
         Navigator.of(context).push(
@@ -173,7 +173,7 @@ class _SignUpPageState extends State<SignUpPage> {
           .doc(userCredential.user?.uid)
           .set({
         'isGuest': true,
-        'language': '日本語',
+        'language': 'Japanese',
       });
 
       Navigator.of(context).pushReplacement(

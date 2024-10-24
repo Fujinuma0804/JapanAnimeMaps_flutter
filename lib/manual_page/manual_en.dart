@@ -70,6 +70,7 @@ class _ManualEnState extends State<ManualEn> {
             ),
           ),
           body: SettingsList(
+            lightTheme: SettingsThemeData(),
             sections: [
               SettingsSection(
                 title: Text(_language == '日本語' ? '設定' : 'Settings'),

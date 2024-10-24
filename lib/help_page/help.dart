@@ -1,11 +1,9 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:parts/setting_page/q_a.dart';
 import 'package:settings_ui/settings_ui.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../loading_code/loading_code_top.dart';
-import 'chat_sender.dart';
 import 'mail_sender.dart';
 
 class HelpCenter extends StatelessWidget {
@@ -75,26 +73,36 @@ class HelpCenter extends StatelessWidget {
               ),
               SettingsTile.navigation(
                 leading: const Icon(Icons.question_answer_outlined),
-                title: const Text('チャットで問い合わせ'),
-                value: const Text(''),
+                title: const Text(
+                  'チャットで問い合わせ',
+                  style: TextStyle(
+                    color: Colors.grey,
+                  ),
+                ),
+                value: const Text(
+                  '準備中…',
+                  style: TextStyle(
+                    color: Colors.grey,
+                  ),
+                ),
                 onPressed: (context) {
-                  final User? currentUser = FirebaseAuth.instance.currentUser;
-                  if (currentUser != null) {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => ChatRoom(
-                          userId: currentUser.uid,
-                        ),
-                      ),
-                    );
-                  } else {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('ログインが必要です'),
-                      ),
-                    );
-                  }
+                  // final User? currentUser = FirebaseAuth.instance.currentUser;
+                  // if (currentUser != null) {
+                  //   Navigator.push(
+                  //     context,
+                  //     MaterialPageRoute(
+                  //       builder: (context) => ChatRoom(
+                  //         userId: currentUser.uid,
+                  //       ),
+                  //     ),
+                  //   );
+                  // } else {
+                  //   ScaffoldMessenger.of(context).showSnackBar(
+                  //     const SnackBar(
+                  //       content: Text('ログインが必要です'),
+                  //     ),
+                  //   );
+                  // }
                   // 画面遷移処理
                 },
               ),

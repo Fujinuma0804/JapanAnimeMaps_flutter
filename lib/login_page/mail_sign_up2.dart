@@ -24,12 +24,12 @@ class _SecondSignUpPageState extends State<SecondSignUpPage> {
   DateTime? selectedDate;
 
   bool _isLoading = false;
-  String _language = '日本語';
+  String _language = 'Japanese';
 
   @override
   void initState() {
     super.initState();
-    _language = '日本語';
+    _language = 'Japanese';
     _loadUserLanguage();
   }
 
@@ -46,7 +46,7 @@ class _SecondSignUpPageState extends State<SecondSignUpPage> {
     } else {
       // ユーザーのドキュメントが存在しないか、言語設定がない場合、日本語をデフォルトとする
       setState(() {
-        _language = '日本語';
+        _language = 'Japanese';
       });
     }
   }

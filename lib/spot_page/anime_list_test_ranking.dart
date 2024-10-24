@@ -5,6 +5,7 @@ import 'package:firebase_database/firebase_database.dart';
 import 'package:firebase_in_app_messaging/firebase_in_app_messaging.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:parts/spot_page/check_in.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:tutorial_coach_mark/tutorial_coach_mark.dart';
@@ -149,6 +150,9 @@ class _AnimeListTestRankingState extends State<AnimeListTestRanking>
   int _currentTabIndex = 0;
   bool _isPrefectureDataFetched = false;
 
+  BannerAd? _bannerAd;
+  bool _isBannerAdReady = false;
+
   @override
   void initState() {
     super.initState();
@@ -161,13 +165,37 @@ class _AnimeListTestRankingState extends State<AnimeListTestRanking>
     WidgetsBinding.instance.addPostFrameCallback((_) => _showTutorial());
     _listenToRankingChanges();
     _setupInAppMessaging();
+
+    // AdMobの初期化
+    MobileAds.instance.initialize();
+    _loadBannerAd();
+  }
+
+  void _loadBannerAd() {
+    _bannerAd = BannerAd(
+      adUnitId: 'ca-app-pub-1580421227117187/4089706329',
+      //'ca-app-pub-3940256099942544/6300978111', // テスト用広告ID
+      request: AdRequest(),
+      size: AdSize.banner,
+      listener: BannerAdListener(
+        onAdLoaded: (_) {
+          setState(() {
+            _isBannerAdReady = true;
+          });
+        },
+        onAdFailedToLoad: (ad, err) {
+          print('Failed to load a banner ad: ${err.message}');
+          _isBannerAdReady = false;
+          ad.dispose();
+        },
+      ),
+    );
+
+    _bannerAd?.load();
   }
 
   void _setupInAppMessaging() {
-    //アプリ起動時にトリガーイベントを発火
     fiam.triggerEvent('app_open');
-
-    //メッセージの表示を許可
     fiam.setMessagesSuppressed(false);
   }
 
@@ -197,14 +225,12 @@ class _AnimeListTestRankingState extends State<AnimeListTestRanking>
         );
       }).toList();
 
-      // Update counts in _allAnimeData
       for (var anime in _allAnimeData) {
         anime['count'] = rankings[anime['name']] != null
             ? (rankings[anime['name']] as num).toInt()
             : 0;
       }
 
-      // Sort _allAnimeData by count
       _allAnimeData
           .sort((a, b) => (b['count'] as int).compareTo(a['count'] as int));
     });
@@ -215,6 +241,7 @@ class _AnimeListTestRankingState extends State<AnimeListTestRanking>
     _tabController.removeListener(_handleTabChange);
     _tabController.dispose();
     _searchController.dispose();
+    _bannerAd?.dispose();
     super.dispose();
   }
 
@@ -234,12 +261,32 @@ class _AnimeListTestRankingState extends State<AnimeListTestRanking>
       TargetFocus(
         identify: "Ranking",
         keyTarget: rankingKey,
+        alignSkip: AlignmentGeometry.lerp(
+          Alignment.bottomRight,
+          Alignment.bottomRight,
+          0.0,
+        ),
         contents: [
           TargetContent(
             align: ContentAlign.bottom,
-            child: Text(
-              "ここでは人気のアニメランキングを見ることができます。",
-              style: TextStyle(color: Colors.white, fontSize: 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  "ランキング機能",
+                  style: TextStyle(
+                    color: Colors.yellow,
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                SizedBox(height: 10),
+                Text(
+                  "ユーザーが最も訪れているアニメ聖地のランキングです。\n人気のスポットを見つけるのに役立ちます。",
+                  style: TextStyle(color: Colors.white, fontSize: 16),
+                ),
+              ],
             ),
           ),
         ],
@@ -250,9 +297,24 @@ class _AnimeListTestRankingState extends State<AnimeListTestRanking>
         contents: [
           TargetContent(
             align: ContentAlign.bottom,
-            child: Text(
-              "アニメや都道府県を検索するにはここをタップしてください。",
-              style: TextStyle(color: Colors.white, fontSize: 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  "検索機能",
+                  style: TextStyle(
+                    color: Colors.yellow,
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                SizedBox(height: 10),
+                Text(
+                  "アニメのタイトルや都道府県名で検索できます。\n気になる聖地をすぐに見つけることができます。",
+                  style: TextStyle(color: Colors.white, fontSize: 16),
+                ),
+              ],
             ),
           ),
         ],
@@ -263,9 +325,24 @@ class _AnimeListTestRankingState extends State<AnimeListTestRanking>
         contents: [
           TargetContent(
             align: ContentAlign.bottom,
-            child: Text(
-              "新しいアニメをリクエストしたい場合はここをタップしてください。",
-              style: TextStyle(color: Colors.white, fontSize: 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  "新規スポットのリクエスト",
+                  style: TextStyle(
+                    color: Colors.yellow,
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                SizedBox(height: 10),
+                Text(
+                  "まだ登録されていないアニメ聖地を見つけた場合は、\nこちらから追加リクエストを送ることができます。",
+                  style: TextStyle(color: Colors.white, fontSize: 16),
+                ),
+              ],
             ),
           ),
         ],
@@ -276,9 +353,24 @@ class _AnimeListTestRankingState extends State<AnimeListTestRanking>
         contents: [
           TargetContent(
             align: ContentAlign.bottom,
-            child: Text(
-              "お気に入りのスポットを見るにはここをタップしてください。",
-              style: TextStyle(color: Colors.white, fontSize: 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  "お気に入り機能",
+                  style: TextStyle(
+                    color: Colors.yellow,
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                SizedBox(height: 10),
+                Text(
+                  "気になるスポットをお気に入りに登録できます。\n後で見返したい場所を保存しておきましょう。",
+                  style: TextStyle(color: Colors.white, fontSize: 16),
+                ),
+              ],
             ),
           ),
         ],
@@ -289,9 +381,24 @@ class _AnimeListTestRankingState extends State<AnimeListTestRanking>
         contents: [
           TargetContent(
             align: ContentAlign.bottom,
-            child: Text(
-              "チェックインしたスポットの確認はここをタップしてください。",
-              style: TextStyle(color: Colors.white, fontSize: 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  "チェックイン機能",
+                  style: TextStyle(
+                    color: Colors.yellow,
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                SizedBox(height: 10),
+                Text(
+                  "実際に訪れたスポットにチェックインできます。\n思い出を記録して、訪問履歴を残しましょう。",
+                  style: TextStyle(color: Colors.white, fontSize: 16),
+                ),
+              ],
             ),
           ),
         ],
@@ -302,9 +409,24 @@ class _AnimeListTestRankingState extends State<AnimeListTestRanking>
         contents: [
           TargetContent(
             align: ContentAlign.bottom,
-            child: Text(
-              "アニメをタップすると、関連するスポットを見ることができます。",
-              style: TextStyle(color: Colors.white, fontSize: 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  "アニメ作品",
+                  style: TextStyle(
+                    color: Colors.yellow,
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                SizedBox(height: 10),
+                Text(
+                  "作品をタップすると、関連する聖地スポットの\n詳細情報を見ることができます。\n位置情報や写真、アクセス方法なども確認できます。",
+                  style: TextStyle(color: Colors.white, fontSize: 16),
+                ),
+              ],
             ),
           ),
         ],
@@ -319,8 +441,8 @@ class _AnimeListTestRankingState extends State<AnimeListTestRanking>
     if (showTutorial) {
       tutorialCoachMark = TutorialCoachMark(
         targets: targets,
-        colorShadow: Colors.black,
-        textSkip: "スキップ",
+        colorShadow: Colors.black87,
+        hideSkip: true,
         paddingFocus: 10,
         opacityShadow: 0.8,
         onFinish: () {
@@ -328,10 +450,6 @@ class _AnimeListTestRankingState extends State<AnimeListTestRanking>
         },
         onClickTarget: (target) {
           print('${target.identify} がクリックされました');
-        },
-        onSkip: () {
-          print("チュートリアルをスキップしました");
-          return true;
         },
       );
 
@@ -352,11 +470,9 @@ class _AnimeListTestRankingState extends State<AnimeListTestRanking>
         };
       }).toList();
 
-      // 五十音順でソートされたリストを作成
       _sortedAnimeData = List.from(_allAnimeData);
       _sortedAnimeData.sort((a, b) => a['name'].compareTo(b['name']));
 
-      // Fetch initial rankings
       DatabaseEvent event = await databaseReference.once();
       if (event.snapshot.value != null) {
         Map<dynamic, dynamic> rankings =
@@ -481,9 +597,8 @@ class _AnimeListTestRankingState extends State<AnimeListTestRanking>
                   onChanged: _onSearchChanged,
                   autofocus: true,
                   decoration: InputDecoration(
-                    hintText: _currentTabIndex == 0
-                        ? 'アニメで検索...'
-                        : '都道府県で検索...', // タブに応じてhintTextを変更
+                    hintText:
+                        _currentTabIndex == 0 ? 'アニメで検索...' : '都道府県で検索...',
                     hintStyle: TextStyle(color: Colors.grey),
                     border: InputBorder.none,
                   ),
@@ -577,22 +692,14 @@ class _AnimeListTestRankingState extends State<AnimeListTestRanking>
 
     Future<void> _incrementAnimeCount(String animeName) async {
       try {
-        // Get current date as string (YYYY-MM-DD format)
         final String today = DateTime.now().toString().split(' ')[0];
-
-        // Get SharedPreferences instance
         final prefs = await SharedPreferences.getInstance();
-
-        // Check if user has already voted for this anime
         final String? lastVoteDate = prefs.getString('lastVote_$animeName');
 
-        // If user has never voted for this anime or voted on a different day
         if (lastVoteDate == null || lastVoteDate != today) {
-          // Get total votes for today
           final List<String> votedAnimeToday =
               prefs.getStringList('votedAnime_$today') ?? [];
 
-          // Check if user hasn't exceeded daily vote limit
           if (votedAnimeToday.length < 1) {
             rtdb.DatabaseReference animeRef =
                 databaseReference.child(animeName);
@@ -605,16 +712,10 @@ class _AnimeListTestRankingState extends State<AnimeListTestRanking>
             });
 
             if (result.committed) {
-              // Save the vote date for this anime
               await prefs.setString('lastVote_$animeName', today);
-
-              // Add anime to today's voted list
               votedAnimeToday.add(animeName);
               await prefs.setStringList('votedAnime_$today', votedAnimeToday);
-
               print("Incremented count for $animeName");
-
-              // Show success message
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
                   content: Text('$animeNameの投票を受け付けました。'),
@@ -786,9 +887,22 @@ class _AnimeListTestRankingState extends State<AnimeListTestRanking>
                       ),
                       itemCount: filteredAnimeData.length,
                       itemBuilder: (context, index) {
-                        final animeName = filteredAnimeData[index]['name'];
-                        final imageUrl = filteredAnimeData[index]['imageUrl'];
-                        final key = index == 0 ? firstItemKey : null;
+                        if (index != 0 && index % 6 == 0 && _isBannerAdReady) {
+                          // 5つごとに広告を表示（広告が準備できている場合のみ）
+                          return Container(
+                            height: 50,
+                            child: AdWidget(ad: _bannerAd!),
+                          );
+                        }
+                        final adjustedIndex = index - (index ~/ 6);
+                        if (adjustedIndex >= filteredAnimeData.length) {
+                          return SizedBox(); // リストの終わりに余分なスペースが生じないようにする
+                        }
+                        final animeName =
+                            filteredAnimeData[adjustedIndex]['name'];
+                        final imageUrl =
+                            filteredAnimeData[adjustedIndex]['imageUrl'];
+                        final key = adjustedIndex == 0 ? firstItemKey : null;
                         return GestureDetector(
                           key: key,
                           onTap: () => _navigateToDetails(context, animeName),
@@ -866,7 +980,7 @@ class _PrefectureListPageState extends State<PrefectureListPage> {
                         false;
                     return animeMatch || nameMatch;
                   }) ??
-                  false); // explicitly set to false if null
+                  false);
 
       bool matchesRegion = selectedPrefectures.isEmpty ||
           selectedPrefectures.contains(prefecture);
@@ -879,7 +993,6 @@ class _PrefectureListPageState extends State<PrefectureListPage> {
   Widget build(BuildContext context) {
     List<String> filteredPrefectures = getFilteredPrefectures();
 
-    // デバッグ情報を追加
     for (String prefecture in filteredPrefectures) {
       List<Map<String, dynamic>> spots =
           widget.prefectureSpots[prefecture] ?? [];
@@ -1043,6 +1156,8 @@ class _PrefectureListPageState extends State<PrefectureListPage> {
     );
   }
 }
+
+// PrefectureGridItem, PrefectureSpotListPage クラスは変更なし
 
 class PrefectureGridItem extends StatelessWidget {
   final String prefectureName;
