@@ -188,6 +188,15 @@ class _UserPointUpdatePageState extends State<UserPointUpdatePage> {
               },
             ),
             ListTile(
+              leading: const Icon(Icons.history_rounded),
+              title: const Text("ポイント獲得履歴"),
+              onTap: () {
+                Navigator.push(context,
+                    MaterialPageRoute(builder: (context) => PointManual()));
+                // ここにメニュータップ時の処理を記述
+              },
+            ),
+            ListTile(
               leading: const Icon(Icons.money),
               title: const Text("ポイント交換"),
               onTap: () {
