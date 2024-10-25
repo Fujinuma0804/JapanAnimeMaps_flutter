@@ -67,11 +67,9 @@ class _UserPointUpdatePageState extends State<UserPointUpdatePage> {
         if (snapshot.exists) {
           final correctCount = snapshot.data()?['correctCount'] as int?;
           final lastCorrectCount = snapshot.data()?['lastCorrectCount'] as int?;
-          final point = snapshot.data()?['Point'] as int?;
 
           if (correctCount != null) {
             if (lastCorrectCount == null) {
-              // 初回の場合、現在のcorrectCountをPointとして設定
               await FirebaseFirestore.instance
                   .collection('users')
                   .doc(user.uid)
@@ -80,7 +78,6 @@ class _UserPointUpdatePageState extends State<UserPointUpdatePage> {
                 'lastCorrectCount': correctCount
               });
             } else if (correctCount > lastCorrectCount) {
-              // correctCountが増加した場合、増加分をPointに追加
               int increase = correctCount - lastCorrectCount;
               await FirebaseFirestore.instance
                   .collection('users')
@@ -96,6 +93,232 @@ class _UserPointUpdatePageState extends State<UserPointUpdatePage> {
     }
   }
 
+  int _getPointValue(Map<String, dynamic> userData) {
+    final rawPoint = userData['Point'];
+    if (rawPoint is int) {
+      return rawPoint;
+    } else if (rawPoint is String) {
+      return int.tryParse(rawPoint) ?? 0;
+    }
+    return 0;
+  }
+
+  String _getRankMessage(int index) {
+    if (_language == '日本語') {
+      switch (index) {
+        case 0:
+          return '🎉 トップランカー！';
+        case 1:
+          return '素晴らしい成績！';
+        case 2:
+          return 'がんばっています！';
+        default:
+          return '';
+      }
+    } else {
+      switch (index) {
+        case 0:
+          return '🎉 Top Ranker!';
+        case 1:
+          return 'Great Performance!';
+        case 2:
+          return 'Keep it up!';
+        default:
+          return '';
+      }
+    }
+  }
+
+  Widget _buildPointRanking() {
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('users')
+          .orderBy('Point', descending: true)
+          .limit(10)
+          .snapshots(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+          return Center(
+            child: Text(
+              _language == '日本語'
+                  ? 'ランキングデータがありません'
+                  : 'No ranking data available',
+            ),
+          );
+        }
+
+        final sortedDocs = snapshot.data!.docs.toList()
+          ..sort((a, b) {
+            final aPoint = _getPointValue(a.data() as Map<String, dynamic>);
+            final bPoint = _getPointValue(b.data() as Map<String, dynamic>);
+            return bPoint.compareTo(aPoint);
+          });
+
+        return Container(
+          margin: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(15),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.grey.withOpacity(0.3),
+                spreadRadius: 2,
+                blurRadius: 5,
+                offset: const Offset(0, 3),
+              ),
+            ],
+          ),
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: Text(
+                  _language == '日本語' ? 'ポイントランキング' : 'Point Ranking',
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF00008b),
+                  ),
+                ),
+              ),
+              ListView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: sortedDocs.length,
+                itemBuilder: (context, index) {
+                  final userData =
+                      sortedDocs[index].data() as Map<String, dynamic>;
+                  final name = userData['name'] as String? ?? 'Unknown';
+                  final points = _getPointValue(userData);
+
+                  final currentUserId = FirebaseAuth.instance.currentUser?.uid;
+                  final isCurrentUser = sortedDocs[index].id == currentUserId;
+
+                  Widget rankWidget;
+                  if (index < 3) {
+                    rankWidget = Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        Icon(
+                          Icons.workspace_premium,
+                          size: 40,
+                          color: index == 0
+                              ? const Color(0xFFFFD700) // Gold
+                              : index == 1
+                                  ? const Color(0xFFC0C0C0) // Silver
+                                  : const Color(0xFFCD7F32), // Bronze
+                        ),
+                        Positioned(
+                          bottom: 5,
+                          child: Text(
+                            '${index + 1}',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ),
+                      ],
+                    );
+                  } else {
+                    rankWidget = Container(
+                      width: 30,
+                      height: 30,
+                      alignment: Alignment.center,
+                      decoration: const BoxDecoration(
+                        color: Colors.grey,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Text(
+                        '${index + 1}',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    );
+                  }
+
+                  return Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    decoration: BoxDecoration(
+                      color:
+                          isCurrentUser ? Colors.blue.withOpacity(0.1) : null,
+                      border: Border(
+                        bottom: BorderSide(
+                          color: Colors.grey.withOpacity(0.2),
+                          width: 1,
+                        ),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        SizedBox(
+                          width: 40,
+                          height: 40,
+                          child: rankWidget,
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                name,
+                                style: TextStyle(
+                                  fontWeight: isCurrentUser
+                                      ? FontWeight.bold
+                                      : FontWeight.normal,
+                                  fontSize: 16,
+                                ),
+                              ),
+                              if (index < 3)
+                                Text(
+                                  _getRankMessage(index),
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.grey[600],
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: index < 3
+                                ? const Color(0xFF00008b).withOpacity(0.1)
+                                : null,
+                            borderRadius: BorderRadius.circular(15),
+                          ),
+                          child: Text(
+                            '$points pt',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: const Color(0xFF00008b),
+                              fontSize: index < 3 ? 18 : 16,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final currentUser = FirebaseAuth.instance.currentUser;
@@ -104,8 +327,8 @@ class _UserPointUpdatePageState extends State<UserPointUpdatePage> {
       appBar: AppBar(
         backgroundColor: Colors.white,
         title: Text(
-          _language == '日本語' ? 'ポイント数' : 'Your Points',
-          style: TextStyle(
+          _language == '日本語' ? 'ポイント' : 'Points',
+          style: const TextStyle(
             color: Color(0xFF00008b),
             fontWeight: FontWeight.bold,
           ),
@@ -117,88 +340,218 @@ class _UserPointUpdatePageState extends State<UserPointUpdatePage> {
                 _language == '日本語' ? 'ログインしていません' : 'Not logged in',
               ),
             )
-          : StreamBuilder<DocumentSnapshot>(
-              stream: FirebaseFirestore.instance
-                  .collection('users')
-                  .doc(currentUser.uid)
-                  .snapshots(),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-                if (!snapshot.hasData || !snapshot.data!.exists) {
-                  return Center(
-                    child: Text(
-                      _language == '日本語' ? 'データが見つかりません' : 'No data found',
-                    ),
-                  );
-                }
-                final point = snapshot.data!.get('Point') ?? 0;
-                return Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        _language == '日本語' ? 'あなたのポイント数' : 'Your Points',
-                        style: TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF00008b),
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-                      Container(
-                        padding: const EdgeInsets.all(20),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF00008b),
-                          borderRadius: BorderRadius.circular(15),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.grey.withOpacity(0.5),
-                              spreadRadius: 5,
-                              blurRadius: 7,
-                              offset: const Offset(0, 3),
-                            ),
-                          ],
-                        ),
-                        child: Text(
-                          '$point pt',
-                          style: const TextStyle(
-                            fontSize: 48,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
+          : SingleChildScrollView(
+              child: Column(
+                children: [
+                  // ユーザーのポイントとランキング表示
+// StreamBuilder部分を修正します
+
+                  StreamBuilder<DocumentSnapshot>(
+                    stream: FirebaseFirestore.instance
+                        .collection('users')
+                        .doc(currentUser.uid)
+                        .snapshots(),
+                    builder: (context, userSnapshot) {
+                      if (userSnapshot.connectionState ==
+                          ConnectionState.waiting) {
+                        return const Center(child: CircularProgressIndicator());
+                      }
+                      if (!userSnapshot.hasData || !userSnapshot.data!.exists) {
+                        return Center(
+                          child: Text(
+                            _language == '日本語'
+                                ? 'データが見つかりません'
+                                : 'No data found',
                           ),
-                        ),
-                      ),
-                    ],
+                        );
+                      }
+                      final point = userSnapshot.data!.get('Point') ?? 0;
+
+                      return StreamBuilder<QuerySnapshot>(
+                        stream: FirebaseFirestore.instance
+                            .collection('users')
+                            .orderBy('Point', descending: true)
+                            .snapshots(),
+                        builder: (context, rankingSnapshot) {
+                          int userRank = 0;
+                          if (rankingSnapshot.hasData) {
+                            final sortedDocs =
+                                rankingSnapshot.data!.docs.toList()
+                                  ..sort((a, b) {
+                                    final aPoint = _getPointValue(
+                                        a.data() as Map<String, dynamic>);
+                                    final bPoint = _getPointValue(
+                                        b.data() as Map<String, dynamic>);
+                                    return bPoint.compareTo(aPoint); // 降順ソート
+                                  });
+
+                            for (int i = 0; i < sortedDocs.length; i++) {
+                              if (sortedDocs[i].id == currentUser.uid) {
+                                userRank = i + 1;
+                                break;
+                              }
+                            }
+                          }
+
+                          return Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: Column(
+                              children: [
+                                Text(
+                                  _language == '日本語' ? 'あなたの成績' : 'Your Status',
+                                  style: const TextStyle(
+                                    fontSize: 24,
+                                    fontWeight: FontWeight.bold,
+                                    color: Color(0xFF00008b),
+                                  ),
+                                ),
+                                const SizedBox(height: 20),
+                                Row(
+                                  children: [
+                                    // ポイント表示
+                                    Expanded(
+                                      child: Container(
+                                        padding: const EdgeInsets.all(20),
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFF00008b),
+                                          borderRadius:
+                                              BorderRadius.circular(15),
+                                          boxShadow: [
+                                            BoxShadow(
+                                              color:
+                                                  Colors.grey.withOpacity(0.5),
+                                              spreadRadius: 5,
+                                              blurRadius: 7,
+                                              offset: const Offset(0, 3),
+                                            ),
+                                          ],
+                                        ),
+                                        child: Column(
+                                          children: [
+                                            Text(
+                                              _language == '日本語'
+                                                  ? 'ポイント'
+                                                  : 'Points',
+                                              style: const TextStyle(
+                                                fontSize: 16,
+                                                fontWeight: FontWeight.bold,
+                                                color: Colors.white,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 8),
+                                            Text(
+                                              '$point pt',
+                                              style: const TextStyle(
+                                                fontSize: 32,
+                                                fontWeight: FontWeight.bold,
+                                                color: Colors.white,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 16),
+                                    // ランキング表示
+                                    Expanded(
+                                      child: Container(
+                                        padding: const EdgeInsets.all(20),
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFF00008b),
+                                          borderRadius:
+                                              BorderRadius.circular(15),
+                                          boxShadow: [
+                                            BoxShadow(
+                                              color:
+                                                  Colors.grey.withOpacity(0.5),
+                                              spreadRadius: 5,
+                                              blurRadius: 7,
+                                              offset: const Offset(0, 3),
+                                            ),
+                                          ],
+                                        ),
+                                        child: Column(
+                                          children: [
+                                            Text(
+                                              _language == '日本語'
+                                                  ? 'ランキング'
+                                                  : 'Ranking',
+                                              style: const TextStyle(
+                                                fontSize: 16,
+                                                fontWeight: FontWeight.bold,
+                                                color: Colors.white,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 8),
+                                            Row(
+                                              mainAxisAlignment:
+                                                  MainAxisAlignment.center,
+                                              children: [
+                                                Text(
+                                                  '$userRank',
+                                                  style: const TextStyle(
+                                                    fontSize: 32,
+                                                    fontWeight: FontWeight.bold,
+                                                    color: Colors.white,
+                                                  ),
+                                                ),
+                                                Text(
+                                                  _language == '日本語'
+                                                      ? ' 位'
+                                                      : ' th',
+                                                  style: const TextStyle(
+                                                    fontSize: 20,
+                                                    fontWeight: FontWeight.bold,
+                                                    color: Colors.white,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      );
+                    },
                   ),
-                );
-              },
+                  // ランキングリスト
+                  _buildPointRanking(),
+                ],
+              ),
             ),
       drawer: Drawer(
         child: ListView(
           children: [
             ListTile(
               leading: const Icon(Icons.insert_chart_outlined),
-              title: const Text("ポイントの貯め方"),
+              title:
+                  Text(_language == '日本語' ? "ポイントの貯め方" : "How to Earn Points"),
               onTap: () {
                 Navigator.push(context,
                     MaterialPageRoute(builder: (context) => PointManual()));
-                // ここにメニュータップ時の処理を記述
               },
             ),
-            ListTile(
-              leading: const Icon(Icons.history_rounded),
-              title: const Text("ポイント獲得履歴"),
-              onTap: () {
-                Navigator.push(context,
-                    MaterialPageRoute(builder: (context) => PointManual()));
-                // ここにメニュータップ時の処理を記述
-              },
-            ),
+            // ListTile(
+            //   leading: const Icon(Icons.history_rounded),
+            //   title: Text(_language == '日本語' ? "ポイント獲得履歴" : "Point History"),
+            //   onTap: () {
+            //     Navigator.push(
+            //         context,
+            //         MaterialPageRoute(
+            //             builder: (context) => PointsHistoryPage(
+            //                   userId: '',
+            //                 )));
+            //   },
+            // ),
             ListTile(
               leading: const Icon(Icons.money),
-              title: const Text("ポイント交換"),
+              title: Text(_language == '日本語' ? "ポイント交換" : "Exchange Points"),
               onTap: () {
                 Navigator.push(
                     context,
@@ -208,7 +561,7 @@ class _UserPointUpdatePageState extends State<UserPointUpdatePage> {
             ),
             ListTile(
               leading: const Icon(Icons.book_outlined),
-              title: const Text("ポイント利用規約"),
+              title: Text(_language == '日本語' ? "ポイント利用規約" : "Terms of Use"),
               onTap: () {
                 Navigator.push(context,
                     MaterialPageRoute(builder: (context) => TermsScreen()));
@@ -216,14 +569,14 @@ class _UserPointUpdatePageState extends State<UserPointUpdatePage> {
             ),
             ListTile(
               leading: const Icon(Icons.privacy_tip_outlined),
-              title: const Text("プライバシーポリシー"),
+              title: Text(_language == '日本語' ? "プライバシーポリシー" : "Privacy Policy"),
               onTap: () {
                 Navigator.push(
                     context,
                     MaterialPageRoute(
                         builder: (context) => PrivacyPolicyScreen()));
               },
-            )
+            ),
           ],
         ),
       ),
