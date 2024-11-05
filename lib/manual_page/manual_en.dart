@@ -6,8 +6,9 @@ import 'package:flutter/material.dart';
 import 'package:parts/manual_page/usage_screen.dart';
 import 'package:settings_ui/settings_ui.dart';
 
-import '../payment/payment.dart';
 import '../setting_page/settings_en.dart';
+import '../web_page/website.dart';
+import '../web_page/website_en.dart';
 
 class ManualEn extends StatefulWidget {
   const ManualEn({Key? key});
@@ -113,30 +114,50 @@ class _ManualEnState extends State<ManualEn> {
                     title: Text(_language == '日本語' ? '公式サイト' : 'Official Site'),
                     value: const Text(''),
                     onPressed: (context) {
-                      Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: (context) => PaymentScreen()));
+                      // 現在のユーザーを取得
+                      User? user = _auth.currentUser;
+                      if (user != null) {
+                        // Firestoreからユーザーのlanguage設定を取得
+                        FirebaseFirestore.instance
+                            .collection('users')
+                            .doc(user.uid)
+                            .get()
+                            .then((snapshot) {
+                          if (snapshot.exists) {
+                            String language =
+                                snapshot.data()?['language'] ?? 'English';
+                            // 言語に応じて適切な画面に遷移
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => language == 'Japanese'
+                                    ? WebsiteScreen()
+                                    : WebsiteEnScreen(),
+                              ),
+                            );
+                          }
+                        });
+                      }
                     },
                   ),
                 ],
               ),
-              SettingsSection(
-                title: Text(_language == '日本語' ? '有料プラン' : 'Paid plan'),
-                tiles: <SettingsTile>[
-                  SettingsTile.navigation(
-                    leading: const Icon(Icons.payment_rounded),
-                    title: Text(_language == '日本語' ? '広告を非表示にする' : 'Hide ads'),
-                    value: const Text(''),
-                    onPressed: (context) {
-                      Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: (context) => PaymentScreen()));
-                    },
-                  ),
-                ],
-              ),
+              // SettingsSection(
+              //   title: Text(_language == '日本語' ? '有料プラン' : 'Paid plan'),
+              //   tiles: <SettingsTile>[
+              //     SettingsTile.navigation(
+              //       leading: const Icon(Icons.payment_rounded),
+              //       title: Text(_language == '日本語' ? '広告を非表示にする' : 'Hide ads'),
+              //       value: const Text(''),
+              //       onPressed: (context) {
+              //         Navigator.push(
+              //             context,
+              //             MaterialPageRoute(
+              //                 builder: (context) => PaymentScreen()));
+              //       },
+              //     ),
+              //   ],
+              // ),
             ],
           ),
         ),
