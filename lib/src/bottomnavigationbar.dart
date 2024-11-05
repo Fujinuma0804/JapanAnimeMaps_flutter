@@ -8,9 +8,9 @@ import '../map_page/map.dart';
 import '../map_page/map_en.dart';
 import '../point_page/point_update.dart';
 import '../ranking/ranking_top.dart';
+import '../ranking/ranking_top_en.dart';
 import '../spot_page/anime_list_en.dart';
 import '../spot_page/anime_list_test_ranking.dart';
-import '../web_page/website_en.dart';
 
 class MainScreen extends StatefulWidget {
   @override
@@ -143,7 +143,7 @@ class _MainScreenState extends State<MainScreen> {
                   ? RankingTopPage()
                   // MyStorePassportScreen()
                   //ランキングを表示する時は上記をコメントアウト解除。
-                  : WebsiteEnScreen(),
+                  : RankingTopPageEn(),
               _userLanguage == 'Japanese'
                   ? MapScreen(latitude: _latitude, longitude: _longitude)
                   : MapEnScreen(latitude: _latitude, longitude: _longitude),
