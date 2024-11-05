@@ -21,19 +21,145 @@ class _UserPointUpdatePageState extends State<UserPointUpdatePage> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   late StreamSubscription<DocumentSnapshot> _languageSubscription;
   late StreamSubscription<DocumentSnapshot> _pointSubscription;
+  final TextEditingController _rankingNameController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
     _monitorLanguageChange();
     _monitorPointChange();
+    _checkRankingName();
   }
 
   @override
   void dispose() {
     _languageSubscription.cancel();
     _pointSubscription.cancel();
+    _rankingNameController.dispose();
     super.dispose();
+  }
+
+  Future<void> _checkRankingName() async {
+    final user = _auth.currentUser;
+    if (user != null) {
+      final doc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .get();
+
+      if (doc.exists) {
+        final rankingName = doc.data()?['ranking_name'];
+        if (rankingName == null || rankingName.toString().isEmpty) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            _showRankingNameDialog();
+          });
+        }
+      }
+    }
+  }
+
+  Future<void> _showRankingNameDialog() async {
+    final user = _auth.currentUser;
+    if (user == null) return;
+
+    // Get the user's stored ID from Firestore
+    final userDoc = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(user.uid)
+        .get();
+
+    final storedId = userDoc.data()?['id'] as String? ?? 'Unknown';
+
+    return showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text(
+            _language == '日本語' ? 'ランキング表示名の設定' : 'Set Ranking Display Name',
+            style: const TextStyle(
+              color: Color(0xFF00008b),
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                _language == '日本語'
+                    ? '表示する名前を入力してください。\n設定しない場合にはIDが表示されます。\n登録後も変更できます。'
+                    : 'Please enter the name to be displayed in rankings.\nIf not set, the ID will be displayed.\nYou can change it after registration.',
+                style: const TextStyle(fontSize: 14),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: _rankingNameController,
+                decoration: InputDecoration(
+                  hintText: _language == '日本語' ? '表示名' : 'Display Name',
+                  border: const OutlineInputBorder(),
+                  focusedBorder: const OutlineInputBorder(
+                    borderSide: BorderSide(color: Color(0xFF00008b), width: 2),
+                  ),
+                ),
+                maxLength: 10,
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              child: Text(
+                _language == '日本語' ? '登録しない' : 'Skip',
+                style: const TextStyle(
+                  color: Colors.grey,
+                ),
+              ),
+              onPressed: () async {
+                await FirebaseFirestore.instance
+                    .collection('users')
+                    .doc(user.uid)
+                    .update({'ranking_name': storedId});
+                if (mounted) {
+                  Navigator.of(context).pop();
+                }
+              },
+            ),
+            TextButton(
+              child: Text(
+                _language == '日本語' ? '登録' : 'Register',
+                style: const TextStyle(
+                  color: Color(0xFF00008b),
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              onPressed: () async {
+                if (_rankingNameController.text.trim().isNotEmpty) {
+                  await FirebaseFirestore.instance
+                      .collection('users')
+                      .doc(user.uid)
+                      .update({
+                    'ranking_name': _rankingNameController.text.trim(),
+                  });
+                  if (mounted) {
+                    Navigator.of(context).pop();
+                  }
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        _language == '日本語'
+                            ? '表示名を入力してください'
+                            : 'Please enter a display name',
+                      ),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+              },
+            ),
+          ],
+        );
+      },
+    );
   }
 
   void _monitorLanguageChange() {
@@ -192,7 +318,8 @@ class _UserPointUpdatePageState extends State<UserPointUpdatePage> {
                 itemBuilder: (context, index) {
                   final userData =
                       sortedDocs[index].data() as Map<String, dynamic>;
-                  final name = userData['name'] as String? ?? 'Unknown';
+                  final displayName =
+                      userData['ranking_name'] ?? userData['id'] ?? 'Unknown';
                   final points = _getPointValue(userData);
 
                   final currentUserId = FirebaseAuth.instance.currentUser?.uid;
@@ -207,10 +334,10 @@ class _UserPointUpdatePageState extends State<UserPointUpdatePage> {
                           Icons.workspace_premium,
                           size: 40,
                           color: index == 0
-                              ? const Color(0xFFFFD700) // Gold
+                              ? const Color(0xFFFFD700)
                               : index == 1
-                                  ? const Color(0xFFC0C0C0) // Silver
-                                  : const Color(0xFFCD7F32), // Bronze
+                                  ? const Color(0xFFC0C0C0)
+                                  : const Color(0xFFCD7F32),
                         ),
                         Positioned(
                           bottom: 5,
@@ -270,7 +397,7 @@ class _UserPointUpdatePageState extends State<UserPointUpdatePage> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                name,
+                                displayName,
                                 style: TextStyle(
                                   fontWeight: isCurrentUser
                                       ? FontWeight.bold
@@ -343,9 +470,6 @@ class _UserPointUpdatePageState extends State<UserPointUpdatePage> {
           : SingleChildScrollView(
               child: Column(
                 children: [
-                  // ユーザーのポイントとランキング表示
-// StreamBuilder部分を修正します
-
                   StreamBuilder<DocumentSnapshot>(
                     stream: FirebaseFirestore.instance
                         .collection('users')
@@ -382,7 +506,7 @@ class _UserPointUpdatePageState extends State<UserPointUpdatePage> {
                                         a.data() as Map<String, dynamic>);
                                     final bPoint = _getPointValue(
                                         b.data() as Map<String, dynamic>);
-                                    return bPoint.compareTo(aPoint); // 降順ソート
+                                    return bPoint.compareTo(aPoint);
                                   });
 
                             for (int i = 0; i < sortedDocs.length; i++) {
@@ -408,7 +532,6 @@ class _UserPointUpdatePageState extends State<UserPointUpdatePage> {
                                 const SizedBox(height: 20),
                                 Row(
                                   children: [
-                                    // ポイント表示
                                     Expanded(
                                       child: Container(
                                         padding: const EdgeInsets.all(20),
@@ -452,7 +575,6 @@ class _UserPointUpdatePageState extends State<UserPointUpdatePage> {
                                       ),
                                     ),
                                     const SizedBox(width: 16),
-                                    // ランキング表示
                                     Expanded(
                                       child: Container(
                                         padding: const EdgeInsets.all(20),
@@ -520,7 +642,6 @@ class _UserPointUpdatePageState extends State<UserPointUpdatePage> {
                       );
                     },
                   ),
-                  // ランキングリスト
                   _buildPointRanking(),
                 ],
               ),
@@ -528,6 +649,41 @@ class _UserPointUpdatePageState extends State<UserPointUpdatePage> {
       drawer: Drawer(
         child: ListView(
           children: [
+            // ランキングネーム編集のListTileを追加
+            StreamBuilder<DocumentSnapshot>(
+              stream: FirebaseFirestore.instance
+                  .collection('users')
+                  .doc(currentUser?.uid)
+                  .snapshots(),
+              builder: (context, snapshot) {
+                String currentName = '';
+                if (snapshot.hasData && snapshot.data!.exists) {
+                  currentName =
+                      snapshot.data!.get('ranking_name')?.toString() ?? '';
+                }
+
+                return ListTile(
+                  leading: const Icon(Icons.edit),
+                  title: Text(
+                      _language == '日本語' ? "ランキングネームの編集" : "Edit Ranking Name"),
+                  subtitle: currentName.isNotEmpty
+                      ? Text(
+                          currentName,
+                          style: const TextStyle(fontSize: 12),
+                        )
+                      : Text(
+                          _language == '日本語' ? "未設定" : "Not set",
+                          style:
+                              const TextStyle(fontSize: 12, color: Colors.grey),
+                        ),
+                  onTap: () {
+                    Navigator.pop(context); // Drawerを閉じる
+                    _rankingNameController.text = currentName; // 現在の名前をセット
+                    _showRankingNameDialog(); // 編集ダイアログを表示
+                  },
+                );
+              },
+            ),
             ListTile(
               leading: const Icon(Icons.insert_chart_outlined),
               title:
@@ -537,18 +693,6 @@ class _UserPointUpdatePageState extends State<UserPointUpdatePage> {
                     MaterialPageRoute(builder: (context) => PointManual()));
               },
             ),
-            // ListTile(
-            //   leading: const Icon(Icons.history_rounded),
-            //   title: Text(_language == '日本語' ? "ポイント獲得履歴" : "Point History"),
-            //   onTap: () {
-            //     Navigator.push(
-            //         context,
-            //         MaterialPageRoute(
-            //             builder: (context) => PointsHistoryPage(
-            //                   userId: '',
-            //                 )));
-            //   },
-            // ),
             ListTile(
               leading: const Icon(Icons.money),
               title: Text(_language == '日本語' ? "ポイント交換" : "Exchange Points"),

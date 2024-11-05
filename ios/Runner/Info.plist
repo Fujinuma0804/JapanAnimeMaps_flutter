@@ -40,12 +40,6 @@
             <string>signinwithapple</string>
          </array>
       </dict>
-      <dict>
-         <key>CFBundleURLSchemes</key>
-         <array>
-            <string>signinwithapple</string>
-         </array>
-      </dict>
    </array>
    <key>CFBundleVersion</key>
    <string>$(FLUTTER_BUILD_NUMBER)</string>
@@ -125,6 +119,15 @@
    <key>com.apple.developer.applesignin</key>
    <array>
       <string>Default</string>
+   </array>
+   <key>SKPaymentTransactionObserverUsageDescription</key>
+   <string>アプリ内課金の処理に必要です</string>
+   <key>StoreKit</key>
+   <array>
+      <dict>
+         <key>SKPaymentTransactionObserverClass</key>
+         <string>FIAPRequestHandler</string>
+      </dict>
    </array>
 </dict>
 </plist>

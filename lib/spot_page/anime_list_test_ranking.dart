@@ -3,15 +3,15 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_database/firebase_database.dart' as rtdb;
 import 'package:firebase_database/firebase_database.dart';
 import 'package:firebase_in_app_messaging/firebase_in_app_messaging.dart';
-import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
+import 'package:parts/components/ad_mob.dart';
 import 'package:parts/spot_page/check_in.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:tutorial_coach_mark/tutorial_coach_mark.dart';
 
-import 'anime_list.dart';
 import 'anime_list_detail.dart';
+import 'anime_list_en_ranking.dart';
 import 'customer_anime_request.dart';
 import 'liked_post.dart';
 
@@ -31,9 +31,21 @@ class _AnimeListTestRankingState extends State<AnimeListTestRanking>
   List<Map<String, dynamic>> _allAnimeData = [];
   List<Map<String, dynamic>> _sortedAnimeData = [];
   List<Map<String, dynamic>> _topRankedAnime = [];
+  List<Map<String, dynamic>> _eventData = [];
   Map<String, List<Map<String, dynamic>>> _prefectureSpots = {};
+  List<String> _activeEvents = [];
+  bool _isEventsLoaded = false;
+  bool _isEventsExpanded = false;
+  final AdMob _adMob = AdMob();
+
+  BannerAd? _bottomBannerAd;
+  bool _isBottomBannerAdReady = false;
+  Map<int, BannerAd> _gridBannerAds = {};
+  Map<int, bool> _isGridBannerAdReady = {};
 
   late TabController _tabController;
+  int _currentTabIndex = 0;
+  bool _isPrefectureDataFetched = false;
 
   late TutorialCoachMark tutorialCoachMark;
   List<TargetFocus> targets = [];
@@ -147,34 +159,101 @@ class _AnimeListTestRankingState extends State<AnimeListTestRanking>
     '沖縄県'
   ];
 
-  int _currentTabIndex = 0;
-  bool _isPrefectureDataFetched = false;
-
   BannerAd? _bannerAd;
   bool _isBannerAdReady = false;
 
   @override
   void initState() {
     super.initState();
+    _initializeTabController();
     databaseReference =
         rtdb.FirebaseDatabase.instance.reference().child('anime_rankings');
-    _tabController = TabController(length: 2, vsync: this);
-    _tabController.addListener(_handleTabChange);
     _fetchAnimeData();
+    _fetchEventData();
     _initTargets();
     WidgetsBinding.instance.addPostFrameCallback((_) => _showTutorial());
     _listenToRankingChanges();
     _setupInAppMessaging();
+    _loadBottomBannerAd();
+  }
 
-    // AdMobの初期化
-    MobileAds.instance.initialize();
-    _loadBannerAd();
+  void _loadBottomBannerAd() {
+    _bottomBannerAd = BannerAd(
+      adUnitId: 'ca-app-pub-1580421227117187/2839937902',
+      request: AdRequest(),
+      size: AdSize.banner,
+      listener: BannerAdListener(
+        onAdLoaded: (_) {
+          setState(() {
+            _isBottomBannerAdReady = true;
+          });
+        },
+        onAdFailedToLoad: (ad, err) {
+          print('Bottom banner ad failed to load: ${err.message}');
+          setState(() {
+            _isBottomBannerAdReady = false;
+          });
+          ad.dispose();
+        },
+      ),
+    );
+    _bottomBannerAd?.load();
+  }
+
+  void _loadGridBannerAd(int index) {
+    if (_gridBannerAds[index] != null) return;
+
+    _gridBannerAds[index] = BannerAd(
+      adUnitId: 'ca-app-pub-1580421227117187/6192729679',
+      request: AdRequest(),
+      size: AdSize.banner,
+      listener: BannerAdListener(
+        onAdLoaded: (_) {
+          setState(() {
+            _isGridBannerAdReady[index] = true;
+          });
+        },
+        onAdFailedToLoad: (ad, err) {
+          print('Grid banner ad failed to load: ${err.message}');
+          _isGridBannerAdReady[index] = false;
+          ad.dispose();
+        },
+      ),
+    );
+
+    _gridBannerAds[index]?.load();
+  }
+
+  Future<void> _initializeTabController() async {
+    await _checkActiveEvents();
+    int tabCount = _activeEvents.isNotEmpty ? 3 : 2;
+    _tabController = TabController(length: tabCount, vsync: this);
+    _tabController.addListener(_handleTabChange);
+    setState(() {
+      _isEventsLoaded = true;
+    });
+  }
+
+  Future<void> _checkActiveEvents() async {
+    try {
+      final eventSnapshot = await firestore.collection('events').get();
+      final activeEvents = eventSnapshot.docs
+          .where((doc) => doc.data()['isEnabled'] == true)
+          .map((doc) => doc.data()['title'] as String)
+          .toList();
+
+      setState(() {
+        _activeEvents = activeEvents;
+      });
+    } catch (e) {
+      print('Error fetching events: $e');
+      _activeEvents = [];
+    }
   }
 
   void _loadBannerAd() {
     _bannerAd = BannerAd(
-      adUnitId: 'ca-app-pub-1580421227117187/4089706329',
-      //'ca-app-pub-3940256099942544/6300978111', // テスト用広告ID
+      adUnitId: '',
       request: AdRequest(),
       size: AdSize.banner,
       listener: BannerAdListener(
@@ -242,7 +321,10 @@ class _AnimeListTestRankingState extends State<AnimeListTestRanking>
     _tabController.dispose();
     _searchController.dispose();
     _bannerAd?.dispose();
+    _bottomBannerAd?.dispose();
+    _gridBannerAds.values.forEach((ad) => ad.dispose());
     super.dispose();
+    _adMob.dispose();
   }
 
   void _handleTabChange() {
@@ -467,11 +549,13 @@ class _AnimeListTestRankingState extends State<AnimeListTestRanking>
           'name': data['name'] ?? '',
           'imageUrl': data['imageUrl'] ?? '',
           'count': 0,
+          'sortKey': _getSortKey(data['name'] ?? ''),
         };
       }).toList();
 
       _sortedAnimeData = List.from(_allAnimeData);
-      _sortedAnimeData.sort((a, b) => a['name'].compareTo(b['name']));
+      _sortedAnimeData
+          .sort((a, b) => _compareNames(a['sortKey'], b['sortKey']));
 
       DatabaseEvent event = await databaseReference.once();
       if (event.snapshot.value != null) {
@@ -484,6 +568,141 @@ class _AnimeListTestRankingState extends State<AnimeListTestRanking>
     } catch (e) {
       print("Error fetching anime data: $e");
     }
+  }
+
+  Future<void> _fetchEventData() async {
+    try {
+      final eventSnapshot = await firestore.collection('events').get();
+      final events = eventSnapshot.docs
+          .where((doc) => doc.data()['isEnabled'] == true)
+          .map((doc) {
+        final data = doc.data();
+        return {
+          'title': data['title'] as String,
+          'imageUrl': data['imageUrl'] as String? ?? '',
+          'description': data['description'] as String? ?? '',
+          'startDate': data['startDate'],
+          'htmlContent': data['html'] as String? ?? '',
+          'endDate': data['endDate'],
+        };
+      }).toList();
+
+      setState(() {
+        _eventData = events;
+      });
+    } catch (e) {
+      print('Error fetching event data: $e');
+    }
+  }
+
+  String _getSortKey(String name) {
+    if (name.isEmpty) return '';
+
+    String hiragana = _katakanaToHiragana(name);
+
+    if (RegExp(r'^[A-Za-z]').hasMatch(name)) {
+      return 'ん' + name.toLowerCase();
+    }
+
+    return hiragana;
+  }
+
+  String _katakanaToHiragana(String kata) {
+    const Map<String, String> katakanaToHiragana = {
+      'ア': 'あ',
+      'イ': 'い',
+      'ウ': 'う',
+      'エ': 'え',
+      'オ': 'お',
+      'カ': 'か',
+      'キ': 'き',
+      'ク': 'く',
+      'ケ': 'け',
+      'コ': 'こ',
+      'サ': 'さ',
+      'シ': 'し',
+      'ス': 'す',
+      'セ': 'せ',
+      'ソ': 'そ',
+      'タ': 'た',
+      'チ': 'ち',
+      'ツ': 'つ',
+      'テ': 'て',
+      'ト': 'と',
+      'ナ': 'な',
+      'ニ': 'に',
+      'ヌ': 'ぬ',
+      'ネ': 'ね',
+      'ノ': 'の',
+      'ハ': 'は',
+      'ヒ': 'ひ',
+      'フ': 'ふ',
+      'ヘ': 'へ',
+      'ホ': 'ほ',
+      'マ': 'ま',
+      'ミ': 'み',
+      'ム': 'む',
+      'メ': 'め',
+      'モ': 'も',
+      'ヤ': 'や',
+      'ユ': 'ゆ',
+      'ヨ': 'よ',
+      'ラ': 'ら',
+      'リ': 'り',
+      'ル': 'る',
+      'レ': 'れ',
+      'ロ': 'ろ',
+      'ワ': 'わ',
+      'ヲ': 'を',
+      'ン': 'ん',
+      'ガ': 'が',
+      'ギ': 'ぎ',
+      'グ': 'ぐ',
+      'ゲ': 'げ',
+      'ゴ': 'ご',
+      'ザ': 'ざ',
+      'ジ': 'じ',
+      'ズ': 'ず',
+      'ゼ': 'ぜ',
+      'ゾ': 'ぞ',
+      'ダ': 'だ',
+      'ヂ': 'ぢ',
+      'ヅ': 'づ',
+      'デ': 'で',
+      'ド': 'ど',
+      'バ': 'ば',
+      'ビ': 'び',
+      'ブ': 'ぶ',
+      'ベ': 'べ',
+      'ボ': 'ぼ',
+      'パ': 'ぱ',
+      'ピ': 'ぴ',
+      'プ': 'ぷ',
+      'ペ': 'ぺ',
+      'ポ': 'ぽ',
+      'ャ': 'ゃ',
+      'ュ': 'ゅ',
+      'ョ': 'ょ',
+      'ッ': 'っ',
+      'ー': '-',
+    };
+
+    String result = kata;
+    katakanaToHiragana.forEach((k, v) {
+      result = result.replaceAll(k, v);
+    });
+    return result;
+  }
+
+  int _compareNames(String a, String b) {
+    if (a.startsWith('ん') && !b.startsWith('ん')) {
+      return 1;
+    } else if (!a.startsWith('ん') && b.startsWith('ん')) {
+      return -1;
+    } else if (a.startsWith('ん') && b.startsWith('ん')) {
+      return a.substring(1).compareTo(b.substring(1));
+    }
+    return a.compareTo(b);
   }
 
   Future<void> _fetchPrefectureData() async {
@@ -541,11 +760,6 @@ class _AnimeListTestRankingState extends State<AnimeListTestRanking>
         lng >= bounds['minLng']! &&
         lng <= bounds['maxLng']!;
 
-    print("Checking spot (${lat}, ${lng}) for $prefecture: $result");
-    if (!result) {
-      print("Bounds for $prefecture: ${bounds}");
-    }
-
     return result;
   }
 
@@ -565,115 +779,79 @@ class _AnimeListTestRankingState extends State<AnimeListTestRanking>
     });
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return WillPopScope(
-      onWillPop: () async {
-        return await showDialog<bool>(
-              context: context,
-              builder: (context) => AlertDialog(
-                title: Text('アプリを終了しますか？'),
-                content: Text('アプリを閉じてもよろしいですか？'),
-                actions: [
-                  TextButton(
-                    onPressed: () => Navigator.of(context).pop(false),
-                    child: Text('キャンセル'),
-                  ),
-                  TextButton(
-                    onPressed: () => Navigator.of(context).pop(true),
-                    child: Text('終了'),
-                  ),
-                ],
+  Future<void> _navigateAndVote(BuildContext context, String animeName) async {
+    try {
+      final String today = DateTime.now().toString().split(' ')[0];
+      final prefs = await SharedPreferences.getInstance();
+      final String? lastVoteDate = prefs.getString('lastVote_$animeName');
+
+      if (lastVoteDate == null || lastVoteDate != today) {
+        final List<String> votedAnimeToday =
+            prefs.getStringList('votedAnime_$today') ?? [];
+
+        if (votedAnimeToday.length < 1) {
+          rtdb.DatabaseReference animeRef = databaseReference.child(animeName);
+          rtdb.TransactionResult result =
+              await animeRef.runTransaction((Object? currentValue) {
+            if (currentValue == null) {
+              return rtdb.Transaction.success(1);
+            }
+            return rtdb.Transaction.success((currentValue as int) + 1);
+          });
+
+          if (result.committed) {
+            await prefs.setString('lastVote_$animeName', today);
+            votedAnimeToday.add(animeName);
+            await prefs.setStringList('votedAnime_$today', votedAnimeToday);
+            print("Incremented count for $animeName");
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('${animeName}の投票を受け付けました。'),
+                backgroundColor: Colors.green,
               ),
-            ) ??
-            false;
-      },
-      child: Scaffold(
-        appBar: AppBar(
-          automaticallyImplyLeading: false,
-          title: _isSearching
-              ? TextField(
-                  controller: _searchController,
-                  onChanged: _onSearchChanged,
-                  autofocus: true,
-                  decoration: InputDecoration(
-                    hintText:
-                        _currentTabIndex == 0 ? 'アニメで検索...' : '都道府県で検索...',
-                    hintStyle: TextStyle(color: Colors.grey),
-                    border: InputBorder.none,
-                  ),
-                  style: TextStyle(color: Colors.black),
-                )
-              : Text(
-                  '巡礼スポット',
-                  style: TextStyle(
-                    color: Color(0xFF00008b),
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-          actions: [
-            IconButton(
-              key: checkInKey,
-              onPressed: () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const SpotTestScreen()),
+            );
+          } else {
+            print("Failed to increment count for $animeName");
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('投票に失敗しました。もう一度お試しください。'),
+                backgroundColor: Colors.red,
               ),
-              icon: const Icon(Icons.check_circle, color: Color(0xFF00008b)),
+            );
+          }
+        } else {
+          print("Daily vote limit reached");
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('本日の投票回数の上限に達しました。また明日お試しください。'),
+              backgroundColor: Colors.orange,
             ),
-            IconButton(
-              key: favoriteKey,
-              onPressed: () => Navigator.push(
-                context,
-                MaterialPageRoute(
-                    builder: (context) => FavoriteLocationsPage()),
-              ),
-              icon: const Icon(Icons.favorite, color: Color(0xFF00008b)),
-            ),
-            IconButton(
-              key: addKey,
-              icon: Icon(Icons.add, color: Color(0xFF00008b)),
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                      builder: (context) => AnimeRequestCustomerForm()),
-                );
-              },
-            ),
-            IconButton(
-              key: searchKey,
-              icon: Icon(
-                _isSearching ? Icons.close : Icons.search,
-                color: Color(0xFF00008b),
-              ),
-              onPressed: _toggleSearch,
-            ),
-          ],
-          bottom: TabBar(
-            controller: _tabController,
-            tabs: [
-              Tab(text: 'アニメ一覧から探す'),
-              Tab(text: '都道府県から探す'),
-            ],
-            labelColor: Color(0xFF00008b),
-            unselectedLabelColor: Colors.grey,
-            indicatorColor: Color(0xFF00008b),
+          );
+        }
+      } else {
+        print("Already voted for this anime today");
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('このアニメには既に投票済みです。'),
+            backgroundColor: Colors.orange,
           ),
+        );
+      }
+    } catch (e) {
+      print("Error incrementing anime count: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('エラーが発生しました。もう一度お試しください。'),
+          backgroundColor: Colors.red,
         ),
-        body: TabBarView(
-          physics: NeverScrollableScrollPhysics(),
-          controller: _tabController,
-          children: [
-            _buildAnimeList(),
-            _currentTabIndex == 1
-                ? PrefectureListPage(
-                    prefectureSpots: _prefectureSpots,
-                    searchQuery: _searchQuery,
-                    onFetchPrefectureData: _fetchPrefectureData,
-                  )
-                : Container(),
-          ],
-        ),
+      );
+    }
+
+    // 投票処理の後で詳細画面に遷移
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => AnimeDetailsPage(animeName: animeName),
       ),
     );
   }
@@ -689,86 +867,6 @@ class _AnimeListTestRankingState extends State<AnimeListTestRanking>
                         anime['name'].toLowerCase()) ??
                     false)))
         .toList();
-
-    Future<void> _incrementAnimeCount(String animeName) async {
-      try {
-        final String today = DateTime.now().toString().split(' ')[0];
-        final prefs = await SharedPreferences.getInstance();
-        final String? lastVoteDate = prefs.getString('lastVote_$animeName');
-
-        if (lastVoteDate == null || lastVoteDate != today) {
-          final List<String> votedAnimeToday =
-              prefs.getStringList('votedAnime_$today') ?? [];
-
-          if (votedAnimeToday.length < 1) {
-            rtdb.DatabaseReference animeRef =
-                databaseReference.child(animeName);
-            rtdb.TransactionResult result =
-                await animeRef.runTransaction((Object? currentValue) {
-              if (currentValue == null) {
-                return rtdb.Transaction.success(1);
-              }
-              return rtdb.Transaction.success((currentValue as int) + 1);
-            });
-
-            if (result.committed) {
-              await prefs.setString('lastVote_$animeName', today);
-              votedAnimeToday.add(animeName);
-              await prefs.setStringList('votedAnime_$today', votedAnimeToday);
-              print("Incremented count for $animeName");
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('$animeNameの投票を受け付けました。'),
-                  backgroundColor: Colors.green,
-                ),
-              );
-            } else {
-              print("Failed to increment count for $animeName");
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('投票に失敗しました。もう一度お試しください。'),
-                  backgroundColor: Colors.red,
-                ),
-              );
-            }
-          } else {
-            print("Daily vote limit reached");
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('本日の投票回数の上限に達しました。また明日お試しください。'),
-                backgroundColor: Colors.orange,
-              ),
-            );
-          }
-        } else {
-          print("Already voted for this anime today");
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('このアニメには既に投票済みです。'),
-              backgroundColor: Colors.orange,
-            ),
-          );
-        }
-      } catch (e) {
-        print("Error incrementing anime count: $e");
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('エラーが発生しました。もう一度お試しください。'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    }
-
-    void _navigateToDetails(BuildContext context, String animeName) {
-      _incrementAnimeCount(animeName);
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => AnimeDetailsPage(animeName: animeName),
-        ),
-      );
-    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -799,7 +897,7 @@ class _AnimeListTestRankingState extends State<AnimeListTestRanking>
                 itemBuilder: (context, index) {
                   final anime = _topRankedAnime[index];
                   return GestureDetector(
-                    onTap: () => _navigateToDetails(context, anime['name']),
+                    onTap: () => _navigateAndVote(context, anime['name']),
                     child: Container(
                       width: 160,
                       margin: EdgeInsets.only(right: 16),
@@ -887,27 +985,43 @@ class _AnimeListTestRankingState extends State<AnimeListTestRanking>
                       ),
                       itemCount: filteredAnimeData.length,
                       itemBuilder: (context, index) {
-                        if (index != 0 && index % 6 == 0 && _isBannerAdReady) {
-                          // 5つごとに広告を表示（広告が準備できている場合のみ）
-                          return Container(
-                            height: 50,
-                            child: AdWidget(ad: _bannerAd!),
-                          );
+                        if (index != 0 && index % 6 == 0) {
+                          _loadGridBannerAd(index);
+                          if (_isGridBannerAdReady[index] == true &&
+                              _gridBannerAds[index] != null) {
+                            return Container(
+                              width:
+                                  _gridBannerAds[index]!.size.width.toDouble(),
+                              height:
+                                  _gridBannerAds[index]!.size.height.toDouble(),
+                              child: AdWidget(ad: _gridBannerAds[index]!),
+                            );
+                          } else {
+                            return Container(
+                              height: 50,
+                              child: Center(child: Text('広告')),
+                            );
+                          }
                         }
+
                         final adjustedIndex = index - (index ~/ 6);
                         if (adjustedIndex >= filteredAnimeData.length) {
-                          return SizedBox(); // リストの終わりに余分なスペースが生じないようにする
+                          return SizedBox();
                         }
+
                         final animeName =
                             filteredAnimeData[adjustedIndex]['name'];
                         final imageUrl =
                             filteredAnimeData[adjustedIndex]['imageUrl'];
                         final key = adjustedIndex == 0 ? firstItemKey : null;
+
                         return GestureDetector(
                           key: key,
-                          onTap: () => _navigateToDetails(context, animeName),
+                          onTap: () => _navigateAndVote(context, animeName),
                           child: AnimeGridItem(
-                              animeName: animeName, imageUrl: imageUrl),
+                            animeName: animeName,
+                            imageUrl: imageUrl,
+                          ),
                         );
                       },
                     ),
@@ -915,645 +1029,184 @@ class _AnimeListTestRankingState extends State<AnimeListTestRanking>
       ],
     );
   }
-}
-
-class PrefectureListPage extends StatefulWidget {
-  final Map<String, List<Map<String, dynamic>>> prefectureSpots;
-  final String searchQuery;
-  final Function onFetchPrefectureData;
-
-  const PrefectureListPage({
-    Key? key,
-    required this.prefectureSpots,
-    required this.searchQuery,
-    required this.onFetchPrefectureData,
-  }) : super(key: key);
-
-  @override
-  _PrefectureListPageState createState() => _PrefectureListPageState();
-}
-
-class _PrefectureListPageState extends State<PrefectureListPage> {
-  final FirebaseStorage storage = FirebaseStorage.instance;
-  final Map<String, List<String>> regions = {
-    '北海道・東北': ['北海道', '青森県', '岩手県', '宮城県', '秋田県', '山形県', '福島県'],
-    '関東': ['茨城県', '栃木県', '群馬県', '埼玉県', '千葉県', '東京都', '神奈川県'],
-    '中部': ['新潟県', '富山県', '石川県', '福井県', '山梨県', '長野県', '岐阜県', '静岡県', '愛知県'],
-    '近畿': ['三重県', '滋賀県', '京都府', '大阪府', '兵庫県', '奈良県', '和歌山県'],
-    '中国・四国': ['鳥取県', '島根県', '岡山県', '広島県', '山口県', '徳島県', '香川県', '愛媛県', '高知県'],
-    '九州・沖縄': ['福岡県', '佐賀県', '長崎県', '熊本県', '大分県', '宮崎県', '鹿児島県', '沖縄県'],
-  };
-
-  Set<String> selectedPrefectures = {};
-  String currentRegion = '';
-
-  @override
-  void initState() {
-    super.initState();
-    widget.onFetchPrefectureData();
-  }
-
-  Future<String> getPrefectureImageUrl(String prefectureName) async {
-    try {
-      final ref = storage.ref().child('prefectures/$prefectureName.jpg');
-      return await ref.getDownloadURL();
-    } catch (e) {
-      print('Error getting image URL for $prefectureName: $e');
-      return '';
-    }
-  }
-
-  List<String> getFilteredPrefectures() {
-    return widget.prefectureSpots.keys.where((prefecture) {
-      bool matchesSearch =
-          prefecture.toLowerCase().contains(widget.searchQuery.toLowerCase()) ||
-              (widget.prefectureSpots[prefecture]?.any((spot) {
-                    bool animeMatch = spot['anime']
-                            ?.toString()
-                            .toLowerCase()
-                            .contains(widget.searchQuery.toLowerCase()) ??
-                        false;
-                    bool nameMatch = spot['name']
-                            ?.toString()
-                            .toLowerCase()
-                            .contains(widget.searchQuery.toLowerCase()) ??
-                        false;
-                    return animeMatch || nameMatch;
-                  }) ??
-                  false);
-
-      bool matchesRegion = selectedPrefectures.isEmpty ||
-          selectedPrefectures.contains(prefecture);
-
-      return matchesSearch && matchesRegion;
-    }).toList();
-  }
 
   @override
   Widget build(BuildContext context) {
-    List<String> filteredPrefectures = getFilteredPrefectures();
-
-    for (String prefecture in filteredPrefectures) {
-      List<Map<String, dynamic>> spots =
-          widget.prefectureSpots[prefecture] ?? [];
-      print('Debug: $prefecture のスポット数: ${spots.length}');
-      for (var spot in spots) {
-        print(
-            'Debug: $prefecture のスポット: ${spot['name'] ?? 'タイトルなし'}, LocationID: ${spot['locationID'] ?? 'ID未設定'}');
-      }
+    if (!_isEventsLoaded) {
+      return Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
     }
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-          child: Text(
-            '■ 都道府県一覧',
-            style: TextStyle(
-              color: Color(0xFF00008b),
-              fontWeight: FontWeight.bold,
-              fontSize: 16,
-            ),
-          ),
-        ),
-        Container(
-          height: 60,
-          child: ListView(
-            scrollDirection: Axis.horizontal,
-            children: regions.keys.map((region) {
-              return Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                child: DropdownButtonHideUnderline(
-                  child: DropdownButton<String>(
-                    hint: Text(
-                      region,
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF00008b),
-                      ),
-                    ),
-                    icon: Icon(Icons.arrow_drop_down, color: Color(0xFF00008b)),
-                    items: regions[region]!.map((String prefecture) {
-                      return DropdownMenuItem<String>(
-                        value: prefecture,
-                        child: Text(prefecture),
-                      );
-                    }).toList(),
-                    onChanged: (String? newValue) {
-                      if (newValue != null) {
-                        setState(() {
-                          if (selectedPrefectures.contains(newValue)) {
-                            selectedPrefectures.remove(newValue);
-                          } else {
-                            selectedPrefectures.add(newValue);
-                          }
-                          currentRegion = region;
-                        });
-                      }
-                    },
+    return WillPopScope(
+      onWillPop: () async {
+        return await showDialog<bool>(
+              context: context,
+              builder: (context) => AlertDialog(
+                title: Text('アプリを終了しますか？'),
+                content: Text('アプリを閉じてもよろしいですか？'),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(false),
+                    child: Text('キャンセル'),
                   ),
-                ),
-              );
-            }).toList(),
-          ),
-        ),
-        Container(
-          padding: EdgeInsets.all(8.0),
-          color: Color(0xFFE6E6FA),
-          child: Row(
-            children: [
-              Icon(Icons.place, color: Color(0xFF00008b)),
-              SizedBox(width: 8),
-              Text(
-                '現在選択中の地方: $currentRegion',
-                style: TextStyle(
-                  color: Color(0xFF00008b),
-                  fontWeight: FontWeight.bold,
-                ),
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(true),
+                    child: Text('終了'),
+                  ),
+                ],
               ),
-            ],
-          ),
-        ),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-          child: Row(
-            children: [
-              Expanded(
-                child: Text(
-                  '選択中の都道府県: ${selectedPrefectures.isEmpty ? "なし" : selectedPrefectures.join(", ")}',
+            ) ??
+            false;
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          automaticallyImplyLeading: false,
+          title: _isSearching
+              ? TextField(
+                  controller: _searchController,
+                  onChanged: _onSearchChanged,
+                  autofocus: true,
+                  decoration: InputDecoration(
+                    hintText: _currentTabIndex == 0
+                        ? 'アニメで検索...'
+                        : _currentTabIndex == 1
+                            ? '都道府県で検索...'
+                            : 'イベントで検索...',
+                    hintStyle: TextStyle(color: Colors.grey),
+                    border: InputBorder.none,
+                  ),
+                  style: TextStyle(color: Colors.black),
+                )
+              : Text(
+                  '巡礼スポット',
                   style: TextStyle(
                     color: Color(0xFF00008b),
                     fontWeight: FontWeight.bold,
                   ),
                 ),
+          actions: [
+            IconButton(
+              key: checkInKey,
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const SpotTestScreen()),
               ),
-              ElevatedButton(
-                onPressed: () {
-                  setState(() {
-                    selectedPrefectures.clear();
-                    currentRegion = '';
-                  });
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Color(0xFF00008b),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(18.0),
-                  ),
-                ),
-                child: Text(
-                  'クリア',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
+              icon: const Icon(Icons.check_circle, color: Color(0xFF00008b)),
+            ),
+            IconButton(
+              key: favoriteKey,
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                    builder: (context) => FavoriteLocationsPage()),
               ),
-            ],
-          ),
-        ),
-        Expanded(
-          child: widget.prefectureSpots.isEmpty
-              ? Center(child: CircularProgressIndicator())
-              : GridView.builder(
-                  padding: EdgeInsets.all(16.0),
-                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2,
-                    childAspectRatio: 1.3,
-                    crossAxisSpacing: 10,
-                    mainAxisSpacing: 10,
-                  ),
-                  itemCount: filteredPrefectures.length,
-                  itemBuilder: (context, index) {
-                    final prefecture = filteredPrefectures[index];
-                    final spotCount =
-                        widget.prefectureSpots[prefecture]?.length ?? 0;
-                    return GestureDetector(
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => PrefectureSpotListPage(
-                              prefecture: prefecture,
-                              locations:
-                                  widget.prefectureSpots[prefecture] ?? [],
-                              animeName: '',
-                              prefectureBounds: {},
-                            ),
-                          ),
-                        );
-                      },
-                      child: PrefectureGridItem(
-                        prefectureName: prefecture,
-                        spotCount: spotCount,
-                        getImageUrl: getPrefectureImageUrl,
-                      ),
-                    );
-                  },
-                ),
-        ),
-      ],
-    );
-  }
-}
-
-// PrefectureGridItem, PrefectureSpotListPage クラスは変更なし
-
-class PrefectureGridItem extends StatelessWidget {
-  final String prefectureName;
-  final int spotCount;
-  final Future<String> Function(String) getImageUrl;
-
-  const PrefectureGridItem({
-    Key? key,
-    required this.prefectureName,
-    required this.spotCount,
-    required this.getImageUrl,
-  }) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        border: Border.all(color: Colors.grey[300]!),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Expanded(
-            child: FutureBuilder<String>(
-              future: getImageUrl(prefectureName),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return Center(child: CircularProgressIndicator());
-                } else if (snapshot.hasError || !snapshot.hasData) {
-                  return Container(
-                    color: Colors.grey[200],
-                    child: Icon(Icons.image_not_supported, size: 50),
-                  );
-                } else {
-                  return CachedNetworkImage(
-                    imageUrl: snapshot.data!,
-                    fit: BoxFit.cover,
-                    placeholder: (context, url) =>
-                        Center(child: CircularProgressIndicator()),
-                    errorWidget: (context, url, error) => Icon(Icons.error),
-                  );
-                }
-              },
+              icon: const Icon(Icons.favorite, color: Color(0xFF00008b)),
             ),
-          ),
-          Padding(
-            padding: EdgeInsets.all(8.0),
-            child: Column(
-              children: [
-                Text(
-                  prefectureName,
-                  style: TextStyle(
-                    fontSize: 14.0,
-                    fontWeight: FontWeight.bold,
-                  ),
-                  textAlign: TextAlign.center,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                Text(
-                  'スポット数: $spotCount',
-                  style: TextStyle(
-                    fontSize: 12.0,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class PrefectureSpotListPage extends StatefulWidget {
-  final String prefecture;
-  final List<Map<String, dynamic>> locations;
-  final String animeName;
-  final Map<String, Map<String, double>> prefectureBounds;
-
-  PrefectureSpotListPage({
-    Key? key,
-    required this.prefecture,
-    required this.locations,
-    required this.animeName,
-    required this.prefectureBounds,
-  }) : super(key: key);
-
-  @override
-  _PrefectureSpotListPageState createState() => _PrefectureSpotListPageState();
-}
-
-class _PrefectureSpotListPageState extends State<PrefectureSpotListPage> {
-  Future<String> getPrefectureImageUrl(String prefectureName) async {
-    try {
-      final ref = FirebaseStorage.instance
-          .ref()
-          .child('prefectures/$prefectureName.jpg');
-      return await ref.getDownloadURL();
-    } catch (e) {
-      print('Error getting image URL for $prefectureName: $e');
-      return '';
-    }
-  }
-
-  Future<String> getAnimeName(String locationId) async {
-    try {
-      DocumentSnapshot doc = await FirebaseFirestore.instance
-          .collection('locations')
-          .doc(locationId)
-          .get();
-      return doc.get('animeName') as String? ?? 'Unknown Anime';
-    } catch (e) {
-      print('Error getting animeName for location $locationId: $e');
-      return 'Unknown Anime';
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          '${widget.prefecture} のスポット',
-          style: TextStyle(
-            color: Color(0xFF00008b),
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-      ),
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // ヘッダー画像
-          Container(
-            height: 200,
-            width: double.infinity,
-            child: FutureBuilder<String>(
-              future: getPrefectureImageUrl(widget.prefecture),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return Center(child: CircularProgressIndicator());
-                } else if (snapshot.hasError || !snapshot.hasData) {
-                  return Container(
-                    color: Colors.grey[200],
-                    child: Icon(
-                      Icons.image_not_supported_outlined,
-                      size: 50,
-                    ),
-                  );
-                } else {
-                  return CachedNetworkImage(
-                    imageUrl: snapshot.data!,
-                    fit: BoxFit.cover,
-                    placeholder: (context, url) =>
-                        Center(child: CircularProgressIndicator()),
-                    errorWidget: (context, url, error) => Icon(Icons.error),
-                  );
-                }
-              },
-            ),
-          ),
-          Padding(
-            padding: EdgeInsets.all(16.0),
-            child: Text(
-              '■ ${widget.prefecture} のアニメスポット',
-              style: TextStyle(
-                color: Color(0xFF00008b),
-                fontWeight: FontWeight.bold,
-                fontSize: 16,
-              ),
-            ),
-          ),
-          Expanded(
-            child: GridView.builder(
-              padding: const EdgeInsets.all(8.0),
-              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                childAspectRatio: 1.3,
-                mainAxisSpacing: 8.0, // スペースを調整
-                crossAxisSpacing: 8.0, // スペースを調整
-              ),
-              itemCount: widget.locations.length,
-              itemBuilder: (context, index) {
-                final location = widget.locations[index];
-                final locationId = location['locationID'] ?? '';
-
-                return Column(
-                  children: [
-                    Expanded(
-                      child: GestureDetector(
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) =>
-                                  FutureBuilder<DocumentSnapshot>(
-                                future: FirebaseFirestore.instance
-                                    .collection('locations')
-                                    .doc(locationId)
-                                    .get(),
-                                builder: (BuildContext context,
-                                    AsyncSnapshot<DocumentSnapshot> snapshot) {
-                                  if (snapshot.connectionState ==
-                                      ConnectionState.waiting) {
-                                    return Center(
-                                        child: CircularProgressIndicator());
-                                  }
-                                  if (snapshot.hasError) {
-                                    return Center(child: Text("エラーが発生しました"));
-                                  }
-                                  if (!snapshot.hasData ||
-                                      !snapshot.data!.exists) {
-                                    return Center(child: Text("スポットが見つかりません"));
-                                  }
-
-                                  Map<String, dynamic> data = snapshot.data!
-                                      .data() as Map<String, dynamic>;
-                                  // ... 残りのコードは変更なし ...
-                                  return SpotDetailScreen(
-                                    title: data['title'] ?? 'No Title',
-                                    userId: '',
-                                    imageUrl: data['imageUrl'] ?? '',
-                                    description: data['description'] ?? '',
-                                    latitude: (data['latitude'] as num?)
-                                            ?.toDouble() ??
-                                        0.0,
-                                    longitude: (data['longitude'] as num?)
-                                            ?.toDouble() ??
-                                        0.0,
-                                    sourceLink: data['sourceLink'] ?? '',
-                                    sourceTitle: data['sourceTitle'] ?? '',
-                                    url: data['url'] ?? '',
-                                    subMedia: (data['subMedia'] as List?)
-                                            ?.where((item) =>
-                                                item is Map<String, dynamic>)
-                                            .cast<Map<String, dynamic>>()
-                                            .toList() ??
-                                        [],
-                                    locationId: locationId,
-                                    animeName:
-                                        data['animeName'] ?? 'Unknown Anime',
-                                  );
-                                },
-                              ),
-                            ),
-                          );
-                        },
-                        child: Container(
-                          decoration: BoxDecoration(
-                            border: Border.all(color: Colors.grey[300]!),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(8),
-                            child: Container(
-                              height: 120, // 固定の高さを設定
-                              width: double.infinity,
-                              child: CachedNetworkImage(
-                                imageUrl: location['imageUrl'] ?? '',
-                                fit: BoxFit.cover,
-                                placeholder: (context, url) => Container(
-                                  color: Colors.grey[200],
-                                  child: Center(
-                                      child: CircularProgressIndicator()),
-                                ),
-                                errorWidget: (context, url, error) => Container(
-                                  color: Colors.grey[200],
-                                  child:
-                                      Icon(Icons.image_not_supported, size: 50),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                    SizedBox(height: 4), // 画像とテキストの間隔を調整
-                    Container(
-                      height: 20, // アニメ名の高さを固定
-                      child: FutureBuilder<String>(
-                        future: getAnimeName(locationId),
-                        builder: (context, snapshot) {
-                          if (snapshot.connectionState ==
-                              ConnectionState.waiting) {
-                            return Text('Loading...',
-                                style: TextStyle(fontSize: 12.0));
-                          }
-                          return GestureDetector(
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => AnimeDetailsPage(
-                                    animeName: snapshot.data ?? 'Unknown Anime',
-                                  ),
-                                ),
-                              );
-                            },
-                            child: Text(
-                              snapshot.data ?? 'Unknown Anime',
-                              style: TextStyle(
-                                fontSize: 12.0,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.blue,
-                                decoration: TextDecoration.underline,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              textAlign: TextAlign.center,
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                  ],
+            IconButton(
+              key: addKey,
+              icon: Icon(Icons.add, color: Color(0xFF00008b)),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (context) => AnimeRequestCustomerForm()),
                 );
               },
             ),
+            IconButton(
+              key: searchKey,
+              icon: Icon(
+                _isSearching ? Icons.close : Icons.search,
+                color: Color(0xFF00008b),
+              ),
+              onPressed: _toggleSearch,
+            ),
+          ],
+          bottom: TabBar(
+            controller: _tabController,
+            tabs: [
+              Tab(text: 'アニメから探す'),
+              Tab(text: '場所から探す'),
+            ],
+            labelColor: Color(0xFF00008b),
+            unselectedLabelColor: Colors.grey,
+            indicatorColor: Color(0xFF00008b),
+          ),
+        ),
+        body: Column(
+          children: [
+            Expanded(
+              child: TabBarView(
+                physics: NeverScrollableScrollPhysics(),
+                controller: _tabController,
+                children: [
+                  _buildAnimeList(),
+                  _currentTabIndex == 1
+                      ? PrefectureListPage(
+                          prefectureSpots: _prefectureSpots,
+                          searchQuery: _searchQuery,
+                          onFetchPrefectureData: _fetchPrefectureData,
+                        )
+                      : Container(),
+                ],
+              ),
+            ),
+            if (_isBottomBannerAdReady && _bottomBannerAd != null)
+              Container(
+                width: _bottomBannerAd!.size.width.toDouble(),
+                height: _bottomBannerAd!.size.height.toDouble(),
+                child: AdWidget(ad: _bottomBannerAd!),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class AnimeGridItem extends StatelessWidget {
+  final String animeName;
+  final String imageUrl;
+
+  const AnimeGridItem({
+    Key? key,
+    required this.animeName,
+    required this.imageUrl,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      elevation: 2,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Expanded(
+            child: CachedNetworkImage(
+              imageUrl: imageUrl,
+              fit: BoxFit.cover,
+              placeholder: (context, url) => Center(
+                child: CircularProgressIndicator(),
+              ),
+              errorWidget: (context, url, error) => Icon(Icons.error),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Text(
+              animeName,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+              ),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.center,
+            ),
           ),
         ],
       ),
     );
   }
 }
-
-// Column(
-//   crossAxisAlignment: CrossAxisAlignment.start,
-//   children: [
-//     Padding(
-//       padding: EdgeInsets.all(16.0),
-//       child: Text(
-//         '■ $prefecture のアニメスポット',
-//         style: TextStyle(
-//           color: Color(0xFF00008b),
-//           fontWeight: FontWeight.bold,
-//           fontSize: 16,
-//         ),
-//       ),
-//     ),
-//     Expanded(
-//       child: GridView.builder(
-//         padding: const EdgeInsets.all(8.0),
-//         gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-//           crossAxisCount: 2,
-//           childAspectRatio: 1.3,
-//           crossAxisSpacing: 10.0,
-//           mainAxisSpacing: 10.0,
-//         ),
-//         itemCount: locations.length,
-//         itemBuilder: (context, index) {
-//           final location = locations[index];
-//           final locationId = location['locationID'] ?? '';
-//           final title = location['name'] as String? ??
-//               'No Title'; // Changed from 'title' to 'name'
-//           final animeName =
-//               location['animeName'] as String? ?? 'Unknown Anime';
-//           final imageUrl = location['imageUrl'] as String? ?? '';
-//
-//           return GestureDetector(
-//             onTap: () {
-//               Navigator.push(
-//                 context,
-//                 MaterialPageRoute(
-//                   builder: (context) => SpotDetailScreen(
-//                     title: title, // Use the 'name' field for the title
-//                     imageUrl: location['imageUrl'] as String? ?? '',
-//                     description: location['description'] as String? ?? '',
-//                     latitude:
-//                         (location['latitude'] as num?)?.toDouble() ?? 0.0,
-//                     longitude:
-//                         (location['longitude'] as num?)?.toDouble() ??
-//                             0.0,
-//                     sourceLink: location['sourceLink'] as String? ?? '',
-//                     sourceTitle: location['sourceTitle'] as String? ?? '',
-//                     url: location['url'] as String? ?? '',
-//                     subMedia: (location['subMedia'] as List?)
-//                             ?.where(
-//                                 (item) => item is Map<String, dynamic>)
-//                             .cast<Map<String, dynamic>>()
-//                             .toList() ??
-//                         [],
-//                     locationId: locationId,
-//                   ),
-//                 ),
-//               );
-//             },
-//             child: SpotGridItem(
-//               title: title,
-//               animeName: animeName,
-//               imageUrl: imageUrl,
-//             ),
-//           );
-//         },
-//       ),
-//     ),
-//   ],
-// ),

@@ -6,6 +6,7 @@ import 'package:parts/help_page/help.dart';
 import 'package:parts/spot_page/report_screen.dart';
 import 'package:parts/spot_page/review.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:youtube_player_flutter/youtube_player_flutter.dart';
 
 class AnimeDetail extends StatefulWidget {
   final String animeName;
@@ -26,6 +27,11 @@ class _AnimeDetailState extends State<AnimeDetail> {
   bool _isLoadingMoreReviews = false;
   int _currentReviewIndex = 0;
   ScrollController _scrollController = ScrollController();
+  YoutubePlayerController? _youtubeController;
+  bool _showVideo = false;
+  bool _videoInitialized = false;
+  String? _videoId;
+  bool _isMuted = true;
 
   @override
   void initState() {
@@ -38,6 +44,7 @@ class _AnimeDetailState extends State<AnimeDetail> {
   void dispose() {
     _scrollController.removeListener(_scrollListener);
     _scrollController.dispose();
+    _youtubeController?.dispose();
     super.dispose();
   }
 
@@ -46,6 +53,58 @@ class _AnimeDetailState extends State<AnimeDetail> {
             _scrollController.position.maxScrollExtent &&
         !_scrollController.position.outOfRange) {
       _fetchMoreReviews();
+    }
+  }
+
+  Future<void> _initializeVideo() async {
+    if (_animeData != null &&
+        _animeData!['officialVideoUrl'] != null &&
+        _animeData!['officialVideoUrl'].toString().isNotEmpty) {
+      try {
+        String originalUrl = _animeData!['officialVideoUrl'];
+        String? videoId = YoutubePlayer.convertUrlToId(originalUrl);
+
+        if (videoId != null) {
+          _videoId = videoId;
+          _youtubeController = YoutubePlayerController(
+            initialVideoId: videoId,
+            flags: YoutubePlayerFlags(
+              mute: _isMuted, // _isMuted変数を使用
+              autoPlay: true,
+              hideControls: true,
+              enableCaption: false,
+              isLive: false,
+              loop: true,
+              forceHD: false,
+            ),
+          );
+
+          if (mounted) {
+            setState(() {
+              _videoInitialized = true;
+            });
+
+            Future.delayed(Duration(seconds: 1), () {
+              // 2秒から1秒に変更
+              if (mounted) {
+                setState(() {
+                  _showVideo = true;
+                });
+              }
+            });
+          }
+        } else {
+          print("Invalid YouTube URL: $originalUrl");
+        }
+      } catch (e) {
+        print("Error initializing video: $e");
+        if (mounted) {
+          setState(() {
+            _videoInitialized = false;
+            _showVideo = false;
+          });
+        }
+      }
     }
   }
 
@@ -149,6 +208,7 @@ class _AnimeDetailState extends State<AnimeDetail> {
         _animeData = animeSnapshot.docs.first.data() as Map<String, dynamic>;
         await _fetchStreamingTools();
         await _fetchReviews();
+        await _initializeVideo();
       } else {
         print("No anime data found.");
       }
@@ -183,15 +243,12 @@ class _AnimeDetailState extends State<AnimeDetail> {
             .where((review) => review['animeName'] == widget.animeName)
             .toList();
 
-        // 作成日時で降順にソート
         _reviews.sort((a, b) => b['createdAt'].compareTo(a['createdAt']));
 
-        // 最初の10件のみを表示
         if (_reviews.length > 10) {
           _reviews = _reviews.sublist(0, 10);
         }
 
-        // 平均評価の計算
         if (_reviews.isNotEmpty) {
           double totalRating = _reviews.fold(
               0, (sum, review) => sum + (review['rating'] as num));
@@ -232,10 +289,8 @@ class _AnimeDetailState extends State<AnimeDetail> {
           .where((review) => review['animeName'] == widget.animeName)
           .toList();
 
-      // 作成日時で降順にソート
       filteredReviews.sort((a, b) => b['createdAt'].compareTo(a['createdAt']));
 
-      // 次の10件を取得
       int endIndex = _currentReviewIndex + 10;
       if (endIndex > filteredReviews.length) {
         endIndex = filteredReviews.length;
@@ -248,7 +303,6 @@ class _AnimeDetailState extends State<AnimeDetail> {
         _reviews.addAll(newReviews);
         _currentReviewIndex = endIndex;
 
-        // 平均評価の再計算
         if (_reviews.isNotEmpty) {
           double totalRating = _reviews.fold(
               0, (sum, review) => sum + (review['rating'] as num));
@@ -272,26 +326,23 @@ class _AnimeDetailState extends State<AnimeDetail> {
         return;
       }
 
-      // Display tool IDs in a list
       setState(() {
         _streamingTools = toolIds.map((toolId) {
           return {
-            'name': toolId.toString(), // Show tool ID as name
-            'imageUrl': 'https://via.placeholder.com/50', // Placeholder image
-            'downloadUrl': '', // No download URL available yet
+            'name': toolId.toString(),
+            'imageUrl': 'https://via.placeholder.com/50',
+            'downloadUrl': '',
           };
         }).toList();
       });
 
       print("Fetching streaming tools with IDs: $toolIds");
 
-      // 1. Ensure that toolIds list doesn't exceed Firestore's limit (10 items in 'whereIn')
       if (toolIds.length > 10) {
-        toolIds = toolIds.take(10).toList(); // or handle pagination
+        toolIds = toolIds.take(10).toList();
         print("Truncated toolIds to 10: $toolIds");
       }
 
-      // 2. Fetch streaming tools from 'anime_tools' collection
       QuerySnapshot toolsSnapshot = await FirebaseFirestore.instance
           .collection('anime_tools')
           .where(FieldPath.documentId, whereIn: toolIds)
@@ -305,7 +356,7 @@ class _AnimeDetailState extends State<AnimeDetail> {
               'name': data['name'] ?? 'Unknown Tool',
               'imageUrl': data['imageUrl'] ?? 'https://via.placeholder.com/50',
               'downloadUrl': doc['downloadUrl'] ?? '',
-              'monthlyFee': data['monthlyFee'], // Fetch monthlyFee as is
+              'monthlyFee': data['monthlyFee'],
             };
           }).toList();
         });
@@ -380,21 +431,68 @@ class _AnimeDetailState extends State<AnimeDetail> {
   }
 
   Widget _buildAnimeImage() {
-    return _animeData!['imageUrl'] != null
-        ? Image.network(
-            _animeData!['imageUrl'],
-            height: 250.0,
-            width: double.infinity,
-            fit: BoxFit.cover,
-          )
-        : Container(
-            height: 250.0,
-            width: double.infinity,
-            color: Colors.grey,
-            child: Center(
-              child: Text('No image available'),
+    if (_showVideo && _videoInitialized && _youtubeController != null) {
+      return SizedBox(
+        height: 250.0,
+        width: double.infinity,
+        child: Stack(
+          children: [
+            YoutubePlayer(
+              controller: _youtubeController!,
+              showVideoProgressIndicator: false,
+              onReady: () {
+                print("YouTube Player is ready");
+              },
+              onEnded: (YoutubeMetaData metaData) {
+                _youtubeController?.seekTo(Duration.zero);
+                _youtubeController?.play();
+              },
             ),
-          );
+            // タップでミュート切り替えができるように修正
+            Positioned.fill(
+              child: GestureDetector(
+                onTap: () {
+                  setState(() {
+                    _isMuted = !_isMuted;
+                    if (_isMuted) {
+                      _youtubeController?.mute();
+                    } else {
+                      _youtubeController?.unMute();
+                    }
+                  });
+                },
+                child: Container(
+                  color: Colors.transparent,
+                  child: Center(
+                    child: Icon(
+                      _isMuted ? Icons.volume_off : Icons.volume_up,
+                      color: Colors.white.withOpacity(0.7),
+                      size: 30,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    } else {
+      return _animeData!['imageUrl'] != null
+          ? Image.network(
+              _animeData!['imageUrl'],
+              height: 250.0,
+              width: double.infinity,
+              fit: BoxFit.cover,
+            )
+          : Container(
+              height: 250.0,
+              width: double.infinity,
+              color: Colors.grey,
+              child: Center(
+                child: Text('No image available'),
+              ),
+            );
+    }
   }
 
   Widget _buildAnimeOverview() {
@@ -432,9 +530,8 @@ class _AnimeDetailState extends State<AnimeDetail> {
         builder: (_, controller) => SingleChildScrollView(
           controller: controller,
           child: Center(
-            // Center widget added to constrain the width
             child: Container(
-              constraints: BoxConstraints(maxWidth: 600), // Set maximum width
+              constraints: BoxConstraints(maxWidth: 600),
               padding: EdgeInsets.all(16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -444,7 +541,7 @@ class _AnimeDetailState extends State<AnimeDetail> {
                       review['username'],
                       style:
                           TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-                      textAlign: TextAlign.left, // Left align the text
+                      textAlign: TextAlign.left,
                     ),
                   ]),
                   SizedBox(height: 8),
@@ -460,7 +557,7 @@ class _AnimeDetailState extends State<AnimeDetail> {
                   Text(
                     review['content'],
                     style: TextStyle(fontSize: 16),
-                    textAlign: TextAlign.left, // Left align the text
+                    textAlign: TextAlign.left,
                   ),
                 ],
               ),
@@ -490,7 +587,7 @@ class _AnimeDetailState extends State<AnimeDetail> {
                 child: Text('レビューがありません。'),
               )
             : SizedBox(
-                height: 200, // Adjust this height as needed
+                height: 200,
                 child: NotificationListener<ScrollNotification>(
                   onNotification: (ScrollNotification scrollInfo) {
                     if (scrollInfo.metrics.pixels ==
@@ -624,7 +721,6 @@ class _AnimeDetailState extends State<AnimeDetail> {
                   builder: (context) => ReviewPage(animeName: widget.animeName),
                 ),
               ).then((_) {
-                // Refresh reviews when returning from ReviewPage
                 _fetchReviews();
               });
             },
@@ -803,6 +899,6 @@ String _formatMonthlyFee(dynamic fee, String serviceName) {
     case 'lemino':
       return '990円';
     default:
-      return ''; // デフォルトの場合、引数のfeeを使用
+      return '';
   }
 }

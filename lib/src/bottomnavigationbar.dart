@@ -6,11 +6,10 @@ import 'package:flutter_vibrate/flutter_vibrate.dart';
 import '../manual_page/manual_en.dart';
 import '../map_page/map.dart';
 import '../map_page/map_en.dart';
-import '../point_page/point_en.dart';
 import '../point_page/point_update.dart';
+import '../ranking/ranking_top.dart';
 import '../spot_page/anime_list_en.dart';
 import '../spot_page/anime_list_test_ranking.dart';
-import '../web_page/website.dart';
 import '../web_page/website_en.dart';
 
 class MainScreen extends StatefulWidget {
@@ -141,7 +140,7 @@ class _MainScreenState extends State<MainScreen> {
                   ? AnimeListTestRanking()
                   : AnimeListEnPage(),
               _userLanguage == 'Japanese'
-                  ? WebsiteScreen()
+                  ? RankingTopPage()
                   // MyStorePassportScreen()
                   //ランキングを表示する時は上記をコメントアウト解除。
                   : WebsiteEnScreen(),
@@ -150,7 +149,7 @@ class _MainScreenState extends State<MainScreen> {
                   : MapEnScreen(latitude: _latitude, longitude: _longitude),
               _userLanguage == 'Japanese'
                   ? UserPointUpdatePage()
-                  : PointEnPage(),
+                  : UserPointUpdatePage(),
               _userLanguage == 'Japanese' ? ManualEn() : ManualEn(),
             ],
           ),
@@ -203,8 +202,8 @@ class CustomBottomNavigationBar extends StatelessWidget {
           label: language == 'Japanese' ? 'スポット' : 'Spot',
         ),
         BottomNavigationBarItem(
-          icon: Icon(Icons.web),
-          label: language == 'Japanese' ? '公式サイト' : 'Official Site',
+          icon: Icon(Icons.movie_creation_outlined),
+          label: language == 'Japanese' ? 'ジャンル' : 'Official Site',
         ),
         BottomNavigationBarItem(
           icon: Icon(Icons.map),

@@ -1,1 +1,41 @@
-{"flutter":{"platforms":{"ios":{"default":{"projectId":"anime-97d2d","appId":"1:223327218351:ios:63dec507edebae23ca425a","uploadDebugSymbols":false,"fileOutput":"ios/Runner/GoogleService-Info.plist"}},"macos":{"default":{"projectId":"anime-97d2d","appId":"1:223327218351:ios:1a9d70d713e61b0cca425a","uploadDebugSymbols":false,"fileOutput":"macos/Runner/GoogleService-Info.plist"}},"dart":{"lib/firebase_options.dart":{"projectId":"anime-97d2d","configurations":{"ios":"1:223327218351:ios:63dec507edebae23ca425a","macos":"1:223327218351:ios:1a9d70d713e61b0cca425a","web":"1:223327218351:web:5d81ef28af220bc7ca425a","windows":"1:223327218351:web:fd61b124a38d6924ca425a"}}}}}}
+{
+  "flutter": {
+    "platforms": {
+      "ios": {
+        "default": {
+          "projectId": "anime-97d2d",
+          "appId": "1:223327218351:ios:63dec507edebae23ca425a",
+          "uploadDebugSymbols": false,
+          "fileOutput": "ios/Runner/GoogleService-Info.plist"
+        }
+      },
+      "macos": {
+        "default": {
+          "projectId": "anime-97d2d",
+          "appId": "1:223327218351:ios:1a9d70d713e61b0cca425a",
+          "uploadDebugSymbols": false,
+          "fileOutput": "macos/Runner/GoogleService-Info.plist"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "anime-97d2d",
+          "configurations": {
+            "ios": "1:223327218351:ios:63dec507edebae23ca425a",
+            "macos": "1:223327218351:ios:1a9d70d713e61b0cca425a",
+            "web": "1:223327218351:web:5d81ef28af220bc7ca425a",
+            "windows": "1:223327218351:web:fd61b124a38d6924ca425a"
+          }
+        }
+      }
+    }
+  },
+  "hosting": {
+    "public": "public",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ]
+  }
+}

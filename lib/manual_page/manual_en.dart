@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:parts/manual_page/usage_screen.dart';
 import 'package:settings_ui/settings_ui.dart';
 
+import '../payment/payment.dart';
 import '../setting_page/settings_en.dart';
 
 class ManualEn extends StatefulWidget {
@@ -100,6 +101,38 @@ class _ManualEnState extends State<ManualEn> {
                           context,
                           MaterialPageRoute(
                               builder: (context) => UsageScreen()));
+                    },
+                  ),
+                ],
+              ),
+              SettingsSection(
+                title: Text(_language == '日本語' ? '公式' : 'Official'),
+                tiles: <SettingsTile>[
+                  SettingsTile.navigation(
+                    leading: const Icon(Icons.phonelink),
+                    title: Text(_language == '日本語' ? '公式サイト' : 'Official Site'),
+                    value: const Text(''),
+                    onPressed: (context) {
+                      Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (context) => PaymentScreen()));
+                    },
+                  ),
+                ],
+              ),
+              SettingsSection(
+                title: Text(_language == '日本語' ? '有料プラン' : 'Paid plan'),
+                tiles: <SettingsTile>[
+                  SettingsTile.navigation(
+                    leading: const Icon(Icons.payment_rounded),
+                    title: Text(_language == '日本語' ? '広告を非表示にする' : 'Hide ads'),
+                    value: const Text(''),
+                    onPressed: (context) {
+                      Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (context) => PaymentScreen()));
                     },
                   ),
                 ],
