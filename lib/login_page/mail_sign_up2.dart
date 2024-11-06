@@ -73,7 +73,7 @@ class _SecondSignUpPageState extends State<SecondSignUpPage> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         title: Text(
-          _language == '日本語' ? '追加情報を登録' : 'Sign Up Additional Info',
+          _language == 'Japanese' ? '追加情報を登録' : 'Sign Up Additional Info',
           style: const TextStyle(
             color: Colors.white,
             fontWeight: FontWeight.bold,
@@ -93,7 +93,7 @@ class _SecondSignUpPageState extends State<SecondSignUpPage> {
                 _language = newValue!;
               });
             },
-            items: <String>['日本語', 'English']
+            items: <String>['Japanese', 'English']
                 .map<DropdownMenuItem<String>>((String value) {
               return DropdownMenuItem<String>(
                 value: value,
@@ -140,7 +140,7 @@ class _SecondSignUpPageState extends State<SecondSignUpPage> {
                                 color: Colors.white,
                               ),
                               decoration: InputDecoration(
-                                labelText: _language == '日本語'
+                                labelText: _language == 'Japanese'
                                     ? 'ユーザーIDを入力'
                                     : 'Enter User ID',
                                 labelStyle: const TextStyle(
@@ -182,7 +182,7 @@ class _SecondSignUpPageState extends State<SecondSignUpPage> {
                                 color: Colors.white,
                               ),
                               decoration: InputDecoration(
-                                labelText: _language == '日本語'
+                                labelText: _language == 'Japanese'
                                     ? '名前を入力 (任意)'
                                     : 'Enter Your Name (Optional)',
                                 labelStyle: const TextStyle(
@@ -221,7 +221,7 @@ class _SecondSignUpPageState extends State<SecondSignUpPage> {
                               child: AbsorbPointer(
                                 child: TextFormField(
                                   decoration: InputDecoration(
-                                    labelText: _language == '日本語'
+                                    labelText: _language == 'Japanese'
                                         ? '誕生日を選択 (任意)'
                                         : 'Select Birthday (Optional)',
                                     labelStyle: const TextStyle(
@@ -276,7 +276,7 @@ class _SecondSignUpPageState extends State<SecondSignUpPage> {
                                         Colors.white),
                                   )
                                 : Text(
-                                    _language == '日本語' ? '登録' : 'Sign Up',
+                                    _language == 'Japanese' ? '登録' : 'Sign Up',
                                     style: const TextStyle(
                                       color: Colors.white,
                                       fontSize: 15.0,
@@ -305,7 +305,7 @@ class _SecondSignUpPageState extends State<SecondSignUpPage> {
     if (id.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(_language == '日本語'
+          content: Text(_language == 'Japanese'
               ? 'ユーザーIDを入力してください。'
               : 'Please enter a User ID.'),
         ),
@@ -338,7 +338,7 @@ class _SecondSignUpPageState extends State<SecondSignUpPage> {
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(_language == '日本語'
+          content: Text(_language == 'Japanese'
               ? '登録が完了しました。'
               : 'Registration completed successfully.'),
         ),
@@ -353,8 +353,9 @@ class _SecondSignUpPageState extends State<SecondSignUpPage> {
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-              _language == '日本語' ? 'エラーが発生しました: $e' : 'An error occurred: $e'),
+          content: Text(_language == 'Japanese'
+              ? 'エラーが発生しました: $e'
+              : 'An error occurred: $e'),
         ),
       );
     } finally {

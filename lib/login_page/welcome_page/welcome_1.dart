@@ -30,7 +30,7 @@ class _Welcome1State extends State<Welcome1> {
 
       if (userDoc.exists) {
         String language =
-            (userDoc.data() as Map<String, dynamic>)['language'] ?? 'English';
+            (userDoc.data() as Map<String, dynamic>)['language'] ?? 'Japanese';
         setState(() {
           _welcomeTitle =
               language == 'Japanese' ? 'JAMへようこそ' : 'Welcome to JAM';

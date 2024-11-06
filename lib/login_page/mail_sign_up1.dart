@@ -24,7 +24,7 @@ class _MailSignUpPageState extends State<MailSignUpPage> {
   bool _isObscure = true;
   bool _isObscure2 = true;
   bool _isLoading = false;
-  String _language = '日本語';
+  String _language = 'Japanese';
 
   @override
   Widget build(BuildContext context) {
@@ -36,7 +36,7 @@ class _MailSignUpPageState extends State<MailSignUpPage> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         title: Text(
-          _language == '日本語' ? 'メールアドレスで登録' : 'Sign Up with Email',
+          _language == 'Japanese' ? 'メールアドレスで登録' : 'Sign Up with Email',
           style: const TextStyle(
             color: Colors.white,
             fontWeight: FontWeight.bold,
@@ -56,7 +56,7 @@ class _MailSignUpPageState extends State<MailSignUpPage> {
                 _language = newValue!;
               });
             },
-            items: <String>['日本語', 'English']
+            items: <String>['Japanese', 'English']
                 .map<DropdownMenuItem<String>>((String value) {
               return DropdownMenuItem<String>(
                 value: value,
@@ -96,7 +96,7 @@ class _MailSignUpPageState extends State<MailSignUpPage> {
                             color: Colors.white,
                           ),
                           decoration: InputDecoration(
-                            labelText: _language == '日本語'
+                            labelText: _language == 'Japanese'
                                 ? 'メールアドレスを入力'
                                 : 'Enter Email Address',
                             labelStyle: const TextStyle(
@@ -153,7 +153,7 @@ class _MailSignUpPageState extends State<MailSignUpPage> {
                                 color: Colors.white,
                               ),
                             ),
-                            labelText: _language == '日本語'
+                            labelText: _language == 'Japanese'
                                 ? 'パスワードを入力'
                                 : 'Enter Password',
                             labelStyle: const TextStyle(
@@ -206,7 +206,7 @@ class _MailSignUpPageState extends State<MailSignUpPage> {
                                 color: Colors.white,
                               ),
                             ),
-                            labelText: _language == '日本語'
+                            labelText: _language == 'Japanese'
                                 ? 'パスワードを再度入力'
                                 : 'Re-enter Password',
                             labelStyle: const TextStyle(
@@ -250,7 +250,7 @@ class _MailSignUpPageState extends State<MailSignUpPage> {
                                     AlwaysStoppedAnimation<Color>(Colors.white),
                               )
                             : Text(
-                                _language == '日本語' ? '次へ' : 'Next',
+                                _language == 'Japanese' ? '次へ' : 'Next',
                                 style: const TextStyle(
                                   color: Colors.white,
                                   fontSize: 15.0,
@@ -277,7 +277,7 @@ class _MailSignUpPageState extends State<MailSignUpPage> {
                                   builder: (context) => const LoginPage()));
                         },
                         child: Text(
-                          _language == '日本語' ? '戻る' : 'Back',
+                          _language == 'Japanese' ? '戻る' : 'Back',
                           style: const TextStyle(
                             color: Colors.white,
                             fontWeight: FontWeight.bold,
@@ -300,7 +300,7 @@ class _MailSignUpPageState extends State<MailSignUpPage> {
     if (!_isValidEmail(email)) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(_language == '日本語'
+          content: Text(_language == 'Japanese'
               ? '正しい形式のメールアドレスを入力してください。'
               : 'Please enter a valid email address.'),
         ),
@@ -311,8 +311,9 @@ class _MailSignUpPageState extends State<MailSignUpPage> {
     if (password != confirmPassword) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-              _language == '日本語' ? 'パスワードが一致しません。' : 'Passwords do not match.'),
+          content: Text(_language == 'Japanese'
+              ? 'パスワードが一致しません。'
+              : 'Passwords do not match.'),
         ),
       );
       return;
@@ -347,7 +348,7 @@ class _MailSignUpPageState extends State<MailSignUpPage> {
     } on FirebaseAuthException catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(_language == '日本語'
+          content: Text(_language == 'Japanese'
               ? 'エラーが発生しました: ${e.message}'
               : 'An error occurred: ${e.message}'),
         ),
