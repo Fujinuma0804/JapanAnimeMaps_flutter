@@ -5,6 +5,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:parts/spot_page/anime_list_detail.dart';
 import 'package:parts/spot_page/event_more.dart';
 import 'package:video_player/video_player.dart';
@@ -39,9 +40,15 @@ class _RankingTopPageState extends State<RankingTopPage> {
   String? _expandedGenreId;
   Set<String> _expandedGenreIds = {};
 
+  Map<String, bool> _genreLoadingStates = {};
+
+  BannerAd? _bannerAd;
+  bool _isAdLoaded = false;
+
   @override
   void initState() {
     super.initState();
+    _loadAd();
     _fetchEventData();
     _fetchGenreData();
     _checkActiveEvents();
@@ -54,12 +61,39 @@ class _RankingTopPageState extends State<RankingTopPage> {
     _videoController?.dispose();
     _flipTimer?.cancel();
     _restartTimer?.cancel();
+    _bannerAd?.dispose();
     super.dispose();
   }
 
+  void _loadAd() {
+    _bannerAd = BannerAd(
+      size: AdSize.banner,
+      adUnitId: 'ca-app-pub-1580421227117187/7476955408',
+      listener: BannerAdListener(
+        onAdLoaded: (ad) {
+          setState(() {
+            _isAdLoaded = true;
+          });
+        },
+        onAdFailedToLoad: (ad, error) {
+          ad.dispose();
+        },
+      ),
+      request: AdRequest(),
+    );
+
+    _bannerAd?.load();
+  }
+
   Future<void> _fetchAnimesByGenre(String genreId) async {
+    if (_genreLoadingStates[genreId] == true) {
+      return;
+    }
+    setState(() {
+      _genreLoadingStates[genreId] = true;
+    });
+
     try {
-      // アニメのランキングデータを取得
       final rankingSnapshot =
           await _database.ref().child('anime_rankings').get();
 
@@ -68,13 +102,11 @@ class _RankingTopPageState extends State<RankingTopPage> {
         final data = rankingSnapshot.value as Map;
         data.forEach((animeTitle, value) {
           if (value is int) {
-            // タイトルをキーとして使用
             rankings[animeTitle.toString()] = value;
           }
         });
       }
 
-      // Firestoreからアニメデータを取得
       final animeSnapshot = await firestore
           .collection('animes')
           .where('genres', arrayContains: genreId)
@@ -87,24 +119,16 @@ class _RankingTopPageState extends State<RankingTopPage> {
           'id': doc.id,
           'name': title,
           'imageUrl': data['imageUrl'] as String? ?? '',
-          'ranking': rankings[title] ?? 0, // タイトルで検索
+          'ranking': rankings[title] ?? 0,
         };
       }).toList();
 
-      // デバッグ出力（取得したデータの確認）
-      print('Rankings before sort:');
-      animes.forEach((anime) {
-        print('${anime['name']}: ${anime['ranking']}');
-      });
-
-      // ランキング数の多い順にソート
       animes.sort((a, b) {
         final rankingA = a['ranking'] as int;
         final rankingB = b['ranking'] as int;
         return rankingB.compareTo(rankingA);
       });
 
-      // 上位10件のみを取得
       final topAnimes = animes.take(10).toList();
 
       if (mounted) {
@@ -113,12 +137,6 @@ class _RankingTopPageState extends State<RankingTopPage> {
           _isAnimesLoaded = true;
         });
       }
-
-      // デバッグ用ログ（ソート後の確認）
-      print('Sorted animes:');
-      topAnimes.forEach((anime) {
-        print('${anime['name']}: ${anime['ranking']}');
-      });
     } catch (e, stackTrace) {
       print('Error fetching animes and rankings: $e');
       print('Stack trace: $stackTrace');
@@ -131,7 +149,6 @@ class _RankingTopPageState extends State<RankingTopPage> {
     }
   }
 
-  // Video関連のメソッド
   Future<void> _initializeVideo() async {
     try {
       final user = _auth.currentUser;
@@ -254,7 +271,6 @@ class _RankingTopPageState extends State<RankingTopPage> {
     }
   }
 
-  // イベント関連のメソッド
   Future<void> _checkActiveEvents() async {
     try {
       final eventSnapshot = await firestore.collection('events').get();
@@ -301,7 +317,6 @@ class _RankingTopPageState extends State<RankingTopPage> {
     }
   }
 
-  // ジャンル関連のメソッド
   Future<void> _fetchGenreData() async {
     try {
       final genreSnapshot = await firestore
@@ -311,11 +326,10 @@ class _RankingTopPageState extends State<RankingTopPage> {
 
       final genres = genreSnapshot.docs.map((doc) {
         final data = doc.data();
-        // managementCodeが"A"のジャンルを見つけた場合
         if (data['managementCode'] == 'A') {
-          _expandedGenreIds.add(doc.id); // IDをセットに追加
+          _expandedGenreIds.add(doc.id);
           _currentGenreName = data['name'] as String? ?? '';
-          _fetchAnimesByGenre(doc.id); // アニメデータを取得
+          _fetchAnimesByGenre(doc.id);
         }
         return {
           'id': doc.id,
@@ -403,13 +417,13 @@ class _RankingTopPageState extends State<RankingTopPage> {
   Color _getRankingColor(int index) {
     switch (index) {
       case 0:
-        return Color(0xFFFFD700); // 金
+        return Color(0xFFFFD700);
       case 1:
-        return Color(0xFFC0C0C0); // 銀
+        return Color(0xFFC0C0C0);
       case 2:
-        return Color(0xFFCD7F32); // 銅
+        return Color(0xFFCD7F32);
       default:
-        return Color(0xFF1E88E5); // その他
+        return Color(0xFF1E88E5);
     }
   }
 
@@ -507,9 +521,9 @@ class _RankingTopPageState extends State<RankingTopPage> {
                     ),
                   ],
                 ),
-                SizedBox(height: 8), // 4から8に変更してスペースを広げる
+                SizedBox(height: 8),
                 Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 4), // 横方向にパディングを追加
+                  padding: EdgeInsets.symmetric(horizontal: 4),
                   child: Center(
                     child: Text(
                       anime['name'] ?? '',
@@ -520,7 +534,7 @@ class _RankingTopPageState extends State<RankingTopPage> {
                       ),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
-                      textAlign: TextAlign.center, // テキストを中央揃えに
+                      textAlign: TextAlign.center,
                     ),
                   ),
                 ),
@@ -534,62 +548,73 @@ class _RankingTopPageState extends State<RankingTopPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      children: [
-        Scaffold(
-          appBar: AppBar(
-            automaticallyImplyLeading: false,
-            title: Text(
-              'ジャンル・イベント情報',
-              style: TextStyle(
-                color: Color(0xFF00008b),
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            backgroundColor: Colors.white,
-            elevation: 0,
-          ),
-          body: Container(
-            color: Colors.white,
-            child: SafeArea(
-              child: SingleChildScrollView(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    if (!_isEventsLoaded)
-                      Container(
-                        height: 200,
-                        child: Center(child: CircularProgressIndicator()),
-                      )
-                    else if (_activeEvents.isNotEmpty)
-                      _buildEventSection(),
-                    Padding(
-                      padding: const EdgeInsets.only(
-                        left: 16.0,
-                        bottom: 8.0,
-                      ),
-                      child: Text(
-                        '■ジャンル別ランキング',
-                        style: TextStyle(
-                          color: Color(0xFF00008b),
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                        ),
-                      ),
-                    ),
-                    if (!_isGenresLoaded)
-                      Center(child: CircularProgressIndicator())
-                    else
-                      _buildGenreList(),
-                    SizedBox(height: 100),
-                  ],
-                ),
-              ),
-            ),
+    return Scaffold(
+      appBar: AppBar(
+        automaticallyImplyLeading: false,
+        title: Text(
+          'ジャンル・イベント情報',
+          style: TextStyle(
+            color: Color(0xFF00008b),
+            fontWeight: FontWeight.bold,
           ),
         ),
-        if (_showVideo && _videoController != null) _buildVideoOverlay(),
-      ],
+        backgroundColor: Colors.white,
+        elevation: 0,
+      ),
+      body: SafeArea(
+        child: Column(
+          children: [
+            Expanded(
+              child: Stack(
+                children: [
+                  SingleChildScrollView(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (!_isEventsLoaded)
+                          Container(
+                            height: 200,
+                            child: Center(child: CircularProgressIndicator()),
+                          )
+                        else if (_activeEvents.isNotEmpty)
+                          _buildEventSection(),
+                        Padding(
+                          padding: const EdgeInsets.only(
+                            left: 16.0,
+                            bottom: 8.0,
+                          ),
+                          child: Text(
+                            '■ジャンル別ランキング',
+                            style: TextStyle(
+                              color: Color(0xFF00008b),
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
+                          ),
+                        ),
+                        if (!_isGenresLoaded)
+                          Center(child: CircularProgressIndicator())
+                        else
+                          _buildGenreList(),
+                        SizedBox(height: _isAdLoaded ? 60 : 0),
+                      ],
+                    ),
+                  ),
+                  if (_showVideo && _videoController != null)
+                    _buildVideoOverlay(),
+                ],
+              ),
+            ),
+            if (_isAdLoaded)
+              Container(
+                alignment: Alignment.center,
+                width: _bannerAd!.size.width.toDouble(),
+                height: _bannerAd!.size.height.toDouble(),
+                child: AdWidget(ad: _bannerAd!),
+              ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -613,8 +638,7 @@ class _RankingTopPageState extends State<RankingTopPage> {
           child: Theme(
             data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
             child: ExpansionTile(
-              initiallyExpanded:
-                  _expandedGenreIds.contains(genreId), // 初期状態での展開を制御
+              initiallyExpanded: _expandedGenreIds.contains(genreId),
               tilePadding: EdgeInsets.symmetric(horizontal: 0, vertical: 0),
               title: Text(
                 genre['name'] ?? '',
@@ -629,10 +653,10 @@ class _RankingTopPageState extends State<RankingTopPage> {
               onExpansionChanged: (expanded) {
                 setState(() {
                   if (expanded) {
-                    _expandedGenreIds.add(genreId); // 展開されたジャンルのIDを追加
+                    _expandedGenreIds.add(genreId);
                     _fetchAnimesByGenre(genreId);
                   } else {
-                    _expandedGenreIds.remove(genreId); // 閉じられたジャンルのIDを削除
+                    _expandedGenreIds.remove(genreId);
                   }
                 });
               },
@@ -739,7 +763,6 @@ class _RankingTopPageState extends State<RankingTopPage> {
   Future<List<Map<String, dynamic>>> _getAnimeDataForGenre(
       String genreId) async {
     try {
-      // アニメのランキングデータを取得
       final rankingSnapshot =
           await _database.ref().child('anime_rankings').get();
 
@@ -753,7 +776,6 @@ class _RankingTopPageState extends State<RankingTopPage> {
         });
       }
 
-      // Firestoreからアニメデータを取得
       final animeSnapshot = await firestore
           .collection('animes')
           .where('genres', arrayContains: genreId)
@@ -770,14 +792,12 @@ class _RankingTopPageState extends State<RankingTopPage> {
         };
       }).toList();
 
-      // ランキング数の多い順にソート
       animes.sort((a, b) {
         final rankingA = a['ranking'] as int;
         final rankingB = b['ranking'] as int;
         return rankingB.compareTo(rankingA);
       });
 
-      // 上位10件のみを返す
       return animes.take(10).toList();
     } catch (e) {
       print('Error fetching anime data for genre $genreId: $e');

@@ -16,34 +16,8 @@ class _PointsHistoryPageState extends State<PointsHistoryPage> {
   @override
   void initState() {
     super.initState();
-    // 初期表示期間を1ヶ月前から今日までに設定
     _endDate = DateTime.now();
     _startDate = DateTime.now().subtract(const Duration(days: 30));
-  }
-
-  Future<void> _selectDateRange(BuildContext context) async {
-    final picked = await showDateRangePicker(
-      context: context,
-      initialDateRange: DateTimeRange(start: _startDate, end: _endDate),
-      firstDate: DateTime(2020),
-      lastDate: DateTime.now(),
-      builder: (context, child) {
-        return Theme(
-          data: ThemeData.light().copyWith(
-            primaryColor: const Color(0xFF1E3932),
-            colorScheme: const ColorScheme.light(primary: Color(0xFF1E3932)),
-          ),
-          child: child!,
-        );
-      },
-    );
-
-    if (picked != null) {
-      setState(() {
-        _startDate = picked.start;
-        _endDate = picked.end;
-      });
-    }
   }
 
   @override
@@ -53,42 +27,21 @@ class _PointsHistoryPageState extends State<PointsHistoryPage> {
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
+          icon: const Icon(Icons.arrow_back_ios),
           onPressed: () => Navigator.pop(context),
         ),
         title: const Text(
-          'Star獲得・交換・失効履歴',
+          'ポイント獲得・交換',
           style: TextStyle(
             fontSize: 20,
             fontWeight: FontWeight.bold,
           ),
         ),
-        backgroundColor: const Color(0xFF1E3932),
+        backgroundColor: const Color(0xFF00008b),
         foregroundColor: Colors.white,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.calendar_today),
-            onPressed: () => _selectDateRange(context),
-          ),
-        ],
       ),
       body: Column(
         children: [
-          // 期間表示
-          Container(
-            padding: const EdgeInsets.all(16),
-            color: Colors.grey[100],
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  '期間: ${DateFormat('yyyy/MM/dd').format(_startDate)} 〜 ${DateFormat('yyyy/MM/dd').format(_endDate)}',
-                  style: const TextStyle(fontSize: 14),
-                ),
-              ],
-            ),
-          ),
-          // 履歴リスト
           Expanded(
             child: StreamBuilder<QuerySnapshot>(
               stream: FirebaseFirestore.instance
@@ -121,7 +74,7 @@ class _PointsHistoryPageState extends State<PointsHistoryPage> {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(
                     child: CircularProgressIndicator(
-                      color: Color(0xFF1E3932),
+                      color: const Color(0xFF00008b),
                     ),
                   );
                 }

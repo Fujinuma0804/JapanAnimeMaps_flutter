@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:parts/point_page/point_manual.dart';
+import 'package:parts/point_page/points_history_page.dart';
 
 import '../manual_page/privacypolicy_screen.dart';
 import '../manual_page/terms_screen.dart';
@@ -691,6 +692,18 @@ class _UserPointUpdatePageState extends State<UserPointUpdatePage> {
               onTap: () {
                 Navigator.push(context,
                     MaterialPageRoute(builder: (context) => PointManual()));
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.insert_chart_outlined),
+              title: Text(_language == '日本語' ? "ポイント履歴" : "Point history"),
+              onTap: () {
+                Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (context) => PointsHistoryPage(
+                              userId: '',
+                            )));
               },
             ),
             ListTile(
