@@ -21,10 +21,137 @@ class LoginPage extends StatefulWidget {
   State<LoginPage> createState() => _LoginPageState();
 }
 
-class _LoginPageState extends State<LoginPage> {
+class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final GoogleSignIn _googleSignIn = GoogleSignIn();
   bool _isLoading = false;
+  late AnimationController _controller;
+  late Animation<Offset> _slideAnimation;
+  final List<AnimationController> _letterControllers = [];
+  final List<Animation<double>> _letterAnimations = [];
+  bool _titleVisible = false;
+  final String titleText = 'JapanAnimeMaps';
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      duration: const Duration(seconds: 2),
+      vsync: this,
+    );
+
+    _slideAnimation = Tween<Offset>(
+      begin: const Offset(-1.0, 0.0),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(
+      parent: _controller,
+      curve: Curves.elasticOut,
+    ));
+
+    for (int i = 0; i < titleText.length; i++) {
+      final controller = AnimationController(
+        duration: const Duration(milliseconds: 1000),
+        vsync: this,
+      );
+      _letterControllers.add(controller);
+      _letterAnimations.add(
+        Tween<double>(begin: 0, end: -10)
+            .chain(CurveTween(curve: Curves.easeInOut))
+            .animate(controller),
+      );
+    }
+
+    _controller.forward().then((_) {
+      setState(() {
+        _titleVisible = true;
+      });
+      _startLetterAnimations();
+    });
+  }
+
+  void _startLetterAnimations() {
+    for (var i = 0; i < _letterControllers.length; i++) {
+      Future.delayed(Duration(milliseconds: i * 100), () {
+        if (mounted) {
+          _letterControllers[i].repeat(reverse: true);
+        }
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    for (var controller in _letterControllers) {
+      controller.dispose();
+    }
+    super.dispose();
+  }
+
+  Future<void> _signInWithGoogle() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+      if (googleUser == null) {
+        setState(() {
+          _isLoading = false;
+        });
+        return;
+      }
+
+      final GoogleSignInAuthentication googleAuth =
+          await googleUser.authentication;
+
+      final credential = GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      );
+
+      UserCredential userCredential =
+          await _auth.signInWithCredential(credential);
+
+      QuerySnapshot existingUsers = await FirebaseFirestore.instance
+          .collection('users')
+          .where('email', isEqualTo: userCredential.user?.email)
+          .get();
+
+      if (existingUsers.docs.isNotEmpty) {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(
+            builder: (context) => MainScreen(),
+          ),
+        );
+      } else {
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(userCredential.user?.uid)
+            .set({
+          'email': userCredential.user?.email,
+          'language': '日本語',
+        });
+
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (context) => SecondSignUpPage(
+              userCredential: userCredential,
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      print('Error signing in with Google: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('サインインに失敗しました。もう一度お試しください。')),
+      );
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
 
   Future<void> _signInWithApple() async {
     setState(() {
@@ -53,7 +180,6 @@ class _LoginPageState extends State<LoginPage> {
       UserCredential userCredential =
           await _auth.signInWithCredential(authCredential);
 
-      // ここから先は元のコードと同じ
       QuerySnapshot existingUsers = await FirebaseFirestore.instance
           .collection('users')
           .where('email', isEqualTo: userCredential.user?.email)
@@ -108,187 +234,175 @@ class _LoginPageState extends State<LoginPage> {
     return digest.toString();
   }
 
-  Future<void> _signInWithGoogle() async {
-    setState(() {
-      _isLoading = true;
-    });
-
-    try {
-      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
-      if (googleUser == null) {
-        // ユーザーがサインインをキャンセルした場合
-        setState(() {
-          _isLoading = false;
-        });
-        return;
-      }
-
-      final GoogleSignInAuthentication googleAuth =
-          await googleUser.authentication;
-
-      final credential = GoogleAuthProvider.credential(
-        accessToken: googleAuth.accessToken,
-        idToken: googleAuth.idToken,
-      );
-
-      UserCredential userCredential =
-          await _auth.signInWithCredential(credential);
-
-      // Firestoreで同じメールアドレスのユーザーを検索
-      QuerySnapshot existingUsers = await FirebaseFirestore.instance
-          .collection('users')
-          .where('email', isEqualTo: userCredential.user?.email)
-          .get();
-
-      if (existingUsers.docs.isNotEmpty) {
-        // 既存のユーザーが見つかった場合
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(
-            builder: (context) => MainScreen(),
+  Widget _buildSignInButton({
+    required String text,
+    required VoidCallback onPressed,
+    required Widget icon,
+    bool isDisabled = false,
+    bool isGoogle = false,
+    bool isApple = false,
+  }) {
+    return Container(
+      width: 350.0,
+      height: 50.0,
+      margin: EdgeInsets.symmetric(vertical: 8.0),
+      child: ElevatedButton(
+        onPressed: isDisabled ? null : onPressed,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: isGoogle
+              ? Colors.white
+              : isApple
+                  ? Colors.black
+                  : const Color(0xFF7986CB),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(25),
+            side: isGoogle
+                ? BorderSide(color: Colors.grey.shade300)
+                : BorderSide.none,
           ),
-        );
-      } else {
-        // 新規ユーザーの場合
-        await FirebaseFirestore.instance
-            .collection('users')
-            .doc(userCredential.user?.uid)
-            .set({
-          'email': userCredential.user?.email,
-          'language': '日本語', // or set this based on user choice if applicable
-        });
-
-        Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (context) => SecondSignUpPage(
-              userCredential: userCredential,
+          elevation: 3,
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.start,
+          children: [
+            SizedBox(
+              width: 50,
+              child: Center(
+                child: icon is Icon
+                    ? Icon(
+                        icon.icon,
+                        color: isGoogle ? null : icon.color,
+                        size: icon.size,
+                      )
+                    : icon,
+              ),
             ),
-          ),
-        );
-      }
-    } catch (e) {
-      print('Error signing in with Google: $e');
-      // エラーが発生した場合、ユーザーに通知することをお勧めします
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('サインインに失敗しました。もう一度お試しください。')),
-      );
-    } finally {
-      setState(() {
-        _isLoading = false;
-      });
-    }
+            Expanded(
+              child: Padding(
+                padding: EdgeInsets.only(right: 50),
+                child: Center(
+                  child: Text(
+                    text,
+                    style: TextStyle(
+                      color: isGoogle ? Colors.black : Colors.white,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 16,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Stack(
-        children: [
-          // 背景画像
-          Positioned.fill(
-            child: Image.asset(
-              'assets/images/login.png',
-              fit: BoxFit.cover,
+      backgroundColor: Colors.white,
+      body: SafeArea(
+        child: Stack(
+          children: [
+            Center(
+              child: SingleChildScrollView(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      SlideTransition(
+                        position: _slideAnimation,
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            for (var i = 0; i < titleText.length; i++)
+                              if (_titleVisible)
+                                AnimatedBuilder(
+                                  animation: _letterAnimations[i],
+                                  builder: (context, child) {
+                                    return Transform.translate(
+                                      offset:
+                                          Offset(0, _letterAnimations[i].value),
+                                      child: Text(
+                                        titleText[i],
+                                        style: TextStyle(
+                                          color: Color(0xFF00008b),
+                                          fontSize: 28,
+                                          fontWeight: FontWeight.bold,
+                                          letterSpacing: 1.2,
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                )
+                              else
+                                Container(),
+                          ],
+                        ),
+                      ),
+                      SizedBox(height: 60),
+                      SizedBox(height: 40),
+                      _buildSignInButton(
+                        text: 'メールアドレスでログイン',
+                        onPressed: () {
+                          Navigator.of(context).push(
+                            elasticTransition(const MailLoginPage()),
+                          );
+                        },
+                        icon: Icon(Icons.mail, color: Colors.white),
+                      ),
+                      _buildSignInButton(
+                        text: 'Googleでログイン',
+                        onPressed: _signInWithGoogle,
+                        icon: Image.asset(
+                          'assets/icon/google_logo.png',
+                          width: 24,
+                          height: 24,
+                        ),
+                        isDisabled: _isLoading,
+                        isGoogle: true,
+                      ),
+                      _buildSignInButton(
+                        text: 'Appleでログイン',
+                        onPressed: _signInWithApple,
+                        icon: Icon(Icons.apple, color: Colors.white),
+                        isDisabled: _isLoading,
+                        isApple: true,
+                      ),
+                      SizedBox(height: 20),
+                      TextButton(
+                        onPressed: () {
+                          Navigator.of(context).push(
+                            elasticTransition(const SignUpPage()),
+                          );
+                        },
+                        child: Text(
+                          '登録がまだの方はこちら',
+                          style: TextStyle(
+                            color: Colors.black,
+                            decoration: TextDecoration.underline,
+                            fontSize: 16,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             ),
-          ),
-          // テキスト
-          Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                SizedBox(
-                  width: 300.0,
-                  height: 50.0,
-                  child: ElevatedButton(
-                    onPressed: () {
-                      Navigator.of(context).push(
-                        elasticTransition(const MailLoginPage()),
-                      );
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.transparent,
-                      side: const BorderSide(
-                        color: Colors.white, //枠線!
-                        width: 1.5,
-                      ),
-                    ),
-                    child: const Text(
-                      'メールアドレスでログイン',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
+            if (_isLoading)
+              Container(
+                color: Colors.black.withOpacity(0.5),
+                child: Center(
+                  child: CircularProgressIndicator(
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                   ),
                 ),
-                const SizedBox(
-                  height: 20.0,
-                ),
-                SizedBox(
-                  width: 300.0,
-                  height: 50.0,
-                  child: ElevatedButton(
-                    onPressed: _isLoading ? null : _signInWithGoogle,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.transparent,
-                      side: const BorderSide(
-                        color: Colors.white, //枠線
-                        width: 1.5,
-                      ),
-                    ),
-                    child: const Text(
-                      'Googleでログイン',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(
-                  height: 20.0,
-                ),
-                SizedBox(
-                  width: 300.0,
-                  height: 50.0,
-                  child: ElevatedButton(
-                    onPressed: _isLoading ? null : _signInWithApple,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.transparent,
-                      side: const BorderSide(
-                        color: Colors.white, //枠線!
-                        width: 1.5,
-                      ),
-                    ),
-                    child: const Text(
-                      'Appleでログイン',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(
-                  height: 20.0,
-                ),
-                TextButton(
-                  onPressed: () {
-                    Navigator.of(context).push(
-                      elasticTransition(const SignUpPage()),
-                    );
-                  },
-                  child: const Text(
-                    '登録がまだの方はこちら',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
+              ),
+          ],
+        ),
       ),
     );
   }

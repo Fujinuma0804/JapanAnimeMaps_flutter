@@ -1,4 +1,4 @@
-import 'package:cloud_firestore/cloud_firestore.dart'; // 追加
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -13,40 +13,105 @@ class MailSignUpPage extends StatefulWidget {
   State<MailSignUpPage> createState() => _MailSignUpPageState();
 }
 
-class _MailSignUpPageState extends State<MailSignUpPage> {
+class _MailSignUpPageState extends State<MailSignUpPage>
+    with TickerProviderStateMixin {
   final _auth = FirebaseAuth.instance;
-  final _firestore = FirebaseFirestore.instance; // 追加
+  final _firestore = FirebaseFirestore.instance;
 
   String email = '';
   String password = '';
   String confirmPassword = '';
-
   bool _isObscure = true;
   bool _isObscure2 = true;
   bool _isLoading = false;
   String _language = 'Japanese';
 
+  late AnimationController _controller;
+  late Animation<Offset> _slideAnimation;
+  final List<AnimationController> _letterControllers = [];
+  final List<Animation<double>> _letterAnimations = [];
+  bool _titleVisible = false;
+  final String titleText = 'JapanAnimeMaps';
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      duration: const Duration(seconds: 2),
+      vsync: this,
+    );
+
+    _slideAnimation = Tween<Offset>(
+      begin: const Offset(-1.0, 0.0),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(
+      parent: _controller,
+      curve: Curves.elasticOut,
+    ));
+
+    for (int i = 0; i < titleText.length; i++) {
+      final controller = AnimationController(
+        duration: const Duration(milliseconds: 1000),
+        vsync: this,
+      );
+      _letterControllers.add(controller);
+      _letterAnimations.add(
+        Tween<double>(begin: 0, end: -10)
+            .chain(CurveTween(curve: Curves.easeInOut))
+            .animate(controller),
+      );
+    }
+
+    _controller.forward().then((_) {
+      setState(() {
+        _titleVisible = true;
+      });
+      _startLetterAnimations();
+    });
+  }
+
+  void _startLetterAnimations() {
+    for (var i = 0; i < _letterControllers.length; i++) {
+      Future.delayed(Duration(milliseconds: i * 100), () {
+        if (mounted) {
+          _letterControllers[i].repeat(reverse: true);
+        }
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    for (var controller in _letterControllers) {
+      controller.dispose();
+    }
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      extendBodyBehindAppBar: true,
-      resizeToAvoidBottomInset: false, // レイアウトが上がらないように変更
+      backgroundColor: Colors.white,
       appBar: AppBar(
-        automaticallyImplyLeading: false,
-        backgroundColor: Colors.transparent,
+        backgroundColor: Colors.white,
         elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Color(0xFF00008b)),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
         title: Text(
           _language == 'Japanese' ? 'メールアドレスで登録' : 'Sign Up with Email',
           style: const TextStyle(
-            color: Colors.white,
+            color: Color(0xFF00008b),
             fontWeight: FontWeight.bold,
           ),
         ),
         actions: [
           DropdownButton<String>(
             value: _language,
-            dropdownColor: Colors.black,
-            icon: const Icon(Icons.language, color: Colors.white),
+            dropdownColor: Colors.white,
+            icon: const Icon(Icons.language, color: Color(0xFF00008b)),
             underline: Container(
               height: 2,
               color: Colors.transparent,
@@ -62,236 +127,233 @@ class _MailSignUpPageState extends State<MailSignUpPage> {
                 value: value,
                 child: Text(
                   value,
-                  style: const TextStyle(color: Colors.white),
+                  style: const TextStyle(color: Color(0xFF00008b)),
                 ),
               );
             }).toList(),
           ),
         ],
       ),
-      body: Stack(
-        children: [
-          Positioned.fill(
-            child: Image.asset(
-              'assets/images/login.png',
-              fit: BoxFit.cover,
-            ),
-          ),
-          SafeArea(
-            child: Center(
-              child: Padding(
-                padding: const EdgeInsets.all(16.0), // 追加
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Center(
-                      child: SizedBox(
-                        width: 350.0,
-                        height: 45.0,
+      body: SafeArea(
+        child: Stack(
+          children: [
+            Center(
+              child: SingleChildScrollView(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      SlideTransition(
+                        position: _slideAnimation,
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            for (var i = 0; i < titleText.length; i++)
+                              if (_titleVisible)
+                                AnimatedBuilder(
+                                  animation: _letterAnimations[i],
+                                  builder: (context, child) {
+                                    return Transform.translate(
+                                      offset:
+                                          Offset(0, _letterAnimations[i].value),
+                                      child: Text(
+                                        titleText[i],
+                                        style: TextStyle(
+                                          color: Color(0xFF00008b),
+                                          fontSize: 28,
+                                          fontWeight: FontWeight.bold,
+                                          letterSpacing: 1.2,
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                )
+                              else
+                                Container(),
+                          ],
+                        ),
+                      ),
+                      SizedBox(height: 60),
+                      Container(
+                        decoration: BoxDecoration(
+                          color: Colors.grey[100],
+                          borderRadius: BorderRadius.circular(25),
+                        ),
                         child: TextFormField(
                           onChanged: (value) {
                             email = value;
                           },
-                          style: const TextStyle(
-                            color: Colors.white,
-                          ),
+                          style: TextStyle(color: Colors.black),
                           decoration: InputDecoration(
                             labelText: _language == 'Japanese'
                                 ? 'メールアドレスを入力'
                                 : 'Enter Email Address',
-                            labelStyle: const TextStyle(
-                              color: Colors.white,
+                            labelStyle: TextStyle(color: Colors.grey[700]),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(25),
+                              borderSide: BorderSide.none,
                             ),
-                            border: const OutlineInputBorder(
-                              borderSide: BorderSide(
-                                color: Colors.white,
-                              ),
-                            ),
-                            enabledBorder: const OutlineInputBorder(
-                              borderSide: BorderSide(
-                                color: Colors.white,
-                              ),
-                            ),
-                            focusedBorder: const OutlineInputBorder(
-                              borderSide: BorderSide(
-                                color: Colors.white,
-                              ),
-                            ),
+                            prefixIcon:
+                                Icon(Icons.email, color: Color(0xFF7986CB)),
+                            contentPadding: EdgeInsets.symmetric(
+                                horizontal: 20, vertical: 15),
                           ),
-                          textAlign: TextAlign.left,
                           keyboardType: TextInputType.emailAddress,
                           inputFormatters: [
                             FilteringTextInputFormatter.singleLineFormatter
                           ],
                         ),
                       ),
-                    ),
-                    const SizedBox(height: 20.0),
-                    Center(
-                      child: SizedBox(
-                        width: 350.0,
-                        height: 45.0,
+                      SizedBox(height: 20),
+                      Container(
+                        decoration: BoxDecoration(
+                          color: Colors.grey[100],
+                          borderRadius: BorderRadius.circular(25),
+                        ),
                         child: TextFormField(
                           onChanged: (value) {
                             password = value;
                           },
                           obscureText: _isObscure,
-                          style: const TextStyle(
-                            color: Colors.white,
-                          ),
+                          style: TextStyle(color: Colors.black),
                           decoration: InputDecoration(
+                            labelText: _language == 'Japanese'
+                                ? 'パスワードを入力'
+                                : 'Enter Password',
+                            labelStyle: TextStyle(color: Colors.grey[700]),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(25),
+                              borderSide: BorderSide.none,
+                            ),
+                            prefixIcon:
+                                Icon(Icons.lock, color: Color(0xFF7986CB)),
                             suffixIcon: IconButton(
+                              icon: Icon(
+                                _isObscure
+                                    ? Icons.visibility_off
+                                    : Icons.visibility,
+                                color: Color(0xFF7986CB),
+                              ),
                               onPressed: () {
                                 setState(() {
                                   _isObscure = !_isObscure;
                                 });
                               },
-                              icon: Icon(
-                                _isObscure
-                                    ? Icons.visibility_off
-                                    : Icons.visibility,
-                                color: Colors.white,
-                              ),
                             ),
-                            labelText: _language == 'Japanese'
-                                ? 'パスワードを入力'
-                                : 'Enter Password',
-                            labelStyle: const TextStyle(
-                              color: Colors.white,
-                            ),
-                            border: const OutlineInputBorder(
-                              borderSide: BorderSide(
-                                color: Colors.white,
-                              ),
-                            ),
-                            enabledBorder: const OutlineInputBorder(
-                              borderSide: BorderSide(
-                                color: Colors.white,
-                              ),
-                            ),
-                            focusedBorder: const OutlineInputBorder(
-                              borderSide: BorderSide(
-                                color: Colors.white,
-                              ),
-                            ),
+                            contentPadding: EdgeInsets.symmetric(
+                                horizontal: 20, vertical: 15),
                           ),
-                          textAlign: TextAlign.left,
                         ),
                       ),
-                    ),
-                    const SizedBox(height: 20.0),
-                    Center(
-                      child: SizedBox(
-                        width: 350.0,
-                        height: 45.0,
+                      SizedBox(height: 20),
+                      Container(
+                        decoration: BoxDecoration(
+                          color: Colors.grey[100],
+                          borderRadius: BorderRadius.circular(25),
+                        ),
                         child: TextFormField(
                           onChanged: (value) {
                             confirmPassword = value;
                           },
                           obscureText: _isObscure2,
-                          style: const TextStyle(
-                            color: Colors.white,
-                          ),
+                          style: TextStyle(color: Colors.black),
                           decoration: InputDecoration(
+                            labelText: _language == 'Japanese'
+                                ? 'パスワードを再度入力'
+                                : 'Re-enter Password',
+                            labelStyle: TextStyle(color: Colors.grey[700]),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(25),
+                              borderSide: BorderSide.none,
+                            ),
+                            prefixIcon:
+                                Icon(Icons.lock, color: Color(0xFF7986CB)),
                             suffixIcon: IconButton(
+                              icon: Icon(
+                                _isObscure2
+                                    ? Icons.visibility_off
+                                    : Icons.visibility,
+                                color: Color(0xFF7986CB),
+                              ),
                               onPressed: () {
                                 setState(() {
                                   _isObscure2 = !_isObscure2;
                                 });
                               },
-                              icon: Icon(
-                                _isObscure2
-                                    ? Icons.visibility_off
-                                    : Icons.visibility,
-                                color: Colors.white,
-                              ),
                             ),
-                            labelText: _language == 'Japanese'
-                                ? 'パスワードを再度入力'
-                                : 'Re-enter Password',
-                            labelStyle: const TextStyle(
-                              color: Colors.white,
-                            ),
-                            border: const OutlineInputBorder(
-                              borderSide: BorderSide(
-                                color: Colors.white,
-                              ),
-                            ),
-                            enabledBorder: const OutlineInputBorder(
-                              borderSide: BorderSide(
-                                color: Colors.white,
-                              ),
-                            ),
-                            focusedBorder: const OutlineInputBorder(
-                              borderSide: BorderSide(
-                                color: Colors.white,
-                              ),
-                            ),
+                            contentPadding: EdgeInsets.symmetric(
+                                horizontal: 20, vertical: 15),
                           ),
-                          textAlign: TextAlign.left,
                         ),
                       ),
-                    ),
-                    const SizedBox(height: 50.0),
-                    SizedBox(
-                      height: 50.0,
-                      width: 200.0,
-                      child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          side: const BorderSide(
-                            color: Colors.white,
+                      SizedBox(height: 40),
+                      Container(
+                        width: 350.0,
+                        height: 50.0,
+                        margin: EdgeInsets.symmetric(vertical: 8.0),
+                        child: ElevatedButton(
+                          onPressed: _isLoading ? null : _next,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF7986CB),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(25),
+                            ),
+                            elevation: 3,
                           ),
-                          backgroundColor: Colors.transparent,
-                        ),
-                        onPressed: _isLoading ? null : _next,
-                        child: _isLoading
-                            ? const CircularProgressIndicator(
-                                valueColor:
-                                    AlwaysStoppedAnimation<Color>(Colors.white),
-                              )
-                            : Text(
-                                _language == 'Japanese' ? '次へ' : 'Next',
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 15.0,
-                                  fontWeight: FontWeight.bold,
+                          child: _isLoading
+                              ? CircularProgressIndicator(
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                      Colors.white),
+                                )
+                              : Text(
+                                  _language == 'Japanese' ? '次へ' : 'Next',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 16,
+                                  ),
                                 ),
-                              ),
-                      ),
-                    ),
-                    const SizedBox(height: 25.0),
-                    SizedBox(
-                      height: 50.0,
-                      width: 200.0,
-                      child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          side: const BorderSide(
-                            color: Colors.white,
-                          ),
-                          backgroundColor: Colors.transparent,
                         ),
-                        onPressed: () {
-                          Navigator.push(
+                      ),
+                      SizedBox(height: 20),
+                      Container(
+                        width: 350.0,
+                        height: 50.0,
+                        child: TextButton(
+                          onPressed: () {
+                            Navigator.push(
                               context,
                               MaterialPageRoute(
-                                  builder: (context) => const LoginPage()));
-                        },
-                        child: Text(
-                          _language == 'Japanese' ? '戻る' : 'Back',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
+                                  builder: (context) => const LoginPage()),
+                            );
+                          },
+                          child: Text(
+                            _language == 'Japanese' ? '戻る' : 'Back',
+                            style: TextStyle(
+                              color: Colors.black,
+                              fontWeight: FontWeight.w600,
+                              fontSize: 16,
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                    const SizedBox(height: 35.0),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ),
-          ),
-        ],
+            if (_isLoading)
+              Container(
+                color: Colors.black.withOpacity(0.5),
+                child: Center(
+                  child: CircularProgressIndicator(
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                  ),
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }
@@ -324,20 +386,17 @@ class _MailSignUpPageState extends State<MailSignUpPage> {
     });
 
     try {
-      // FirebaseAuthを使って新規ユーザーを作成
       UserCredential userCredential =
           await _auth.createUserWithEmailAndPassword(
         email: email,
         password: password,
       );
 
-      // Firestoreにユーザー情報を保存
       await _firestore.collection('users').doc(userCredential.user?.uid).set({
         'email': email,
         'language': _language,
       });
 
-      // 次のページへ遷移
       Navigator.push(
         context,
         MaterialPageRoute(
