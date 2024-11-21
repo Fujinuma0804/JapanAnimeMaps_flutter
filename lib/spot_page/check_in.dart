@@ -16,7 +16,6 @@ class _SpotTestScreenState extends State<SpotTestScreen> {
   late String _userId;
   late Stream<QuerySnapshot> _checkInsStream;
   bool _sortByTimestamp = true;
-  int _correctCount = 0;
 
   @override
   void initState() {
@@ -44,33 +43,6 @@ class _SpotTestScreenState extends State<SpotTestScreen> {
     }
 
     _checkInsStream = query.snapshots();
-
-    _countAndSaveCorrectCheckIns();
-  }
-
-  Future<void> _countAndSaveCorrectCheckIns() async {
-    int correctCount = 0;
-    QuerySnapshot snapshot = await FirebaseFirestore.instance
-        .collection('users')
-        .doc(_userId)
-        .collection('check_ins')
-        .get();
-
-    for (var doc in snapshot.docs) {
-      var data = doc.data() as Map<String, dynamic>;
-      if (data['isCorrect'] == true) {
-        correctCount++;
-      }
-    }
-
-    await FirebaseFirestore.instance
-        .collection('users')
-        .doc(_userId)
-        .update({'correctCount': correctCount});
-
-    setState(() {
-      _correctCount = correctCount;
-    });
   }
 
   void _toggleSortOrder() {
@@ -163,7 +135,6 @@ class _SpotTestScreenState extends State<SpotTestScreen> {
               Map<String, dynamic> data =
                   document.data() as Map<String, dynamic>;
               String locationId = data['locationId'] ?? '';
-              bool isCorrect = data['isCorrect'] ?? false;
 
               return ListTile(
                 title: Text(data['title'] ?? 'タイトルなし'),
@@ -172,9 +143,9 @@ class _SpotTestScreenState extends State<SpotTestScreen> {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
-                trailing: Icon(
-                  isCorrect ? Icons.check_circle : Icons.cancel,
-                  color: isCorrect ? Colors.green : Colors.red,
+                trailing: const Icon(
+                  Icons.check_circle,
+                  color: Colors.green,
                 ),
                 onTap: () {
                   _navigateToDetails(context, locationId);

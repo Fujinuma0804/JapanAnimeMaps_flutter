@@ -204,7 +204,7 @@ class _AnimeListTestRankingState extends State<AnimeListTestRanking>
     if (_gridBannerAds[index] != null) return;
 
     _gridBannerAds[index] = BannerAd(
-      adUnitId: 'ca-app-pub-1580421227117187/6192729679',
+      adUnitId: 'ca-app-pub-1580421227117187/7240101933',
       request: AdRequest(),
       size: AdSize.banner,
       listener: BannerAdListener(

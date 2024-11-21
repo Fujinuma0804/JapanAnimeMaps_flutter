@@ -36,7 +36,6 @@ class _MapScreenState extends State<MapScreen> {
   bool _errorOccurred = false;
   bool _canCheckIn = false;
   bool _showConfirmation = false;
-  bool _isCorrect = false;
   bool _hasCheckedInAlready = false;
   Marker? _selectedMarker;
   late User _user;
@@ -501,6 +500,8 @@ class _MapScreenState extends State<MapScreen> {
     }
   }
 
+  // ... [previous code remains the same until _createMarkerWithImage method]
+
   Future<Marker> _createMarkerWithImage(
     LatLng position,
     String imageUrl,
@@ -520,22 +521,21 @@ class _MapScreenState extends State<MapScreen> {
 
     // 吹き出しの描画（先端を下に移動）
     final Path path = Path();
-    path.moveTo(0, 0); // 左上の角から開始
-    path.lineTo(0, height + 20); // 左辺
-    path.lineTo((width + 40) / 2 - 10, height + 20); // 下辺の左半分
-    path.lineTo((width + 40) / 2, height + 40); // 吹き出しの先端（下向き）
-    path.lineTo((width + 40) / 2 + 10, height + 20); // 吹き出しの先端から下辺の右半分
-    path.lineTo(width + 40, height + 20); // 下辺の残り
-    path.lineTo(width + 40, 0); // 右辺
-    path.close(); // 上辺（開始点に戻る）
+    path.moveTo(0, 0);
+    path.lineTo(0, height + 20);
+    path.lineTo((width + 40) / 2 - 10, height + 20);
+    path.lineTo((width + 40) / 2, height + 40);
+    path.lineTo((width + 40) / 2 + 10, height + 20);
+    path.lineTo(width + 40, height + 20);
+    path.lineTo(width + 40, 0);
+    path.close();
 
     canvas.drawPath(path, paint);
 
     // 画像の描画
     final ui.Image image = await decodeImageFromList(markerIcon);
 
-// 画像のスケーリングを調整して少し小さくする
-    const double scaleFactor = 0.95; // 縮小率（80%のサイズに縮小）
+    const double scaleFactor = 0.95;
     final double scaledWidth = (width + 40) * scaleFactor;
     final double scaledHeight = (height + 20) * scaleFactor;
     final double offsetX = ((width + 40) - scaledWidth) / 2;
@@ -557,21 +557,38 @@ class _MapScreenState extends State<MapScreen> {
       position: position,
       icon: BitmapDescriptor.fromBytes(data!.buffer.asUint8List()),
       onTap: () async {
-        bool hasCheckedIn = await _hasCheckedIn(markerId);
+        // Update selected marker
         setState(() {
           _selectedMarker = Marker(
             markerId: MarkerId(markerId),
             position: position,
             icon: BitmapDescriptor.fromBytes(data.buffer.asUint8List()),
           );
-          _calculateDistance(position);
-          _showModalBottomSheet(
-              context, imageUrl, title, animeName, snippet, hasCheckedIn);
         });
+
+        // Calculate distance for check-in possibility
+        _calculateDistance(position);
+
+        // Check if user has already checked in
+        bool hasCheckedIn = await _hasCheckedIn(markerId);
+
+        // Show bottom sheet if the widget is still mounted
+        if (!mounted) return;
+
+        // Show modal bottom sheet
+        _showModalBottomSheet(
+          context,
+          imageUrl,
+          title,
+          animeName,
+          snippet,
+          hasCheckedIn,
+        );
       },
     );
   }
 
+// ... [rest of the code remains the same]
   Future<Uint8List> _getBytesFromUrl(String url, int width, int height) async {
     final http.Response response = await http.get(Uri.parse(url));
     final ui.Codec codec = await ui.instantiateImageCodec(
@@ -596,12 +613,10 @@ class _MapScreenState extends State<MapScreen> {
     return snapshot.docs.isNotEmpty;
   }
 
+// ... [previous code remains the same until _showModalBottomSheet method]
+
   void _showModalBottomSheet(BuildContext context, String imageUrl,
       String title, String animeName, String snippet, bool hasCheckedIn) {
-    TextEditingController textController = TextEditingController();
-    bool isCorrect = false;
-    bool showTextField = false;
-
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -633,7 +648,7 @@ class _MapScreenState extends State<MapScreen> {
                           ),
                         ),
                         Padding(
-                          padding: EdgeInsets.all(15),
+                          padding: const EdgeInsets.all(15),
                           child: Text(
                             title,
                             style: const TextStyle(
@@ -670,9 +685,9 @@ class _MapScreenState extends State<MapScreen> {
                               ),
                               onPressed: _canCheckIn
                                   ? () {
-                                      setState(() {
-                                        showTextField = true;
-                                      });
+                                      _checkIn(title,
+                                          _selectedMarker!.markerId.value);
+                                      Navigator.pop(context);
                                     }
                                   : null,
                               child: const Text(
@@ -715,87 +730,6 @@ class _MapScreenState extends State<MapScreen> {
                           textAlign: TextAlign.center,
                         ),
                       ),
-                    if (_canCheckIn && !hasCheckedIn && showTextField)
-                      Padding(
-                        padding: const EdgeInsets.all(8.0),
-                        child: Column(
-                          children: [
-                            TextField(
-                              controller: textController,
-                              decoration: const InputDecoration(
-                                hintText: '題名を入力してください',
-                                border: OutlineInputBorder(),
-                              ),
-                              keyboardType: TextInputType.text,
-                              maxLines: null,
-                              textAlign: TextAlign.left,
-                              onChanged: (text) {
-                                setState(() {
-                                  isCorrect = text.trim().toLowerCase() ==
-                                      title.trim().toLowerCase();
-                                });
-                              },
-                            ),
-                            const SizedBox(height: 8),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                              children: [
-                                ElevatedButton(
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.grey,
-                                  ),
-                                  onPressed: () {
-                                    setState(() {
-                                      showTextField = false;
-                                    });
-                                  },
-                                  child: const Text(
-                                    '戻る',
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ),
-                                ElevatedButton(
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: _isSubmitting
-                                        ? Colors.grey
-                                        : const Color(0xFF00008b),
-                                  ),
-                                  onPressed: _isSubmitting
-                                      ? null
-                                      : () {
-                                          String comment = textController.text;
-                                          _checkIn(comment, title, isCorrect,
-                                              _selectedMarker!.markerId.value);
-                                          Navigator.of(context).pop();
-                                        },
-                                  child: const Text(
-                                    '送信',
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                    // if (hasCheckedIn)
-                    //   const Padding(
-                    //     padding: EdgeInsets.all(8.0),
-                    //     child: Text(
-                    //       '✔︎チェックイン済み',
-                    //       style: TextStyle(
-                    //         fontSize: 16,
-                    //         fontWeight: FontWeight.bold,
-                    //         color: Colors.grey,
-                    //       ),
-                    //     ),
-                    //   ),
                     const SizedBox(height: 20.0),
                   ],
                 ),
@@ -804,22 +738,10 @@ class _MapScreenState extends State<MapScreen> {
           },
         );
       },
-    ).then((value) {
-      if (_showConfirmation) {
-        Timer(const Duration(seconds: 2), () {
-          print("Timer completed");
-          if (mounted) {
-            setState(() {
-              print("Setting state: hiding confirmation");
-              _showConfirmation = false;
-              _canCheckIn = false;
-            });
-          }
-        });
-      }
-    });
+    );
   }
 
+// ... [rest of the code remains the same]
   StreamSubscription<DocumentSnapshot>? _favoriteSubscription;
 
   void _showNavigationModalBottomSheet(
@@ -1160,10 +1082,10 @@ class _MapScreenState extends State<MapScreen> {
         .toList();
   }
 
-  void _checkIn(
-      String comment, String title, bool isCorrect, String locationId) async {
+  void _checkIn(String title, String locationId) async {
     setState(() {
       _isSubmitting = true;
+      _showConfirmation = true;
     });
 
     try {
@@ -1173,8 +1095,6 @@ class _MapScreenState extends State<MapScreen> {
           .collection('check_ins')
           .add({
         'title': title,
-        'comment': comment,
-        'isCorrect': isCorrect,
         'locationId': locationId,
         'timestamp': FieldValue.serverTimestamp(),
       });
@@ -1195,15 +1115,19 @@ class _MapScreenState extends State<MapScreen> {
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(isCorrect ? 'チェックインしました！' : '題名が異なります。'),
-          duration: const Duration(seconds: 2),
+        const SnackBar(
+          content: Text('チェックインしました！'),
+          duration: Duration(seconds: 2),
         ),
       );
 
-      setState(() {
-        _showConfirmation = true;
-        _isCorrect = isCorrect;
+      // タイマーを設定して_showConfirmationをfalseに設定
+      Timer(const Duration(seconds: 2), () {
+        if (mounted) {
+          setState(() {
+            _showConfirmation = false;
+          });
+        }
       });
     } catch (error) {
       print('Error during check-in: $error');
@@ -1323,22 +1247,20 @@ class _MapScreenState extends State<MapScreen> {
                   color: Colors.grey[300],
                   borderRadius: BorderRadius.circular(20),
                 ),
-                child: Center(
-                  child: Container(
-                    width: 100,
-                    height: 100,
-                    decoration: const BoxDecoration(
-                      color: Colors.white,
-                      shape: BoxShape.circle,
-                    ),
-                    child: Center(
-                      child: Text(
-                        _isCorrect ? '✔︎' : '❌',
-                        style: TextStyle(
-                          fontSize: 48,
-                          color: _isCorrect ? Colors.green : Colors.red,
-                          fontWeight: FontWeight.bold,
-                        ),
+                child: Container(
+                  width: 100,
+                  height: 100,
+                  decoration: const BoxDecoration(
+                    color: Colors.white,
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Center(
+                    child: Text(
+                      '✔︎',
+                      style: TextStyle(
+                        fontSize: 48,
+                        color: Colors.green,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
                   ),
