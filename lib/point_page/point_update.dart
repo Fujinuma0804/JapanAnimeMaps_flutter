@@ -63,7 +63,6 @@ class _UserPointUpdatePageState extends State<UserPointUpdatePage> {
     final user = _auth.currentUser;
     if (user == null) return;
 
-    // Get the user's stored ID from Firestore
     final userDoc = await FirebaseFirestore.instance
         .collection('users')
         .doc(user.uid)
@@ -194,6 +193,19 @@ class _UserPointUpdatePageState extends State<UserPointUpdatePage> {
         if (snapshot.exists) {
           final correctCount = snapshot.data()?['correctCount'] as int?;
           final lastCorrectCount = snapshot.data()?['lastCorrectCount'] as int?;
+          final currentPoint = snapshot.data()?['Point'] as int?;
+          final currentPoints = snapshot.data()?['points'] as int?;
+
+          // Points と Point が存在しない場合は作成
+          if (currentPoint == null && currentPoints == null) {
+            await FirebaseFirestore.instance
+                .collection('users')
+                .doc(user.uid)
+                .update({
+              'Point': 0,
+              'points': 0,
+            });
+          }
 
           if (correctCount != null) {
             if (lastCorrectCount == null) {
@@ -221,13 +233,29 @@ class _UserPointUpdatePageState extends State<UserPointUpdatePage> {
   }
 
   int _getPointValue(Map<String, dynamic> userData) {
-    final rawPoint = userData['Point'];
+    final rawPoint = userData['Point'] ?? 0;
+    final rawPoints = userData['points'] ?? 0;
+
+    int point = 0;
+    int points = 0;
+
+    // Point値の取得
     if (rawPoint is int) {
-      return rawPoint;
+      point = rawPoint;
     } else if (rawPoint is String) {
-      return int.tryParse(rawPoint) ?? 0;
+      point = int.tryParse(rawPoint) ?? 0;
     }
-    return 0;
+
+    // points値の取得
+    if (rawPoints is int) {
+      points = rawPoints;
+    } else if (rawPoints is String) {
+      points = int.tryParse(rawPoints) ?? 0;
+    }
+
+    // pointsとPointを比較し、大きい方を返す
+    // 同率の場合はpointsを優先
+    return points >= point ? points : point;
   }
 
   String _getRankMessage(int index) {
@@ -258,11 +286,7 @@ class _UserPointUpdatePageState extends State<UserPointUpdatePage> {
 
   Widget _buildPointRanking() {
     return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseFirestore.instance
-          .collection('users')
-          .orderBy('Point', descending: true)
-          .limit(10)
-          .snapshots(),
+      stream: FirebaseFirestore.instance.collection('users').snapshots(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
@@ -284,6 +308,8 @@ class _UserPointUpdatePageState extends State<UserPointUpdatePage> {
             final bPoint = _getPointValue(b.data() as Map<String, dynamic>);
             return bPoint.compareTo(aPoint);
           });
+
+        final topDocs = sortedDocs.take(10).toList();
 
         return Container(
           margin: const EdgeInsets.all(16),
@@ -315,16 +341,16 @@ class _UserPointUpdatePageState extends State<UserPointUpdatePage> {
               ListView.builder(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
-                itemCount: sortedDocs.length,
+                itemCount: topDocs.length,
                 itemBuilder: (context, index) {
                   final userData =
-                      sortedDocs[index].data() as Map<String, dynamic>;
+                      topDocs[index].data() as Map<String, dynamic>;
                   final displayName =
                       userData['ranking_name'] ?? userData['id'] ?? 'Unknown';
                   final points = _getPointValue(userData);
 
                   final currentUserId = FirebaseAuth.instance.currentUser?.uid;
-                  final isCurrentUser = sortedDocs[index].id == currentUserId;
+                  final isCurrentUser = topDocs[index].id == currentUserId;
 
                   Widget rankWidget;
                   if (index < 3) {
@@ -490,12 +516,15 @@ class _UserPointUpdatePageState extends State<UserPointUpdatePage> {
                           ),
                         );
                       }
-                      final point = userSnapshot.data!.get('Point') ?? 0;
+
+                      // ユーザーの現在のポイントを取得（大きい方を表示）
+                      final userData =
+                          userSnapshot.data!.data() as Map<String, dynamic>;
+                      final point = _getPointValue(userData);
 
                       return StreamBuilder<QuerySnapshot>(
                         stream: FirebaseFirestore.instance
                             .collection('users')
-                            .orderBy('Point', descending: true)
                             .snapshots(),
                         builder: (context, rankingSnapshot) {
                           int userRank = 0;
@@ -650,7 +679,6 @@ class _UserPointUpdatePageState extends State<UserPointUpdatePage> {
       drawer: Drawer(
         child: ListView(
           children: [
-            // ランキングネーム編集のListTileを追加
             StreamBuilder<DocumentSnapshot>(
               stream: FirebaseFirestore.instance
                   .collection('users')
@@ -678,9 +706,9 @@ class _UserPointUpdatePageState extends State<UserPointUpdatePage> {
                               const TextStyle(fontSize: 12, color: Colors.grey),
                         ),
                   onTap: () {
-                    Navigator.pop(context); // Drawerを閉じる
-                    _rankingNameController.text = currentName; // 現在の名前をセット
-                    _showRankingNameDialog(); // 編集ダイアログを表示
+                    Navigator.pop(context);
+                    _rankingNameController.text = currentName;
+                    _showRankingNameDialog();
                   },
                 );
               },
