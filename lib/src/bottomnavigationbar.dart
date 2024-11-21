@@ -9,7 +9,7 @@ import '../map_page/map_en.dart';
 import '../point_page/point_update.dart';
 import '../ranking/ranking_top.dart';
 import '../ranking/ranking_top_en.dart';
-import '../spot_page/anime_list_en.dart';
+import '../spot_page/anime_list_ranking_en.dart';
 import '../spot_page/anime_list_test_ranking.dart';
 
 class MainScreen extends StatefulWidget {
@@ -138,7 +138,7 @@ class _MainScreenState extends State<MainScreen> {
             children: [
               _userLanguage == 'Japanese'
                   ? AnimeListTestRanking()
-                  : AnimeListEnPage(),
+                  : AnimeListTestRankingEng(),
               _userLanguage == 'Japanese'
                   ? RankingTopPage()
                   // MyStorePassportScreen()
