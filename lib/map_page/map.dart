@@ -1082,6 +1082,8 @@ class _MapScreenState extends State<MapScreen> {
         .toList();
   }
 
+// [Previous imports and code remain exactly the same until the _checkIn method]
+
   void _checkIn(String title, String locationId) async {
     setState(() {
       _isSubmitting = true;
@@ -1089,6 +1091,7 @@ class _MapScreenState extends State<MapScreen> {
     });
 
     try {
+      // 既存のチェックイン記録を追加
       await FirebaseFirestore.instance
           .collection('users')
           .doc(_userId)
@@ -1099,19 +1102,61 @@ class _MapScreenState extends State<MapScreen> {
         'timestamp': FieldValue.serverTimestamp(),
       });
 
+      // ユーザードキュメントの参照を取得
+      DocumentReference userRef =
+          FirebaseFirestore.instance.collection('users').doc(_userId);
+
+      // ロケーションの参照を取得
       DocumentReference locationRef =
           FirebaseFirestore.instance.collection('locations').doc(locationId);
 
+      // トランザクションで複数の更新を実行
       await FirebaseFirestore.instance.runTransaction((transaction) async {
-        DocumentSnapshot snapshot = await transaction.get(locationRef);
+        // ロケーションドキュメントを取得
+        DocumentSnapshot locationSnapshot = await transaction.get(locationRef);
+        // ユーザードキュメントを取得
+        DocumentSnapshot userSnapshot = await transaction.get(userRef);
 
-        if (snapshot.exists) {
-          int currentCount =
-              (snapshot.data() as Map<String, dynamic>)['checkinCount'] ?? 0;
+        if (locationSnapshot.exists) {
+          // チェックインカウントを更新
+          int currentCount = (locationSnapshot.data()
+                  as Map<String, dynamic>)['checkinCount'] ??
+              0;
           transaction.update(locationRef, {'checkinCount': currentCount + 1});
-        } else {
-          print('Location document does not exist: $locationId');
         }
+
+        if (userSnapshot.exists) {
+          // 現在のポイントとcorrectCountを取得
+          Map<String, dynamic> userData =
+              userSnapshot.data() as Map<String, dynamic>;
+          int currentPoints = userData['points'] ?? 0;
+          int currentCorrectCount = userData['correctCount'] ?? 0;
+
+          // ポイントとcorrectCountを更新
+          transaction.update(userRef, {
+            'points': currentPoints + 1,
+            'correctCount': currentCorrectCount + 1,
+          });
+        } else {
+          // ユーザードキュメントが存在しない場合は新規作成
+          transaction.set(userRef, {
+            'points': 1,
+            'correctCount': 1,
+          });
+        }
+      });
+
+      // ポイント履歴を記録
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(_userId)
+          .collection('point_history')
+          .add({
+        'timestamp': FieldValue.serverTimestamp(),
+        'points': 1,
+        'type': 'checkin',
+        'locationId': locationId,
+        'locationTitle': title,
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -1144,6 +1189,7 @@ class _MapScreenState extends State<MapScreen> {
     }
   }
 
+// [Rest of the code remains exactly the same]
   void _launchMapsUrl(double lat, double lng) async {
     final url = 'https://www.google.com/maps/dir/?api=1&destination=$lat,$lng';
     if (await canLaunch(url)) {
