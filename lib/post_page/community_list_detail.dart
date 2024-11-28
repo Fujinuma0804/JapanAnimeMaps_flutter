@@ -1,4 +1,6 @@
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:parts/post_page/post_first/community_chat.dart';
 
@@ -20,12 +22,42 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen> {
   bool _showFullDescription = false;
   final int _maxLines = 4;
   bool _hasTextOverflow = false;
+  bool _isJoined = false;
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkJoinStatus();
+  }
+
+  Future<void> _checkJoinStatus() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      setState(() => _isLoading = false);
+      return;
+    }
+
+    try {
+      final docSnapshot = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .collection('communities')
+          .doc(widget.community['id'])
+          .get();
+
+      setState(() {
+        _isJoined = docSnapshot.exists;
+        _isLoading = false;
+      });
+    } catch (e) {
+      print('Error checking join status: $e');
+      setState(() => _isLoading = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    // コミュニティ名を表示する部分で、デバッグプリントを追加
-    print('Community Data: ${widget.community}'); // 全データの確認
-    print('Community Name: ${widget.community['name']}'); // nameフィールドの確認
     if (!_hasTextOverflow) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         final TextPainter textPainter = TextPainter(
@@ -49,6 +81,7 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen> {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
+        centerTitle: true, // これを追加
         title: const Text(
           'コミュニティ',
           style: TextStyle(
@@ -209,67 +242,81 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Container(
-                      width: double.infinity,
-                      height: 48,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(6),
-                        color: const Color(0xFF00008b),
-                      ),
-                      child: Material(
-                        color: Colors.transparent,
-                        child: InkWell(
-                          onTap: () {
-                            final String communityId =
-                                widget.community['id'] ?? '';
-                            if (communityId.isEmpty) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('コミュニティIDが見つかりません'),
-                                ),
-                              );
-                              return;
-                            }
+                    if (_isLoading)
+                      const CircularProgressIndicator()
+                    else
+                      Container(
+                        width: double.infinity,
+                        height: 48,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(6),
+                          color: _isJoined
+                              ? Colors.grey[400]
+                              : const Color(0xFF00008b),
+                        ),
+                        child: Material(
+                          color: Colors.transparent,
+                          child: InkWell(
+                            onTap: _isJoined
+                                ? null
+                                : () {
+                                    final String communityId =
+                                        widget.community['id'] ?? '';
+                                    if (communityId.isEmpty) {
+                                      ScaffoldMessenger.of(context)
+                                          .showSnackBar(
+                                        const SnackBar(
+                                          content: Text('コミュニティIDが見つかりません'),
+                                        ),
+                                      );
+                                      return;
+                                    }
 
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => InCommunity(
-                                  communityId: communityId,
-                                  backgroundImage:
-                                      widget.community['backgroundImageUrl'] ??
-                                          '',
-                                  communityName: widget.community['name'] ?? '',
-                                  description:
-                                      widget.community['description'] ?? '',
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) => InCommunity(
+                                          communityId: communityId,
+                                          backgroundImage: widget.community[
+                                                  'backgroundImageUrl'] ??
+                                              '',
+                                          communityName:
+                                              widget.community['name'] ?? '',
+                                          description:
+                                              widget.community['description'] ??
+                                                  '',
+                                        ),
+                                      ),
+                                    ).then((_) {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) => GroupChatScreen(
+                                            roomName:
+                                                widget.community['name'] ?? '',
+                                            participantCount: widget
+                                                    .community['memberCount'] ??
+                                                0,
+                                          ),
+                                        ),
+                                      );
+                                    });
+                                  },
+                            child: Center(
+                              child: Text(
+                                _isJoined ? '参加済み' : '新しいプロフィールで参加',
+                                style: TextStyle(
+                                  color: _isJoined
+                                      ? Colors.white.withOpacity(0.7)
+                                      : Colors.white,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
                                 ),
-                              ),
-                            ).then((_) {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => GroupChatScreen(
-                                    roomName: widget.community['name'] ?? '',
-                                    participantCount:
-                                        widget.community['memberCount'] ?? 0,
-                                  ),
-                                ),
-                              );
-                            });
-                          },
-                          child: const Center(
-                            child: Text(
-                              '新しいプロフィールで参加',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
                               ),
                             ),
                           ),
                         ),
                       ),
-                    ),
                   ],
                 ),
               ),

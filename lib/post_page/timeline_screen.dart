@@ -8,6 +8,7 @@ import 'package:parts/post_page/post_mypage.dart';
 import 'package:parts/post_page/post_screen.dart';
 import 'package:parts/post_page/replay_screen.dart';
 import 'package:share/share.dart';
+import 'package:vibration/vibration.dart';
 
 class TimelineScreen extends StatefulWidget {
   const TimelineScreen({Key? key}) : super(key: key);
@@ -122,6 +123,9 @@ class _TimelineScreenState extends State<TimelineScreen>
   }
 
   Future<void> _refreshPosts() async {
+    // バイブレーションを追加
+    Vibration.vibrate(duration: 50); // 50ミリ秒のバイブレーション
+
     setState(() {
       posts = [];
       _lastDocument = null;
@@ -236,7 +240,7 @@ class _TimelineScreenState extends State<TimelineScreen>
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'メニュー',
+                    'コミュニティメニュー',
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 24,
@@ -292,8 +296,7 @@ class _TimelineScreenState extends State<TimelineScreen>
                     stream: FirebaseFirestore.instance
                         .collection('users')
                         .doc(FirebaseAuth.instance.currentUser?.uid)
-                        .collection(
-                            'communities') // サブコレクションとしてcommunitiesにアクセス
+                        .collection('communities')
                         .snapshots(),
                     builder: (context, userCommunitiesSnapshot) {
                       if (userCommunitiesSnapshot.hasError) {
@@ -329,8 +332,7 @@ class _TimelineScreenState extends State<TimelineScreen>
 
                       return StreamBuilder<QuerySnapshot>(
                         stream: FirebaseFirestore.instance
-                            .collection(
-                                'community_list') // community_listコレクションに変更
+                            .collection('community_list')
                             .where(FieldPath.documentId, whereIn: communityIds)
                             .snapshots(),
                         builder: (context, communitySnapshot) {
@@ -376,8 +378,7 @@ class _TimelineScreenState extends State<TimelineScreen>
                                       : null,
                                 ),
                                 title: Text(
-                                  communityData['name'] ??
-                                      '不明なコミュニティ', // nameフィールドを使用
+                                  communityData['name'] ?? '不明なコミュニティ',
                                 ),
                                 onTap: () {
                                   print('Tapped community: ${community.id}');
@@ -711,9 +712,6 @@ class PostCard extends StatelessWidget {
       shareContent.writeln('\nPosted on: ${_formatDateTime(timestamp)}');
     }
 
-    shareContent.writeln('\nPost ID: ${post.id}');
-    shareContent.writeln('\nView in app: https://yourapp.com/posts/${post.id}');
-
     Share.share(
       shareContent.toString(),
       subject: 'Check out this post',
@@ -721,7 +719,13 @@ class PostCard extends StatelessWidget {
   }
 
   String _formatDateTime(DateTime dateTime) {
-    return '${dateTime.year}/${dateTime.month}/${dateTime.day} ${dateTime.hour}:${dateTime.minute}';
+    String year = dateTime.year.toString();
+    String month = dateTime.month.toString().padLeft(2, '0');
+    String day = dateTime.day.toString().padLeft(2, '0');
+    String hour = dateTime.hour.toString().padLeft(2, '0');
+    String minute = dateTime.minute.toString().padLeft(2, '0');
+
+    return '$year年$month月$day日$hour時$minute分';
   }
 
   void _navigateToPostDetail(BuildContext context) {
@@ -788,12 +792,16 @@ class PostCard extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            '@${postData['userHandle'] ?? ''}',
-                            style: const TextStyle(
-                              color: Colors.grey,
-                              fontSize: 16,
-                            ),
+                          Row(
+                            children: [
+                              Text(
+                                '@${postData['userHandle'] ?? ''}',
+                                style: const TextStyle(
+                                  color: Colors.grey,
+                                  fontSize: 16,
+                                ),
+                              ),
+                            ],
                           ),
                           const SizedBox(height: 4),
                           Text(
@@ -865,59 +873,77 @@ class PostCard extends StatelessWidget {
                           .toList(),
                     ),
                   ),
-                Padding(
-                  padding: const EdgeInsets.only(top: 8.0),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      _buildInteractionButton(
-                        icon: Icons.chat_bubble_outline,
-                        color: Colors.grey,
-                        count: commentCount,
-                        onPressed: () => _handleReply(context),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8.0),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          _buildInteractionButton(
+                            icon: Icons.chat_bubble_outline,
+                            color: Colors.grey,
+                            count: commentCount,
+                            onPressed: () => _handleReply(context),
+                          ),
+                          _buildInteractionButton(
+                            icon: likedBy.contains(currentUserId)
+                                ? Icons.favorite
+                                : Icons.favorite_border,
+                            color: likedBy.contains(currentUserId)
+                                ? Colors.red
+                                : Colors.grey,
+                            count: likes,
+                            onPressed: _toggleLike,
+                          ),
+                          _buildInteractionButton(
+                            icon: retweetedBy.contains(currentUserId)
+                                ? Icons.repeat
+                                : Icons.repeat,
+                            color: retweetedBy.contains(currentUserId)
+                                ? Colors.green
+                                : Colors.grey,
+                            count: retweets,
+                            onPressed: _toggleRetweet,
+                          ),
+                          _buildInteractionButton(
+                            icon: bookmarkedBy.contains(currentUserId)
+                                ? Icons.bookmark
+                                : Icons.bookmark_border,
+                            color: bookmarkedBy.contains(currentUserId)
+                                ? Colors.blue
+                                : Colors.grey,
+                            count: bookmarkedBy.length,
+                            onPressed: _toggleBookmark,
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.share_outlined),
+                            color: Colors.grey,
+                            onPressed: () => _shareContent(context),
+                          ),
+                        ],
                       ),
-                      _buildInteractionButton(
-                        icon: likedBy.contains(currentUserId)
-                            ? Icons.favorite
-                            : Icons.favorite_border,
-                        color: likedBy.contains(currentUserId)
-                            ? Colors.red
-                            : Colors.grey,
-                        count: likes,
-                        onPressed: _toggleLike,
+                    ),
+                    if (postData['createdAt'] != null)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 0.0, left: 5.0),
+                        child: Text(
+                          _formatDateTime(
+                              (postData['createdAt'] as Timestamp).toDate()),
+                          style: const TextStyle(
+                            color: Colors.grey,
+                            fontSize: 12,
+                          ),
+                        ),
                       ),
-                      _buildInteractionButton(
-                        icon: retweetedBy.contains(currentUserId)
-                            ? Icons.repeat
-                            : Icons.repeat,
-                        color: retweetedBy.contains(currentUserId)
-                            ? Colors.green
-                            : Colors.grey,
-                        count: retweets,
-                        onPressed: _toggleRetweet,
-                      ),
-                      _buildInteractionButton(
-                        icon: bookmarkedBy.contains(currentUserId)
-                            ? Icons.bookmark
-                            : Icons.bookmark_border,
-                        color: bookmarkedBy.contains(currentUserId)
-                            ? Colors.blue
-                            : Colors.grey,
-                        count: bookmarkedBy.length,
-                        onPressed: _toggleBookmark,
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.share_outlined),
-                        color: Colors.grey,
-                        onPressed: () => _shareContent(context),
-                      ),
-                    ],
-                  ),
+                  ],
                 ),
               ],
             ),
           ),
         );
+
         if (!isDetailScreen) {
           return GestureDetector(
             onTap: () => _navigateToPostDetail(context),
