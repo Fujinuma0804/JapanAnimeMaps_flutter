@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:parts/point_page/point_manual.dart';
 import 'package:parts/point_page/points_history_page.dart';
 
+import '../manual_page/manual_en.dart';
 import '../manual_page/privacypolicy_screen.dart';
 import '../manual_page/terms_screen.dart';
 import 'chenged_point.dart';
@@ -487,6 +488,18 @@ class _UserPointUpdatePageState extends State<UserPointUpdatePage> {
             fontWeight: FontWeight.bold,
           ),
         ),
+        actions: [
+          IconButton(
+            icon: Icon(
+              Icons.settings,
+            ),
+            color: Colors.black,
+            onPressed: () {
+              Navigator.push(
+                  context, MaterialPageRoute(builder: (context) => ManualEn()));
+            },
+          ),
+        ],
       ),
       body: currentUser == null
           ? Center(

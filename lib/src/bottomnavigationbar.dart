@@ -2,11 +2,12 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_vibrate/flutter_vibrate.dart';
+import 'package:parts/post_page/timeline_screen.dart';
 
-import '../manual_page/manual_en.dart';
 import '../map_page/map.dart';
 import '../map_page/map_en.dart';
 import '../point_page/point_update.dart';
+import '../post_page/post_first/post_welcome.dart';
 import '../ranking/ranking_top.dart';
 import '../ranking/ranking_top_en.dart';
 import '../spot_page/anime_list_ranking_en.dart';
@@ -25,6 +26,7 @@ class _MainScreenState extends State<MainScreen> {
   late Stream<DocumentSnapshot> _userStream;
   double _latitude = 37.7749;
   double _longitude = -122.4194;
+  bool _hasSeenWelcome = false;
 
   @override
   void initState() {
@@ -32,6 +34,7 @@ class _MainScreenState extends State<MainScreen> {
     _getUser();
     _updateCorrectCount();
     _setupUserStream();
+    _checkWelcomeStatus();
   }
 
   Future<void> _getUser() async {
@@ -50,9 +53,33 @@ class _MainScreenState extends State<MainScreen> {
           _userLanguage =
               (snapshot.data() as Map<String, dynamic>)['language'] ??
                   'English';
-          print('User language: $_userLanguage'); // デバッグ用ログ
+          print('User language: $_userLanguage');
         });
       }
+    });
+  }
+
+  Future<void> _checkWelcomeStatus() async {
+    final userDoc = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(_user.uid)
+        .get();
+
+    if (userDoc.exists) {
+      setState(() {
+        _hasSeenWelcome =
+            (userDoc.data() as Map<String, dynamic>)['hasSeenWelcome'] ?? false;
+      });
+    }
+  }
+
+  Future<void> _updateWelcomeStatus() async {
+    await FirebaseFirestore.instance
+        .collection('users')
+        .doc(_user.uid)
+        .update({'hasSeenWelcome': true});
+    setState(() {
+      _hasSeenWelcome = true;
     });
   }
 
@@ -72,28 +99,28 @@ class _MainScreenState extends State<MainScreen> {
         }
       }
 
-      // ユーザードキュメントの存在を確認
       DocumentSnapshot userDoc = await FirebaseFirestore.instance
           .collection('users')
           .doc(_user.uid)
           .get();
 
       if (userDoc.exists) {
-        // ドキュメントが存在する場合は更新
         await FirebaseFirestore.instance
             .collection('users')
             .doc(_user.uid)
             .update({'correctCount': correctCount});
       } else {
-        // ドキュメントが存在しない場合は新規作成
         await FirebaseFirestore.instance
             .collection('users')
             .doc(_user.uid)
-            .set({'correctCount': correctCount});
+            .set({
+          'correctCount': correctCount,
+          'hasSeenWelcome': false,
+          'language': _userLanguage,
+        });
       }
     } catch (e) {
       print('Error updating correct count: $e');
-      // エラーハンドリングをここに追加（例：ユーザーへの通知など）
     }
   }
 
@@ -101,6 +128,10 @@ class _MainScreenState extends State<MainScreen> {
     bool canVibrate = await Vibrate.canVibrate;
     if (canVibrate) {
       Vibrate.feedback(FeedbackType.selection);
+    }
+
+    if (index == 4 && !_hasSeenWelcome) {
+      await _updateWelcomeStatus();
     }
 
     setState(() {
@@ -120,10 +151,18 @@ class _MainScreenState extends State<MainScreen> {
           );
         }
 
+        if (snapshot.hasError) {
+          return Scaffold(
+            body: Center(child: Text('Error: ${snapshot.error}')),
+          );
+        }
+
         if (snapshot.hasData && snapshot.data != null) {
-          _userLanguage =
-              (snapshot.data!.data() as Map<String, dynamic>)['language'] ??
-                  'English';
+          final userData = snapshot.data!.data() as Map<String, dynamic>?;
+          if (userData != null) {
+            _userLanguage = userData['language'] ?? 'English';
+            _hasSeenWelcome = userData['hasSeenWelcome'] ?? false;
+          }
         }
 
         return Scaffold(
@@ -141,8 +180,6 @@ class _MainScreenState extends State<MainScreen> {
                   : AnimeListTestRankingEng(),
               _userLanguage == 'Japanese'
                   ? RankingTopPage()
-                  // MyStorePassportScreen()
-                  //ランキングを表示する時は上記をコメントアウト解除。
                   : RankingTopPageEn(),
               _userLanguage == 'Japanese'
                   ? MapScreen(latitude: _latitude, longitude: _longitude)
@@ -150,7 +187,9 @@ class _MainScreenState extends State<MainScreen> {
               _userLanguage == 'Japanese'
                   ? UserPointUpdatePage()
                   : UserPointUpdatePage(),
-              _userLanguage == 'Japanese' ? ManualEn() : ManualEn(),
+              _userLanguage == 'Japanese'
+                  ? (!_hasSeenWelcome ? PostWelcome1() : TimelineScreen())
+                  : (!_hasSeenWelcome ? PostWelcome1() : TimelineScreen()),
             ],
           ),
           bottomNavigationBar: CustomBottomNavigationBar(
@@ -211,7 +250,7 @@ class CustomBottomNavigationBar extends StatelessWidget {
         ),
         BottomNavigationBarItem(
           icon: Icon(Icons.monetization_on),
-          label: language == 'Japanese' ? 'ポイント' : 'Point',
+          label: language == 'Japanese' ? 'その他' : 'Other',
         ),
         BottomNavigationBarItem(
           icon: Icon(Icons.description),

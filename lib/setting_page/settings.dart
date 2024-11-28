@@ -179,6 +179,7 @@ class _SettingsState extends State<Settings> {
       onWillPop: () async => false,
       child: Scaffold(
         appBar: AppBar(
+          automaticallyImplyLeading: false,
           backgroundColor: Colors.white,
           title: const Text(
             '設定',
