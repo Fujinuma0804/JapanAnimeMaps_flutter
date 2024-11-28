@@ -98,6 +98,33 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
           ),
         ),
         backgroundColor: Colors.white,
+        actions: [
+          Row(
+            children: [
+              IconButton(
+                onPressed: () {},
+                icon: Icon(
+                  Icons.notification_important_outlined,
+                  color: Color(0xFF00008b),
+                ),
+              ),
+              IconButton(
+                onPressed: () {},
+                icon: Icon(
+                  Icons.info_outline_rounded,
+                  color: Color(0xFF00008b),
+                ),
+              ),
+              IconButton(
+                onPressed: () {},
+                icon: Icon(
+                  Icons.menu,
+                  color: Color(0xFF00008b),
+                ),
+              ),
+            ],
+          )
+        ],
       ),
       body: Column(
         children: [
