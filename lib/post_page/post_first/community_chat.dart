@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 class Message {
@@ -5,47 +7,92 @@ class Message {
   final String content;
   final DateTime timestamp;
   final bool isMe;
+  final String userIcon;
+  final String userId;
 
   Message({
     required this.sender,
     required this.content,
     required this.timestamp,
     required this.isMe,
+    required this.userIcon,
+    required this.userId,
   });
+
+  factory Message.fromFirestore(DocumentSnapshot doc, String currentUserId) {
+    final data = doc.data() as Map<String, dynamic>;
+    return Message(
+      sender: data['userName'] ?? '',
+      content: data['text'] ?? '',
+      timestamp: (data['createdAt'] as Timestamp).toDate(),
+      isMe: data['userId'] == currentUserId,
+      userIcon: data['iconUrl'] ?? '',
+      userId: data['userId'] ?? '',
+    );
+  }
 }
 
-class GroupChatScreen extends StatelessWidget {
+class GroupChatScreen extends StatefulWidget {
   final String roomName;
+  final String communityId;
   final int participantCount;
-  final List<Message> messages = [
-    Message(
-      sender: "田中",
-      content: "こんにちは！",
-      timestamp: DateTime.now().subtract(const Duration(minutes: 5)),
-      isMe: false,
-    ),
-    Message(
-      sender: "佐藤",
-      content: "今日の会議の件について相談したいのですが",
-      timestamp: DateTime.now().subtract(const Duration(minutes: 3)),
-      isMe: true,
-    ),
-    // Add more sample messages as needed
-  ];
 
-  GroupChatScreen({
+  const GroupChatScreen({
     Key? key,
     required this.roomName,
+    required this.communityId,
     required this.participantCount,
   }) : super(key: key);
+
+  @override
+  State<GroupChatScreen> createState() => _GroupChatScreenState();
+}
+
+class _GroupChatScreenState extends State<GroupChatScreen> {
+  final TextEditingController _messageController = TextEditingController();
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final currentUser = FirebaseAuth.instance.currentUser;
+
+  Stream<QuerySnapshot> _getMessages() {
+    return _firestore
+        .collection('community_list')
+        .doc(widget.communityId)
+        .collection('chat')
+        .orderBy('createdAt', descending: true)
+        .snapshots();
+  }
+
+  Future<void> _sendMessage() async {
+    if (_messageController.text.trim().isEmpty) return;
+
+    try {
+      await _firestore
+          .collection('community_list')
+          .doc(widget.communityId)
+          .collection('chat')
+          .add({
+        'text': _messageController.text,
+        'createdAt': FieldValue.serverTimestamp(),
+        'userId': currentUser?.uid,
+        'userName': currentUser?.displayName ?? 'Anonymous',
+        'userIcon': currentUser?.photoURL ?? '',
+      });
+
+      _messageController.clear();
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('メッセージの送信に失敗しました: $e')),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          '$roomName ($participantCount)',
-          style: TextStyle(
+          '${widget.roomName} (${widget.participantCount})',
+          style: const TextStyle(
             color: Color(0xFF00008b),
             fontWeight: FontWeight.bold,
           ),
@@ -55,13 +102,29 @@ class GroupChatScreen extends StatelessWidget {
       body: Column(
         children: [
           Expanded(
-            child: ListView.builder(
-              reverse: true,
-              padding: const EdgeInsets.all(8.0),
-              itemCount: messages.length,
-              itemBuilder: (context, index) {
-                final message = messages[index];
-                return _buildMessageBubble(message);
+            child: StreamBuilder<QuerySnapshot>(
+              stream: _getMessages(),
+              builder: (context, snapshot) {
+                if (snapshot.hasError) {
+                  return Center(child: Text('エラーが発生しました: ${snapshot.error}'));
+                }
+
+                if (!snapshot.hasData) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+
+                final messages = snapshot.data!.docs.map((doc) {
+                  return Message.fromFirestore(doc, currentUser?.uid ?? '');
+                }).toList();
+
+                return ListView.builder(
+                  reverse: true,
+                  padding: const EdgeInsets.all(8.0),
+                  itemCount: messages.length,
+                  itemBuilder: (context, index) {
+                    return _buildMessageBubble(messages[index]);
+                  },
+                );
               },
             ),
           ),
@@ -80,7 +143,10 @@ class GroupChatScreen extends StatelessWidget {
         children: [
           if (!message.isMe) ...[
             CircleAvatar(
-              child: Text(message.sender[0]),
+              backgroundImage: message.userIcon.isNotEmpty
+                  ? NetworkImage(message.userIcon)
+                  : null,
+              child: message.userIcon.isEmpty ? Text(message.sender[0]) : null,
               radius: 16,
             ),
             const SizedBox(width: 8),
@@ -106,7 +172,9 @@ class GroupChatScreen extends StatelessWidget {
                   padding: const EdgeInsets.all(12),
                   margin: const EdgeInsets.only(top: 4),
                   decoration: BoxDecoration(
-                    color: message.isMe ? Color(0xFF00008b) : Colors.grey[200],
+                    color: message.isMe
+                        ? const Color(0xFF00008b)
+                        : Colors.grey[200],
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text(
@@ -143,6 +211,7 @@ class GroupChatScreen extends StatelessWidget {
         children: [
           Expanded(
             child: TextField(
+              controller: _messageController,
               decoration: InputDecoration(
                 hintText: 'メッセージを入力',
                 border: OutlineInputBorder(
@@ -160,19 +229,23 @@ class GroupChatScreen extends StatelessWidget {
           ),
           const SizedBox(width: 8),
           CircleAvatar(
-            backgroundColor: Color(0xFF00008b),
+            backgroundColor: const Color(0xFF00008b),
             child: IconButton(
               icon: const Icon(
                 Icons.send,
                 color: Colors.white,
               ),
-              onPressed: () {
-                // TODO: Implement send message functionality
-              },
+              onPressed: _sendMessage,
             ),
           ),
         ],
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    _messageController.dispose();
+    super.dispose();
   }
 }

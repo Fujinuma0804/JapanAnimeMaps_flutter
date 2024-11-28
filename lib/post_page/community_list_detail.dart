@@ -297,6 +297,8 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen> {
                                             participantCount: widget
                                                     .community['memberCount'] ??
                                                 0,
+                                            communityId:
+                                                widget.community['id'] ?? '',
                                           ),
                                         ),
                                       );
