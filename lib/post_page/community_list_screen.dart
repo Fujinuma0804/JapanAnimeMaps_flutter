@@ -23,9 +23,9 @@ class _CommunityListScreenState extends State<CommunityListScreen> {
   }
 
   // ユーザーの参加コミュニティを取得する関数
-  Future<List<String>> _getUserCommunities() async {
+  Future<Map<String, bool>> _getUserCommunities() async {
     final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return [];
+    if (user == null) return {};
 
     final snapshot = await FirebaseFirestore.instance
         .collection('users')
@@ -33,7 +33,9 @@ class _CommunityListScreenState extends State<CommunityListScreen> {
         .collection('communities')
         .get();
 
-    return snapshot.docs.map((doc) => doc.id).toList();
+    return {
+      for (final doc in snapshot.docs) doc.id: doc.data()['isActive'] ?? false
+    };
   }
 
   // 検索条件に合致するかどうかをチェックする関数
@@ -107,7 +109,7 @@ class _CommunityListScreenState extends State<CommunityListScreen> {
             ),
           ),
           Expanded(
-            child: FutureBuilder<List<String>>(
+            child: FutureBuilder<Map<String, bool>>(
               future: _getUserCommunities(),
               builder: (context, userCommunitiesSnapshot) {
                 if (userCommunitiesSnapshot.connectionState ==
@@ -115,7 +117,7 @@ class _CommunityListScreenState extends State<CommunityListScreen> {
                   return const Center(child: CircularProgressIndicator());
                 }
 
-                final userCommunities = userCommunitiesSnapshot.data ?? [];
+                final userCommunities = userCommunitiesSnapshot.data ?? {};
 
                 return StreamBuilder<QuerySnapshot>(
                   stream: FirebaseFirestore.instance
@@ -200,7 +202,7 @@ class _CommunityListScreenState extends State<CommunityListScreen> {
                       itemBuilder: (context, index) {
                         final doc = filteredDocs[index];
                         final data = doc.data() as Map<String, dynamic>;
-                        final isJoined = userCommunities.contains(doc.id);
+                        final isJoined = userCommunities[doc.id] ?? false;
 
                         final Map<String, dynamic> communityMap = {
                           'id': doc.id,
