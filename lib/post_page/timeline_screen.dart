@@ -7,8 +7,6 @@ import 'package:parts/post_page/make_community.dart';
 import 'package:parts/post_page/post_first/community_chat.dart';
 import 'package:parts/post_page/post_mypage.dart';
 import 'package:parts/post_page/post_screen.dart';
-import 'package:parts/post_page/replay_screen.dart';
-import 'package:rxdart/rxdart.dart';
 import 'package:share/share.dart';
 import 'package:vibration/vibration.dart';
 
@@ -27,7 +25,6 @@ class _TimelineScreenState extends State<TimelineScreen>
   final TextEditingController _searchController = TextEditingController();
   bool _isLoadingMore = false;
   final int _postsPerPage = 20;
-  List<DocumentSnapshot> posts = [];
   DocumentSnapshot? _lastDocument;
   User? currentUser;
   bool _hasMore = true;
@@ -46,7 +43,6 @@ class _TimelineScreenState extends State<TimelineScreen>
     _tabController = TabController(length: 3, vsync: this);
     _scrollController.addListener(_onScroll);
     currentUser = _auth.currentUser;
-    _loadInitialPosts();
 
     _tabController.addListener(() {
       setState(() {
@@ -61,26 +57,6 @@ class _TimelineScreenState extends State<TimelineScreen>
     _tabController.dispose();
     _searchController.dispose();
     super.dispose();
-  }
-
-  Future<void> _loadInitialPosts() async {
-    try {
-      final QuerySnapshot snapshot = await _firestore
-          .collection('posts')
-          .orderBy('createdAt', descending: true)
-          .limit(_postsPerPage)
-          .get();
-
-      setState(() {
-        posts = snapshot.docs;
-        if (posts.isNotEmpty) {
-          _lastDocument = posts.last;
-        }
-        _hasMore = posts.length == _postsPerPage;
-      });
-    } catch (e) {
-      print('Error loading initial posts: $e');
-    }
   }
 
   void _onScroll() {
@@ -108,9 +84,8 @@ class _TimelineScreenState extends State<TimelineScreen>
           .get();
 
       setState(() {
-        posts.addAll(snapshot.docs);
         if (snapshot.docs.isNotEmpty) {
-          _lastDocument = posts.last;
+          _lastDocument = snapshot.docs.last;
           _hasMore = snapshot.docs.length == _postsPerPage;
         } else {
           _hasMore = false;
@@ -128,11 +103,66 @@ class _TimelineScreenState extends State<TimelineScreen>
   Future<void> _refreshPosts() async {
     Vibration.vibrate(duration: 50);
     setState(() {
-      posts = [];
       _lastDocument = null;
       _hasMore = true;
+      _isLoadingMore = false;
     });
-    await _loadInitialPosts();
+  }
+
+  Widget _buildTimelineContent() {
+    return StreamBuilder<QuerySnapshot>(
+      stream: _firestore
+          .collection('posts')
+          .orderBy('createdAt', descending: true)
+          .snapshots(),
+      builder: (context, snapshot) {
+        if (snapshot.hasError) {
+          return Center(
+            child: Text('エラーが発生しました: ${snapshot.error}'),
+          );
+        }
+
+        if (!snapshot.hasData) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        final posts = snapshot.data!.docs;
+
+        if (posts.isEmpty) {
+          return const Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.post_add, size: 64, color: Colors.grey),
+                SizedBox(height: 16),
+                Text(
+                  '投稿がありません\n最初の投稿をしてみましょう！',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: Colors.grey,
+                    fontSize: 16,
+                  ),
+                ),
+              ],
+            ),
+          );
+        }
+
+        return ListView.builder(
+          key: const PageStorageKey<String>('timeline_list'),
+          controller: _scrollController,
+          physics: const AlwaysScrollableScrollPhysics(),
+          itemCount: posts.length,
+          itemBuilder: (context, index) {
+            return PostCard(
+              key: ValueKey(posts[index].id),
+              post: posts[index],
+              currentUserId: currentUser?.uid ?? '',
+            );
+          },
+        );
+      },
+    );
   }
 
   Widget _buildCommunityOptions() {
@@ -242,12 +272,6 @@ class _TimelineScreenState extends State<TimelineScreen>
                 ),
               ),
             ),
-            const SliverToBoxAdapter(
-              child: ListTile(
-                leading: Icon(Icons.home),
-                title: Text('ホーム'),
-              ),
-            ),
             const SliverToBoxAdapter(child: Divider()),
             const SliverToBoxAdapter(
               child: Padding(
@@ -263,7 +287,7 @@ class _TimelineScreenState extends State<TimelineScreen>
             ),
             SliverToBoxAdapter(
               child: SizedBox(
-                height: 270,
+                height: 320,
                 child: StreamBuilder<QuerySnapshot>(
                   stream: FirebaseFirestore.instance
                       .collection('users')
@@ -310,38 +334,30 @@ class _TimelineScreenState extends State<TimelineScreen>
                             communitySnapshot.data!.docs.where((doc) {
                           final communityData =
                               doc.data() as Map<String, dynamic>;
-
-                          // isActiveがtrueのものだけをフィルタリング
                           final bool isActive =
                               communityData['isActive'] == true;
-
-                          // 検索クエリとの一致判定
                           final communityName =
                               communityData['name'] as String? ?? '';
                           final matchesSearch = communityName
                               .toLowerCase()
                               .contains(_searchQuery.toLowerCase());
-
                           return isActive && matchesSearch;
                         }).toList();
 
                         if (filteredDocs.isEmpty) {
-                          if (_searchQuery.isNotEmpty) {
-                            return const Center(
-                              child: Text('検索結果が見つかりません'),
-                            );
-                          }
-                          return const Center(
+                          return Center(
                             child: Column(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                Icon(Icons.group_outlined,
-                                    size: 64, color: Colors.grey),
-                                SizedBox(height: 16),
+                                Icon(Icons.search_off,
+                                    size: 64, color: Colors.grey[400]),
+                                const SizedBox(height: 16),
                                 Text(
-                                  'アクティブなコミュニティがありません\nコミュニティに参加してみましょう！',
+                                  _searchQuery.isEmpty
+                                      ? 'アクティブなコミュニティがありません'
+                                      : '「$_searchQuery」に一致するコミュニティが見つかりません',
                                   textAlign: TextAlign.center,
-                                  style: TextStyle(
+                                  style: const TextStyle(
                                     color: Colors.grey,
                                     fontSize: 16,
                                   ),
@@ -484,7 +500,7 @@ class _TimelineScreenState extends State<TimelineScreen>
           ],
           leading: IconButton(
             icon: const Icon(
-              Icons.menu,
+              Icons.settings_outlined,
               color: Color(0xFF00008b),
             ),
             onPressed: () {
@@ -498,6 +514,10 @@ class _TimelineScreenState extends State<TimelineScreen>
               Tab(text: 'コミュニティ'),
               Tab(text: '運営'),
             ],
+            labelColor: const Color(0xFF00008b),
+            unselectedLabelColor: Colors.grey,
+            indicatorColor: const Color(0xFF00008b),
+            indicatorWeight: 2,
           ),
         ),
         drawer: _buildDrawer(),
@@ -511,55 +531,7 @@ class _TimelineScreenState extends State<TimelineScreen>
                   // おすすめタブ
                   RefreshIndicator(
                     onRefresh: _refreshPosts,
-                    child: posts.isEmpty && !_isLoadingMore
-                        ? const Center(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(Icons.post_add,
-                                    size: 64, color: Colors.grey),
-                                SizedBox(height: 16),
-                                Text(
-                                  '投稿がありません\n最初の投稿をしてみましょう！',
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(
-                                    color: Colors.grey,
-                                    fontSize: 16,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          )
-                        : ListView.builder(
-                            key: const PageStorageKey<String>('timeline_list'),
-                            controller: _scrollController,
-                            physics: const AlwaysScrollableScrollPhysics(),
-                            itemCount: posts.length + (_hasMore ? 1 : 0),
-                            itemBuilder: (context, index) {
-                              if (index == posts.length) {
-                                return const Center(
-                                  child: Padding(
-                                    padding: EdgeInsets.all(8.0),
-                                    child: CircularProgressIndicator(),
-                                  ),
-                                );
-                              }
-
-                              return StreamBuilder<DocumentSnapshot>(
-                                stream: posts[index].reference.snapshots(),
-                                builder: (context, snapshot) {
-                                  if (!snapshot.hasData) {
-                                    return const SizedBox.shrink();
-                                  }
-                                  return PostCard(
-                                    key: ValueKey(snapshot.data!.id),
-                                    post: snapshot.data!,
-                                    currentUserId: currentUser?.uid ?? '',
-                                  );
-                                },
-                              );
-                            },
-                          ),
+                    child: _buildTimelineContent(),
                   ),
                   // コミュニティタブ
                   StreamBuilder<QuerySnapshot>(
@@ -582,18 +554,58 @@ class _TimelineScreenState extends State<TimelineScreen>
 
                       final communities = userCommunitiesSnapshot.data!.docs;
                       if (communities.isEmpty) {
-                        return const Center(
+                        return Center(
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Icon(Icons.group_outlined,
-                                  size: 64, color: Colors.grey),
-                              SizedBox(height: 16),
-                              Text(
-                                '参加しているコミュニティがありません\nコミュニティに参加してみましょう！',
+                              Container(
+                                padding: const EdgeInsets.all(20),
+                                decoration: BoxDecoration(
+                                  color: Colors.grey.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(100),
+                                ),
+                                child: const Icon(Icons.group_outlined,
+                                    size: 64, color: Color(0xFF00008b)),
+                              ),
+                              const SizedBox(height: 24),
+                              const Text(
+                                '参加しているコミュニティがありません',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF00008b),
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              const Text(
+                                'コミュニティに参加して、みんなと交流しましょう！',
                                 textAlign: TextAlign.center,
-                                style:
-                                    TextStyle(color: Colors.grey, fontSize: 16),
+                                style: TextStyle(
+                                  color: Colors.grey,
+                                  fontSize: 14,
+                                ),
+                              ),
+                              const SizedBox(height: 24),
+                              ElevatedButton(
+                                onPressed: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) =>
+                                          CommunityListScreen(),
+                                    ),
+                                  );
+                                },
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFF00008b),
+                                  foregroundColor: Colors.white,
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 24, vertical: 12),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(30),
+                                  ),
+                                ),
+                                child: const Text('参加中のコミュニティを検索'),
                               ),
                             ],
                           ),
@@ -603,185 +615,248 @@ class _TimelineScreenState extends State<TimelineScreen>
                       final communityIds =
                           communities.map((doc) => doc.id).toList();
 
-                      // 各コミュニティのチャットストリームを作成
-                      final chatStreams = communityIds.map(
-                        (communityId) => FirebaseFirestore.instance
-                            .collection('community_list')
-                            .doc(communityId)
-                            .collection('chat')
-                            .orderBy('createdAt', descending: true)
-                            .limit(50)
-                            .snapshots(),
-                      );
+                      return Column(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.grey.withOpacity(0.1),
+                                  spreadRadius: 0,
+                                  blurRadius: 10,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
+                            ),
+                            child: TextField(
+                              controller: _searchController,
+                              decoration: InputDecoration(
+                                hintText: '参加中のコミュニティを検索',
+                                prefixIcon: const Icon(Icons.search,
+                                    color: Color(0xFF00008b)),
+                                suffixIcon: _searchQuery.isNotEmpty
+                                    ? IconButton(
+                                        icon: const Icon(Icons.clear,
+                                            color: Color(0xFF00008b)),
+                                        onPressed: () {
+                                          setState(() {
+                                            _searchController.clear();
+                                            _searchQuery = '';
+                                          });
+                                        },
+                                      )
+                                    : null,
+                                filled: true,
+                                fillColor: Colors.grey[50],
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(30),
+                                  borderSide: BorderSide.none,
+                                ),
+                                contentPadding: const EdgeInsets.symmetric(
+                                    horizontal: 20, vertical: 16),
+                              ),
+                              onChanged: (value) {
+                                setState(() {
+                                  _searchQuery = value;
+                                });
+                              },
+                            ),
+                          ),
+                          Expanded(
+                            child: StreamBuilder<QuerySnapshot>(
+                              stream: FirebaseFirestore.instance
+                                  .collection('community_list')
+                                  .where(FieldPath.documentId,
+                                      whereIn: communityIds)
+                                  .snapshots(),
+                              builder: (context, communitySnapshot) {
+                                if (!communitySnapshot.hasData) {
+                                  return const Center(
+                                      child: CircularProgressIndicator());
+                                }
 
-                      // StreamGroupを使用してストリームをマージ
-                      return StreamBuilder<QuerySnapshot>(
-                        stream: Rx.merge(chatStreams.toList()),
-                        builder: (context, chatSnapshot) {
-                          if (chatSnapshot.hasError) {
-                            return Center(
-                                child: Text(
-                                    'チャットの取得中にエラーが発生しました: ${chatSnapshot.error}'));
-                          }
+                                var filteredDocs =
+                                    communitySnapshot.data!.docs.where((doc) {
+                                  final communityData =
+                                      doc.data() as Map<String, dynamic>;
+                                  final bool isActive =
+                                      communityData['isActive'] == true;
+                                  final String communityName =
+                                      (communityData['name'] as String? ?? '')
+                                          .toLowerCase();
+                                  final String hashtag =
+                                      (communityData['hashtag'] as String? ??
+                                              '')
+                                          .toLowerCase();
+                                  final bool matchesSearch = communityName
+                                          .contains(
+                                              _searchQuery.toLowerCase()) ||
+                                      hashtag
+                                          .contains(_searchQuery.toLowerCase());
+                                  return isActive && matchesSearch;
+                                }).toList();
 
-                          if (!chatSnapshot.hasData) {
-                            return const Center(
-                                child: CircularProgressIndicator());
-                          }
-
-                          // コミュニティの情報を取得するStreamBuilder
-                          return StreamBuilder<QuerySnapshot>(
-                            stream: FirebaseFirestore.instance
-                                .collection('community_list')
-                                .where(FieldPath.documentId,
-                                    whereIn: communityIds)
-                                .snapshots(),
-                            builder: (context, communitySnapshot) {
-                              if (!communitySnapshot.hasData) {
-                                return const Center(
-                                    child: CircularProgressIndicator());
-                              }
-
-                              // アクティブなコミュニティのメッセージのみをフィルタリング
-                              final activeMessages =
-                                  chatSnapshot.data!.docs.where((message) {
-                                final messageData =
-                                    message.data() as Map<String, dynamic>;
-                                return communityIds
-                                    .contains(messageData['communityId']);
-                              }).toList();
-
-                              if (activeMessages.isEmpty) {
-                                return const Center(
-                                  child: Text('アクティブなコミュニティのメッセージがありません'),
-                                );
-                              }
-
-                              return ListView.builder(
-                                itemCount: activeMessages.length,
-                                itemBuilder: (context, index) {
-                                  final messageData = activeMessages[index]
-                                      .data() as Map<String, dynamic>;
-                                  final bool isCurrentUser =
-                                      messageData['userId'] == currentUser?.uid;
-
-                                  return StreamBuilder<DocumentSnapshot>(
-                                    stream: FirebaseFirestore.instance
-                                        .collection('community_list')
-                                        .doc(messageData['communityId']
-                                            as String?)
-                                        .snapshots(),
-                                    builder: (context, communityDoc) {
-                                      if (!communityDoc.hasData ||
-                                          communityDoc.data == null) {
-                                        return const SizedBox.shrink();
-                                      }
-
-                                      final communityData = communityDoc.data!
-                                          .data() as Map<String, dynamic>?;
-
-                                      // isActiveでない場合はスキップ
-                                      if (communityData?['isActive'] != true) {
-                                        return const SizedBox.shrink();
-                                      }
-
-                                      final communityName =
-                                          communityData?['name'] as String? ??
-                                              '不明なコミュニティ';
-
-                                      return Card(
-                                        margin: const EdgeInsets.symmetric(
-                                            horizontal: 8.0, vertical: 4.0),
-                                        child: Padding(
-                                          padding: const EdgeInsets.all(12.0),
-                                          child: Column(
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.start,
-                                            children: [
-                                              Text(
-                                                communityName,
-                                                style: const TextStyle(
-                                                  fontSize: 12,
-                                                  color: Colors.grey,
-                                                  fontWeight: FontWeight.bold,
-                                                ),
-                                              ),
-                                              const SizedBox(height: 8),
-                                              Row(
-                                                crossAxisAlignment:
-                                                    CrossAxisAlignment.start,
-                                                children: [
-                                                  CircleAvatar(
-                                                    backgroundImage: messageData[
-                                                                'userPhotoURL'] !=
-                                                            null
-                                                        ? CachedNetworkImageProvider(
-                                                            messageData[
-                                                                    'userPhotoURL']
-                                                                as String)
-                                                        : null,
-                                                    backgroundColor:
-                                                        Colors.grey[200],
-                                                    child: messageData[
-                                                                'userPhotoURL'] ==
-                                                            null
-                                                        ? Icon(Icons.person,
-                                                            color: Colors
-                                                                .grey[600])
-                                                        : null,
-                                                    radius: 20,
-                                                  ),
-                                                  const SizedBox(width: 12),
-                                                  Expanded(
-                                                    child: Column(
-                                                      crossAxisAlignment:
-                                                          CrossAxisAlignment
-                                                              .start,
-                                                      children: [
-                                                        Text(
-                                                          messageData['userName']
-                                                                  as String? ??
-                                                              '不明なユーザー',
-                                                          style:
-                                                              const TextStyle(
-                                                            fontWeight:
-                                                                FontWeight.bold,
-                                                          ),
-                                                        ),
-                                                        const SizedBox(
-                                                            height: 4),
-                                                        Text(messageData['text']
-                                                                as String? ??
-                                                            ''),
-                                                        const SizedBox(
-                                                            height: 4),
-                                                        Text(
-                                                          _formatDateTime((messageData[
-                                                                      'createdAt']
-                                                                  as Timestamp)
-                                                              .toDate()),
-                                                          style: TextStyle(
-                                                            fontSize: 12,
-                                                            color: Colors
-                                                                .grey[600],
-                                                          ),
-                                                        ),
-                                                      ],
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                            ],
+                                if (filteredDocs.isEmpty) {
+                                  return Center(
+                                    child: Column(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: [
+                                        Icon(Icons.search_off,
+                                            size: 64, color: Colors.grey[400]),
+                                        const SizedBox(height: 16),
+                                        Text(
+                                          _searchQuery.isEmpty
+                                              ? 'アクティブなコミュニティがありません'
+                                              : '「$_searchQuery」に一致するコミュニティが見つかりません',
+                                          textAlign: TextAlign.center,
+                                          style: const TextStyle(
+                                            color: Colors.grey,
+                                            fontSize: 16,
                                           ),
                                         ),
-                                      );
-                                    },
+                                      ],
+                                    ),
                                   );
-                                },
-                              );
-                            },
-                          );
-                        },
+                                }
+
+                                return ListView.builder(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 16, vertical: 8),
+                                  itemCount: filteredDocs.length,
+                                  itemBuilder: (context, index) {
+                                    final community = filteredDocs[index];
+                                    final communityData = community.data()
+                                        as Map<String, dynamic>;
+
+                                    return Container(
+                                      margin: const EdgeInsets.only(bottom: 16),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white,
+                                        borderRadius: BorderRadius.circular(16),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: Colors.grey.withOpacity(0.1),
+                                            spreadRadius: 0,
+                                            blurRadius: 10,
+                                            offset: const Offset(0, 2),
+                                          ),
+                                        ],
+                                      ),
+                                      child: Material(
+                                        color: Colors.transparent,
+                                        child: InkWell(
+                                          borderRadius:
+                                              BorderRadius.circular(16),
+                                          onTap: () {
+                                            Navigator.push(
+                                              context,
+                                              MaterialPageRoute(
+                                                builder: (context) =>
+                                                    GroupChatScreen(
+                                                  roomName:
+                                                      communityData['name'] ??
+                                                          '不明なコミュニティ',
+                                                  communityId: community.id,
+                                                  participantCount:
+                                                      communityData[
+                                                              'memberCount'] ??
+                                                          0,
+                                                ),
+                                              ),
+                                            );
+                                          },
+                                          child: Padding(
+                                            padding: const EdgeInsets.all(16),
+                                            child: Row(
+                                              children: [
+                                                Container(
+                                                  width: 60,
+                                                  height: 60,
+                                                  decoration: BoxDecoration(
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                            20),
+                                                    color: Colors.grey[100],
+                                                    image: communityData[
+                                                                'backgroundImageUrl'] !=
+                                                            null
+                                                        ? DecorationImage(
+                                                            image:
+                                                                CachedNetworkImageProvider(
+                                                              communityData[
+                                                                  'backgroundImageUrl'],
+                                                            ),
+                                                            fit: BoxFit.cover,
+                                                          )
+                                                        : null,
+                                                  ),
+                                                  child: communityData[
+                                                              'backgroundImageUrl'] ==
+                                                          null
+                                                      ? Icon(Icons.group,
+                                                          color:
+                                                              Colors.grey[400],
+                                                          size: 30)
+                                                      : null,
+                                                ),
+                                                const SizedBox(width: 16),
+                                                Expanded(
+                                                  child: Column(
+                                                    crossAxisAlignment:
+                                                        CrossAxisAlignment
+                                                            .start,
+                                                    children: [
+                                                      Text(
+                                                        communityData['name'] ??
+                                                            '不明なコミュニティ',
+                                                        style: const TextStyle(
+                                                          fontSize: 16,
+                                                          fontWeight:
+                                                              FontWeight.bold,
+                                                          color:
+                                                              Color(0xFF00008b),
+                                                        ),
+                                                      ),
+                                                      const SizedBox(height: 4),
+                                                      Row(
+                                                        children: [
+                                                          Icon(Icons.people,
+                                                              size: 16,
+                                                              color: Colors
+                                                                  .grey[600]),
+                                                          const SizedBox(
+                                                              width: 4),
+                                                          Text(
+                                                            '${communityData['memberCount'] ?? 0}人が参加中',
+                                                            style: TextStyle(
+                                                              color: Colors
+                                                                  .grey[600],
+                                                              fontSize: 14,
+                                                            ),
+                                                          ),
+                                                        ],
+                                                      ),
+                                                    ],
+                                                  ),
+                                                ),
+                                                Icon(Icons.chevron_right,
+                                                    color: Colors.grey[400],
+                                                    size: 24),
+                                              ],
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                );
+                              },
+                            ),
+                          ),
+                        ],
                       );
                     },
                   ),
@@ -821,6 +896,7 @@ class _TimelineScreenState extends State<TimelineScreen>
   }
 }
 
+// PostCard クラスの実装
 class PostCard extends StatelessWidget {
   final DocumentSnapshot post;
   final String currentUserId;
@@ -836,15 +912,32 @@ class PostCard extends StatelessWidget {
   Future<void> _handleReply(BuildContext context) async {
     final currentUser = FirebaseAuth.instance.currentUser;
     if (currentUser != null) {
-      await Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (context) => ReplyScreen(
-            currentUser: currentUser,
-            originalPost: post,
-          ),
-          fullscreenDialog: true,
-        ),
-      );
+      // ユーザーのドキュメントを取得して id フィールドを使用
+      final userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(currentUser.uid)
+          .get();
+
+      if (userDoc.exists) {
+        final userData = userDoc.data() as Map<String, dynamic>;
+        final userId = userData['id'] ?? ''; // id フィールドを取得
+
+        if (userId.isNotEmpty) {
+          await Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (context) => ReplyScreen(
+                currentUser: currentUser,
+                originalPost: post,
+              ),
+              fullscreenDialog: true,
+            ),
+          );
+        } else {
+          print('User ID is not set in the user document');
+        }
+      } else {
+        print('User document not found');
+      }
     }
   }
 
@@ -867,21 +960,80 @@ class PostCard extends StatelessWidget {
   }
 
   Future<void> _toggleRetweet() async {
-    final postData = post.data() as Map<String, dynamic>;
-    final List<String> retweetedBy =
-        List<String>.from(postData['retweetedBy'] ?? []);
-    final retweets = postData['retweets'] ?? 0;
+    try {
+      final postData = post.data() as Map<String, dynamic>;
+      final List<String> retweetedBy =
+          List<String>.from(postData['retweetedBy'] ?? []);
 
-    if (retweetedBy.contains(currentUserId)) {
-      await post.reference.update({
-        'retweetedBy': FieldValue.arrayRemove([currentUserId]),
-        'retweets': retweets - 1,
-      });
-    } else {
-      await post.reference.update({
-        'retweetedBy': FieldValue.arrayUnion([currentUserId]),
-        'retweets': retweets + 1,
-      });
+      // 既に再投稿されているか確認
+      final querySnapshot = await FirebaseFirestore.instance
+          .collection('posts')
+          .where('originalPostId', isEqualTo: post.id)
+          .where('userId', isEqualTo: currentUserId)
+          .where('type', isEqualTo: 'repost')
+          .get();
+
+      if (querySnapshot.docs.isNotEmpty) {
+        // 再投稿を取り消す
+        for (var doc in querySnapshot.docs) {
+          await doc.reference.delete();
+        }
+
+        await post.reference.update({
+          'retweetedBy': FieldValue.arrayRemove([currentUserId]),
+          'retweets': FieldValue.increment(-1),
+        });
+      } else {
+        // ユーザー情報を取得
+        final userDoc = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(currentUserId)
+            .get();
+
+        if (!userDoc.exists) {
+          print('User document not found for ID: $currentUserId');
+          return;
+        }
+
+        final userData = userDoc.data() as Map<String, dynamic>;
+        final userId = userData['id'] ?? ''; // id フィールドを使用
+
+        if (userId.isEmpty) {
+          print('User ID is empty');
+          return;
+        }
+
+        // 再投稿を作成
+        final newPostData = {
+          'userId': currentUserId,
+          'userHandle': userId, // id を userHandle として使用
+          'text': postData['text'],
+          'mediaUrls': postData['mediaUrls'] ?? [],
+          'hashtags': postData['hashtags'] ?? [],
+          'likes': 0,
+          'likedBy': [],
+          'retweets': 0,
+          'retweetedBy': [],
+          'bookmarkedBy': [],
+          'commentCount': 0,
+          'createdAt': Timestamp.now(),
+          'type': 'repost',
+          'originalPostId': post.id,
+          'originalUserId': postData['userId'],
+          'originalUserHandle': postData['userHandle'],
+        };
+
+        // 再投稿を追加
+        await FirebaseFirestore.instance.collection('posts').add(newPostData);
+
+        // 元の投稿のリツイート情報を更新
+        await post.reference.update({
+          'retweetedBy': FieldValue.arrayUnion([currentUserId]),
+          'retweets': FieldValue.increment(1),
+        });
+      }
+    } catch (e) {
+      print('Error in _toggleRetweet: $e');
     }
   }
 
@@ -942,16 +1094,6 @@ class PostCard extends StatelessWidget {
     );
   }
 
-  String _formatDateTime(DateTime dateTime) {
-    String year = dateTime.year.toString();
-    String month = dateTime.month.toString().padLeft(2, '0');
-    String day = dateTime.day.toString().padLeft(2, '0');
-    String hour = dateTime.hour.toString().padLeft(2, '0');
-    String minute = dateTime.minute.toString().padLeft(2, '0');
-
-    return '$year年$month月$day日$hour時$minute分';
-  }
-
   void _navigateToPostDetail(BuildContext context) {
     if (!isDetailScreen) {
       Navigator.of(context).push(
@@ -960,6 +1102,15 @@ class PostCard extends StatelessWidget {
         ),
       );
     }
+  }
+
+  String _formatDateTime(DateTime dateTime) {
+    String year = dateTime.year.toString();
+    String month = dateTime.month.toString().padLeft(2, '0');
+    String day = dateTime.day.toString().padLeft(2, '0');
+    String hour = dateTime.hour.toString().padLeft(2, '0');
+    String minute = dateTime.minute.toString().padLeft(2, '0');
+    return '$year年$month月$day日$hour時$minute分';
   }
 
   @override
@@ -972,7 +1123,9 @@ class PostCard extends StatelessWidget {
         List<String>.from(postData['bookmarkedBy'] ?? []);
     final likes = postData['likes'] ?? 0;
     final retweets = postData['retweets'] ?? 0;
-    final commentCount = postData['commentCount'] ?? 0;
+    final commentCount = postData['replyCount'] ?? 0;
+    final isReply = postData['type'] == 'reply';
+    final isRepost = postData['type'] == 'repost';
 
     return StreamBuilder<DocumentSnapshot>(
       stream: FirebaseFirestore.instance
@@ -998,6 +1151,27 @@ class PostCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
+                if (isRepost)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 8.0),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.repeat,
+                          size: 16,
+                          color: Colors.grey,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          '@${postData['originalUserHandle']}さんの投稿を再投稿しました',
+                          style: const TextStyle(
+                            color: Colors.grey,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -1019,12 +1193,31 @@ class PostCard extends StatelessWidget {
                           Row(
                             children: [
                               Text(
-                                '@${postData['userHandle'] ?? ''}',
+                                '@${postData['userHandle']}',
                                 style: const TextStyle(
                                   color: Colors.grey,
                                   fontSize: 16,
                                 ),
                               ),
+                              const SizedBox(width: 8),
+                              if (isReply)
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 2,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    border: Border.all(color: Colors.grey),
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: const Text(
+                                    '返信された投稿',
+                                    style: TextStyle(
+                                      color: Colors.grey,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                ),
                             ],
                           ),
                           const SizedBox(height: 4),
@@ -1204,6 +1397,7 @@ class PostCard extends StatelessWidget {
   }
 }
 
+// 投稿詳細画面
 class PostDetailScreen extends StatelessWidget {
   final DocumentSnapshot post;
 
@@ -1212,10 +1406,81 @@ class PostDetailScreen extends StatelessWidget {
     required this.post,
   }) : super(key: key);
 
+  // 返信を表示するウィジェット（レベルは0か1か2のみ）
+  Widget _buildReply(DocumentSnapshot reply, int level) {
+    double leftMargin = level == 0 ? 32 : (level == 1 ? 52 : 52);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // インデントと接続線
+            SizedBox(
+              width: leftMargin + 16,
+              height: 40,
+              child: CustomPaint(
+                painter: ReplyLinePainter(),
+              ),
+            ),
+            // 返信カード
+            Expanded(
+              child: Container(
+                transform: Matrix4.translationValues(0, -4, 0),
+                child: Card(
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    side: BorderSide(
+                      color: Colors.grey[200]!,
+                      width: 1,
+                    ),
+                  ),
+                  child: Transform.scale(
+                    scale: 0.95,
+                    alignment: Alignment.topLeft,
+                    child: PostCard(
+                      post: reply,
+                      currentUserId:
+                          FirebaseAuth.instance.currentUser?.uid ?? '',
+                      isDetailScreen: true,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+        // この返信に対する返信を取得して表示
+        StreamBuilder<QuerySnapshot>(
+          stream: FirebaseFirestore.instance
+              .collection('posts')
+              .where('originalPostId', isEqualTo: reply.id)
+              .orderBy('createdAt', descending: true)
+              .snapshots(),
+          builder: (context, snapshot) {
+            if (!snapshot.hasData) {
+              return const SizedBox.shrink();
+            }
+
+            return Column(
+              children: snapshot.data!.docs.map((nestedReply) {
+                return _buildReply(nestedReply, level + 1);
+              }).toList(),
+            );
+          },
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
         title: const Text(
           '投稿詳細',
           style: TextStyle(
@@ -1223,68 +1488,342 @@ class PostDetailScreen extends StatelessWidget {
             fontWeight: FontWeight.bold,
           ),
         ),
-        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new, color: Color(0xFF00008b)),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
       ),
-      body: Column(
-        children: [
-          PostCard(
-            post: post,
-            currentUserId: FirebaseAuth.instance.currentUser?.uid ?? '',
-            isDetailScreen: true,
-          ),
-          Expanded(
-            child: StreamBuilder<DocumentSnapshot>(
-              stream: post.reference.snapshots(),
-              builder: (context, snapshot) {
-                if (!snapshot.hasData) {
-                  return const Center(child: CircularProgressIndicator());
-                }
+      body: StreamBuilder<DocumentSnapshot>(
+        stream: FirebaseFirestore.instance
+            .collection('posts')
+            .doc(post.id)
+            .snapshots(),
+        builder: (context, originalPostSnapshot) {
+          if (!originalPostSnapshot.hasData) {
+            return const Center(child: CircularProgressIndicator());
+          }
 
-                final postData = snapshot.data!.data() as Map<String, dynamic>;
-                final comments =
-                    List<Map<String, dynamic>>.from(postData['comments'] ?? []);
+          return SingleChildScrollView(
+            child: Column(
+              children: [
+                // オリジナルの投稿
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(8.0),
+                  child: PostCard(
+                    post: originalPostSnapshot.data!,
+                    currentUserId: FirebaseAuth.instance.currentUser?.uid ?? '',
+                    isDetailScreen: true,
+                  ),
+                ),
+                // 最初のレベルの返信を取得
+                StreamBuilder<QuerySnapshot>(
+                  stream: FirebaseFirestore.instance
+                      .collection('posts')
+                      .where('originalPostId', isEqualTo: post.id)
+                      .orderBy('createdAt', descending: true)
+                      .snapshots(),
+                  builder: (context, repliesSnapshot) {
+                    if (repliesSnapshot.hasError) {
+                      return Center(
+                        child: Text('エラーが発生しました: ${repliesSnapshot.error}'),
+                      );
+                    }
 
-                if (comments.isEmpty) {
-                  return const Center(
-                    child: Text('コメントはありません'),
-                  );
-                }
+                    if (!repliesSnapshot.hasData) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
 
-                return ListView.builder(
-                  itemCount: comments.length,
-                  itemBuilder: (context, index) {
-                    final comment = comments[index];
-                    return ListTile(
-                      leading: CircleAvatar(
-                        backgroundImage:
-                            comment['userPhotoURL']?.isNotEmpty == true
-                                ? CachedNetworkImageProvider(
-                                    comment['userPhotoURL'])
-                                : null,
-                        backgroundColor: Colors.grey[200],
-                        child: comment['userPhotoURL']?.isNotEmpty != true
-                            ? Icon(Icons.person, color: Colors.grey[600])
-                            : null,
-                      ),
-                      title: Text(comment['userName'] ?? ''),
-                      subtitle: Text(comment['text'] ?? ''),
+                    final replies = repliesSnapshot.data!.docs;
+
+                    if (replies.isEmpty) {
+                      return const Padding(
+                        padding: EdgeInsets.all(16.0),
+                        child: Center(
+                          child: Text(
+                            '返信はまだありません',
+                            style: TextStyle(
+                              color: Colors.grey,
+                              fontSize: 16,
+                            ),
+                          ),
+                        ),
+                      );
+                    }
+
+                    return Column(
+                      children: replies.map((reply) {
+                        return _buildReply(reply, 0);
+                      }).toList(),
                     );
                   },
-                );
-              },
+                ),
+              ],
             ),
-          ),
-        ],
+          );
+        },
+      ),
+      floatingActionButton: FloatingActionButton(
+        backgroundColor: const Color(0xFF00008b),
+        onPressed: () async {
+          final currentUser = FirebaseAuth.instance.currentUser;
+          if (currentUser != null) {
+            await Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (context) => ReplyScreen(
+                  currentUser: currentUser,
+                  originalPost: post,
+                ),
+                fullscreenDialog: true,
+              ),
+            );
+          }
+        },
+        child: const Icon(Icons.reply, color: Colors.white),
       ),
     );
   }
 }
 
-String _formatDateTime(DateTime dateTime) {
-  String year = dateTime.year.toString();
-  String month = dateTime.month.toString().padLeft(2, '0');
-  String day = dateTime.day.toString().padLeft(2, '0');
-  String hour = dateTime.hour.toString().padLeft(2, '0');
-  String minute = dateTime.minute.toString().padLeft(2, '0');
-  return '$year年$month月$day日 $hour:$minute';
+// 返信の接続線を描画するカスタムペインター
+class ReplyLinePainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = Colors.grey[300]!
+      ..strokeWidth = 2
+      ..style = PaintingStyle.stroke;
+
+    // 縦線を描画
+    canvas.drawLine(
+      Offset(size.width - 16, 0),
+      Offset(size.width - 16, size.height * 0.5),
+      paint,
+    );
+
+    // 横線を描画
+    canvas.drawLine(
+      Offset(size.width - 16, size.height * 0.5),
+      Offset(size.width, size.height * 0.5),
+      paint,
+    );
+  }
+
+  @override
+  bool shouldRepaint(CustomPainter oldDelegate) => false;
+}
+
+// ReplyScreen の実装
+class ReplyScreen extends StatefulWidget {
+  final User currentUser;
+  final DocumentSnapshot originalPost;
+
+  const ReplyScreen({
+    Key? key,
+    required this.currentUser,
+    required this.originalPost,
+  }) : super(key: key);
+
+  @override
+  _ReplyScreenState createState() => _ReplyScreenState();
+}
+
+class _ReplyScreenState extends State<ReplyScreen> {
+  final TextEditingController _textController = TextEditingController();
+  final List<String> _selectedImages = [];
+  bool _isSubmitting = false;
+
+  List<String> _extractHashtags(String text) {
+    final hashtags = <String>[];
+    final hashtagRegex = RegExp(r'#(\w+)');
+    final matches = hashtagRegex.allMatches(text);
+
+    for (var match in matches) {
+      if (match.group(1) != null) {
+        hashtags.add(match.group(1)!);
+      }
+    }
+
+    return hashtags;
+  }
+
+  Future<void> _submitReply() async {
+    if (_textController.text.isEmpty) return;
+
+    setState(() {
+      _isSubmitting = true;
+    });
+
+    try {
+      // ユーザードキュメントを取得
+      final userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(widget.currentUser.uid)
+          .get();
+
+      if (!userDoc.exists) {
+        print('User document not found');
+        return;
+      }
+
+      final userData = userDoc.data() as Map<String, dynamic>;
+      final userId = userData['id'] ?? ''; // id フィールドを使用
+
+      if (userId.isEmpty) {
+        print('User ID is not set');
+        return;
+      }
+
+      final newPost = {
+        'text': _textController.text,
+        'userId': widget.currentUser.uid,
+        'userHandle': userId, // id を userHandle として使用
+        'createdAt': Timestamp.now(),
+        'likes': 0,
+        'likedBy': [],
+        'retweets': 0,
+        'retweetedBy': [],
+        'bookmarkedBy': [],
+        'commentCount': 0,
+        'type': 'reply',
+        'originalPostId': widget.originalPost.id,
+        'mediaUrls': _selectedImages,
+        'hashtags': _extractHashtags(_textController.text),
+      };
+
+      // 返信を投稿
+      await FirebaseFirestore.instance.collection('posts').add(newPost);
+
+      // 元の投稿の返信数を更新
+      await widget.originalPost.reference.update({
+        'replyCount': FieldValue.increment(1),
+      });
+
+      Navigator.of(context).pop();
+    } catch (e) {
+      print('Error submitting reply: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('返信の投稿中にエラーが発生しました: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      setState(() {
+        _isSubmitting = false;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        title: const Text(
+          '返信を作成',
+          style: TextStyle(
+            color: Color(0xFF00008b),
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        leading: IconButton(
+          icon: const Icon(Icons.close, color: Color(0xFF00008b)),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+        actions: [
+          TextButton(
+            onPressed: _isSubmitting ? null : _submitReply,
+            child: Text(
+              _isSubmitting ? '投稿中...' : '投稿',
+              style: TextStyle(
+                color: _isSubmitting ? Colors.grey : const Color(0xFF00008b),
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ],
+      ),
+      body: SingleChildScrollView(
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // 元の投稿の表示
+                  StreamBuilder<DocumentSnapshot>(
+                    stream: FirebaseFirestore.instance
+                        .collection('users')
+                        .doc(widget.originalPost.get('userId'))
+                        .snapshots(),
+                    builder: (context, snapshot) {
+                      if (!snapshot.hasData) {
+                        return const SizedBox.shrink();
+                      }
+
+                      final userData =
+                          snapshot.data!.data() as Map<String, dynamic>?;
+                      final avatarUrl = userData?['avatarUrl'] as String?;
+
+                      return Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          CircleAvatar(
+                            backgroundImage:
+                                avatarUrl != null && avatarUrl.isNotEmpty
+                                    ? CachedNetworkImageProvider(avatarUrl)
+                                    : null,
+                            backgroundColor: Colors.grey[200],
+                            child: avatarUrl == null || avatarUrl.isEmpty
+                                ? Icon(Icons.person, color: Colors.grey[600])
+                                : null,
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  '@${widget.originalPost.get('userHandle')}',
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(widget.originalPost.get('text')),
+                              ],
+                            ),
+                          ),
+                        ],
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  // 返信入力フィールド
+                  TextField(
+                    controller: _textController,
+                    decoration: const InputDecoration(
+                      hintText: '返信を入力...',
+                      border: InputBorder.none,
+                    ),
+                    maxLines: null,
+                    autofocus: true,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  @override
+  void dispose() {
+    _textController.dispose();
+    super.dispose();
+  }
 }

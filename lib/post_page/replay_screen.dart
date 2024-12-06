@@ -154,10 +154,14 @@ class _ReplyScreenState extends State<ReplyScreen>
   }
 
   void _showErrorSnackBar(String message) {
+    if (!mounted) return;
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
         backgroundColor: Colors.red,
+        duration: const Duration(seconds: 3),
+        behavior: SnackBarBehavior.floating,
       ),
     );
   }
@@ -178,42 +182,101 @@ class _ReplyScreenState extends State<ReplyScreen>
     });
 
     try {
-      String text = _textController.text;
-      List<String> hashtags = _extractHashtags(text);
+      // データの準備
+      final String text = _textController.text.trim();
+      final List<String> hashtags = _extractHashtags(text);
       final timestamp = FieldValue.serverTimestamp();
+      final String? userPhotoURL = widget.currentUser.photoURL;
+      final String? userDisplayName = widget.currentUser.displayName;
+      final String userHandle =
+          widget.currentUser.email?.split('@')[0] ?? 'anonymous';
 
-      final comment = {
+      // 必須フィールドの検証
+      if (widget.currentUser.uid.isEmpty) {
+        throw Exception('ユーザーIDが取得できません');
+      }
+
+      // 返信データの作成
+      final Map<String, dynamic> replyData = {
         'id': DateTime.now().millisecondsSinceEpoch.toString(),
         'text': text,
-        'mediaUrls': _mediaUrls,
+        'mediaUrls': _mediaUrls.isNotEmpty ? _mediaUrls : [],
         'hashtags': hashtags,
         'likes': 0,
         'likedBy': [],
+        'retweets': 0,
+        'retweetedBy': [],
         'createdAt': timestamp,
         'userId': widget.currentUser.uid,
-        'userPhotoURL': widget.currentUser.photoURL,
-        'userName': widget.currentUser.displayName,
-        'userHandle': widget.currentUser.email?.split('@')[0] ?? '',
+        'userPhotoURL': userPhotoURL ?? '',
+        'userName': userDisplayName ?? 'Anonymous User',
+        'userHandle': userHandle,
       };
 
-      // Get current comments
-      DocumentSnapshot postDoc = await widget.originalPost.reference.get();
-      List<dynamic> currentComments =
-          (postDoc.data() as Map<String, dynamic>)['comments'] ?? [];
-      currentComments.add(comment);
+      // Firestoreのリファレンス取得
+      final postsCollectionRef = _firestore.collection('posts');
 
-      await widget.originalPost.reference.update({
-        'comments': currentComments,
-        'commentCount': currentComments.length,
-      });
+      try {
+// トランザクションで処理
+        await _firestore.runTransaction((transaction) async {
+          // 元の投稿ドキュメントの取得
+          final postDoc = await transaction.get(widget.originalPost.reference);
 
-      Navigator.pop(context);
+          if (!postDoc.exists) {
+            throw Exception('元の投稿が見つかりません');
+          }
+
+          // 新規の返信ドキュメントの作成
+          final newReplyRef = postsCollectionRef.doc();
+
+          // 返信データに親投稿の参照情報を追加
+          final completeReplyData = {
+            ...replyData,
+            'parentPostId': widget.originalPost.id,
+            'type': 'reply',
+          };
+
+          // 返信の保存
+          transaction.set(newReplyRef, completeReplyData);
+
+          // 親投稿のデータを Map として取得
+          final postData = postDoc.data() as Map<String, dynamic>;
+
+          // replies フィールドの取得と型変換
+          List<dynamic> currentReplies = [];
+          if (postData.containsKey('replies')) {
+            if (postData['replies'] is List) {
+              currentReplies = List<dynamic>.from(postData['replies']);
+            }
+          }
+
+          // 新しい返信を追加
+          currentReplies.add(newReplyRef.id);
+
+          // ドキュメントの更新
+          transaction.update(widget.originalPost.reference, {
+            'replies': currentReplies,
+            'replyCount': FieldValue.increment(1),
+          });
+        });
+
+        // 成功時の処理
+        Navigator.pop(context);
+      } catch (transactionError) {
+        print('Transaction error: $transactionError');
+        throw Exception('返信の保存中にエラーが発生しました');
+      }
     } catch (e) {
-      _showErrorSnackBar('返信の投稿に失敗しました: $e');
+      print('Error in _submitReply: $e');
+      _showErrorSnackBar(e.toString().contains('Exception:')
+          ? e.toString().split('Exception: ')[1]
+          : '返信の投稿に失敗しました。もう一度お試しください。');
     } finally {
-      setState(() {
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 

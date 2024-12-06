@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:parts/post_page/post_first/community_chat_settings.dart';
 
 class Message {
   final String sender;
@@ -116,7 +117,14 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                 ),
               ),
               IconButton(
-                onPressed: () {},
+                onPressed: () {
+                  Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (context) => MenuScreen(
+                                communityId: widget.communityId,
+                              )));
+                },
                 icon: Icon(
                   Icons.menu,
                   color: Color(0xFF00008b),

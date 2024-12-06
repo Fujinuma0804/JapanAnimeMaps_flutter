@@ -159,6 +159,9 @@ class _AnimeListTestRankingState extends State<AnimeListTestRanking>
     '沖縄県'
   ];
 
+  final ScrollController _scrollController = ScrollController();
+  bool _showRanking = true;
+
   BannerAd? _bannerAd;
   bool _isBannerAdReady = false;
 
@@ -175,6 +178,8 @@ class _AnimeListTestRankingState extends State<AnimeListTestRanking>
     _listenToRankingChanges();
     _setupInAppMessaging();
     _loadBottomBannerAd();
+
+    _scrollController.addListener(_onScroll);
   }
 
   void _loadBottomBannerAd() {
@@ -317,6 +322,8 @@ class _AnimeListTestRankingState extends State<AnimeListTestRanking>
 
   @override
   void dispose() {
+    _scrollController.removeListener(_onScroll);
+    _scrollController.dispose();
     _tabController.removeListener(_handleTabChange);
     _tabController.dispose();
     _searchController.dispose();
@@ -325,6 +332,20 @@ class _AnimeListTestRankingState extends State<AnimeListTestRanking>
     _gridBannerAds.values.forEach((ad) => ad.dispose());
     super.dispose();
     _adMob.dispose();
+  }
+
+  void _onScroll() {
+    if (_scrollController.position.pixels > 0 && _showRanking) {
+      setState(() {
+        _showRanking = false;
+        _isRankingExpanded = false;
+      });
+    } else if (_scrollController.position.pixels == 0 && !_showRanking) {
+      setState(() {
+        _showRanking = true;
+        _isRankingExpanded = true;
+      });
+    }
   }
 
   void _handleTabChange() {
@@ -887,75 +908,78 @@ class _AnimeListTestRankingState extends State<AnimeListTestRanking>
               _isRankingExpanded = expanded;
             });
           },
-          children: [
-            SizedBox(
-              height: 200,
-              child: ListView.builder(
-                padding: EdgeInsets.symmetric(horizontal: 16.0),
-                scrollDirection: Axis.horizontal,
-                itemCount: _topRankedAnime.length,
-                itemBuilder: (context, index) {
-                  final anime = _topRankedAnime[index];
-                  return GestureDetector(
-                    onTap: () => _navigateAndVote(context, anime['name']),
-                    child: Container(
-                      width: 160,
-                      margin: EdgeInsets.only(right: 16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Stack(
-                            children: [
-                              ClipRRect(
-                                borderRadius: BorderRadius.circular(8),
-                                child: CachedNetworkImage(
-                                  imageUrl: anime['imageUrl'],
-                                  height: 150,
-                                  width: 250,
-                                  fit: BoxFit.cover,
-                                  placeholder: (context, url) => Center(
-                                      child: CircularProgressIndicator()),
-                                  errorWidget: (context, url, error) =>
-                                      Icon(Icons.error),
-                                ),
-                              ),
-                              Positioned(
-                                top: 8,
-                                left: 8,
-                                child: Container(
-                                  padding: EdgeInsets.symmetric(
-                                      horizontal: 8, vertical: 4),
-                                  decoration: BoxDecoration(
-                                    color: Colors.black.withOpacity(0.7),
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  child: Text(
-                                    '${index + 1}',
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 14,
+          children: _showRanking
+              ? [
+                  SizedBox(
+                    height: 200,
+                    child: ListView.builder(
+                      padding: EdgeInsets.symmetric(horizontal: 16.0),
+                      scrollDirection: Axis.horizontal,
+                      itemCount: _topRankedAnime.length,
+                      itemBuilder: (context, index) {
+                        final anime = _topRankedAnime[index];
+                        return GestureDetector(
+                          onTap: () => _navigateAndVote(context, anime['name']),
+                          child: Container(
+                            width: 160,
+                            margin: EdgeInsets.only(right: 16),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Stack(
+                                  children: [
+                                    ClipRRect(
+                                      borderRadius: BorderRadius.circular(8),
+                                      child: CachedNetworkImage(
+                                        imageUrl: anime['imageUrl'],
+                                        height: 150,
+                                        width: 250,
+                                        fit: BoxFit.cover,
+                                        placeholder: (context, url) => Center(
+                                            child: CircularProgressIndicator()),
+                                        errorWidget: (context, url, error) =>
+                                            Icon(Icons.error),
+                                      ),
                                     ),
-                                  ),
+                                    Positioned(
+                                      top: 8,
+                                      left: 8,
+                                      child: Container(
+                                        padding: EdgeInsets.symmetric(
+                                            horizontal: 8, vertical: 4),
+                                        decoration: BoxDecoration(
+                                          color: Colors.black.withOpacity(0.7),
+                                          borderRadius:
+                                              BorderRadius.circular(12),
+                                        ),
+                                        child: Text(
+                                          '${index + 1}',
+                                          style: TextStyle(
+                                            color: Colors.white,
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 14,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
                                 ),
-                              ),
-                            ],
+                                SizedBox(height: 8),
+                                Text(
+                                  anime['name'],
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(fontWeight: FontWeight.bold),
+                                ),
+                              ],
+                            ),
                           ),
-                          SizedBox(height: 8),
-                          Text(
-                            anime['name'],
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(fontWeight: FontWeight.bold),
-                          ),
-                        ],
-                      ),
+                        );
+                      },
                     ),
-                  );
-                },
-              ),
-            ),
-          ],
+                  ),
+                ]
+              : [],
         ),
         Padding(
           padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
@@ -976,6 +1000,7 @@ class _AnimeListTestRankingState extends State<AnimeListTestRanking>
                       child: Text('何も見つかりませんでした。。'),
                     )
                   : GridView.builder(
+                      controller: _scrollController,
                       padding: EdgeInsets.only(bottom: 16.0),
                       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                         crossAxisCount: 2,

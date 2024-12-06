@@ -29,9 +29,8 @@ class _PaymentScreenState extends State<PaymentScreen> {
   CustomerInfo? _customerInfo;
 
   // RevenueCatダッシュボードの設定に合わせた識別子
-  static const String _productId =
-      'com.japananimemaps.application.autoSubscription.premium_basic';
-  static const String _entitlementId = 'basic';
+  static const String _productId = 'jam_300_1m_1w0';
+  static const String _entitlementId = 'jam_300_1m_1w0';
 
   // 広告ユニットID
   final String _adUnitId = Platform.isAndroid
