@@ -1,13 +1,13 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Image;
 import 'package:parts/post_page/community_list_screen.dart';
 import 'package:parts/post_page/make_community.dart';
 import 'package:parts/post_page/post_first/community_chat.dart';
 import 'package:parts/post_page/post_mypage.dart';
 import 'package:parts/post_page/post_screen.dart';
-import 'package:share/share.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:vibration/vibration.dart';
 
 class TimelineScreen extends StatefulWidget {
@@ -909,10 +909,52 @@ class PostCard extends StatelessWidget {
     this.isDetailScreen = false,
   }) : super(key: key);
 
+  // テキストを省略する処理
+  String _truncateText(String text, {int maxLength = 10}) {
+    if (text.length <= maxLength) {
+      return text;
+    }
+    return '${text.substring(0, maxLength)}...';
+  }
+
+  // シェア用の画像を生成
+// シェア用の画像を生成
+
+  Future<void> _shareContent(BuildContext context) async {
+    final postData = post.data() as Map<String, dynamic>;
+    final StringBuffer shareContent = StringBuffer();
+
+    // ユーザーハンドルを取得
+    final String userHandle = postData['userHandle'] as String? ?? 'unknown';
+
+    // テキストを取得して省略
+    final String originalText = postData['text'] as String? ?? '';
+    final String truncatedText = originalText.length <= 10
+        ? originalText
+        : '${originalText.substring(0, 10)}...';
+
+    // 画像の有無をチェック
+    final bool hasImages = postData['mediaUrls'] != null &&
+        (postData['mediaUrls'] as List).isNotEmpty;
+
+    // シェアするコンテンツを構築
+    shareContent.writeln('$userHandleさんの投稿');
+    shareContent.writeln(truncatedText);
+
+    if (hasImages) {
+      shareContent.writeln('\n📷 画像付きの投稿です');
+    }
+
+    // 興味を引くようなメッセージを追加
+    shareContent.writeln('\n👉 タップして続きを読む');
+
+    // シェアを実行
+    await Share.share(shareContent.toString(), subject: '$userHandleさんの投稿');
+  }
+
   Future<void> _handleReply(BuildContext context) async {
     final currentUser = FirebaseAuth.instance.currentUser;
     if (currentUser != null) {
-      // ユーザーのドキュメントを取得して id フィールドを使用
       final userDoc = await FirebaseFirestore.instance
           .collection('users')
           .doc(currentUser.uid)
@@ -920,7 +962,7 @@ class PostCard extends StatelessWidget {
 
       if (userDoc.exists) {
         final userData = userDoc.data() as Map<String, dynamic>;
-        final userId = userData['id'] ?? ''; // id フィールドを取得
+        final userId = userData['id'] ?? '';
 
         if (userId.isNotEmpty) {
           await Navigator.of(context).push(
@@ -965,7 +1007,6 @@ class PostCard extends StatelessWidget {
       final List<String> retweetedBy =
           List<String>.from(postData['retweetedBy'] ?? []);
 
-      // 既に再投稿されているか確認
       final querySnapshot = await FirebaseFirestore.instance
           .collection('posts')
           .where('originalPostId', isEqualTo: post.id)
@@ -974,7 +1015,6 @@ class PostCard extends StatelessWidget {
           .get();
 
       if (querySnapshot.docs.isNotEmpty) {
-        // 再投稿を取り消す
         for (var doc in querySnapshot.docs) {
           await doc.reference.delete();
         }
@@ -984,7 +1024,6 @@ class PostCard extends StatelessWidget {
           'retweets': FieldValue.increment(-1),
         });
       } else {
-        // ユーザー情報を取得
         final userDoc = await FirebaseFirestore.instance
             .collection('users')
             .doc(currentUserId)
@@ -996,17 +1035,16 @@ class PostCard extends StatelessWidget {
         }
 
         final userData = userDoc.data() as Map<String, dynamic>;
-        final userId = userData['id'] ?? ''; // id フィールドを使用
+        final userId = userData['id'] ?? '';
 
         if (userId.isEmpty) {
           print('User ID is empty');
           return;
         }
 
-        // 再投稿を作成
         final newPostData = {
           'userId': currentUserId,
-          'userHandle': userId, // id を userHandle として使用
+          'userHandle': userId,
           'text': postData['text'],
           'mediaUrls': postData['mediaUrls'] ?? [],
           'hashtags': postData['hashtags'] ?? [],
@@ -1023,10 +1061,8 @@ class PostCard extends StatelessWidget {
           'originalUserHandle': postData['userHandle'],
         };
 
-        // 再投稿を追加
         await FirebaseFirestore.instance.collection('posts').add(newPostData);
 
-        // 元の投稿のリツイート情報を更新
         await post.reference.update({
           'retweetedBy': FieldValue.arrayUnion([currentUserId]),
           'retweets': FieldValue.increment(1),
@@ -1053,47 +1089,6 @@ class PostCard extends StatelessWidget {
     }
   }
 
-  void _shareContent(BuildContext context) {
-    final postData = post.data() as Map<String, dynamic>;
-    final StringBuffer shareContent = StringBuffer();
-
-    shareContent.writeln('Posted by: ${postData['userHandle']}');
-    shareContent.writeln('User ID: ${postData['userId']}');
-    shareContent.writeln('\n${postData['text']}');
-
-    if (postData['hashtags'] != null &&
-        (postData['hashtags'] as List).isNotEmpty) {
-      shareContent.writeln('\nHashtags:');
-      for (var tag in postData['hashtags']) {
-        shareContent.write('#$tag ');
-      }
-      shareContent.writeln();
-    }
-
-    if (postData['mediaUrls'] != null &&
-        (postData['mediaUrls'] as List).isNotEmpty) {
-      shareContent.writeln('\nImages:');
-      for (var url in postData['mediaUrls']) {
-        shareContent.writeln(url);
-      }
-    }
-
-    shareContent.writeln('\nInteractions:');
-    shareContent.writeln('Likes: ${postData['likes'] ?? 0}');
-    shareContent.writeln('Retweets: ${postData['retweets'] ?? 0}');
-    shareContent.writeln('Comments: ${postData['commentCount'] ?? 0}');
-
-    if (postData['createdAt'] != null) {
-      final timestamp = (postData['createdAt'] as Timestamp).toDate();
-      shareContent.writeln('\nPosted on: ${_formatDateTime(timestamp)}');
-    }
-
-    Share.share(
-      shareContent.toString(),
-      subject: 'Check out this post',
-    );
-  }
-
   void _navigateToPostDetail(BuildContext context) {
     if (!isDetailScreen) {
       Navigator.of(context).push(
@@ -1111,6 +1106,29 @@ class PostCard extends StatelessWidget {
     String hour = dateTime.hour.toString().padLeft(2, '0');
     String minute = dateTime.minute.toString().padLeft(2, '0');
     return '$year年$month月$day日$hour時$minute分';
+  }
+
+  Widget _buildInteractionButton({
+    required IconData icon,
+    required Color color,
+    required int count,
+    required VoidCallback onPressed,
+  }) {
+    return Row(
+      children: [
+        IconButton(
+          icon: Icon(icon, color: color),
+          onPressed: onPressed,
+        ),
+        Text(
+          count.toString(),
+          style: TextStyle(
+            color: color,
+            fontSize: 14,
+          ),
+        ),
+      ],
+    );
   }
 
   @override
@@ -1213,9 +1231,7 @@ class PostCard extends StatelessWidget {
                                   child: const Text(
                                     '返信された投稿',
                                     style: TextStyle(
-                                      color: Colors.grey,
-                                      fontSize: 12,
-                                    ),
+                                        color: Colors.grey, fontSize: 12),
                                   ),
                                 ),
                             ],
@@ -1370,29 +1386,6 @@ class PostCard extends StatelessWidget {
 
         return content;
       },
-    );
-  }
-
-  Widget _buildInteractionButton({
-    required IconData icon,
-    required Color color,
-    required int count,
-    required VoidCallback onPressed,
-  }) {
-    return Row(
-      children: [
-        IconButton(
-          icon: Icon(icon, color: color),
-          onPressed: onPressed,
-        ),
-        Text(
-          count.toString(),
-          style: TextStyle(
-            color: color,
-            fontSize: 14,
-          ),
-        ),
-      ],
     );
   }
 }
