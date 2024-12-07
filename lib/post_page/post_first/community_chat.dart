@@ -3,6 +3,32 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:parts/post_page/post_first/community_chat_settings.dart';
 
+// Event model
+class Event {
+  final String title;
+  final DateTime date;
+  final String communityId;
+  final String createdBy;
+
+  Event({
+    required this.title,
+    required this.date,
+    required this.communityId,
+    required this.createdBy,
+  });
+
+  Map<String, dynamic> toMap() {
+    return {
+      'title': title,
+      'date': date,
+      'communityId': communityId,
+      'createdBy': createdBy,
+      'createdAt': FieldValue.serverTimestamp(),
+    };
+  }
+}
+
+// Message model
 class Message {
   final String sender;
   final String content;
@@ -10,6 +36,7 @@ class Message {
   final bool isMe;
   final String userIcon;
   final String userId;
+  final bool isEvent;
 
   Message({
     required this.sender,
@@ -18,6 +45,7 @@ class Message {
     required this.isMe,
     required this.userIcon,
     required this.userId,
+    this.isEvent = false,
   });
 
   factory Message.fromFirestore(DocumentSnapshot doc, String currentUserId) {
@@ -29,6 +57,7 @@ class Message {
       isMe: data['userId'] == currentUserId,
       userIcon: data['iconUrl'] ?? '',
       userId: data['userId'] ?? '',
+      isEvent: data['isEvent'] ?? false,
     );
   }
 }
@@ -53,6 +82,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
   final TextEditingController _messageController = TextEditingController();
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final currentUser = FirebaseAuth.instance.currentUser;
+  DateTime? _selectedDate;
 
   Stream<QuerySnapshot> _getMessages() {
     return _firestore
@@ -63,21 +93,76 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
         .snapshots();
   }
 
+  void _handleMessageInput(String value) {
+    if (value.startsWith('/') && value.length == 9) {
+      try {
+        final year = int.parse(value.substring(1, 5));
+        final month = int.parse(value.substring(5, 7));
+        final day = int.parse(value.substring(7, 9));
+        final date = DateTime(year, month, day);
+
+        setState(() {
+          _selectedDate = date;
+          _messageController.clear();
+        });
+      } catch (e) {
+        // 日付形式が不正な場合は何もしない
+      }
+    }
+  }
+
   Future<void> _sendMessage() async {
     if (_messageController.text.trim().isEmpty) return;
 
     try {
-      await _firestore
-          .collection('community_list')
-          .doc(widget.communityId)
-          .collection('chat')
-          .add({
-        'text': _messageController.text,
-        'createdAt': FieldValue.serverTimestamp(),
-        'userId': currentUser?.uid,
-        'userName': currentUser?.displayName ?? 'Anonymous',
-        'userIcon': currentUser?.photoURL ?? '',
-      });
+      if (_selectedDate != null) {
+        // 予定として保存
+        final event = Event(
+          title: _messageController.text,
+          date: _selectedDate!,
+          communityId: widget.communityId,
+          createdBy: currentUser?.uid ?? '',
+        );
+
+        await _firestore
+            .collection('community_list')
+            .doc(widget.communityId)
+            .collection('events')
+            .add(event.toMap());
+
+        // チャットにも予定を投稿
+        await _firestore
+            .collection('community_list')
+            .doc(widget.communityId)
+            .collection('chat')
+            .add({
+          'text':
+              '📅 ${_messageController.text}\n日時: ${_selectedDate!.year}/${_selectedDate!.month}/${_selectedDate!.day}',
+          'createdAt': FieldValue.serverTimestamp(),
+          'userId': currentUser?.uid,
+          'userName': currentUser?.displayName ?? 'Anonymous',
+          'userIcon': currentUser?.photoURL ?? '',
+          'isEvent': true,
+        });
+
+        setState(() {
+          _selectedDate = null;
+        });
+      } else {
+        // 通常のメッセージとして保存
+        await _firestore
+            .collection('community_list')
+            .doc(widget.communityId)
+            .collection('chat')
+            .add({
+          'text': _messageController.text,
+          'createdAt': FieldValue.serverTimestamp(),
+          'userId': currentUser?.uid,
+          'userName': currentUser?.displayName ?? 'Anonymous',
+          'userIcon': currentUser?.photoURL ?? '',
+          'isEvent': false,
+        });
+      }
 
       _messageController.clear();
     } catch (e) {
@@ -119,11 +204,13 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
               IconButton(
                 onPressed: () {
                   Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (context) => MenuScreen(
-                                communityId: widget.communityId,
-                              )));
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => MenuScreen(
+                        communityId: widget.communityId,
+                      ),
+                    ),
+                  );
                 },
                 icon: Icon(
                   Icons.menu,
@@ -209,13 +296,17 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                   decoration: BoxDecoration(
                     color: message.isMe
                         ? const Color(0xFF00008b)
-                        : Colors.grey[200],
+                        : (message.isEvent
+                            ? Colors.blue.withOpacity(0.1)
+                            : Colors.grey[200]),
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text(
                     message.content,
                     style: TextStyle(
-                      color: message.isMe ? Colors.white : Colors.black,
+                      color: message.isMe
+                          ? Colors.white
+                          : (message.isEvent ? Colors.blue : Colors.black),
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -230,51 +321,80 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
   }
 
   Widget _buildMessageInput() {
-    return Container(
-      padding: const EdgeInsets.all(8.0),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            offset: const Offset(0, -2),
-            blurRadius: 4,
-            color: Colors.black.withOpacity(0.1),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: TextField(
-              controller: _messageController,
-              decoration: InputDecoration(
-                hintText: 'メッセージを入力',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(24),
-                  borderSide: BorderSide.none,
+    return Column(
+      children: [
+        if (_selectedDate != null)
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            color: Colors.blue.withOpacity(0.1),
+            child: Row(
+              children: [
+                Icon(Icons.calendar_today, size: 16, color: Colors.blue),
+                SizedBox(width: 8),
+                Text(
+                  '予定日: ${_selectedDate!.year}/${_selectedDate!.month}/${_selectedDate!.day}',
+                  style: TextStyle(color: Colors.blue),
                 ),
-                filled: true,
-                fillColor: Colors.grey[200],
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 8,
+                Spacer(),
+                IconButton(
+                  icon: Icon(Icons.close, size: 16, color: Colors.blue),
+                  onPressed: () {
+                    setState(() {
+                      _selectedDate = null;
+                    });
+                  },
                 ),
-              ),
+              ],
             ),
           ),
-          const SizedBox(width: 8),
-          CircleAvatar(
-            backgroundColor: const Color(0xFF00008b),
-            child: IconButton(
-              icon: const Icon(
-                Icons.send,
-                color: Colors.white,
+        Container(
+          padding: const EdgeInsets.all(8.0),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            boxShadow: [
+              BoxShadow(
+                offset: const Offset(0, -2),
+                blurRadius: 4,
+                color: Colors.black.withOpacity(0.1),
               ),
-              onPressed: _sendMessage,
-            ),
+            ],
           ),
-        ],
-      ),
+          child: Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _messageController,
+                  decoration: InputDecoration(
+                    hintText: _selectedDate != null ? '予定を入力' : 'メッセージを入力',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(24),
+                      borderSide: BorderSide.none,
+                    ),
+                    filled: true,
+                    fillColor: Colors.grey[200],
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
+                  ),
+                  onChanged: _handleMessageInput,
+                ),
+              ),
+              const SizedBox(width: 8),
+              CircleAvatar(
+                backgroundColor: const Color(0xFF00008b),
+                child: IconButton(
+                  icon: const Icon(
+                    Icons.send,
+                    color: Colors.white,
+                  ),
+                  onPressed: _sendMessage,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 
@@ -282,5 +402,65 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
   void dispose() {
     _messageController.dispose();
     super.dispose();
+  }
+}
+
+// EventsScreen implementation
+class EventsScreen extends StatelessWidget {
+  final String communityId;
+
+  const EventsScreen({
+    Key? key,
+    required this.communityId,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('イベント'),
+        backgroundColor: Colors.white,
+        foregroundColor: Color(0xFF00008b),
+      ),
+      body: StreamBuilder<QuerySnapshot>(
+        stream: FirebaseFirestore.instance
+            .collection('community_list')
+            .doc(communityId)
+            .collection('events')
+            .orderBy('date')
+            .snapshots(),
+        builder: (context, snapshot) {
+          if (snapshot.hasError) {
+            return Center(child: Text('エラーが発生しました'));
+          }
+
+          if (!snapshot.hasData) {
+            return Center(child: CircularProgressIndicator());
+          }
+
+          final events = snapshot.data!.docs;
+
+          return ListView.builder(
+            itemCount: events.length,
+            itemBuilder: (context, index) {
+              final event = events[index].data() as Map<String, dynamic>;
+              final date = (event['date'] as Timestamp).toDate();
+
+              return Card(
+                margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: ListTile(
+                  leading: Icon(Icons.event, color: Colors.blue),
+                  title: Text(event['title']),
+                  subtitle: Text(
+                    '${date.year}/${date.month}/${date.day}',
+                    style: TextStyle(color: Colors.grey),
+                  ),
+                ),
+              );
+            },
+          );
+        },
+      ),
+    );
   }
 }

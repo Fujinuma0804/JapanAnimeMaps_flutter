@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:parts/post_page/post_first/community_chat.dart';
+import 'package:parts/post_page/report_community_page.dart';
 
 import 'in_community.dart';
 
@@ -81,34 +82,57 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen> {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        centerTitle: true, // これを追加
-        title: const Text(
-          'コミュニティ',
-          style: TextStyle(
-            color: Color(0xFF00008b),
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        backgroundColor: Colors.white,
-        elevation: 0,
-        iconTheme: const IconThemeData(color: Color(0xFF00008b)),
-        actions: [
-          IconButton(
-            onPressed: () {},
-            icon: const Icon(
-              Icons.local_police_outlined,
+          centerTitle: true, // これを追加
+          title: const Text(
+            'コミュニティ',
+            style: TextStyle(
               color: Color(0xFF00008b),
+              fontWeight: FontWeight.bold,
             ),
           ),
-          IconButton(
-            onPressed: () {},
-            icon: const Icon(
-              Icons.more_vert,
-              color: Color(0xFF00008b),
+          backgroundColor: Colors.white,
+          elevation: 0,
+          iconTheme: const IconThemeData(color: Color(0xFF00008b)),
+          actions: [
+            IconButton(
+              onPressed: () {},
+              icon: const Icon(
+                Icons.local_police_outlined,
+                color: Color(0xFF00008b),
+              ),
             ),
-          ),
-        ],
-      ),
+            PopupMenuButton(
+              onSelected: (value) {
+                if (value == 'report') {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => ReportCommunityPage(
+                        communityId: widget.community['id'],
+                        communityName: widget.community['name'],
+                      ),
+                    ),
+                  );
+                }
+              },
+              itemBuilder: (context) => [
+                PopupMenuItem(
+                  value: 'report',
+                  child: Row(
+                    children: const [
+                      Icon(Icons.report_problem),
+                      SizedBox(width: 8),
+                      Text('このコミュニティを通報する'),
+                    ],
+                  ),
+                ),
+              ],
+              icon: const Icon(
+                Icons.more_vert,
+                color: Color(0xFF00008b),
+              ),
+            )
+          ]),
       body: SafeArea(
         child: Stack(
           children: [

@@ -62,7 +62,21 @@ class _ProfilePageState extends State<ProfilePage> {
   void _onScroll() {
     if (_scrollController.position.pixels >=
         _scrollController.position.maxScrollExtent * 0.8) {
-      _loadMorePosts();
+      _loadMorePosts(getCurrentTabType());
+    }
+  }
+
+  String getCurrentTabType() {
+    final TabController tabController = DefaultTabController.of(context);
+    switch (tabController.index) {
+      case 0:
+        return 'posts';
+      case 1:
+        return 'replies';
+      case 2:
+        return 'likes';
+      default:
+        return 'posts';
     }
   }
 
@@ -353,19 +367,19 @@ class _ProfilePageState extends State<ProfilePage> {
                   onRefresh: _refreshData,
                   backgroundColor: Colors.white,
                   color: Color(0xFF00008b),
-                  child: _buildTweetList(),
+                  child: _buildPostList('posts'),
                 ),
                 RefreshIndicator(
                   onRefresh: _refreshData,
                   backgroundColor: Colors.white,
                   color: Color(0xFF00008b),
-                  child: _buildTweetList(),
+                  child: _buildPostList('replies'),
                 ),
                 RefreshIndicator(
                   onRefresh: _refreshData,
                   backgroundColor: Colors.white,
                   color: Color(0xFF00008b),
-                  child: _buildTweetList(),
+                  child: _buildPostList('likes'),
                 ),
                 BookmarkedPostsView(),
               ],
@@ -381,126 +395,325 @@ class _ProfilePageState extends State<ProfilePage> {
     return '${date.year}/${date.month}/${date.day} ${date.hour}:${date.minute}';
   }
 
-  Widget _buildTweetList() {
-    return StreamBuilder<QuerySnapshot>(
-      stream: _firestore
-          .collection('posts')
-          .where('userId', isEqualTo: _auth.currentUser?.uid)
-          .orderBy('createdAt', descending: true)
-          .limit(_pageSize)
-          .snapshots(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return Center(child: CircularProgressIndicator());
-        }
+  Widget _buildPostList(String type) {
+    Query query;
+    final currentUser = _auth.currentUser;
 
-        if (snapshot.hasError) {
-          return Center(child: Text('エラーが発生しました'));
-        }
+    print('Building post list for type: $type');
+    print('Current user ID: ${currentUser?.uid}');
 
-        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-          return ListView(
-            physics: AlwaysScrollableScrollPhysics(),
-            children: [
-              Center(
-                child: Padding(
-                  padding: const EdgeInsets.only(top: 50.0),
-                  child: Text('投稿はありません'),
-                ),
-              ),
-            ],
-          );
-        }
+    if (currentUser == null) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text('ログインが必要です'),
+            ElevatedButton(
+              onPressed: () {
+                // ログイン画面への遷移処理をここに追加
+              },
+              child: Text('ログイン'),
+            ),
+          ],
+        ),
+      );
+    }
 
-        _posts = snapshot.data!.docs;
+    try {
+      switch (type) {
+        case 'posts':
+          print('Creating posts query');
+          query = _firestore
+              .collection('posts')
+              .where('userId', isEqualTo: currentUser.uid)
+              .where('isReply', isEqualTo: false)
+              .orderBy('createdAt', descending: true)
+              .limit(_pageSize);
+          break;
+        case 'replies':
+          print('Creating replies query');
+          query = _firestore
+              .collection('posts')
+              .where('userId', isEqualTo: currentUser.uid)
+              .where('isReply', isEqualTo: true)
+              .orderBy('createdAt', descending: true)
+              .limit(_pageSize);
+          break;
+        case 'likes':
+          print('Creating likes query');
+          query = _firestore
+              .collection('posts')
+              .where('likedBy', arrayContains: currentUser.uid)
+              .orderBy('createdAt', descending: true)
+              .limit(_pageSize);
+          break;
+        default:
+          print('Creating default posts query');
+          query = _firestore
+              .collection('posts')
+              .where('userId', isEqualTo: currentUser.uid)
+              .where('isReply', isEqualTo: false)
+              .orderBy('createdAt', descending: true)
+              .limit(_pageSize);
+          break;
+      }
 
-        return ListView.builder(
-          controller: _scrollController,
-          physics: AlwaysScrollableScrollPhysics(),
-          padding: EdgeInsets.zero,
-          itemCount: _posts.length + (_hasMore ? 1 : 0),
-          itemBuilder: (context, index) {
-            if (index >= _posts.length) {
-              if (_hasMore) {
-                _loadMorePosts();
-                return Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(8.0),
-                    child: CircularProgressIndicator(),
+      return StreamBuilder<QuerySnapshot>(
+        stream: query.snapshots(),
+        builder: (context, snapshot) {
+          print('StreamBuilder state: ${snapshot.connectionState}');
+
+          if (snapshot.hasError) {
+            print('StreamBuilder error: ${snapshot.error}');
+            print('StreamBuilder stack trace: ${snapshot.stackTrace}');
+          }
+
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return Center(child: CircularProgressIndicator());
+          }
+
+          if (snapshot.hasError) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text('エラーが発生しました'),
+                  Text('Error: ${snapshot.error}'),
+                  ElevatedButton(
+                    onPressed: () {
+                      setState(() {});
+                    },
+                    child: Text('再読み込み'),
                   ),
+                ],
+              ),
+            );
+          }
+
+          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+            print('No data available for type: $type');
+            return ListView(
+              physics: AlwaysScrollableScrollPhysics(),
+              children: [
+                Center(
+                  child: Padding(
+                    padding: const EdgeInsets.only(top: 50.0),
+                    child: Text(_getEmptyMessage(type)),
+                  ),
+                ),
+              ],
+            );
+          }
+
+          _posts = snapshot.data!.docs;
+          print('Loaded ${_posts.length} posts');
+
+          return ListView.builder(
+            controller: _scrollController,
+            physics: AlwaysScrollableScrollPhysics(),
+            padding: EdgeInsets.zero,
+            itemCount: _posts.length + (_hasMore ? 1 : 0),
+            itemBuilder: (context, index) {
+              if (index >= _posts.length) {
+                if (_hasMore) {
+                  _loadMorePosts(type);
+                  return Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(8.0),
+                      child: CircularProgressIndicator(),
+                    ),
+                  );
+                }
+                return SizedBox.shrink();
+              }
+
+              try {
+                final post = _posts[index];
+                final data = post.data() as Map<String, dynamic>;
+                print('Building post tile for index: $index');
+                return _buildPostTile(data, post);
+              } catch (e, stackTrace) {
+                print('Error building post tile: $e');
+                print('Stack trace: $stackTrace');
+                return ListTile(
+                  title: Text('投稿の読み込みに失敗しました'),
+                  subtitle: Text('Error: $e'),
                 );
               }
-              return SizedBox.shrink();
-            }
-
-            final post = _posts[index];
-            final data = post.data() as Map<String, dynamic>;
-
-            final userHandle = data['userHandle'] ?? 'unknown';
-            final text = data['text'] ?? '';
-            final authorRef = data['userId'] as String;
-
-            return FutureBuilder<DocumentSnapshot>(
-              future: _firestore.collection('users').doc(authorRef).get(),
-              builder: (context, userSnapshot) {
-                String? avatarUrl;
-                if (userSnapshot.hasData && userSnapshot.data != null) {
-                  final userData =
-                      userSnapshot.data!.data() as Map<String, dynamic>?;
-                  avatarUrl = userData?['avatarUrl'];
-                }
-
-                return ListTile(
-                  leading: CircleAvatar(
-                    backgroundColor: Colors.grey[300],
-                    backgroundImage: avatarUrl != null && avatarUrl.isNotEmpty
-                        ? NetworkImage(avatarUrl)
-                        : null,
-                    child: avatarUrl == null || avatarUrl.isEmpty
-                        ? Icon(Icons.person, color: Colors.grey[600])
-                        : null,
-                  ),
-                  title: Text(userHandle),
-                  subtitle: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(text),
-                      if (data['createdAt'] != null)
-                        Text(
-                          _formatDate(data['createdAt']),
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey,
-                          ),
-                        ),
-                    ],
-                  ),
-                  trailing: Icon(Icons.more_vert),
-                );
+            },
+          );
+        },
+      );
+    } catch (e, stackTrace) {
+      print('Error in _buildPostList: $e');
+      print('Stack trace: $stackTrace');
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text('予期せぬエラーが発生しました'),
+            Text('Error: $e'),
+            ElevatedButton(
+              onPressed: () {
+                setState(() {});
               },
-            );
-          },
-        );
-      },
-    );
+              child: Text('再試行'),
+            ),
+          ],
+        ),
+      );
+    }
   }
 
-  Future<void> _loadMorePosts() async {
-    if (_isLoadingMore || !_hasMore) return;
+  String _getEmptyMessage(String type) {
+    switch (type) {
+      case 'posts':
+        return '投稿はありません';
+      case 'replies':
+        return '返信はありません';
+      case 'likes':
+        return 'いいねした投稿はありません';
+      default:
+        return '投稿はありません';
+    }
+  }
 
+  Widget _buildPostTile(Map<String, dynamic> data, DocumentSnapshot post) {
+    try {
+      final userHandle = data['userHandle'] ?? 'unknown';
+      final text = data['text'] ?? '';
+      final authorRef = data['userId'] as String;
+
+      print('Building tile for user: $userHandle');
+
+      return FutureBuilder<DocumentSnapshot>(
+        future: _firestore.collection('users').doc(authorRef).get(),
+        builder: (context, userSnapshot) {
+          if (userSnapshot.hasError) {
+            print('Error loading user data: ${userSnapshot.error}');
+            return ListTile(
+              title: Text(userHandle),
+              subtitle: Text('ユーザー情報の読み込みに失敗しました'),
+            );
+          }
+
+          String? avatarUrl;
+          if (userSnapshot.hasData && userSnapshot.data != null) {
+            try {
+              final userData =
+                  userSnapshot.data!.data() as Map<String, dynamic>?;
+              avatarUrl = userData?['avatarUrl'];
+            } catch (e) {
+              print('Error parsing user data: $e');
+            }
+          }
+
+          return ListTile(
+            leading: CircleAvatar(
+              backgroundColor: Colors.grey[300],
+              backgroundImage: avatarUrl != null && avatarUrl.isNotEmpty
+                  ? NetworkImage(avatarUrl)
+                  : null,
+              child: avatarUrl == null || avatarUrl.isEmpty
+                  ? Icon(Icons.person, color: Colors.grey[600])
+                  : null,
+            ),
+            title: Text(userHandle),
+            subtitle: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(text),
+                if (data['createdAt'] != null)
+                  Text(
+                    _formatDate(data['createdAt']),
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey,
+                    ),
+                  ),
+              ],
+            ),
+            trailing: Icon(Icons.more_vert),
+          );
+        },
+      );
+    } catch (e, stackTrace) {
+      print('Error in _buildPostTile: $e');
+      print('Stack trace: $stackTrace');
+      return ListTile(
+        title: Text('投稿の表示に失敗しました'),
+        subtitle: Text('Error: $e'),
+      );
+    }
+  }
+
+  Future<void> _loadMorePosts(String type) async {
+    if (_isLoadingMore || !_hasMore) {
+      print(
+          'Skip loading more: isLoadingMore: $_isLoadingMore, hasMore: $_hasMore');
+      return;
+    }
+
+    print('Starting to load more posts for type: $type');
     setState(() {
       _isLoadingMore = true;
     });
 
     try {
+      final currentUser = _auth.currentUser;
+      if (currentUser == null) {
+        print('User not logged in');
+        setState(() {
+          _isLoadingMore = false;
+          _hasMore = false;
+        });
+        return;
+      }
+
       final lastDoc = _posts.last;
-      final morePostsSnapshot = await _firestore
-          .collection('posts')
-          .where('userId', isEqualTo: _auth.currentUser?.uid)
-          .orderBy('createdAt', descending: true)
-          .startAfterDocument(lastDoc)
-          .limit(_pageSize)
-          .get();
+      Query query;
+
+      switch (type) {
+        case 'posts':
+          query = _firestore
+              .collection('posts')
+              .where('userId', isEqualTo: currentUser.uid)
+              .where('isReply', isEqualTo: false)
+              .orderBy('createdAt', descending: true)
+              .startAfterDocument(lastDoc)
+              .limit(_pageSize);
+          break;
+        case 'replies':
+          query = _firestore
+              .collection('posts')
+              .where('userId', isEqualTo: currentUser.uid)
+              .where('isReply', isEqualTo: true)
+              .orderBy('createdAt', descending: true)
+              .startAfterDocument(lastDoc)
+              .limit(_pageSize);
+          break;
+        case 'likes':
+          query = _firestore
+              .collection('posts')
+              .where('likedBy', arrayContains: currentUser.uid)
+              .orderBy('createdAt', descending: true)
+              .startAfterDocument(lastDoc)
+              .limit(_pageSize);
+          break;
+        default:
+          query = _firestore
+              .collection('posts')
+              .where('userId', isEqualTo: currentUser.uid)
+              .where('isReply', isEqualTo: false)
+              .orderBy('createdAt', descending: true)
+              .startAfterDocument(lastDoc)
+              .limit(_pageSize);
+          break;
+      }
+
+      print('Executing query for more posts');
+      final morePostsSnapshot = await query.get();
+      print('Received ${morePostsSnapshot.docs.length} more posts');
 
       if (morePostsSnapshot.docs.isNotEmpty) {
         setState(() {
@@ -509,13 +722,15 @@ class _ProfilePageState extends State<ProfilePage> {
           _isLoadingMore = false;
         });
       } else {
+        print('No more posts available');
         setState(() {
           _hasMore = false;
           _isLoadingMore = false;
         });
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
       print('Error loading more posts: $e');
+      print('Stack trace: $stackTrace');
       setState(() {
         _isLoadingMore = false;
       });
