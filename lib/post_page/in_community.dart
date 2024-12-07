@@ -43,15 +43,74 @@ class _InCommunityState extends State<InCommunity> {
     super.dispose();
   }
 
+  // エラーメッセージを取得するヘルパーメソッド
+  String _getErrorMessage(dynamic error) {
+    if (error is FirebaseException) {
+      switch (error.code) {
+        case 'resource-exhausted':
+          return 'アクセスが集中しています。しばらく時間をおいてから再度お試しください。';
+        case 'permission-denied':
+          return '操作を実行する権限がありません。';
+        case 'unavailable':
+          return 'サービスが一時的に利用できません。ネットワーク接続を確認してください。';
+        case 'unauthenticated':
+          return '認証が必要です。再度ログインしてください。';
+        case 'cancelled':
+          return '操作がキャンセルされました。';
+        case 'deadline-exceeded':
+          return '操作がタイムアウトしました。ネットワーク接続を確認して再度お試しください。';
+        default:
+          return 'エラーが発生しました: ${error.message}';
+      }
+    } else if (error is Exception) {
+      return 'エラーが発生しました: ${error.toString()}';
+    }
+    return 'エラーが発生しました。しばらく時間をおいてから再度お試しください。';
+  }
+
+  // エラーを表示するヘルパーメソッド
+  void _showError(String message) {
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.red,
+        behavior: SnackBarBehavior.floating,
+        margin: const EdgeInsets.all(16),
+        duration: const Duration(seconds: 5),
+        action: SnackBarAction(
+          label: '閉じる',
+          textColor: Colors.white,
+          onPressed: () {
+            ScaffoldMessenger.of(context).hideCurrentSnackBar();
+          },
+        ),
+      ),
+    );
+  }
+
   Future<String?> _uploadImage(File file, String userId) async {
     try {
       final path =
           'user_icons/$userId/${DateTime.now().millisecondsSinceEpoch}.jpg';
       final ref = _storage.ref().child(path);
-      await ref.putFile(file);
+
+      // 画像を圧縮してアップロード
+      await ref.putFile(
+        file,
+        SettableMetadata(
+          contentType: 'image/jpeg',
+          customMetadata: {'uploaded_by': userId},
+        ),
+      );
+
       return await ref.getDownloadURL();
+    } on FirebaseException catch (e) {
+      _showError(_getErrorMessage(e));
+      return null;
     } catch (e) {
-      print('Image upload error: $e');
+      _showError('画像のアップロードに失敗しました。');
       return null;
     }
   }
@@ -60,21 +119,18 @@ class _InCommunityState extends State<InCommunity> {
     try {
       final XFile? image = await _picker.pickImage(
         source: ImageSource.gallery,
-        maxWidth: 1024,
-        maxHeight: 1024,
-        imageQuality: 85,
+        maxWidth: 512,
+        maxHeight: 512,
+        imageQuality: 70,
       );
+
       if (image != null) {
         setState(() {
           _iconFile = File(image.path);
         });
       }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('画像の選択中にエラーが発生しました: $e')),
-        );
-      }
+    } on Exception catch (e) {
+      _showError('画像の選択中にエラーが発生しました。別の画像を試してください。');
     }
   }
 
@@ -87,11 +143,23 @@ class _InCommunityState extends State<InCommunity> {
 
     try {
       final User? currentUser = _auth.currentUser;
-      if (currentUser == null) throw Exception('ユーザーが認証されていません');
+      if (currentUser == null) {
+        throw FirebaseAuthException(
+          code: 'unauthenticated',
+          message: 'ユーザーが認証されていません',
+        );
+      }
 
       String? iconUrl;
       if (_iconFile != null) {
         iconUrl = await _uploadImage(_iconFile!, currentUser.uid);
+        if (iconUrl == null) {
+          // 画像アップロードに失敗した場合は処理を中断
+          setState(() {
+            isLoading = false;
+          });
+          return;
+        }
       }
 
       final userRef = _firestore.collection('users').doc(currentUser.uid);
@@ -101,7 +169,11 @@ class _InCommunityState extends State<InCommunity> {
       await _firestore.runTransaction((transaction) async {
         final communityDoc = await transaction.get(communityRef);
         if (!communityDoc.exists) {
-          throw Exception('コミュニティが見つかりません');
+          throw FirebaseException(
+            plugin: 'cloud_firestore',
+            code: 'not-found',
+            message: 'コミュニティが見つかりません',
+          );
         }
 
         final nickname = _nameController.text.trim();
@@ -110,7 +182,7 @@ class _InCommunityState extends State<InCommunity> {
         final userCommunityRef =
             userRef.collection('communities').doc(widget.communityId);
         transaction.set(userCommunityRef, {
-          'communityName': nickname, // ニックネームを格納
+          'communityName': nickname,
           'nickname': nickname,
           'iconUrl': iconUrl,
           'joinedAt': FieldValue.serverTimestamp(),
@@ -136,13 +208,17 @@ class _InCommunityState extends State<InCommunity> {
 
       if (mounted) {
         Navigator.of(context).pop();
-      }
-    } catch (e) {
-      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('プロフィールの作成に失敗しました: $e')),
+          const SnackBar(
+            content: Text('コミュニティに参加しました！'),
+            backgroundColor: Colors.green,
+          ),
         );
       }
+    } on FirebaseException catch (e) {
+      _showError(_getErrorMessage(e));
+    } catch (e) {
+      _showError('プロフィールの作成に失敗しました。もう一度お試しください。');
     } finally {
       if (mounted) {
         setState(() {
@@ -154,6 +230,7 @@ class _InCommunityState extends State<InCommunity> {
 
   @override
   Widget build(BuildContext context) {
+    // 既存のbuildメソッドはそのまま
     return Scaffold(
       body: Stack(
         fit: StackFit.expand,

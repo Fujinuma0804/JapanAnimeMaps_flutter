@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:parts/post_page/profile_edit.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class ProfilePage extends StatefulWidget {
   ProfilePage({Key? key}) : super(key: key);
@@ -103,8 +104,33 @@ class _ProfilePageState extends State<ProfilePage> {
               pinned: true,
               expandedHeight: 150.0,
               flexibleSpace: FlexibleSpaceBar(
-                background: Container(
-                  color: Color(0xFF00008b),
+                background: StreamBuilder<DocumentSnapshot>(
+                  stream: _firestore
+                      .collection('users')
+                      .doc(_auth.currentUser?.uid)
+                      .snapshots(),
+                  builder: (context, snapshot) {
+                    if (!snapshot.hasData) {
+                      return Container(color: Color(0xFF00008b));
+                    }
+
+                    final userData =
+                        snapshot.data!.data() as Map<String, dynamic>;
+                    final headerImageUrl = userData['headerImageUrl'];
+
+                    return Container(
+                      decoration: BoxDecoration(
+                        color: Color(0xFF00008b),
+                        image:
+                            headerImageUrl != null && headerImageUrl.isNotEmpty
+                                ? DecorationImage(
+                                    image: NetworkImage(headerImageUrl),
+                                    fit: BoxFit.cover,
+                                  )
+                                : null,
+                      ),
+                    );
+                  },
                 ),
               ),
               leading: IconButton(
@@ -153,8 +179,12 @@ class _ProfilePageState extends State<ProfilePage> {
 
         final userData = snapshot.data!.data() as Map<String, dynamic>;
         final avatarUrl = userData['avatarUrl'];
+        final headerImageUrl = userData['headerImageUrl'];
         final userName = userData['name'] ?? 'Unknown User';
-        final userId = userData['id'] ?? 'unknown';
+        final userBio = userData['bio'] ?? '';
+        final userLocation = userData['location'] ?? '';
+        final userWebsite = userData['website'] ?? '';
+        final userFavoriteAnime = userData['favoriteAnime'] ?? '';
 
         return Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16.0),
@@ -183,7 +213,7 @@ class _ProfilePageState extends State<ProfilePage> {
                     ),
                   ),
                   Text(
-                    "@$userId",
+                    "@${userData['id'] ?? 'unknown'}",
                     style: TextStyle(
                       fontSize: 16,
                       color: Colors.grey,
@@ -202,10 +232,12 @@ class _ProfilePageState extends State<ProfilePage> {
                         MaterialPageRoute(
                           builder: (context) => EditProfilePage(
                             currentName: userName,
-                            currentBio: bio,
-                            currentLocation: location,
-                            currentWebsite: website,
-                            currentFavoriteAnime: '',
+                            currentBio: userBio,
+                            currentLocation: userLocation,
+                            currentWebsite: userWebsite,
+                            currentFavoriteAnime: userFavoriteAnime,
+                            currentHeaderImageUrl: headerImageUrl,
+                            currentAvatarUrl: avatarUrl,
                           ),
                         ),
                       );
@@ -215,6 +247,7 @@ class _ProfilePageState extends State<ProfilePage> {
                       }
                     },
                     child: Text(
+                      // childを追加
                       'プロフィールを編集',
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
@@ -258,6 +291,40 @@ class _ProfilePageState extends State<ProfilePage> {
         final website = userData['website'] ?? '';
         final favoriteAnime = userData['favoriteAnime'] ?? '';
 
+        // URLを省略する関数
+        String truncateUrl(String url) {
+          return url.length > 25 ? '${url.substring(0, 25)}...' : url;
+        }
+
+        // URLを開く関数
+        Future<void> _launchURL(String url) async {
+          if (!url.startsWith('http://') && !url.startsWith('https://')) {
+            url = 'https://$url';
+          }
+
+          try {
+            if (await canLaunchUrl(Uri.parse(url))) {
+              await launchUrl(
+                Uri.parse(url),
+                mode: LaunchMode.inAppWebView,
+                webViewConfiguration: const WebViewConfiguration(
+                  enableJavaScript: true,
+                  enableDomStorage: true,
+                ),
+              );
+            } else {
+              throw 'URLを開けませんでした';
+            }
+          } catch (e) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('URLを開けませんでした: $e'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+        }
+
         return Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16.0),
           child: Column(
@@ -276,7 +343,16 @@ class _ProfilePageState extends State<ProfilePage> {
                   if (website.isNotEmpty) ...[
                     Icon(Icons.link, size: 16, color: Colors.grey),
                     SizedBox(width: 4),
-                    Text(website, style: TextStyle(color: Colors.blue)),
+                    GestureDetector(
+                      onTap: () => _launchURL(website),
+                      child: Text(
+                        truncateUrl(website),
+                        style: TextStyle(
+                          color: Colors.blue,
+                          decoration: TextDecoration.underline,
+                        ),
+                      ),
+                    ),
                   ],
                 ],
               ),

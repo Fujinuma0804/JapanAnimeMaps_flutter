@@ -530,7 +530,6 @@ class _UserPointUpdatePageState extends State<UserPointUpdatePage> {
                         );
                       }
 
-                      // ユーザーの現在のポイントを取得（大きい方を表示）
                       final userData =
                           userSnapshot.data!.data() as Map<String, dynamic>;
                       final point = _getPointValue(userData);
@@ -541,6 +540,7 @@ class _UserPointUpdatePageState extends State<UserPointUpdatePage> {
                             .snapshots(),
                         builder: (context, rankingSnapshot) {
                           int userRank = 0;
+                          int totalUsers = 0;
                           if (rankingSnapshot.hasData) {
                             final sortedDocs =
                                 rankingSnapshot.data!.docs.toList()
@@ -551,6 +551,8 @@ class _UserPointUpdatePageState extends State<UserPointUpdatePage> {
                                         b.data() as Map<String, dynamic>);
                                     return bPoint.compareTo(aPoint);
                                   });
+
+                            totalUsers = sortedDocs.length;
 
                             for (int i = 0; i < sortedDocs.length; i++) {
                               if (sortedDocs[i].id == currentUser.uid) {
@@ -662,8 +664,8 @@ class _UserPointUpdatePageState extends State<UserPointUpdatePage> {
                                                 ),
                                                 Text(
                                                   _language == '日本語'
-                                                      ? ' 位'
-                                                      : ' th',
+                                                      ? ' /$totalUsers位'
+                                                      : ' /$totalUsers',
                                                   style: const TextStyle(
                                                     fontSize: 20,
                                                     fontWeight: FontWeight.bold,
