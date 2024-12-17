@@ -11,6 +11,8 @@ import 'package:parts/post_page/post_screen.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:vibration/vibration.dart';
 
+import 'management_tab.dart';
+
 class TimelineScreen extends StatefulWidget {
   const TimelineScreen({Key? key}) : super(key: key);
 
@@ -895,9 +897,7 @@ class _TimelineScreenState extends State<TimelineScreen>
                     },
                   ),
                   // 運営タブ
-                  const Center(
-                    child: Text('運営からのお知らせがここに表示されます'),
-                  ),
+                  const ManagementTab(),
                 ],
               ),
             ),
