@@ -1,7 +1,54 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:parts/post_page/community_list_detail.dart';
 import 'package:parts/post_page/post_first/community_chat_settings.dart';
+
+// Community model
+class Community {
+  final String id;
+  final String displayName;
+  final String description;
+  final String backgroundImageUrl;
+  final int memberCount;
+  final String hashtag;
+  final String name;
+
+  Community({
+    required this.id,
+    required this.displayName,
+    required this.description,
+    required this.backgroundImageUrl,
+    required this.memberCount,
+    required this.hashtag,
+    required this.name,
+  });
+
+  factory Community.fromFirestore(DocumentSnapshot doc) {
+    final data = doc.data() as Map<String, dynamic>;
+    return Community(
+      id: doc.id,
+      displayName: data['displayName'] ?? '',
+      description: data['description'] ?? '',
+      backgroundImageUrl: data['backgroundImageUrl'] ?? '',
+      memberCount: data['memberCount'] ?? 0,
+      hashtag: data['hashtag'] ?? '',
+      name: data['name'] ?? '',
+    );
+  }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'displayName': displayName,
+      'description': description,
+      'backgroundImageUrl': backgroundImageUrl,
+      'memberCount': memberCount,
+      'hashtag': hashtag,
+      'name': name,
+    };
+  }
+}
 
 // Event model
 class Event {
@@ -91,6 +138,14 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
         .collection('chat')
         .orderBy('createdAt', descending: true)
         .snapshots();
+  }
+
+  Stream<Community?> _getCommunityStream() {
+    return _firestore
+        .collection('community_list')
+        .doc(widget.communityId)
+        .snapshots()
+        .map((doc) => doc.exists ? Community.fromFirestore(doc) : null);
   }
 
   void _handleMessageInput(String value) {
@@ -188,14 +243,27 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
           Row(
             children: [
               IconButton(
-                onPressed: () {},
-                icon: Icon(
-                  Icons.notification_important_outlined,
-                  color: Color(0xFF00008b),
-                ),
-              ),
-              IconButton(
-                onPressed: () {},
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => StreamBuilder<Community?>(
+                        stream: _getCommunityStream(),
+                        builder: (context, snapshot) {
+                          if (snapshot.hasError) {
+                            return Center(child: Text('エラーが発生しました'));
+                          }
+                          if (!snapshot.hasData || snapshot.data == null) {
+                            return Center(child: CircularProgressIndicator());
+                          }
+                          return CommunityDetailScreen(
+                            community: snapshot.data!.toMap(),
+                          );
+                        },
+                      ),
+                    ),
+                  );
+                },
                 icon: Icon(
                   Icons.info_outline_rounded,
                   color: Color(0xFF00008b),
