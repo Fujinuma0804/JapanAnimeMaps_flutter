@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart' hide Image;
 import 'package:parts/post_page/community_list_screen.dart';
+import 'package:parts/post_page/community_setting/community_scanner.dart';
 import 'package:parts/post_page/make_community.dart';
 import 'package:parts/post_page/post_first/community_chat.dart';
 import 'package:parts/post_page/post_mypage.dart';
@@ -168,7 +169,7 @@ class _TimelineScreenState extends State<TimelineScreen>
   Widget _buildCommunityOptions() {
     return AnimatedContainer(
       duration: const Duration(milliseconds: 300),
-      height: _showCommunityOptions ? 150 : 0,
+      height: _showCommunityOptions ? 200 : 0,
       child: Card(
         margin: const EdgeInsets.all(8.0),
         child: ListView(
@@ -198,6 +199,18 @@ class _TimelineScreenState extends State<TimelineScreen>
                   context,
                   MaterialPageRoute(
                     builder: (context) => CommunityListScreen(),
+                  ),
+                );
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.qr_code_scanner_outlined),
+              title: const Text('QRコードで参加'),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => QRScannerPage(),
                   ),
                 );
               },

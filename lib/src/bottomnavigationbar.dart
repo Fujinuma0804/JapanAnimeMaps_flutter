@@ -14,13 +14,17 @@ import '../spot_page/anime_list_ranking_en.dart';
 import '../spot_page/anime_list_test_ranking.dart';
 
 class MainScreen extends StatefulWidget {
+  final int initalIndex;
+
+  const MainScreen({Key? key, this.initalIndex = 0}) : super(key: key);
+
   @override
   _MainScreenState createState() => _MainScreenState();
 }
 
 class _MainScreenState extends State<MainScreen> {
   int _selectedIndex = 0;
-  final PageController _pageController = PageController();
+  late PageController _pageController = PageController();
   late User _user;
   String _userLanguage = 'English';
   late Stream<DocumentSnapshot> _userStream;
@@ -31,6 +35,8 @@ class _MainScreenState extends State<MainScreen> {
   @override
   void initState() {
     super.initState();
+    _selectedIndex = widget.initalIndex;
+    _pageController = PageController(initialPage: widget.initalIndex);
     _getUser();
     _updateCorrectCount();
     _setupUserStream();
@@ -71,16 +77,6 @@ class _MainScreenState extends State<MainScreen> {
             (userDoc.data() as Map<String, dynamic>)['hasSeenWelcome'] ?? false;
       });
     }
-  }
-
-  Future<void> _updateWelcomeStatus() async {
-    await FirebaseFirestore.instance
-        .collection('users')
-        .doc(_user.uid)
-        .update({'hasSeenWelcome': true});
-    setState(() {
-      _hasSeenWelcome = true;
-    });
   }
 
   Future<void> _updateCorrectCount() async {
@@ -128,10 +124,6 @@ class _MainScreenState extends State<MainScreen> {
     bool canVibrate = await Vibrate.canVibrate;
     if (canVibrate) {
       Vibrate.feedback(FeedbackType.selection);
-    }
-
-    if (index == 4 && !_hasSeenWelcome) {
-      await _updateWelcomeStatus();
     }
 
     setState(() {
@@ -185,11 +177,15 @@ class _MainScreenState extends State<MainScreen> {
                   ? MapScreen(latitude: _latitude, longitude: _longitude)
                   : MapEnScreen(latitude: _latitude, longitude: _longitude),
               _userLanguage == 'Japanese'
+                  ? (!_hasSeenWelcome
+                      ? PostWelcome1(showScaffold: false)
+                      : TimelineScreen())
+                  : (!_hasSeenWelcome
+                      ? PostWelcome1(showScaffold: false)
+                      : TimelineScreen()),
+              _userLanguage == 'Japanese'
                   ? UserPointUpdatePage()
                   : UserPointUpdatePage(),
-              _userLanguage == 'Japanese'
-                  ? (!_hasSeenWelcome ? PostWelcome1() : TimelineScreen())
-                  : (!_hasSeenWelcome ? PostWelcome1() : TimelineScreen()),
             ],
           ),
           bottomNavigationBar: CustomBottomNavigationBar(
@@ -249,11 +245,11 @@ class CustomBottomNavigationBar extends StatelessWidget {
           label: language == 'Japanese' ? '地図' : 'Map',
         ),
         BottomNavigationBarItem(
-          icon: Icon(Icons.monetization_on),
-          label: language == 'Japanese' ? 'その他' : 'Other',
+          icon: Icon(Icons.chat_outlined),
+          label: language == 'Japanese' ? 'コミュニティ' : 'Other',
         ),
         BottomNavigationBarItem(
-          icon: Icon(Icons.description),
+          icon: Icon(Icons.monetization_on),
           label: language == 'Japanese' ? 'その他' : 'Other',
         ),
       ],

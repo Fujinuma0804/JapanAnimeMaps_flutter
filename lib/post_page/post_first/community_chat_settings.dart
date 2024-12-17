@@ -5,6 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:parts/post_page/timeline_screen.dart';
 import 'package:table_calendar/table_calendar.dart';
 
+import '../community_setting/invitation_page.dart';
+
 class MenuScreen extends StatelessWidget {
   final String communityId;
 
@@ -236,19 +238,27 @@ class MenuScreen extends StatelessWidget {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('招待'),
-        content: Text('招待リンクを生成しますか？'),
+        title: const Text('招待'),
+        content: const Text('招待リンクを生成しますか？'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text('キャンセル'),
+            child: const Text('キャンセル'),
           ),
           TextButton(
             onPressed: () {
-              Navigator.pop(context);
-              // 招待リンク生成処理
+              Navigator.pop(context); // ダイアログを閉じる
+              // 招待ページへ遷移
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => InvitationPage(
+                    communityId: communityId,
+                  ),
+                ),
+              );
             },
-            child: Text('生成'),
+            child: const Text('生成'),
           ),
         ],
       ),

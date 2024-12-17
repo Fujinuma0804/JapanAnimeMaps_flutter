@@ -1,7 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:parts/post_page/timeline_screen.dart';
+import 'package:parts/src/bottomnavigationbar.dart';
 
 class IdSetupScreen extends StatefulWidget {
   const IdSetupScreen({super.key});
@@ -15,6 +15,10 @@ class _IdSetupScreenState extends State<IdSetupScreen> {
   final _formKey = GlobalKey<FormState>();
   bool _isLoading = false;
   String? _errorMessage;
+  bool _isChecked = false;
+  double _slideValue = 0.0;
+  bool _isSliding = false;
+  bool _isMailPermissionChecked = true;
 
   @override
   void initState() {
@@ -92,12 +96,19 @@ class _IdSetupScreenState extends State<IdSetupScreen> {
         await FirebaseFirestore.instance
             .collection('users')
             .doc(user.uid)
-            .update({'id': newId});
+            .update({
+          'id': newId,
+          'allowMainNotification': _isMailPermissionChecked,
+          'hasSeenWelcome': true,
+        });
 
         if (mounted) {
           Navigator.pushReplacement(
             context,
-            MaterialPageRoute(builder: (context) => const TimelineScreen()),
+            MaterialPageRoute(
+                builder: (context) => MainScreen(
+                      initalIndex: 3,
+                    )),
           );
         }
       }
@@ -107,6 +118,17 @@ class _IdSetupScreenState extends State<IdSetupScreen> {
       });
     } finally {
       setState(() => _isLoading = false);
+    }
+  }
+
+  void _onSlideComplete() {
+    if (_slideValue > 0.9 && _isChecked) {
+      _saveId();
+    } else {
+      setState(() {
+        _slideValue = 0.0;
+        _isSliding = false;
+      });
     }
   }
 
@@ -132,23 +154,53 @@ class _IdSetupScreenState extends State<IdSetupScreen> {
           ),
           backgroundColor: Colors.transparent,
           elevation: 0,
+          leading: IconButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+            },
+            icon: const Icon(Icons.arrow_back_ios),
+          ),
         ),
         body: SafeArea(
           child: Padding(
             padding: const EdgeInsets.all(24.0),
             child: Column(
               children: [
-                const Text(
-                  'このIDは他のユーザーに表示されます\n'
-                  '後からの変更はできません。',
-                  style: TextStyle(
-                    color: Colors.grey,
-                    fontSize: 14,
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 12,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.grey[50],
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: Colors.grey[200]!,
+                      width: 1,
+                    ),
+                  ),
+                  child: const Column(
+                    children: [
+                      Text(
+                        'このIDは他のユーザーに表示されます',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF424242),
+                        ),
+                      ),
+                      SizedBox(height: 4),
+                      Text(
+                        '後からの変更はできません',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Color(0xFF757575),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                const SizedBox(
-                  height: 32,
-                ),
+                const SizedBox(height: 32),
                 Form(
                   key: _formKey,
                   child: TextFormField(
@@ -194,17 +246,94 @@ class _IdSetupScreenState extends State<IdSetupScreen> {
                       ),
                     ),
                   ),
-                const SizedBox(
-                  height: 20.0,
-                ),
-                Center(
-                  child: Text(
-                    '登録をすると、利用規約と、プライバシーポリシーに同意したものとみなされます。'
-                    'JAMは、アカウントの安全を保ったりなど、プライバシーポリシーに記載されている目的で、'
-                    'メールアドレスなど、あなたの連絡先情報を利用することがあります。',
-                    style: TextStyle(
-                      color: Colors.grey,
+                const SizedBox(height: 20.0),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.grey[50],
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: Colors.grey[200]!,
+                      width: 1,
                     ),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        '登録をすると、利用規約と、プライバシーポリシーに同意したものとみなされます。'
+                        'JAMは、アカウントの安全を保ったりなど、プライバシーポリシーに記載されている目的で、'
+                        'メールアドレスなど、あなたの連絡先情報を利用することがあります。',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: Color(0xFF757575),
+                          height: 1.5,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          SizedBox(
+                            height: 24,
+                            width: 24,
+                            child: Checkbox(
+                              value: _isChecked,
+                              onChanged: (bool? value) {
+                                setState(() {
+                                  _isChecked = value ?? false;
+                                  if (!_isChecked) {
+                                    _slideValue = 0.0;
+                                    _isSliding = false;
+                                  }
+                                });
+                              },
+                              activeColor: const Color(0xFF00008b),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          const Text(
+                            '利用規約とプライバシーポリシーに同意する',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Color(0xFF424242),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(
+                        height: 8,
+                      ),
+                      Row(
+                        children: [
+                          SizedBox(
+                            height: 24,
+                            width: 24,
+                            child: Checkbox(
+                              value: _isMailPermissionChecked,
+                              onChanged: (bool? value) {
+                                setState(() {
+                                  _isMailPermissionChecked = value ?? true;
+                                });
+                              },
+                              activeColor: const Color(0xFF00008b),
+                            ),
+                          ),
+                          const SizedBox(
+                            width: 8,
+                          ),
+                          const Text(
+                            'お知らせメールを受け取る（任意）',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Color(0xFF757575),
+                            ),
+                          )
+                        ],
+                      )
+                    ],
                   ),
                 ),
                 const Spacer(),
@@ -213,56 +342,57 @@ class _IdSetupScreenState extends State<IdSetupScreen> {
                 else
                   Column(
                     children: [
-                      SizedBox(
-                        width: double.infinity,
+                      Container(
                         height: 50,
-                        child: ElevatedButton(
-                          onPressed: _saveId,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Color(0xFF00008b),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(25),
+                          color: _isChecked
+                              ? const Color(0xFF00008b)
+                              : Colors.grey[300],
+                        ),
+                        child: Stack(
+                          children: [
+                            SliderTheme(
+                              data: SliderThemeData(
+                                trackHeight: 50,
+                                thumbShape: SliderThumb(isSliding: _isSliding),
+                                overlayShape: const RoundSliderOverlayShape(
+                                    overlayRadius: 0),
+                                trackShape: const RoundedRectSliderTrackShape(),
+                              ),
+                              child: Slider(
+                                value: _slideValue,
+                                onChanged: _isChecked
+                                    ? (double value) {
+                                        setState(() {
+                                          _slideValue = value;
+                                          _isSliding = true;
+                                        });
+                                      }
+                                    : null,
+                                onChangeEnd: (double value) {
+                                  _onSlideComplete();
+                                },
+                                activeColor: Colors.transparent,
+                                inactiveColor: Colors.transparent,
+                              ),
                             ),
-                            elevation: 0,
-                          ),
-                          child: const Text(
-                            '登録',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
+                            Center(
+                              child: Text(
+                                'スライドして登録',
+                                style: TextStyle(
+                                  color: _isChecked
+                                      ? Colors.white
+                                      : Colors.grey[600],
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
                             ),
-                          ),
+                          ],
                         ),
                       ),
                       const SizedBox(height: 12),
-                      SizedBox(
-                        width: double.infinity,
-                        height: 50,
-                        child: TextButton(
-                          onPressed: () {
-                            Navigator.pushReplacement(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => const TimelineScreen(),
-                              ),
-                            );
-                          },
-                          style: TextButton.styleFrom(
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                          ),
-                          child: const Text(
-                            '今は設定しない',
-                            style: TextStyle(
-                              color: Colors.grey,
-                              fontSize: 16,
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 16),
                     ],
                   ),
               ],
@@ -271,5 +401,76 @@ class _IdSetupScreenState extends State<IdSetupScreen> {
         ),
       ),
     );
+  }
+}
+
+// カスタムスライダーサムの形状
+class SliderThumb extends SliderComponentShape {
+  final bool isSliding;
+
+  const SliderThumb({required this.isSliding});
+
+  @override
+  Size getPreferredSize(bool isEnabled, bool isDiscrete) {
+    return const Size(50.0, 50.0);
+  }
+
+  @override
+  void paint(
+    PaintingContext context,
+    Offset center, {
+    required Animation<double> activationAnimation,
+    required Animation<double> enableAnimation,
+    required bool isDiscrete,
+    required TextPainter labelPainter,
+    required RenderBox parentBox,
+    required SliderThemeData sliderTheme,
+    required TextDirection textDirection,
+    required double value,
+    required double textScaleFactor,
+    required Size sizeWithOverflow,
+  }) {
+    final Canvas canvas = context.canvas;
+
+    final paint = Paint()
+      ..color = Colors.white
+      ..style = PaintingStyle.fill;
+
+    const radius = 25.0;
+    canvas.drawCircle(center, radius, paint);
+
+    // スライダーがドラッグされているときのみ矢印を表示
+    if (isSliding) {
+      final arrowPaint = Paint()
+        ..color = const Color(0xFF00008b)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2.0;
+
+      const arrowSize = 8.0;
+      final path = Path();
+      path.moveTo(center.dx - arrowSize, center.dy);
+      path.lineTo(center.dx + arrowSize, center.dy);
+      path.moveTo(center.dx + arrowSize * 0.5, center.dy - arrowSize * 0.5);
+      path.lineTo(center.dx + arrowSize, center.dy);
+      path.lineTo(center.dx + arrowSize * 0.5, center.dy + arrowSize * 0.5);
+
+      canvas.drawPath(path, arrowPaint);
+    } else {
+      // 通常時は右矢印アイコンを表示
+      final arrowPaint = Paint()
+        ..color = const Color(0xFF00008b)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2.0;
+
+      const arrowSize = 8.0;
+      final path = Path();
+      path.moveTo(center.dx - arrowSize, center.dy);
+      path.lineTo(center.dx + arrowSize, center.dy);
+      path.moveTo(center.dx + arrowSize * 0.5, center.dy - arrowSize * 0.5);
+      path.lineTo(center.dx + arrowSize, center.dy);
+      path.lineTo(center.dx + arrowSize * 0.5, center.dy + arrowSize * 0.5);
+
+      canvas.drawPath(path, arrowPaint);
+    }
   }
 }

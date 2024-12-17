@@ -5,8 +5,98 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path/path.dart' as path;
+
+// 広告ヘルパークラス
+class AdHelper {
+  // プラットフォームに応じたテスト用広告IDを返す
+  static String get interstitialAdUnitId {
+    if (Platform.isAndroid) {
+      return 'ca-app-pub-3940256099942544/1033173712'; // Androidのテスト用ID
+    } else if (Platform.isIOS) {
+      return 'ca-app-pub-3940256099942544/4411151342'; // iOSのテスト用ID
+    } else {
+      throw UnsupportedError('対応していないプラットフォームです');
+    }
+  }
+
+  // 広告SDKの初期化
+  static Future<void> initializeAds() async {
+    await MobileAds.instance.initialize();
+  }
+}
+
+// 広告管理クラス
+class AdManager {
+  InterstitialAd? _interstitialAd;
+  bool _isAdLoading = false;
+
+  // インタースティシャル広告のロード
+  Future<void> loadInterstitialAd({
+    required Function() onAdDismissed, // 広告が閉じられた時のコールバック
+    required Function(String) onError, // エラー発生時のコールバック
+  }) async {
+    if (_isAdLoading || _interstitialAd != null) return;
+
+    _isAdLoading = true;
+
+    try {
+      await InterstitialAd.load(
+        adUnitId: AdHelper.interstitialAdUnitId,
+        request: const AdRequest(),
+        adLoadCallback: InterstitialAdLoadCallback(
+          onAdLoaded: (ad) {
+            _interstitialAd = ad;
+            _isAdLoading = false;
+
+            ad.fullScreenContentCallback = FullScreenContentCallback(
+              onAdDismissedFullScreenContent: (ad) {
+                ad.dispose();
+                _interstitialAd = null;
+                onAdDismissed();
+              },
+              onAdFailedToShowFullScreenContent: (ad, error) {
+                ad.dispose();
+                _interstitialAd = null;
+                onError('広告の表示に失敗しました: ${error.message}');
+                onAdDismissed(); // エラーが発生しても次の画面に進む
+              },
+            );
+          },
+          onAdFailedToLoad: (error) {
+            _isAdLoading = false;
+            onError('広告の読み込みに失敗しました: ${error.message}');
+            onAdDismissed(); // エラーが発生しても次の画面に進む
+          },
+        ),
+      );
+    } catch (e) {
+      _isAdLoading = false;
+      onError('広告読み込み中に例外が発生しました: $e');
+      onAdDismissed(); // エラーが発生しても次の画面に進む
+    }
+  }
+
+  // 広告の表示
+  Future<void> showInterstitialAd() async {
+    if (_interstitialAd == null) return;
+
+    try {
+      await _interstitialAd!.show();
+    } catch (e) {
+      _interstitialAd?.dispose();
+      _interstitialAd = null;
+    }
+  }
+
+  // リソースの解放
+  void dispose() {
+    _interstitialAd?.dispose();
+    _interstitialAd = null;
+  }
+}
 
 // CategoryModel class
 class CategoryModel {
@@ -140,7 +230,6 @@ class _OpenChatProfileScreenState extends State<OpenChatProfileScreen> {
             backgroundFile, 'community_backgrounds');
       }
 
-      // コミュニティドキュメントの作成
       final communityRef =
           await FirebaseFirestore.instance.collection('community_list').add({
         'name': widget.communityName,
@@ -156,10 +245,8 @@ class _OpenChatProfileScreenState extends State<OpenChatProfileScreen> {
         'isActive': true,
       });
 
-      // 現在のユーザーのドキュメントを取得
       final currentUser = FirebaseAuth.instance.currentUser;
       if (currentUser != null) {
-        // ユーザーのcommunitiesサブコレクションに追加
         await FirebaseFirestore.instance
             .collection('users')
             .doc(currentUser.uid)
@@ -171,7 +258,7 @@ class _OpenChatProfileScreenState extends State<OpenChatProfileScreen> {
           'isActive': true,
           'joinedAt': FieldValue.serverTimestamp(),
           'nickname': _nameController.text.trim(),
-          'authority': 'admin', // 管理者権限を追加
+          'authority': 'admin',
         });
       }
 
@@ -456,16 +543,58 @@ class _CreateOpenChatScreenState extends State<CreateOpenChatScreen> {
   String? _error;
   File? _imageFile;
   bool _isNameValid = false;
+  InterstitialAd? _interstitialAd;
+
+  // テスト用広告ID
+  final String _adUnitId = Platform.isAndroid
+      ? 'ca-app-pub-3940256099942544/1033173712' // Androidのテスト用ID
+      : 'ca-app-pub-3940256099942544/4411151342'; // iOSのテスト用ID
 
   @override
   void initState() {
     super.initState();
     _fetchCategories();
     _nameController.addListener(_validateName);
+    _loadInterstitialAd();
+  }
+
+  void _loadInterstitialAd() {
+    InterstitialAd.load(
+      adUnitId: _adUnitId,
+      request: const AdRequest(),
+      adLoadCallback: InterstitialAdLoadCallback(
+        onAdLoaded: (ad) {
+          debugPrint('インタースティシャル広告のロード成功');
+          _interstitialAd = ad;
+          ad.fullScreenContentCallback = FullScreenContentCallback(
+            onAdDismissedFullScreenContent: (ad) {
+              debugPrint('広告が閉じられました');
+              _navigateToNext();
+              ad.dispose();
+            },
+            onAdFailedToShowFullScreenContent: (ad, error) {
+              debugPrint('広告の表示に失敗しました: $error');
+              ad.dispose();
+              _navigateToNext();
+            },
+            onAdShowedFullScreenContent: (ad) {
+              debugPrint('広告が表示されました');
+            },
+          );
+        },
+        onAdFailedToLoad: (error) {
+          debugPrint('インタースティシャル広告の読み込みに失敗: $error');
+          _interstitialAd = null;
+          // 広告の読み込みに失敗した場合は、一定時間後に再試行
+          Future.delayed(const Duration(minutes: 1), _loadInterstitialAd);
+        },
+      ),
+    );
   }
 
   @override
   void dispose() {
+    _interstitialAd?.dispose();
     _nameController.removeListener(_validateName);
     _nameController.dispose();
     _descriptionController.dispose();
@@ -590,21 +719,59 @@ class _CreateOpenChatScreenState extends State<CreateOpenChatScreen> {
     });
   }
 
-  void _navigateToNext() {
+  void _showAdAndNavigate() {
     if (_isNameValid) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => OpenChatProfileScreen(
-            backgroundImage: _imageFile?.path ?? '',
-            communityName: _nameController.text,
-            description: _descriptionController.text,
-            hashtag: _hashtagController.text,
-            selectedCategories: _selectedCategories.toList(),
+      if (_interstitialAd != null) {
+        _interstitialAd!.show().catchError((error) {
+          debugPrint('広告表示中にエラーが発生: $error');
+          _navigateToNext(); // エラー時は直接画面遷移
+        });
+      } else {
+        debugPrint('広告がロードされていないため、直接画面遷移します');
+        _loadInterstitialAd(); // 次回のために再ロード
+        _navigateToNext();
+      }
+    }
+  }
+
+  void _navigateToNext() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => OpenChatProfileScreen(
+          backgroundImage: _imageFile?.path ?? '',
+          communityName: _nameController.text,
+          description: _descriptionController.text,
+          hashtag: _hashtagController.text,
+          selectedCategories: _selectedCategories.toList(),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCategoryChip(CategoryModel category) {
+    final isSelected = _selectedCategories.contains(category);
+    return GestureDetector(
+      onTap: () => _toggleCategory(category),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected ? const Color(0xFF00008b) : Colors.white,
+          border: Border.all(
+            color: isSelected ? const Color(0xFF00008b) : Colors.grey[300]!,
+          ),
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Text(
+          category.name,
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 12,
+            color: isSelected ? Colors.white : Colors.black,
           ),
         ),
-      );
-    }
+      ),
+    );
   }
 
   @override
@@ -630,7 +797,7 @@ class _CreateOpenChatScreenState extends State<CreateOpenChatScreen> {
         ),
         actions: [
           TextButton(
-            onPressed: _isNameValid ? _navigateToNext : null,
+            onPressed: _isNameValid ? _showAdAndNavigate : null,
             child: Text(
               '次へ',
               style: TextStyle(
@@ -766,31 +933,6 @@ class _CreateOpenChatScreenState extends State<CreateOpenChatScreen> {
                     .toList(),
               ),
           ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildCategoryChip(CategoryModel category) {
-    final isSelected = _selectedCategories.contains(category);
-    return GestureDetector(
-      onTap: () => _toggleCategory(category),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFF00008b) : Colors.white,
-          border: Border.all(
-            color: isSelected ? const Color(0xFF00008b) : Colors.grey[300]!,
-          ),
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Text(
-          category.name,
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: 12,
-            color: isSelected ? Colors.white : Colors.black,
-          ),
         ),
       ),
     );

@@ -1,9 +1,14 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:parts/post_page/post_first/icon_setup.dart';
 
 class PostWelcome1 extends StatefulWidget {
-  const PostWelcome1({super.key});
+  const PostWelcome1(
+      {super.key, this.showScaffold = true // scaffoldの表示制御用パラメータを追加
+      });
 
+  final bool showScaffold;
   @override
   State<PostWelcome1> createState() => _PostWelcome1State();
 }
@@ -13,6 +18,8 @@ class _PostWelcome1State extends State<PostWelcome1>
   late AnimationController _controller;
   late Animation<double> _imageOpacity;
   late Animation<double> _textOpacity;
+  late Animation<double> _buttonOffset;
+  bool _showButtonAnimation = false;
 
   @override
   void initState() {
@@ -46,6 +53,15 @@ class _PostWelcome1State extends State<PostWelcome1>
     );
 
     _controller.forward();
+
+    // 2秒後にボタンアニメーションを開始
+    Future.delayed(const Duration(seconds: 2), () {
+      if (mounted) {
+        setState(() {
+          _showButtonAnimation = true;
+        });
+      }
+    });
   }
 
   @override
@@ -56,81 +72,88 @@ class _PostWelcome1State extends State<PostWelcome1>
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: SafeArea(
+    Widget content = SafeArea(
+      child: Center(
         child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Expanded(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.start,
-                children: [
-                  // 画像のフェードイン
-                  FadeTransition(
-                    opacity: _imageOpacity,
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 32.0),
-                      child: Image.asset(
-                        'assets/icon/jam_logo.png', // アセットに画像を追加してください
-                        height: 300,
-                      ),
-                    ),
-                  ),
-                  // テキストのフェードイン
-                  FadeTransition(
-                    opacity: _textOpacity,
-                    child: const Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 24.0),
-                      child: Text(
-                        '新機能コミュニティへようこそ！\n'
-                        '本機能ではリアルタイムな情報や\n'
-                        'ユーザ同士の交流が可能になります。\n',
-                        style: TextStyle(
-                          fontSize: 18,
-                          height: 1.5,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                    ),
-                  ),
-                ],
+            // 画像のフェードイン
+            FadeTransition(
+              opacity: _imageOpacity,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 32.0),
+                child: Image.asset(
+                  'assets/icon/jam_logo.png',
+                  height: 300,
+                ),
               ),
             ),
-            // 下部の「次へ」ボタン
-            Padding(
-              padding: const EdgeInsets.all(24.0),
-              child: SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () {
-                    // 次の画面へ遷移
-                    Navigator.of(context).pushReplacement(
-                      MaterialPageRoute(
-                        builder: (context) =>
-                            const IconSetupScreen(), // 次の画面のウィジェット
-                      ),
-                    );
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Color(0xFF00008b),
-                    padding: const EdgeInsets.symmetric(vertical: 16.0),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8.0),
-                    ),
+            // テキストのフェードイン
+            FadeTransition(
+              opacity: _textOpacity,
+              child: const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 24.0),
+                child: Text(
+                  '新機能コミュニティへようこそ！\n'
+                  '本機能ではリアルタイムな情報や\n'
+                  'ユーザ同士の交流が可能になります。\n',
+                  style: TextStyle(
+                    fontSize: 18,
+                    height: 1.5,
                   ),
-                  child: const Text(
-                    'まずは初期設定から',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            ),
+            const SizedBox(height: 40),
+            // ボタン（アニメーション付き）
+            if (_showButtonAnimation)
+              TweenAnimationBuilder<double>(
+                tween: Tween<double>(begin: 0, end: 1),
+                duration: const Duration(milliseconds: 1000),
+                builder: (context, value, child) {
+                  return Transform.translate(
+                    offset: Offset(0, sin(value * 4 * 3.14159) * 8),
+                    child: child,
+                  );
+                },
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        Navigator.of(context).pushReplacement(
+                          MaterialPageRoute(
+                            builder: (context) => const IconSetupScreen(),
+                          ),
+                        );
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF00008b),
+                        padding: const EdgeInsets.symmetric(vertical: 16.0),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8.0),
+                        ),
+                      ),
+                      child: const Text(
+                        'まずは初期設定から',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ),
                   ),
                 ),
               ),
-            ),
           ],
         ),
       ),
     );
+
+    // showScaffold が true の場合のみ Scaffold でラップ
+    return widget.showScaffold ? Scaffold(body: content) : content;
   }
 }

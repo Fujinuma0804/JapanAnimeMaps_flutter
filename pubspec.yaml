@@ -98,6 +98,7 @@ dependencies:
   youtube_player_flutter: ^8.1.2
   purchases_flutter: ^8.2.0
   table_calendar: ^3.1.2
+  qr_flutter: ^4.1.0
 #  in_app_purchase: ^3.2.0
 ##  in_app_purchase_storekit: ^0.3.18+3
 #  in_app_purchase_ios: ^0.2.0+1

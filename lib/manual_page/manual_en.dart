@@ -6,7 +6,6 @@ import 'package:flutter/material.dart';
 import 'package:parts/manual_page/usage_screen.dart';
 import 'package:settings_ui/settings_ui.dart';
 
-import '../payment/payment.dart';
 import '../setting_page/settings_en.dart';
 import '../web_page/website.dart';
 import '../web_page/website_en.dart';
@@ -148,22 +147,22 @@ class _ManualEnState extends State<ManualEn> {
                 ),
               ],
             ),
-            SettingsSection(
-              title: Text(_language == '日本語' ? '有料プラン' : 'Paid plan'),
-              tiles: <SettingsTile>[
-                SettingsTile.navigation(
-                  leading: const Icon(Icons.payment_rounded),
-                  title: Text(_language == '日本語' ? '広告を非表示にする' : 'Hide ads'),
-                  value: const Text(''),
-                  onPressed: (context) {
-                    Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (context) => PaymentScreen()));
-                  },
-                ),
-              ],
-            ),
+            // SettingsSection(
+            //   title: Text(_language == '日本語' ? '有料プラン' : 'Paid plan'),
+            //   tiles: <SettingsTile>[
+            //     SettingsTile.navigation(
+            //       leading: const Icon(Icons.payment_rounded),
+            //       title: Text(_language == '日本語' ? '広告を非表示にする' : 'Hide ads'),
+            //       value: const Text(''),
+            //       onPressed: (context) {
+            //         Navigator.push(
+            //             context,
+            //             MaterialPageRoute(
+            //                 builder: (context) => PaymentScreen()));
+            //       },
+            //     ),
+            //   ],
+            // ),
           ],
         ),
       ),
