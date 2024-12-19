@@ -22,7 +22,7 @@ class _WebsiteScreenState extends State<WebsiteScreen>
     super.initState();
     controller = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
-      ..loadRequest(Uri.parse('https://testtestaaaa.my.canva.site/home'));
+      ..loadRequest(Uri.parse('https://jam-info.com'));
 
     SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle(
       statusBarColor: Colors.transparent,
