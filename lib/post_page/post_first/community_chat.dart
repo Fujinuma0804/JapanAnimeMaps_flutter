@@ -98,10 +98,16 @@ class Message {
 
   factory Message.fromFirestore(DocumentSnapshot doc, String currentUserId) {
     final data = doc.data() as Map<String, dynamic>;
+    final timestamp = data['createdAt'];
+
     return Message(
       sender: data['userName'] ?? '',
       content: data['text'] ?? '',
-      timestamp: (data['createdAt'] as Timestamp).toDate(),
+      // timestampがnullの場合は現在時刻を使用し、
+      // Timestamp型の場合はtoDate()を使用して変換
+      timestamp: timestamp != null
+          ? (timestamp as Timestamp).toDate()
+          : DateTime.now(),
       isMe: data['userId'] == currentUserId,
       userIcon: data['iconUrl'] ?? '',
       userId: data['userId'] ?? '',
