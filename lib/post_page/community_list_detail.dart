@@ -82,18 +82,19 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen> {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-          centerTitle: true, // これを追加
-          title: const Text(
-            'コミュニティ',
-            style: TextStyle(
-              color: Color(0xFF00008b),
-              fontWeight: FontWeight.bold,
-            ),
+        centerTitle: true, // これを追加
+        title: const Text(
+          'コミュニティ',
+          style: TextStyle(
+            color: Color(0xFF00008b),
+            fontWeight: FontWeight.bold,
           ),
-          backgroundColor: Colors.white,
-          elevation: 0,
-          iconTheme: const IconThemeData(color: Color(0xFF00008b)),
-          actions: [
+        ),
+        backgroundColor: Colors.white,
+        elevation: 0,
+        iconTheme: const IconThemeData(color: Color(0xFF00008b)),
+        actions: [
+          if (widget.community['official'] == true) // officialがtrueの場合のみ表示
             IconButton(
               onPressed: () {},
               icon: const Icon(
@@ -101,38 +102,39 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen> {
                 color: Color(0xFF00008b),
               ),
             ),
-            PopupMenuButton(
-              onSelected: (value) {
-                if (value == 'report') {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => ReportCommunityPage(
-                        communityId: widget.community['id'],
-                        communityName: widget.community['name'],
-                      ),
+          PopupMenuButton(
+            onSelected: (value) {
+              if (value == 'report') {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => ReportCommunityPage(
+                      communityId: widget.community['id'],
+                      communityName: widget.community['name'],
                     ),
-                  );
-                }
-              },
-              itemBuilder: (context) => [
-                PopupMenuItem(
-                  value: 'report',
-                  child: Row(
-                    children: const [
-                      Icon(Icons.report_problem),
-                      SizedBox(width: 8),
-                      Text('このコミュニティを通報する'),
-                    ],
                   ),
+                );
+              }
+            },
+            itemBuilder: (context) => [
+              PopupMenuItem(
+                value: 'report',
+                child: Row(
+                  children: const [
+                    Icon(Icons.report_problem),
+                    SizedBox(width: 8),
+                    Text('このコミュニティを通報する'),
+                  ],
                 ),
-              ],
-              icon: const Icon(
-                Icons.more_vert,
-                color: Color(0xFF00008b),
               ),
-            )
-          ]),
+            ],
+            icon: const Icon(
+              Icons.more_vert,
+              color: Color(0xFF00008b),
+            ),
+          ),
+        ],
+      ),
       body: SafeArea(
         child: Stack(
           children: [

@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:parts/post_page/community_list_detail.dart';
 import 'package:parts/post_page/post_first/community_chat_settings.dart';
+import 'package:parts/src/bottomnavigationbar.dart';
 
 // Community model
 class Community {
@@ -239,6 +240,20 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
           ),
         ),
         backgroundColor: Colors.white,
+        leading: IconButton(
+          onPressed: () {
+            Navigator.push(
+                context,
+                MaterialPageRoute(
+                    builder: (context) => MainScreen(
+                          initalIndex: 3,
+                        )));
+          },
+          icon: Icon(
+            Icons.arrow_back_ios,
+            color: Color(0xFF00008b),
+          ),
+        ),
         actions: [
           Row(
             children: [

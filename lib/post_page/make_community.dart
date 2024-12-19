@@ -7,6 +7,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:parts/post_page/post_first/community_chat.dart';
 import 'package:path/path.dart' as path;
 
 // 広告ヘルパークラス
@@ -241,7 +242,7 @@ class _OpenChatProfileScreenState extends State<OpenChatProfileScreen> {
         'backgroundImageUrl': backgroundImageUrl,
         'createdAt': FieldValue.serverTimestamp(),
         'updateAt': FieldValue.serverTimestamp(),
-        'memberCount': 0,
+        'memberCount': 1,
         'isActive': true,
       });
 
@@ -263,7 +264,16 @@ class _OpenChatProfileScreenState extends State<OpenChatProfileScreen> {
       }
 
       if (mounted) {
-        Navigator.of(context).pop();
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => GroupChatScreen(
+              roomName: widget.communityName,
+              communityId: communityRef.id,
+              participantCount: 1, // 新規作成なので初期値は0
+            ),
+          ),
+        );
       }
     } catch (e) {
       if (mounted) {

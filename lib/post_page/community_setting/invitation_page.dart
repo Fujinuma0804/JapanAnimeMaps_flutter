@@ -42,20 +42,22 @@ class _InvitationPageState extends State<InvitationPage> {
 
   Future<void> _getOrGenerateInvitationCode() async {
     try {
-      final docRef = _firestore.collection('codes').doc(widget.communityId);
+      // community_list コレクションから該当のコミュニティドキュメントを参照
+      final docRef =
+          _firestore.collection('community_list').doc(widget.communityId);
       final docSnapshot = await docRef.get();
 
-      if (docSnapshot.exists && docSnapshot.data()?['code'] != null) {
+      if (docSnapshot.exists && docSnapshot.data()?['invitationCode'] != null) {
         setState(() {
-          invitationCode = docSnapshot.data()!['code'];
+          invitationCode = docSnapshot.data()!['invitationCode'];
         });
       } else {
         String newCode = _generateCode();
-        await docRef.set({
-          'code': newCode,
-          'createdAt': FieldValue.serverTimestamp(),
-          'isActive': true,
-          'communityId': widget.communityId,
+        // コミュニティドキュメントを更新
+        await docRef.update({
+          'invitationCode': newCode,
+          'invitationCodeCreatedAt': FieldValue.serverTimestamp(),
+          'invitationCodeIsActive': true,
         });
         setState(() {
           invitationCode = newCode;

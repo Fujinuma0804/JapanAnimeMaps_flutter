@@ -1,7 +1,9 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:parts/post_page/community_list_detail.dart';
 import 'package:qr_code_scanner/qr_code_scanner.dart';
 
 class QRScannerPage extends StatefulWidget {
@@ -16,7 +18,6 @@ class _QRScannerPageState extends State<QRScannerPage> {
   QRViewController? controller;
   bool isProcessing = false;
 
-  // Hot Reload時の処理のために必要
   @override
   void reassemble() {
     super.reassemble();
@@ -27,44 +28,85 @@ class _QRScannerPageState extends State<QRScannerPage> {
     }
   }
 
-  void _handleScannedData(String scannedData) {
+  Future<Map<String, dynamic>?> _fetchCommunityData(String inviteCode) async {
+    try {
+      // Firebaseのcommunity_listコレクションを参照
+      final QuerySnapshot querySnapshot = await FirebaseFirestore.instance
+          .collection('community_list')
+          .where('invitationCode', isEqualTo: inviteCode)
+          .limit(1)
+          .get();
+
+      if (querySnapshot.docs.isEmpty) {
+        return null;
+      }
+
+      // ドキュメントのデータを取得
+      return querySnapshot.docs.first.data() as Map<String, dynamic>;
+    } catch (e) {
+      print('Error fetching community data: $e');
+      return null;
+    }
+  }
+
+  void _handleScannedData(String scannedData) async {
     if (isProcessing) return;
 
     try {
       isProcessing = true;
       final Map<String, dynamic> data = json.decode(scannedData);
 
-      // 招待データの検証
       if (data['type'] == 'invitation' && data['app'] == 'partsbox') {
         final inviteCode = data['code'];
 
-        // スキャン成功時のフィードバック
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('招待コード: $inviteCode を読み取りました'),
-            backgroundColor: Colors.green,
-          ),
-        );
+        // Firebaseからコミュニティデータを取得
+        final communityData = await _fetchCommunityData(inviteCode);
 
-        // スキャン画面を閉じて前の画面に戻る
-        Navigator.pop(context, inviteCode);
+        if (communityData != null) {
+          if (!mounted) return;
+
+          // スキャン成功時のフィードバック
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('コミュニティが見つかりました: ${communityData['name']}'),
+              backgroundColor: Colors.green,
+            ),
+          );
+
+          // 取得したコミュニティデータを使用してCommunityDetailScreenへ遷移
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (context) => CommunityDetailScreen(
+                community: communityData,
+              ),
+            ),
+          );
+        } else {
+          if (!mounted) return;
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('無効な招待コードです'),
+              backgroundColor: Colors.red,
+            ),
+          );
+          _resetProcessingState();
+        }
       } else {
+        if (!mounted) return;
+
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('無効なQRコードです'),
             backgroundColor: Colors.red,
           ),
         );
-        // 1秒後に再スキャンを有効にする
-        Future.delayed(const Duration(seconds: 1), () {
-          if (mounted) {
-            setState(() {
-              isProcessing = false;
-            });
-          }
-        });
+        _resetProcessingState();
       }
     } catch (e) {
+      if (!mounted) return;
+
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('QRコードの読み取りに失敗しました'),
@@ -72,15 +114,18 @@ class _QRScannerPageState extends State<QRScannerPage> {
         ),
       );
       print('Error processing QR code data: $e');
-      // 1秒後に再スキャンを有効にする
-      Future.delayed(const Duration(seconds: 1), () {
-        if (mounted) {
-          setState(() {
-            isProcessing = false;
-          });
-        }
-      });
+      _resetProcessingState();
     }
+  }
+
+  void _resetProcessingState() {
+    Future.delayed(const Duration(seconds: 1), () {
+      if (mounted) {
+        setState(() {
+          isProcessing = false;
+        });
+      }
+    });
   }
 
   void _onQRViewCreated(QRViewController controller) {
@@ -111,7 +156,6 @@ class _QRScannerPageState extends State<QRScannerPage> {
           ),
         ),
         actions: [
-          // ライトの切り替えボタン
           IconButton(
             icon: const Icon(
               Icons.flash_on,
@@ -121,7 +165,6 @@ class _QRScannerPageState extends State<QRScannerPage> {
               await controller?.toggleFlash();
             },
           ),
-          // カメラ切り替えボタン
           IconButton(
             icon: const Icon(
               Icons.cameraswitch,
@@ -150,7 +193,6 @@ class _QRScannerPageState extends State<QRScannerPage> {
                     cutOutSize: 250,
                   ),
                 ),
-                // 追加のガイド表示（オプション）
                 Positioned(
                   bottom: 50,
                   child: Container(

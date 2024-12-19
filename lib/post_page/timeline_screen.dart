@@ -6,7 +6,6 @@ import 'package:parts/post_page/community_list_screen.dart';
 import 'package:parts/post_page/community_setting/community_scanner.dart';
 import 'package:parts/post_page/make_community.dart';
 import 'package:parts/post_page/post_first/community_chat.dart';
-import 'package:parts/post_page/post_mypage.dart';
 import 'package:parts/post_page/post_screen.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:vibration/vibration.dart';
@@ -302,7 +301,7 @@ class _TimelineScreenState extends State<TimelineScreen>
             ),
             SliverToBoxAdapter(
               child: SizedBox(
-                height: 320,
+                height: 500,
                 child: StreamBuilder<QuerySnapshot>(
                   stream: FirebaseFirestore.instance
                       .collection('users')
@@ -415,7 +414,7 @@ class _TimelineScreenState extends State<TimelineScreen>
                                           communityData['name'] ?? '不明なコミュニティ',
                                       communityId: community.id,
                                       participantCount:
-                                          communityData['memberCount'] ?? 0,
+                                          communityData['memberCount'] ?? 1,
                                     ),
                                   ),
                                 );
@@ -429,31 +428,31 @@ class _TimelineScreenState extends State<TimelineScreen>
                 ),
               ),
             ),
-            const SliverToBoxAdapter(child: Divider()),
-            const SliverToBoxAdapter(
-              child: Padding(
-                padding: EdgeInsets.only(left: 16.0, top: 8.0),
-                child: Text(
-                  'その他',
-                  style: TextStyle(
-                    color: Colors.grey,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-            ),
-            const SliverToBoxAdapter(
-              child: ListTile(
-                leading: Icon(Icons.settings),
-                title: Text('コミュニティ設定'),
-              ),
-            ),
-            const SliverToBoxAdapter(
-              child: ListTile(
-                leading: Icon(Icons.help),
-                title: Text('ヘルプ'),
-              ),
-            ),
+            // const SliverToBoxAdapter(child: Divider()),
+            // const SliverToBoxAdapter(
+            //   child: Padding(
+            //     padding: EdgeInsets.only(left: 16.0, top: 8.0),
+            //     child: Text(
+            //       'その他',
+            //       style: TextStyle(
+            //         color: Colors.grey,
+            //         fontWeight: FontWeight.bold,
+            //       ),
+            //     ),
+            //   ),
+            // ),
+            // const SliverToBoxAdapter(
+            //   child: ListTile(
+            //     leading: Icon(Icons.settings),
+            //     title: Text('コミュニティ設定'),
+            //   ),
+            // ),
+            // const SliverToBoxAdapter(
+            //   child: ListTile(
+            //     leading: Icon(Icons.help),
+            //     title: Text('ヘルプ'),
+            //   ),
+            // ),
           ],
         ),
       ),
@@ -503,25 +502,25 @@ class _TimelineScreenState extends State<TimelineScreen>
                         : null,
                   ),
                   onPressed: () {
-                    Navigator.of(context).push<void>(
-                      MaterialPageRoute(
-                        builder: (context) => ProfilePage(),
-                      ),
-                    );
+                    // Navigator.of(context).push<void>(
+                    //   MaterialPageRoute(
+                    //     builder: (context) => ProfilePage(),
+                    //   ),
+                    // );
                   },
                 );
               },
             ),
           ],
-          leading: IconButton(
-            icon: const Icon(
-              Icons.settings_outlined,
-              color: Color(0xFF00008b),
-            ),
-            onPressed: () {
-              _scaffoldKey.currentState?.openDrawer();
-            },
-          ),
+          // leading: IconButton(
+          //   icon: const Icon(
+          //     Icons.settings_outlined,
+          //     color: Color(0xFF00008b),
+          //   ),
+          //   onPressed: () {
+          //     _scaffoldKey.currentState?.openDrawer();
+          //   },
+          // ),
           bottom: TabBar(
             controller: _tabController,
             tabs: const [
@@ -866,7 +865,7 @@ class _TimelineScreenState extends State<TimelineScreen>
                                                           const SizedBox(
                                                               width: 4),
                                                           Text(
-                                                            '${communityData['memberCount'] ?? 0}人が参加中',
+                                                            '${communityData['memberCount'] ?? 1}人が参加中',
                                                             style: TextStyle(
                                                               color: Colors
                                                                   .grey[600],
