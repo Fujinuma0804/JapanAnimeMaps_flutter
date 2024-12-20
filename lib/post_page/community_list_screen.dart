@@ -39,14 +39,19 @@ class _CommunityListScreenState extends State<CommunityListScreen> {
   }
 
   // 検索条件に合致するかどうかをチェックする関数
+  // 検索条件に合致するかどうかをチェックする関数
   bool _matchesSearch(Map<String, dynamic> data) {
     if (_searchQuery.isEmpty) return true;
 
     final searchLower = _searchQuery.toLowerCase();
     final name = (data['name'] ?? '').toString().toLowerCase();
     final hashtag = (data['hashtag'] ?? '').toString().toLowerCase();
+    final invitationCode =
+        (data['invitationCode'] ?? '').toString().toLowerCase();
 
-    return name.contains(searchLower) || hashtag.contains(searchLower);
+    return name.contains(searchLower) ||
+        hashtag.contains(searchLower) ||
+        invitationCode.contains(searchLower);
   }
 
   @override
@@ -148,13 +153,13 @@ class _CommunityListScreenState extends State<CommunityListScreen> {
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Icon(
-                              Icons.group_off,
+                              Icons.search_off,
                               size: 64,
                               color: Colors.grey[400],
                             ),
                             const SizedBox(height: 16),
                             Text(
-                              'コミュニティが見つかりません\n新しいコミュニティを作成してみましょう！',
+                              '「$_searchQuery」に一致する結果が見つかりません\n(コミュニティ名、ハッシュタグ、招待コードで検索できます)',
                               textAlign: TextAlign.center,
                               style: TextStyle(
                                 color: Colors.grey[600],
