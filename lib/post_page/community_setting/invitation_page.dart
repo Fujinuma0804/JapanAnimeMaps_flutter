@@ -81,9 +81,19 @@ class _InvitationPageState extends State<InvitationPage> {
       final file = File('${tempDir.path}/invitation.png');
       await file.writeAsBytes(byteData.buffer.asUint8List());
 
+      // シェアするテキストを更新
+      final shareText = '''PartsBoxの招待コード
+
+招待コード: ${invitationCode}
+
+アプリをダウンロードして招待コードをスキャンか入力しよう！！
+
+素晴らしい聖地巡礼はこちら：
+https://japananimemaps.page.link/ios''';
+
       await Share.shareXFiles(
         [XFile(file.path)],
-        text: 'PartsBoxの招待コード',
+        text: shareText,
         subject: 'PartsBoxへの招待',
       );
     } catch (e) {
@@ -203,7 +213,7 @@ class _InvitationPageState extends State<InvitationPage> {
                 width: double.infinity,
                 child: TextButton.icon(
                   onPressed: _shareInvitationCode,
-                  icon: const Icon(Icons.share),
+                  icon: const Icon(Icons.ios_share),
                   label: const Text('招待コードをシェア'),
                   style: TextButton.styleFrom(
                     foregroundColor: Colors.white,
