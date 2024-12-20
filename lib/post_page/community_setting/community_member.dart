@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:parts/post_page/community_setting/community_user_report.dart';
 
 class MemberInfoWidget extends StatelessWidget {
   final String communityId;
@@ -24,7 +25,6 @@ class MemberInfoWidget extends StatelessWidget {
         ),
       ),
       body: FutureBuilder<bool>(
-        // コミュニティの存在確認
         future: _validateCommunity(communityId),
         builder: (context, validateSnapshot) {
           if (validateSnapshot.connectionState == ConnectionState.waiting) {
@@ -100,7 +100,6 @@ class MemberInfoWidget extends StatelessWidget {
     );
   }
 
-  // コミュニティの存在確認
   Future<bool> _validateCommunity(String communityId) async {
     try {
       final doc = await FirebaseFirestore.instance
@@ -114,7 +113,6 @@ class MemberInfoWidget extends StatelessWidget {
     }
   }
 
-  // エラー表示用ウィジェット
   Widget _buildErrorWidget(
     BuildContext context,
     String message,
@@ -168,7 +166,6 @@ class MemberInfoWidget extends StatelessWidget {
     );
   }
 
-  // メンバーリスト表示用ウィジェット
   Widget _buildMemberList(List<QueryDocumentSnapshot> members) {
     return ListView.builder(
       padding: const EdgeInsets.all(16),
@@ -176,10 +173,10 @@ class MemberInfoWidget extends StatelessWidget {
       itemBuilder: (context, index) {
         final memberData = members[index].data() as Map<String, dynamic>;
 
-        // null チェックを追加
         final nickname = memberData['nickname'] as String? ?? '名前なし';
         final iconUrl = memberData['iconUrl'] as String?;
         final authority = memberData['authority'] as String?;
+        final isAdmin = authority == 'admin'; // adminかどうかのチェック
 
         return Card(
           elevation: 2,
@@ -191,21 +188,42 @@ class MemberInfoWidget extends StatelessWidget {
             padding: const EdgeInsets.all(12.0),
             child: Row(
               children: [
-                CircleAvatar(
-                  radius: 25,
-                  backgroundColor: Colors.grey[200],
-                  backgroundImage:
-                      iconUrl != null ? NetworkImage(iconUrl) : null,
-                  onBackgroundImageError: (exception, stackTrace) {
-                    print('Error loading image: $exception');
-                  },
-                  child: iconUrl == null
-                      ? const Icon(
-                          Icons.person,
-                          size: 25,
-                          color: Colors.grey,
-                        )
-                      : null,
+                Stack(
+                  children: [
+                    CircleAvatar(
+                      radius: 25,
+                      backgroundColor: Colors.grey[200],
+                      backgroundImage:
+                          iconUrl != null ? NetworkImage(iconUrl) : null,
+                      onBackgroundImageError: (exception, stackTrace) {
+                        print('Error loading image: $exception');
+                      },
+                      child: iconUrl == null
+                          ? const Icon(
+                              Icons.person,
+                              size: 25,
+                              color: Colors.grey,
+                            )
+                          : null,
+                    ),
+                    if (isAdmin)
+                      Positioned(
+                        right: 0,
+                        bottom: 0,
+                        child: Container(
+                          padding: const EdgeInsets.all(2),
+                          decoration: const BoxDecoration(
+                            color: Colors.white,
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.admin_panel_settings,
+                            size: 16,
+                            color: Colors.blue,
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
                 const SizedBox(width: 16),
                 Expanded(
@@ -231,6 +249,19 @@ class MemberInfoWidget extends StatelessWidget {
                       ],
                     ],
                   ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.more_vert),
+                  onPressed: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (context) => CommunityReport(
+                          communityId: communityId,
+                          nickname: nickname,
+                        ),
+                      ),
+                    );
+                  },
                 ),
               ],
             ),

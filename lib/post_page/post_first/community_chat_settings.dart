@@ -39,13 +39,13 @@ class MenuScreen extends StatelessWidget {
     ),
   ];
 
-  final List<MenuOption> listMenuOptions = const [
-    MenuOption(
-      icon: Icons.settings,
-      title: '設定',
-      color: Colors.grey,
-    ),
-  ];
+  // final List<MenuOption> listMenuOptions = const [
+  //   MenuOption(
+  //     icon: Icons.settings,
+  //     title: '設定',
+  //     color: Colors.grey,
+  //   ),
+  // ];
 
   @override
   Widget build(BuildContext context) {
@@ -87,21 +87,22 @@ class MenuScreen extends StatelessWidget {
                 },
               ),
             ),
-            Divider(height: 1),
-            Expanded(
-              child: ListView.builder(
-                padding: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-                itemCount: listMenuOptions.length,
-                itemBuilder: (context, index) {
-                  final option = listMenuOptions[index];
-                  return _buildListItem(
-                    context,
-                    option,
-                    () => _handleListOptionTap(context, index),
-                  );
-                },
-              ),
-            ),
+            //以下は設定画面を追加する場合に記入
+            // Divider(height: 1),
+            // Expanded(
+            //   child: ListView.builder(
+            //     padding: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+            //     itemCount: listMenuOptions.length,
+            //     itemBuilder: (context, index) {
+            //       final option = listMenuOptions[index];
+            //       return _buildListItem(
+            //         context,
+            //         option,
+            //         () => _handleListOptionTap(context, index),
+            //       );
+            //     },
+            //   ),
+            // ),
           ],
         ),
       ),
