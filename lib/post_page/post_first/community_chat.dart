@@ -238,23 +238,27 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
   }
 
   Future<void> _checkAndCreateDateMessage(DateTime messageDate) async {
+    // 日付が変わったか、または最初のメッセージの場合のみチェック
     if (_lastMessageDate == null ||
         !isSameDay(_lastMessageDate!, messageDate)) {
-      // 日付が変わった場合のみシステムメッセージを作成
       final newDate =
           DateTime(messageDate.year, messageDate.month, messageDate.day);
 
-      // その日の最初のメッセージかチェック
+      // その日の最初のメッセージかどうかを確認
       final previousMessages = await _firestore
           .collection('community_list')
           .doc(widget.communityId)
           .collection('chat')
           .where('createdAt',
               isGreaterThanOrEqualTo: Timestamp.fromDate(newDate))
-          .limit(1)
+          .where('createdAt',
+              isLessThan:
+                  Timestamp.fromDate(newDate.add(const Duration(days: 1))))
+          .orderBy('createdAt')
           .get();
 
-      if (previousMessages.docs.isEmpty || _isFirstMessage) {
+      // その日の最初のメッセージの場合のみ日付メッセージを追加
+      if (previousMessages.docs.isEmpty) {
         await _firestore
             .collection('community_list')
             .doc(widget.communityId)
@@ -270,7 +274,6 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
       }
 
       _lastMessageDate = messageDate;
-      _isFirstMessage = false;
     }
   }
 

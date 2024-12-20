@@ -205,7 +205,7 @@ class _EventsScreenState extends State<EventsScreen> {
                         ),
                         SizedBox(height: 8),
                         Text(
-                          'チャットで /YYYYMMDD を入力して\n予定を追加できます',
+                          'チャットで /YYYYMMDD を入力して\n予定を追加できます\n予定についてはメンバー全員に公開されます。',
                           style: TextStyle(
                             color: Colors.grey,
                             fontSize: 14,
