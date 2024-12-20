@@ -725,11 +725,19 @@ class _TimelineScreenState extends State<TimelineScreen>
                                       (communityData['hashtag'] as String? ??
                                               '')
                                           .toLowerCase();
-                                  final bool matchesSearch = communityName
-                                          .contains(
-                                              _searchQuery.toLowerCase()) ||
-                                      hashtag
-                                          .contains(_searchQuery.toLowerCase());
+                                  final String invitationCode =
+                                      (communityData['invitationCode']
+                                                  as String? ??
+                                              '')
+                                          .toLowerCase();
+
+                                  final searchQuery =
+                                      _searchQuery.toLowerCase();
+                                  final bool matchesSearch =
+                                      communityName.contains(searchQuery) ||
+                                          hashtag.contains(searchQuery) ||
+                                          invitationCode.contains(searchQuery);
+
                                   return isActive && matchesSearch;
                                 }).toList();
 
@@ -745,7 +753,7 @@ class _TimelineScreenState extends State<TimelineScreen>
                                         Text(
                                           _searchQuery.isEmpty
                                               ? 'アクティブなコミュニティがありません'
-                                              : '「$_searchQuery」に一致するコミュニティが見つかりません',
+                                              : '「$_searchQuery」に一致するコミュニティが見つかりません\n(コミュニティ名、ハッシュタグ、招待コードで検索できます)',
                                           textAlign: TextAlign.center,
                                           style: const TextStyle(
                                             color: Colors.grey,
