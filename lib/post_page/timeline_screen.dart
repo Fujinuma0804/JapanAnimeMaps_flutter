@@ -7,6 +7,7 @@ import 'package:parts/post_page/community_setting/community_scanner.dart';
 import 'package:parts/post_page/make_community.dart';
 import 'package:parts/post_page/post_first/community_chat.dart';
 import 'package:parts/post_page/post_screen.dart';
+import 'package:parts/post_page/report_posts_page.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:vibration/vibration.dart';
 
@@ -1392,9 +1393,48 @@ class PostCard extends StatelessWidget {
                             onPressed: _toggleBookmark,
                           ),
                           IconButton(
-                            icon: const Icon(Icons.share_outlined),
+                            icon: const Icon(Icons.ios_share),
                             color: Colors.grey,
                             onPressed: () => _shareContent(context),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.more_vert),
+                            color: Colors.grey,
+                            onPressed: () {
+                              // ここにmoreボタンの処理を追加
+                              showModalBottomSheet(
+                                context: context,
+                                builder: (BuildContext context) {
+                                  return Container(
+                                    padding: const EdgeInsets.symmetric(
+                                        vertical: 20),
+                                    child: Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        ListTile(
+                                          leading: const Icon(Icons.flag),
+                                          title: const Text('投稿を報告'),
+                                          onTap: () {
+                                            Navigator.pop(context);
+                                            // 報告機能の処理を追加
+                                            Navigator.push(
+                                              context,
+                                              MaterialPageRoute(
+                                                builder: (context) =>
+                                                    ReportPostsPage(
+                                                  communityId: '',
+                                                  userHandle: '',
+                                                ),
+                                              ),
+                                            );
+                                          },
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                },
+                              );
+                            },
                           ),
                         ],
                       ),
