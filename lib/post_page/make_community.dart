@@ -231,6 +231,12 @@ class _OpenChatProfileScreenState extends State<OpenChatProfileScreen> {
             backgroundFile, 'community_backgrounds');
       }
 
+      final currentUser = FirebaseAuth.instance.currentUser;
+      if (currentUser == null) {
+        throw Exception('ユーザーが見つかりません');
+      }
+
+      // コミュニティのメインドキュメントを作成
       final communityRef =
           await FirebaseFirestore.instance.collection('community_list').add({
         'name': widget.communityName,
@@ -246,22 +252,40 @@ class _OpenChatProfileScreenState extends State<OpenChatProfileScreen> {
         'isActive': true,
       });
 
-      final currentUser = FirebaseAuth.instance.currentUser;
-      if (currentUser != null) {
-        await FirebaseFirestore.instance
-            .collection('users')
-            .doc(currentUser.uid)
-            .collection('communities')
-            .doc(communityRef.id)
-            .set({
-          'communityName': widget.communityName,
-          'iconUrl': iconImageUrl,
-          'isActive': true,
-          'joinedAt': FieldValue.serverTimestamp(),
-          'nickname': _nameController.text.trim(),
-          'authority': 'admin',
-        });
-      }
+      // Firestoreのバッチ処理を作成
+      final batch = FirebaseFirestore.instance.batch();
+
+      // ユーザーのコミュニティ参加情報を追加
+      final userCommunityRef = FirebaseFirestore.instance
+          .collection('users')
+          .doc(currentUser.uid)
+          .collection('communities')
+          .doc(communityRef.id);
+
+      batch.set(userCommunityRef, {
+        'communityName': widget.communityName,
+        'iconUrl': iconImageUrl,
+        'isActive': true,
+        'joinedAt': FieldValue.serverTimestamp(),
+        'nickname': _nameController.text.trim(),
+        'authority': 'admin',
+      });
+
+      // コミュニティのadd_memberサブコレクションにadminユーザーを追加
+      final addMemberRef =
+          communityRef.collection('add_member').doc(currentUser.uid);
+
+      batch.set(addMemberRef, {
+        'uid': currentUser.uid,
+        'nickname': _nameController.text.trim(),
+        'iconUrl': iconImageUrl,
+        'authority': 'admin',
+        'isActive': true,
+        'joinedAt': FieldValue.serverTimestamp(),
+      });
+
+      // バッチ処理を実行
+      await batch.commit();
 
       if (mounted) {
         Navigator.push(
@@ -270,7 +294,7 @@ class _OpenChatProfileScreenState extends State<OpenChatProfileScreen> {
             builder: (context) => GroupChatScreen(
               roomName: widget.communityName,
               communityId: communityRef.id,
-              participantCount: 1, // 新規作成なので初期値は0
+              participantCount: 1,
             ),
           ),
         );
