@@ -633,7 +633,8 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
       children: [
         if (_selectedDate != null)
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            padding: const EdgeInsets.symmetric(
+                horizontal: 16, vertical: 4), // 縦パディングを8から4に減少
             color: Colors.blue.withOpacity(0.1),
             child: Row(
               children: [
@@ -646,6 +647,8 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                 Spacer(),
                 IconButton(
                   icon: Icon(Icons.close, size: 16, color: Colors.blue),
+                  padding: EdgeInsets.zero, // パディングを削除
+                  constraints: BoxConstraints(), // 制約を最小化
                   onPressed: () {
                     setState(() {
                       _selectedDate = null;
@@ -656,7 +659,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
             ),
           ),
         Container(
-          padding: const EdgeInsets.all(8.0),
+          padding: const EdgeInsets.fromLTRB(8, 4, 8, 25),
           decoration: BoxDecoration(
             color: Colors.white,
             boxShadow: [
@@ -682,8 +685,9 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                     fillColor: Colors.grey[200],
                     contentPadding: const EdgeInsets.symmetric(
                       horizontal: 16,
-                      vertical: 8,
+                      vertical: 6, // 縦パディングを8から6に減少
                     ),
+                    isDense: true, // テキストフィールドをよりコンパクトに
                   ),
                   onChanged: _handleMessageInput,
                 ),
