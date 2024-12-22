@@ -3,12 +3,12 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_vibrate/flutter_vibrate.dart';
 import 'package:parts/post_page/timeline_screen.dart';
+import 'package:parts/shop/shop_welcome/delivery_info_form.dart';
 
 import '../map_page/map.dart';
 import '../map_page/map_en.dart';
 import '../point_page/point_update.dart';
 import '../post_page/post_first/post_welcome.dart';
-import '../ranking/ranking_top.dart';
 import '../ranking/ranking_top_en.dart';
 import '../spot_page/anime_list_ranking_en.dart';
 import '../spot_page/anime_list_test_ranking.dart';
@@ -171,7 +171,7 @@ class _MainScreenState extends State<MainScreen> {
                   ? AnimeListTestRanking()
                   : AnimeListTestRankingEng(),
               _userLanguage == 'Japanese'
-                  ? RankingTopPage()
+                  ? DeliveryInfoForm()
                   : RankingTopPageEn(),
               _userLanguage == 'Japanese'
                   ? MapScreen(latitude: _latitude, longitude: _longitude)
@@ -237,8 +237,8 @@ class CustomBottomNavigationBar extends StatelessWidget {
           label: language == 'Japanese' ? 'スポット' : 'Spot',
         ),
         BottomNavigationBarItem(
-          icon: Icon(Icons.movie_creation_outlined),
-          label: language == 'Japanese' ? 'ジャンル' : 'Official Site',
+          icon: Icon(Icons.shopping_cart_sharp),
+          label: language == 'Japanese' ? 'ショップ' : 'Shop',
         ),
         BottomNavigationBarItem(
           icon: Icon(Icons.map),
@@ -249,7 +249,7 @@ class CustomBottomNavigationBar extends StatelessWidget {
           label: language == 'Japanese' ? 'コミュニティ' : 'Other',
         ),
         BottomNavigationBarItem(
-          icon: Icon(Icons.monetization_on),
+          icon: Icon(Icons.settings_outlined),
           label: language == 'Japanese' ? 'その他' : 'Other',
         ),
       ],
