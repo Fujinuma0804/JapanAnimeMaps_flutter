@@ -111,107 +111,122 @@ class _ProductListScreenState extends State<ProductListScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.grey[100],
-      appBar: AppBar(
-        title: const Text(
-          'ショップ',
-          style: TextStyle(
-            color: Color(0xFF00008b),
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        backgroundColor: Colors.white,
-        elevation: 0,
-        actions: [
-          Row(
-            children: [
-              IconButton(
-                icon: const Icon(
-                  Icons.favorite_border,
+      body: NestedScrollView(
+        headerSliverBuilder: (context, innerBoxIsScrolled) {
+          return [
+            SliverAppBar(
+              title: const Text(
+                'ショップ',
+                style: TextStyle(
                   color: Color(0xFF00008b),
+                  fontWeight: FontWeight.bold,
                 ),
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => FavoritesScreen(
-                        favorites: _favorites,
-                        onToggleFavorite: _toggleFavorite,
+              ),
+              backgroundColor: Colors.white,
+              elevation: 0,
+              floating: true,
+              snap: true,
+              actions: [
+                Row(
+                  children: [
+                    IconButton(
+                      icon: const Icon(
+                        Icons.favorite_border,
+                        color: Color(0xFF00008b),
                       ),
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => FavoritesScreen(
+                              favorites: _favorites,
+                              onToggleFavorite: _toggleFavorite,
+                            ),
+                          ),
+                        );
+                      },
                     ),
-                  );
-                },
-              ),
-              IconButton(
-                icon: const Icon(
-                  Icons.monetization_on_outlined,
-                  color: Color(0xFF00008b),
+                    IconButton(
+                      icon: const Icon(
+                        Icons.monetization_on_outlined,
+                        color: Color(0xFF00008b),
+                      ),
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => CoinChargingScreen(),
+                          ),
+                        );
+                      },
+                    ),
+                  ],
                 ),
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => CoinChargingScreen(),
+              ],
+            ),
+            SliverPersistentHeader(
+              pinned: false,
+              floating: true,
+              delegate: _SliverAppBarDelegate(
+                minHeight: 0,
+                maxHeight: 140,
+                child: Container(
+                  color: Colors.grey[100],
+                  child: Column(
+                    children: [
+                      _buildSearchBar(),
+                      _buildCategoryFilter(),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ];
+        },
+        body: StreamBuilder<List<Product>>(
+          stream: _productsStream,
+          builder: (context, snapshot) {
+            if (snapshot.hasError) {
+              return Center(child: Text('エラーが発生しました: ${snapshot.error}'));
+            }
+
+            if (!snapshot.hasData) {
+              return const Center(child: CircularProgressIndicator());
+            }
+
+            final filteredProducts = _filterProducts(snapshot.data!);
+
+            return RefreshIndicator(
+              onRefresh: () async {
+                setState(() {
+                  _initializeProductsStream();
+                });
+              },
+              child: GridView.builder(
+                padding: const EdgeInsets.all(16),
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 3,
+                  childAspectRatio: 0.65,
+                  crossAxisSpacing: 12,
+                  mainAxisSpacing: 12,
+                ),
+                itemCount: filteredProducts.length,
+                itemBuilder: (context, index) {
+                  final product = filteredProducts[index];
+                  return KeyedSubtree(
+                    key: ValueKey(product.id),
+                    child: ProductCard(
+                      product: product,
+                      isFavorite: _favorites.contains(product.id),
+                      onFavoritePressed: () => _toggleFavorite(product.id),
+                      onAddToCart: () => _addToCart(product),
                     ),
                   );
                 },
               ),
-            ],
-          ),
-        ],
-      ),
-      body: Column(
-        children: [
-          _buildSearchBar(),
-          _buildCategoryFilter(),
-          Expanded(
-            child: StreamBuilder<List<Product>>(
-              stream: _productsStream,
-              builder: (context, snapshot) {
-                if (snapshot.hasError) {
-                  return Center(child: Text('エラーが発生しました: ${snapshot.error}'));
-                }
-
-                if (!snapshot.hasData) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-
-                final filteredProducts = _filterProducts(snapshot.data!);
-
-                return RefreshIndicator(
-                  onRefresh: () async {
-                    setState(() {
-                      _initializeProductsStream();
-                    });
-                  },
-                  child: GridView.builder(
-                    padding: const EdgeInsets.all(16),
-                    gridDelegate:
-                        const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 2,
-                      childAspectRatio: 0.75,
-                      crossAxisSpacing: 16,
-                      mainAxisSpacing: 16,
-                    ),
-                    itemCount: filteredProducts.length,
-                    cacheExtent: 1000,
-                    itemBuilder: (context, index) {
-                      final product = filteredProducts[index];
-                      return KeyedSubtree(
-                        key: ValueKey(product.id),
-                        child: ProductCard(
-                          product: product,
-                          isFavorite: _favorites.contains(product.id),
-                          onFavoritePressed: () => _toggleFavorite(product.id),
-                          onAddToCart: () => _addToCart(product),
-                        ),
-                      );
-                    },
-                  ),
-                );
-              },
-            ),
-          ),
-        ],
+            );
+          },
+        ),
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () {
@@ -291,6 +306,37 @@ class _ProductListScreenState extends State<ProductListScreen> {
         ),
       ),
     );
+  }
+}
+
+class _SliverAppBarDelegate extends SliverPersistentHeaderDelegate {
+  final double minHeight;
+  final double maxHeight;
+  final Widget child;
+
+  _SliverAppBarDelegate({
+    required this.minHeight,
+    required this.maxHeight,
+    required this.child,
+  });
+
+  @override
+  double get minExtent => minHeight;
+
+  @override
+  double get maxExtent => maxHeight;
+
+  @override
+  Widget build(
+      BuildContext context, double shrinkOffset, bool overlapsContent) {
+    return SizedBox.expand(child: child);
+  }
+
+  @override
+  bool shouldRebuild(_SliverAppBarDelegate oldDelegate) {
+    return maxHeight != oldDelegate.maxHeight ||
+        minHeight != oldDelegate.minHeight ||
+        child != oldDelegate.child;
   }
 }
 

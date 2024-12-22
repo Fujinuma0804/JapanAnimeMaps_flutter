@@ -23,6 +23,7 @@ class _DeliveryInfoFormState extends State<DeliveryInfoForm> {
   final _streetController = TextEditingController();
   final _phone1Controller = TextEditingController();
   final _phone2Controller = TextEditingController();
+  final _buildingController = TextEditingController();
   String? _selectedPrefecture;
   bool _isLoading = false;
   String? _deliveryInstructions;
@@ -32,6 +33,7 @@ class _DeliveryInfoFormState extends State<DeliveryInfoForm> {
 
   @override
   void dispose() {
+    _buildingController.dispose();
     _nameController.dispose();
     _postalCodeController.dispose();
     _cityController.dispose();
@@ -129,7 +131,7 @@ class _DeliveryInfoFormState extends State<DeliveryInfoForm> {
                         return null;
                       },
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 10),
 
                     // 郵便番号入力
                     TextFormField(
@@ -180,7 +182,7 @@ class _DeliveryInfoFormState extends State<DeliveryInfoForm> {
                         return null;
                       },
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 10),
 
                     // 都道府県選択
                     DropdownButtonFormField<String>(
@@ -208,7 +210,7 @@ class _DeliveryInfoFormState extends State<DeliveryInfoForm> {
                         return null;
                       },
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 10),
 
                     // 市区町村入力
                     TextFormField(
@@ -226,7 +228,7 @@ class _DeliveryInfoFormState extends State<DeliveryInfoForm> {
                         return null;
                       },
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 10),
 
                     // 番地、建物名等
                     TextFormField(
@@ -248,8 +250,17 @@ class _DeliveryInfoFormState extends State<DeliveryInfoForm> {
                         return null;
                       },
                     ),
-                    const SizedBox(height: 16),
-
+                    const SizedBox(height: 10),
+                    TextFormField(
+                      controller: _buildingController,
+                      decoration: const InputDecoration(
+                        labelText: '建物名・部屋番号(任意)',
+                        hintText: 'アニメマンション101号室',
+                        border: OutlineInputBorder(),
+                        filled: true,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
                     // 電話番号1入力
                     TextFormField(
                       controller: _phone1Controller,
@@ -292,7 +303,7 @@ class _DeliveryInfoFormState extends State<DeliveryInfoForm> {
                         return null;
                       },
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 10),
 
                     // 電話番号2入力（任意）
                     TextFormField(
@@ -326,7 +337,7 @@ class _DeliveryInfoFormState extends State<DeliveryInfoForm> {
                         }
                       },
                     ),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 16),
 
                     // 配送指示ボタン
                     Center(
@@ -356,10 +367,9 @@ class _DeliveryInfoFormState extends State<DeliveryInfoForm> {
                         ),
                       ),
                     ),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 16),
 
-                    // 送信ボタン
-                    // 送信ボタン
+                    // 登録ボタン
                     Center(
                       child: SizedBox(
                         width: 200, // ボタンの幅を制限
@@ -382,11 +392,15 @@ class _DeliveryInfoFormState extends State<DeliveryInfoForm> {
 
                                 // 住所データを作成
                                 final addressData = {
-                                  'name': _nameController.text,
+                                  'addressname': _nameController.text,
                                   'postalCode': _postalCodeController.text,
                                   'prefecture': _selectedPrefecture,
                                   'city': _cityController.text,
                                   'street': _streetController.text,
+                                  'building':
+                                      _buildingController.text.isNotEmpty
+                                          ? null
+                                          : _buildingController.text,
                                   'phone1': _phone1Controller.text,
                                   'phone2': _phone2Controller.text.isEmpty
                                       ? null

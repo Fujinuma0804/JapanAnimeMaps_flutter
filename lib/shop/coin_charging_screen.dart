@@ -13,10 +13,12 @@ class _CoinChargingScreenState extends State<CoinChargingScreen> {
   int _selectedAmount = 0;
 
   final List<Map<String, dynamic>> _chargingOptions = [
-    {'amount': 1000, 'price': 1000, 'bonus': 0},
-    {'amount': 3000, 'price': 3000, 'bonus': 300},
-    {'amount': 5000, 'price': 5000, 'bonus': 700},
-    {'amount': 10000, 'price': 10000, 'bonus': 2000},
+    {'amount': 1000, 'price': 1150, 'bonus': 0},
+    {'amount': 2000, 'price': 2300, 'bonus': 0},
+    {'amount': 3000, 'price': 3450, 'bonus': 0},
+    {'amount': 4000, 'price': 4600, 'bonus': 0},
+    {'amount': 5000, 'price': 5750, 'bonus': 0},
+    {'amount': 10000, 'price': 11500, 'bonus': 0},
   ];
 
   @override
