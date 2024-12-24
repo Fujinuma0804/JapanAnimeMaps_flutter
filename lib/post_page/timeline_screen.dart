@@ -113,54 +113,78 @@ class _TimelineScreenState extends State<TimelineScreen>
   }
 
   Widget _buildTimelineContent() {
-    return StreamBuilder<QuerySnapshot>(
-      stream: _firestore
-          .collection('posts')
-          .orderBy('createdAt', descending: true)
-          .snapshots(),
-      builder: (context, snapshot) {
-        if (snapshot.hasError) {
+    return StreamBuilder<DocumentSnapshot>(
+      stream: _firestore.collection('users').doc(currentUser?.uid).snapshots(),
+      builder: (context, userSnapshot) {
+        if (userSnapshot.hasError) {
           return Center(
-            child: Text('エラーが発生しました: ${snapshot.error}'),
+            child: Text('エラーが発生しました: ${userSnapshot.error}'),
           );
         }
 
-        if (!snapshot.hasData) {
+        if (!userSnapshot.hasData) {
           return const Center(child: CircularProgressIndicator());
         }
 
-        final posts = snapshot.data!.docs;
+        // ブロックされたユーザーのリストを取得
+        final userData = userSnapshot.data!.data() as Map<String, dynamic>?;
+        final List<String> blockedUsers =
+            List<String>.from(userData?['blockedUsers'] ?? []);
 
-        if (posts.isEmpty) {
-          return const Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.post_add, size: 64, color: Colors.grey),
-                SizedBox(height: 16),
-                Text(
-                  '投稿がありません\n最初の投稿をしてみましょう！',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: Colors.grey,
-                    fontSize: 16,
-                  ),
+        return StreamBuilder<QuerySnapshot>(
+          stream: _firestore
+              .collection('posts')
+              .orderBy('createdAt', descending: true)
+              .snapshots(),
+          builder: (context, snapshot) {
+            if (snapshot.hasError) {
+              return Center(
+                child: Text('エラーが発生しました: ${snapshot.error}'),
+              );
+            }
+
+            if (!snapshot.hasData) {
+              return const Center(child: CircularProgressIndicator());
+            }
+
+            final allPosts = snapshot.data!.docs;
+            final posts = allPosts.where((doc) {
+              final postData = doc.data() as Map<String, dynamic>;
+              return !blockedUsers.contains(postData['userId']);
+            }).toList();
+
+            if (posts.isEmpty) {
+              return const Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.post_add, size: 64, color: Colors.grey),
+                    SizedBox(height: 16),
+                    Text(
+                      '投稿がありません\n最初の投稿をしてみましょう！',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: Colors.grey,
+                        fontSize: 16,
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-          );
-        }
+              );
+            }
 
-        return ListView.builder(
-          key: const PageStorageKey<String>('timeline_list'),
-          controller: _scrollController,
-          physics: const AlwaysScrollableScrollPhysics(),
-          itemCount: posts.length,
-          itemBuilder: (context, index) {
-            return PostCard(
-              key: ValueKey(posts[index].id),
-              post: posts[index],
-              currentUserId: currentUser?.uid ?? '',
+            return ListView.builder(
+              key: const PageStorageKey<String>('timeline_list'),
+              controller: _scrollController,
+              physics: const AlwaysScrollableScrollPhysics(),
+              itemCount: posts.length,
+              itemBuilder: (context, index) {
+                return PostCard(
+                  key: ValueKey(posts[index].id),
+                  post: posts[index],
+                  currentUserId: currentUser?.uid ?? '',
+                );
+              },
             );
           },
         );
@@ -1427,6 +1451,65 @@ class PostCard extends StatelessWidget {
                                                 ),
                                               ),
                                             );
+                                          },
+                                        ),
+                                        ListTile(
+                                          leading: const Icon(Icons.block),
+                                          title: const Text('このユーザーをブロック'),
+                                          onTap: () async {
+                                            Navigator.pop(context);
+                                            try {
+                                              // 現在のユーザーのドキュメントを取得
+                                              final currentUserDoc =
+                                                  await FirebaseFirestore
+                                                      .instance
+                                                      .collection('users')
+                                                      .doc(currentUserId)
+                                                      .get();
+
+                                              // blockedUsers配列を取得（存在しない場合は空配列を使用）
+                                              List<String> blockedUsers =
+                                                  List<String>.from(
+                                                      currentUserDoc.data()?[
+                                                              'blockedUsers'] ??
+                                                          []);
+
+                                              // ブロックするユーザーのIDを追加
+                                              if (!blockedUsers.contains(
+                                                  postData['userId'])) {
+                                                blockedUsers
+                                                    .add(postData['userId']);
+
+                                                // Firestoreを更新
+                                                await FirebaseFirestore.instance
+                                                    .collection('users')
+                                                    .doc(currentUserId)
+                                                    .update({
+                                                  'blockedUsers': blockedUsers,
+                                                });
+
+                                                ScaffoldMessenger.of(context)
+                                                    .showSnackBar(
+                                                  const SnackBar(
+                                                    content:
+                                                        Text('ユーザーをブロックしました'),
+                                                    duration:
+                                                        Duration(seconds: 2),
+                                                  ),
+                                                );
+                                              }
+                                            } catch (e) {
+                                              print('Error blocking user: $e');
+                                              ScaffoldMessenger.of(context)
+                                                  .showSnackBar(
+                                                const SnackBar(
+                                                  content:
+                                                      Text('ユーザーのブロックに失敗しました'),
+                                                  duration:
+                                                      Duration(seconds: 2),
+                                                ),
+                                              );
+                                            }
                                           },
                                         ),
                                       ],
