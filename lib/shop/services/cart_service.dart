@@ -5,8 +5,15 @@ import '../models/cart_item.dart';
 import '../models/product.dart';
 
 class CartService {
+  static final CartService _instance = CartService._internal();
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
+
+  factory CartService() {
+    return _instance;
+  }
+
+  CartService._internal();
 
   Stream<List<CartItem>> getCartItems() {
     final userId = _auth.currentUser?.uid;
@@ -32,20 +39,27 @@ class CartService {
     });
   }
 
-  Future<void> addToCart(Product product) async {
+  Future<void> addToCart(Product product, {int quantity = 1}) async {
     final userId = _auth.currentUser?.uid;
     if (userId == null) throw Exception('ユーザーがログインしていません');
 
     final cartRef =
         _firestore.collection('users').doc(userId).collection('shopping_cart');
 
-    await _firestore.runTransaction((transaction) async {
-      // 既存のカートアイテムを確認
-      final existingItems =
-          await cartRef.where('productId', isEqualTo: product.id).get();
+    // 既存のアイテムをチェック
+    final existingItems =
+        await cartRef.where('productId', isEqualTo: product.id).get();
+    if (existingItems.docs.isNotEmpty) {
+      final currentQuantity =
+          existingItems.docs.first.data()['quantity'] as int;
+      if (currentQuantity + quantity >
+          (product.stockCount ?? double.infinity)) {
+        throw Exception('在庫が不足しています');
+      }
+    }
 
+    await _firestore.runTransaction((transaction) async {
       if (product.stockCount != null) {
-        // 在庫確認
         final productDoc = await transaction
             .get(_firestore.collection('products').doc(product.id));
         final currentStock = productDoc.data()?['stockCount'] as int?;
@@ -54,18 +68,14 @@ class CartService {
           throw Exception('申し訳ありません。この商品は現在在庫切れです。');
         }
 
-        if (existingItems.docs.isNotEmpty) {
-          final currentQuantity =
-              existingItems.docs.first.data()['quantity'] as int;
-          if (currentStock != null && currentQuantity + 1 > currentStock) {
-            throw Exception('申し訳ありません。在庫が不足しています。');
-          }
+        if (currentStock != null && quantity > currentStock) {
+          throw Exception('申し訳ありません。在庫が不足しています。');
         }
 
         transaction.update(
           _firestore.collection('products').doc(product.id),
           {
-            'stockCount': currentStock! - 1,
+            'stockCount': currentStock! - quantity,
             'lastUpdated': FieldValue.serverTimestamp(),
           },
         );
@@ -75,7 +85,7 @@ class CartService {
         final existingItem = existingItems.docs.first;
         final currentQuantity = existingItem.data()['quantity'] as int;
         transaction.update(existingItem.reference, {
-          'quantity': currentQuantity + 1,
+          'quantity': currentQuantity + quantity,
           'updatedAt': FieldValue.serverTimestamp(),
         });
       } else {
@@ -84,7 +94,7 @@ class CartService {
           'productName': product.name,
           'price': product.price,
           'imageUrl': product.imageUrls.isNotEmpty ? product.imageUrls[0] : '',
-          'quantity': 1,
+          'quantity': quantity,
           'createdAt': FieldValue.serverTimestamp(),
           'updatedAt': FieldValue.serverTimestamp(),
         });
@@ -152,7 +162,6 @@ class CartService {
 
     final cartRef =
         _firestore.collection('users').doc(userId).collection('shopping_cart');
-
     final cartItems = await cartRef.get();
     final batch = _firestore.batch();
 

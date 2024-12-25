@@ -18,8 +18,6 @@ class ProductListScreen extends StatefulWidget {
 class _ProductListScreenState extends State<ProductListScreen> {
   final CartService _cartService = CartService();
   final TextEditingController _searchController = TextEditingController();
-  String _selectedCategory = 'すべて';
-  final List<String> _categories = ['すべて', '衣類', '靴', 'バッグ', 'アクセサリー'];
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   late Stream<List<Product>> _productsStream;
   bool _isLoading = false;
@@ -37,7 +35,6 @@ class _ProductListScreenState extends State<ProductListScreen> {
     super.dispose();
   }
 
-  // 検索の最適化
   void _onSearchChanged() {
     setState(() {});
   }
@@ -45,7 +42,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
   void _initializeProductsStream() {
     _productsStream = _firestore
         .collection('products')
-        .orderBy('createdAt', descending: true) // 新着順にソート
+        .orderBy('createdAt', descending: true)
         .snapshots()
         .map((snapshot) {
       return snapshot.docs.map((doc) => Product.fromFirestore(doc)).toList();
@@ -90,10 +87,6 @@ class _ProductListScreenState extends State<ProductListScreen> {
           ),
         ),
         IconButton(
-          icon: const Icon(Icons.favorite_border, color: Color(0xFF00008B)),
-          onPressed: () => _navigateToFavorites(context),
-        ),
-        IconButton(
           onPressed: () {
             Navigator.push(context,
                 MaterialPageRoute(builder: (context) => AddressListScreen()));
@@ -110,13 +103,8 @@ class _ProductListScreenState extends State<ProductListScreen> {
         ),
       ],
       bottom: PreferredSize(
-        preferredSize: const Size.fromHeight(108),
-        child: Column(
-          children: [
-            _buildSearchBar(),
-            _buildCategoryFilter(),
-          ],
-        ),
+        preferredSize: const Size.fromHeight(56),
+        child: _buildSearchBar(),
       ),
     );
   }
@@ -143,40 +131,6 @@ class _ProductListScreenState extends State<ProductListScreen> {
           filled: true,
           fillColor: Colors.grey[100],
         ),
-      ),
-    );
-  }
-
-  Widget _buildCategoryFilter() {
-    return Container(
-      height: 48,
-      color: Colors.white,
-      child: ListView.builder(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 8),
-        itemCount: _categories.length,
-        itemBuilder: (context, index) {
-          final category = _categories[index];
-          final isSelected = _selectedCategory == category;
-          return Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 4),
-            child: ChoiceChip(
-              label: Text(
-                category,
-                style: TextStyle(
-                  color: isSelected ? Colors.white : Colors.black,
-                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                ),
-              ),
-              selected: isSelected,
-              onSelected: (selected) {
-                setState(() => _selectedCategory = category);
-              },
-              backgroundColor: Colors.grey[100],
-              selectedColor: const Color(0xFF00008B),
-            ),
-          );
-        },
       ),
     );
   }
@@ -215,10 +169,10 @@ class _ProductListScreenState extends State<ProductListScreen> {
           child: GridView.builder(
             padding: const EdgeInsets.all(8),
             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 3, // 3列に変更
+              crossAxisCount: 3,
               childAspectRatio: 0.7,
-              mainAxisSpacing: 8, // スペースを調整
-              crossAxisSpacing: 8, // スペースを調整
+              mainAxisSpacing: 8,
+              crossAxisSpacing: 8,
             ),
             itemCount: products.length,
             itemBuilder: (context, index) => _buildProductCard(products[index]),
@@ -234,64 +188,39 @@ class _ProductListScreenState extends State<ProductListScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 商品画像部分
-          Stack(
-            children: [
-              AspectRatio(
-                aspectRatio: 1, // 正方形の画像エリア
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: Colors.grey[200],
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: product.imageUrls.isNotEmpty
-                      ? Hero(
-                          tag: 'product-${product.id}',
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(8),
-                            child: Image.network(
-                              product.imageUrls[0],
-                              fit: BoxFit.cover,
-                              errorBuilder: (context, error, stackTrace) =>
-                                  const Icon(Icons.error),
-                            ),
-                          ),
-                        )
-                      : const Icon(Icons.image, size: 30, color: Colors.grey),
-                ),
+          AspectRatio(
+            aspectRatio: 1,
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.grey[200],
+                borderRadius: BorderRadius.circular(8),
               ),
-              // お気に入りボタン
-              Positioned(
-                top: 4,
-                right: 4,
-                child: Container(
-                  decoration: const BoxDecoration(
-                    color: Colors.white,
-                    shape: BoxShape.circle,
-                  ),
-                  child: IconButton(
-                    iconSize: 20, // アイコンサイズを小さく
-                    padding: const EdgeInsets.all(4), // パディングを調整
-                    icon: const Icon(Icons.favorite_border),
-                    color: Colors.grey,
-                    onPressed: () => _toggleFavorite(product),
-                  ),
-                ),
-              ),
-            ],
+              child: product.imageUrls.isNotEmpty
+                  ? Hero(
+                      tag: 'product-${product.id}',
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: Image.network(
+                          product.imageUrls[0],
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) =>
+                              const Icon(Icons.error),
+                        ),
+                      ),
+                    )
+                  : const Icon(Icons.image, size: 30, color: Colors.grey),
+            ),
           ),
           const SizedBox(height: 4),
-          // 商品名
           Text(
             product.name,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
             style: const TextStyle(
-              fontSize: 12, // フォントサイズを小さく
+              fontSize: 12,
             ),
           ),
           const SizedBox(height: 2),
-          // 価格
           Text(
             '${product.price.toStringAsFixed(0)} P',
             style: const TextStyle(
@@ -320,7 +249,6 @@ class _ProductListScreenState extends State<ProductListScreen> {
     );
   }
 
-  // ナビゲーション関連のメソッド
   void _navigateToProductDetail(Product product) {
     Navigator.push(
       context,
@@ -328,17 +256,31 @@ class _ProductListScreenState extends State<ProductListScreen> {
         builder: (context) => ProductDetailScreen(
           product: product,
           isFavorite: false,
-          // お気に入り状態は管理する必要あり
-          onFavoritePressed: () => _toggleFavorite(product),
-          onAddToCart: () => _addToCart(product),
+          onAddToCart: () {
+            showDialog(
+              context: context,
+              barrierDismissible: true,
+              builder: (BuildContext context) {
+                Future.delayed(const Duration(seconds: 1), () {
+                  Navigator.of(context).pop();
+                });
+                return const Dialog(
+                  backgroundColor: Colors.transparent,
+                  elevation: 0,
+                  child: Icon(
+                    Icons.check_circle_outline,
+                    color: Colors.white,
+                    size: 64,
+                  ),
+                );
+              },
+            );
+          },
           onFavoriteToggle: (String) {},
+          onFavoritePressed: () {},
         ),
       ),
     );
-  }
-
-  void _navigateToFavorites(BuildContext context) {
-    // お気に入り画面への遷移
   }
 
   void _navigateToCoinCharging(BuildContext context) {
@@ -346,11 +288,6 @@ class _ProductListScreenState extends State<ProductListScreen> {
       context,
       MaterialPageRoute(builder: (context) => CoinChargingScreen()),
     );
-  }
-
-  // アクション関連のメソッド
-  void _toggleFavorite(Product product) {
-    // お気に入り切り替えの実装
   }
 
   void _addToCart(Product product) async {
@@ -363,12 +300,25 @@ class _ProductListScreenState extends State<ProductListScreen> {
 
     try {
       await _cartService.addToCart(product);
-      // ignore: use_build_context_synchronously
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('カートに追加しました')),
+      showDialog(
+        context: context,
+        barrierDismissible: true,
+        builder: (BuildContext context) {
+          Future.delayed(const Duration(seconds: 1), () {
+            Navigator.of(context).pop();
+          });
+          return const Dialog(
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            child: Icon(
+              Icons.check_circle_outline,
+              color: Colors.white,
+              size: 64,
+            ),
+          );
+        },
       );
     } catch (e) {
-      // ignore: use_build_context_synchronously
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('エラーが発生しました: $e')),
       );
@@ -378,11 +328,8 @@ class _ProductListScreenState extends State<ProductListScreen> {
   List<Product> _filterProducts(List<Product> products) {
     final searchQuery = _searchController.text.toLowerCase();
     return products.where((product) {
-      final matchesCategory = _selectedCategory == 'すべて' ||
-          product.categories.contains(_selectedCategory);
-      final matchesSearch = product.name.toLowerCase().contains(searchQuery) ||
+      return product.name.toLowerCase().contains(searchQuery) ||
           product.description.toLowerCase().contains(searchQuery);
-      return matchesCategory && matchesSearch;
     }).toList();
   }
 
@@ -393,7 +340,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
         final itemCount = snapshot.data ?? 0;
         return FloatingActionButton(
           backgroundColor: const Color(0xFF00008B),
-          onPressed: () => _navigateToCart(context), // contextを渡す
+          onPressed: () => _navigateToCart(context),
           child: Badge(
             label: Text('$itemCount'),
             child: const Icon(Icons.shopping_cart, color: Colors.white),
@@ -407,7 +354,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => CartScreen(), // CartScreenのインポートが必要
+        builder: (context) => CartScreen(),
       ),
     );
   }

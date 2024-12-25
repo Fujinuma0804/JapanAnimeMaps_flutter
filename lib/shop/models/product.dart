@@ -29,7 +29,7 @@ class Product {
       id: doc.id,
       name: data['name'] ?? '',
       description: data['description'] ?? '',
-      price: (data['costPrice'] ?? 0).toDouble(),
+      price: (data['price'] ?? 0).toDouble(),
       categories: List<String>.from(data['categories'] ?? []),
       imageUrls: List<String>.from(data['imageUrls'] ?? []),
       rating: (data['rating'] ?? 0).toDouble(),
@@ -42,7 +42,7 @@ class Product {
     return {
       'name': name,
       'description': description,
-      'costPrice': price,
+      'price': price,
       'categories': categories,
       'imageUrls': imageUrls,
       'rating': rating,

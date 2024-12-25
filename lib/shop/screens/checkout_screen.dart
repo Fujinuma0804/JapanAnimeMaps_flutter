@@ -29,12 +29,40 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   bool _isProcessing = false;
   String? _selectedAddressId;
+  int? _shippingFee;
+  Map<String, int>? _shippingRates;
 
   User? get currentUser => _auth.currentUser;
 
-  int get _shippingFee => 1500;
+  int get _totalWithShipping => widget.totalAmount + (_shippingFee ?? 0);
 
-  int get _totalWithShipping => widget.totalAmount + _shippingFee;
+  @override
+  void initState() {
+    super.initState();
+    _fetchShippingRates();
+  }
+
+  Future<void> _fetchShippingRates() async {
+    try {
+      final ratesDoc =
+          await _firestore.collection('postage').doc('rates').get();
+      if (ratesDoc.exists) {
+        setState(() {
+          _shippingRates = Map<String, int>.from(ratesDoc.data() ?? {});
+        });
+      }
+    } catch (e) {
+      print('Error fetching shipping rates: $e');
+    }
+  }
+
+  void _updateShippingFee(String prefecture) {
+    if (_shippingRates != null) {
+      setState(() {
+        _shippingFee = _shippingRates![prefecture];
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -144,7 +172,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   ),
                 ),
                 Text(
-                  '$_shippingFee P',
+                  _shippingFee != null ? '${_shippingFee} P' : '未定',
                   style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
@@ -165,7 +193,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   ),
                 ),
                 Text(
-                  '$_totalWithShipping P',
+                  '${_totalWithShipping} P',
                   style: const TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
@@ -376,8 +404,10 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                 ...addresses.map<Widget>((doc) {
                   final address = doc.data() as Map<String, dynamic>;
                   final addressId = doc.id;
+                  final prefecture = address['prefecture'] as String;
                   final fullAddress =
                       '${address['prefecture']} ${address['city']} ${address['street']} ${address['building']}';
+
                   return RadioListTile<String>(
                     title: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -393,7 +423,10 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                     value: addressId,
                     groupValue: _selectedAddressId,
                     onChanged: (value) {
-                      setState(() => _selectedAddressId = value);
+                      setState(() {
+                        _selectedAddressId = value;
+                        _updateShippingFee(prefecture);
+                      });
                     },
                   );
                 }).toList(),

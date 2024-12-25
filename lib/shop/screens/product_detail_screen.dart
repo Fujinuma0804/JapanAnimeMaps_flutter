@@ -3,7 +3,7 @@ import 'package:parts/shop/services/cart_service.dart';
 
 import '../models/product.dart';
 
-class ProductDetailScreen extends StatelessWidget {
+class ProductDetailScreen extends StatefulWidget {
   final Product product;
   final bool isFavorite;
   final VoidCallback onFavoritePressed;
@@ -18,6 +18,15 @@ class ProductDetailScreen extends StatelessWidget {
     required this.onAddToCart,
     required this.onFavoriteToggle,
   }) : super(key: key);
+
+  @override
+  State<ProductDetailScreen> createState() => _ProductDetailScreenState();
+}
+
+class _ProductDetailScreenState extends State<ProductDetailScreen> {
+  final CartService _cartService = CartService();
+  bool _isLoading = false;
+  int _quantity = 1;
 
   @override
   Widget build(BuildContext context) {
@@ -38,10 +47,16 @@ class ProductDetailScreen extends StatelessWidget {
                   const SizedBox(height: 24),
                   _buildSpecifications(),
                   const SizedBox(height: 24),
-                  if (!product.isInStock)
+                  if (!widget.product.isInStock)
                     _buildOutOfStockNotice()
                   else
-                    _buildAddToCartButton(context),
+                    Column(
+                      children: [
+                        _buildQuantitySelector(),
+                        const SizedBox(height: 16),
+                        _buildAddToCartButton(context),
+                      ],
+                    ),
                 ],
               ),
             ),
@@ -57,15 +72,15 @@ class ProductDetailScreen extends StatelessWidget {
       pinned: true,
       flexibleSpace: FlexibleSpaceBar(
         background: Hero(
-          tag: 'product-${product.id}',
+          tag: 'product-${widget.product.id}',
           child: Stack(
             fit: StackFit.expand,
             children: [
-              if (product.imageUrls.isNotEmpty)
+              if (widget.product.imageUrls.isNotEmpty)
                 PageView.builder(
-                  itemCount: product.imageUrls.length,
+                  itemCount: widget.product.imageUrls.length,
                   itemBuilder: (context, index) => Image.network(
-                    product.imageUrls[index],
+                    widget.product.imageUrls[index],
                     fit: BoxFit.cover,
                     errorBuilder: (context, error, stackTrace) => Container(
                       color: Colors.grey[200],
@@ -103,12 +118,12 @@ class ProductDetailScreen extends StatelessWidget {
       actions: [
         IconButton(
           icon: Icon(
-            isFavorite ? Icons.favorite : Icons.favorite_border,
-            color: isFavorite ? Colors.red : Colors.white,
+            widget.isFavorite ? Icons.favorite : Icons.favorite_border,
+            color: widget.isFavorite ? Colors.red : Colors.white,
           ),
           onPressed: () {
-            onFavoriteToggle(product.id);
-            onFavoritePressed();
+            widget.onFavoriteToggle(widget.product.id);
+            widget.onFavoritePressed();
           },
         ),
       ],
@@ -120,7 +135,7 @@ class ProductDetailScreen extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          product.name,
+          widget.product.name,
           style: const TextStyle(
             fontSize: 24,
             fontWeight: FontWeight.bold,
@@ -130,7 +145,7 @@ class ProductDetailScreen extends StatelessWidget {
         Row(
           children: [
             Text(
-              '${product.price.toStringAsFixed(0)} P',
+              '${widget.product.price.toStringAsFixed(0)} P',
               style: const TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
@@ -138,7 +153,7 @@ class ProductDetailScreen extends StatelessWidget {
               ),
             ),
             const Spacer(),
-            if (product.rating > 0) ...[
+            if (widget.product.rating > 0) ...[
               const Icon(
                 Icons.star,
                 color: Colors.amber,
@@ -146,7 +161,7 @@ class ProductDetailScreen extends StatelessWidget {
               ),
               const SizedBox(width: 4),
               Text(
-                product.rating.toString(),
+                widget.product.rating.toString(),
                 style: const TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
@@ -172,7 +187,7 @@ class ProductDetailScreen extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         Text(
-          product.description,
+          widget.product.description,
           style: TextStyle(
             fontSize: 16,
             color: Colors.grey[600],
@@ -197,12 +212,14 @@ class ProductDetailScreen extends StatelessWidget {
         const SizedBox(height: 8),
         _buildSpecificationItem(
           'カテゴリー',
-          product.categories.join(', '),
+          widget.product.categories.join(', '),
         ),
         _buildSpecificationItem(
           '在庫状況',
-          product.stockCount == null ? '在庫あり' : '${product.stockCount}個',
-          isAlert: !product.isInStock,
+          widget.product.stockCount == null
+              ? '在庫あり'
+              : '${widget.product.stockCount}個',
+          isAlert: !widget.product.isInStock,
         ),
       ],
     );
@@ -258,25 +275,107 @@ class ProductDetailScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildAddToCartButton(BuildContext context) {
-    final CartService _cartService = CartService();
+  Widget _buildQuantitySelector() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      decoration: BoxDecoration(
+        border: Border.all(color: Colors.grey[300]!),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          const Text(
+            '数量',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          Row(
+            children: [
+              IconButton(
+                icon: const Icon(Icons.remove),
+                onPressed:
+                    _quantity > 1 ? () => setState(() => _quantity--) : null,
+                style: IconButton.styleFrom(
+                  backgroundColor: Colors.grey[200],
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Text(
+                  _quantity.toString(),
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              IconButton(
+                icon: const Icon(Icons.add),
+                onPressed: widget.product.stockCount == null ||
+                        _quantity < widget.product.stockCount!
+                    ? () => setState(() => _quantity++)
+                    : null,
+                style: IconButton.styleFrom(
+                  backgroundColor: Colors.grey[200],
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
 
+  Widget _buildAddToCartButton(BuildContext context) {
     return ElevatedButton(
-      onPressed: () async {
-        try {
-          await _cartService.addToCart(product);
-          // ignore: use_build_context_synchronously
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('カートに追加しました')),
-          );
-          onAddToCart();
-        } catch (e) {
-          // ignore: use_build_context_synchronously
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('エラーが発生しました: $e')),
-          );
-        }
-      },
+      onPressed: _isLoading
+          ? null
+          : () async {
+              if (_isLoading) return;
+              setState(() {
+                _isLoading = true;
+              });
+              try {
+                await _cartService.addToCart(widget.product,
+                    quantity: _quantity);
+                if (mounted) {
+                  showDialog(
+                    context: context,
+                    barrierDismissible: true,
+                    builder: (BuildContext context) {
+                      Future.delayed(const Duration(seconds: 1), () {
+                        Navigator.of(context).pop();
+                      });
+                      return const Dialog(
+                        backgroundColor: Colors.transparent,
+                        elevation: 0,
+                        child: Icon(
+                          Icons.check_circle_outline,
+                          color: Colors.white,
+                          size: 64,
+                        ),
+                      );
+                    },
+                  );
+                  widget.onAddToCart();
+                }
+              } catch (e) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('エラーが発生しました: $e')),
+                  );
+                }
+              } finally {
+                if (mounted) {
+                  setState(() {
+                    _isLoading = false;
+                  });
+                }
+              }
+            },
       style: ElevatedButton.styleFrom(
         backgroundColor: const Color(0xFF00008B),
         minimumSize: const Size(double.infinity, 50),
@@ -284,14 +383,23 @@ class ProductDetailScreen extends StatelessWidget {
           borderRadius: BorderRadius.circular(12),
         ),
       ),
-      child: const Text(
-        'カートに追加',
-        style: TextStyle(
-          fontSize: 16,
-          fontWeight: FontWeight.bold,
-          color: Colors.white,
-        ),
-      ),
+      child: _isLoading
+          ? const SizedBox(
+              width: 24,
+              height: 24,
+              child: CircularProgressIndicator(
+                color: Colors.white,
+                strokeWidth: 2,
+              ),
+            )
+          : const Text(
+              'カートに追加',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+            ),
     );
   }
 }
