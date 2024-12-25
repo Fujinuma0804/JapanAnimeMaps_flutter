@@ -5,8 +5,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
-import 'package:parts/shop/shop_welcome/delivery_instructions_page.dart';
-import 'package:parts/shop/shop_welcome/prefectures.dart';
+import 'package:parts/shop/screens/delivery_instructions_page.dart';
+import 'package:parts/shop/screens/prefectures.dart';
 
 class DeliveryInfoForm extends StatefulWidget {
   const DeliveryInfoForm({super.key});
