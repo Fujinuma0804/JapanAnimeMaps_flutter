@@ -237,7 +237,7 @@ class CustomBottomNavigationBar extends StatelessWidget {
           label: language == 'Japanese' ? 'スポット' : 'Spot',
         ),
         BottomNavigationBarItem(
-          icon: Icon(Icons.movie_creation_outlined),
+          icon: Icon(Icons.shopping_bag_outlined),
           label: language == 'Japanese' ? 'ジャンル' : 'Genre',
         ),
         BottomNavigationBarItem(

@@ -4,6 +4,7 @@ import 'package:parts/shop/models/product.dart';
 import 'package:parts/shop/screens/cart_screen.dart';
 import 'package:parts/shop/screens/coin_charging_screen.dart';
 import 'package:parts/shop/screens/product_detail_screen.dart';
+import 'package:parts/shop/screens/shopping_history.dart';
 import 'package:parts/shop/services/cart_service.dart';
 
 class ProductListScreen extends StatefulWidget {
@@ -75,6 +76,18 @@ class _ProductListScreenState extends State<ProductListScreen> {
         ),
       ),
       actions: [
+        IconButton(
+          onPressed: () {
+            Navigator.push(
+                context,
+                MaterialPageRoute(
+                    builder: (context) => ShoppingHistoryScreen()));
+          },
+          icon: Icon(
+            Icons.history_outlined,
+            color: Color(0xFF00008B),
+          ),
+        ),
         IconButton(
           icon: const Icon(Icons.favorite_border, color: Color(0xFF00008B)),
           onPressed: () => _navigateToFavorites(context),
@@ -292,25 +305,6 @@ class _ProductListScreenState extends State<ProductListScreen> {
               ),
             ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildFavoriteButton(Product product) {
-    return Positioned(
-      top: 8,
-      right: 8,
-      child: Container(
-        padding: const EdgeInsets.all(4),
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          shape: BoxShape.circle,
-        ),
-        child: IconButton(
-          icon: const Icon(Icons.favorite_border),
-          color: Colors.grey,
-          onPressed: () => _toggleFavorite(product),
-        ),
       ),
     );
   }
