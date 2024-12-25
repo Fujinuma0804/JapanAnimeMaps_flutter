@@ -18,7 +18,7 @@ class _MainNavigationState extends State<MainNavigation> {
     const ProductListScreen(),
     FavoritesScreen(),
     CartScreen(),
-    const ProfileScreen(),
+    const AddressListScreen(),
   ];
 
   @override

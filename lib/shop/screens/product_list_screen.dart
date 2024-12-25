@@ -4,6 +4,7 @@ import 'package:parts/shop/models/product.dart';
 import 'package:parts/shop/screens/cart_screen.dart';
 import 'package:parts/shop/screens/coin_charging_screen.dart';
 import 'package:parts/shop/screens/product_detail_screen.dart';
+import 'package:parts/shop/screens/profile_screen.dart';
 import 'package:parts/shop/screens/shopping_history.dart';
 import 'package:parts/shop/services/cart_service.dart';
 
@@ -91,6 +92,16 @@ class _ProductListScreenState extends State<ProductListScreen> {
         IconButton(
           icon: const Icon(Icons.favorite_border, color: Color(0xFF00008B)),
           onPressed: () => _navigateToFavorites(context),
+        ),
+        IconButton(
+          onPressed: () {
+            Navigator.push(context,
+                MaterialPageRoute(builder: (context) => AddressListScreen()));
+          },
+          icon: Icon(
+            Icons.account_circle,
+            color: Color(0xFF00008B),
+          ),
         ),
         IconButton(
           icon: const Icon(Icons.monetization_on_outlined,
