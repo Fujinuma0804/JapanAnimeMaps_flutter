@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart'; // Firestore パッケージをインポート
+import 'package:firebase_auth/firebase_auth.dart'; // FirebaseAuth パッケージをインポート
 import 'package:flutter/material.dart';
 import 'package:parts/shop/screens/order_completion_screen..dart';
 
@@ -7,7 +9,7 @@ import '../services/coin_service.dart';
 
 class CheckoutScreen extends StatefulWidget {
   final List<CartItem> cartItems;
-  final double totalAmount;
+  final int totalAmount;
 
   const CheckoutScreen({
     Key? key,
@@ -22,7 +24,12 @@ class CheckoutScreen extends StatefulWidget {
 class _CheckoutScreenState extends State<CheckoutScreen> {
   final CoinService _coinService = CoinService();
   final CartService _cartService = CartService();
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FirebaseAuth _auth = FirebaseAuth.instance;
   bool _isProcessing = false;
+
+  // 現在のユーザー情報を取得
+  User? get currentUser => _auth.currentUser;
 
   @override
   Widget build(BuildContext context) {
@@ -49,6 +56,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   _buildOrderSummary(),
                   const SizedBox(height: 24),
                   _buildCoinBalance(),
+                  _buildAfterCoins(),
                 ],
               ),
             ),
@@ -101,6 +109,27 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   ),
                 )),
             const Divider(),
+            const SizedBox(height: 5),
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    '送料',
+                    style: const TextStyle(fontSize: 16),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Text(
+                  '1500P',
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 5),
+            const Divider(),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -112,7 +141,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   ),
                 ),
                 Text(
-                  '${widget.totalAmount.toStringAsFixed(0)} P',
+                  '${widget.totalAmount} P',
                   style: const TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
@@ -134,41 +163,99 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         final balance = snapshot.data ?? 0;
         final isEnoughBalance = balance >= widget.totalAmount;
 
-        return Card(
-          elevation: 2,
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'コイン残高',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  '$balance P',
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color:
-                        isEnoughBalance ? const Color(0xFF00008B) : Colors.red,
-                  ),
-                ),
-                if (!isEnoughBalance) ...[
-                  const SizedBox(height: 8),
-                  Text(
-                    '残高が不足しています（${(widget.totalAmount - balance).toStringAsFixed(0)} P不足）',
-                    style: const TextStyle(
-                      color: Colors.red,
-                      fontSize: 14,
+        return SizedBox(
+          width: double.infinity,
+          child: Card(
+            elevation: 2,
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    '現在のコイン残高',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
+                  const SizedBox(height: 8),
+                  Text(
+                    '$balance P',
+                    style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: isEnoughBalance
+                          ? const Color(0xFF00008B)
+                          : Colors.red,
+                    ),
+                  ),
+                  if (!isEnoughBalance) ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      '残高が不足しています（${(widget.totalAmount - balance)} P不足）',
+                      style: const TextStyle(
+                        color: Colors.red,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ],
                 ],
-              ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildAfterCoins() {
+    return StreamBuilder<int>(
+      stream: _coinService.getCoinBalance(),
+      builder: (context, snapshot) {
+        final balance = snapshot.data ?? 0;
+        final isEnoughBalance = balance >= widget.totalAmount;
+        final afterCoin = balance - widget.totalAmount;
+
+        return SizedBox(
+          width: double.infinity,
+          child: Card(
+            elevation: 2,
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    '購入後のコイン残高',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    '$afterCoin P',
+                    style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: isEnoughBalance
+                          ? const Color(0xFF00008B)
+                          : Colors.red,
+                    ),
+                  ),
+                  if (!isEnoughBalance) ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      '残高が不足しています（${(widget.totalAmount - balance)} P不足）',
+                      style: const TextStyle(
+                        color: Colors.red,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
             ),
           ),
         );
@@ -219,6 +306,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                       style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
+                        color: Colors.white,
                       ),
                     ),
             );
@@ -233,7 +321,31 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
     try {
       // コインを使用
-      await _coinService.useCoins(widget.totalAmount.toInt());
+      await _coinService.useCoins(widget.totalAmount);
+
+      // FirebaseAuth からユーザー情報を取得
+      final user = currentUser;
+      if (user == null) {
+        throw 'ユーザーがログインしていません';
+      }
+
+      // Firestore に注文情報を保存
+      final orderRef = _firestore.collection('shopping_list').doc();
+      await orderRef.set({
+        'orderId': orderRef.id,
+        'totalAmount': widget.totalAmount,
+        'orderItems': widget.cartItems
+            .map((item) => {
+                  'productName': item.productName,
+                  'quantity': item.quantity,
+                  'totalPrice': item.totalPrice,
+                })
+            .toList(),
+        'userId': user.uid, // FirebaseAuth のユーザー ID を使用
+        'userName': user.displayName ?? '匿名', // ユーザー名を取得（設定されていない場合は「匿名」）
+        'userEmail': user.email ?? '未設定', // ユーザーのメールアドレスを取得
+        'timestamp': FieldValue.serverTimestamp(),
+      });
 
       // カートをクリア
       await _cartService.clearCart();
@@ -245,7 +357,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         MaterialPageRoute(
           builder: (context) => OrderCompletionScreen(
             orderItems: widget.cartItems,
-            totalAmount: widget.totalAmount,
+            totalAmount: widget.totalAmount.toDouble(),
+            orderId: orderRef.id,
           ),
         ),
         (route) => false,

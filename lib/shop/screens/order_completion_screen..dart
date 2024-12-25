@@ -6,11 +6,13 @@ import 'product_list_screen.dart';
 class OrderCompletionScreen extends StatelessWidget {
   final List<CartItem> orderItems;
   final double totalAmount;
+  final String orderId; // 注文IDを追加
 
   const OrderCompletionScreen({
     Key? key,
     required this.orderItems,
     required this.totalAmount,
+    required this.orderId, // コンストラクタで受け取る
   }) : super(key: key);
 
   @override
@@ -36,12 +38,14 @@ class OrderCompletionScreen extends StatelessWidget {
                 ),
                 textAlign: TextAlign.center,
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 20),
               Text(
                 '注文が完了しました\n合計金額: ${totalAmount.toStringAsFixed(0)} P',
                 style: const TextStyle(fontSize: 16),
                 textAlign: TextAlign.center,
               ),
+              // 注文番号を表示
+              Text('注文番号：$orderId\nお問い合わせの際にこちらをお伝えください。'),
               const SizedBox(height: 40),
               ElevatedButton(
                 onPressed: () {
@@ -65,6 +69,7 @@ class OrderCompletionScreen extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
+                    color: Colors.white,
                   ),
                 ),
               ),

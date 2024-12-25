@@ -262,7 +262,8 @@ class _CartSummary extends StatelessWidget {
                         MaterialPageRoute(
                           builder: (context) => CheckoutScreen(
                             cartItems: cartItems,
-                            totalAmount: totalAmount,
+                            totalAmount:
+                                totalAmount.toInt(), // 修正: double を int にキャスト
                           ),
                         ),
                       );
@@ -279,6 +280,7 @@ class _CartSummary extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
+                  color: Colors.white,
                 ),
               ),
             ),

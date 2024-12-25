@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 class CoinChargingScreen extends StatefulWidget {
@@ -83,19 +84,22 @@ class _CoinChargingScreenState extends State<CoinChargingScreen> {
         ],
       ),
       child: StreamBuilder<DocumentSnapshot>(
-        stream:
-            _firestore.collection('users').doc('current_user_id').snapshots(),
+        stream: _firestore
+            .collection('users')
+            .doc(FirebaseAuth.instance.currentUser?.uid)
+            .snapshots(),
         builder: (context, snapshot) {
           if (snapshot.hasError) {
             return const Text('エラーが発生しました');
           }
 
-          if (!snapshot.hasData) {
+          if (!snapshot.hasData || !snapshot.data!.exists) {
             return const Center(child: CircularProgressIndicator());
           }
 
           final data = snapshot.data!.data() as Map<String, dynamic>?;
-          final coins = data?['coins'] ?? 0;
+          final coins =
+              (data != null && data['coins'] is int) ? data['coins'] as int : 0;
 
           return Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -271,7 +275,12 @@ class _CoinChargingScreenState extends State<CoinChargingScreen> {
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF00008b),
             ),
-            child: const Text('チャージする'),
+            child: const Text(
+              'チャージする',
+              style: TextStyle(
+                color: Colors.white,
+              ),
+            ),
           ),
         ],
       ),
@@ -281,27 +290,28 @@ class _CoinChargingScreenState extends State<CoinChargingScreen> {
   Future<void> _processCharge(Map<String, dynamic> option) async {
     try {
       await _firestore.runTransaction((transaction) async {
-        // Get user document
-        final userDoc = await transaction.get(
-          _firestore.collection('users').doc('current_user_id'),
-        );
+        final userId = FirebaseAuth.instance.currentUser?.uid;
 
-        // Calculate new coin balance
+        if (userId == null) {
+          throw Exception('ユーザーが認証されていません');
+        }
+
+        final userDoc =
+            await transaction.get(_firestore.collection('users').doc(userId));
+
         final currentCoins = (userDoc.data()?['coins'] ?? 0) as int;
         final addedCoins = option['amount'] + option['bonus'];
         final newCoins = currentCoins + addedCoins;
 
-        // Update user document
         transaction.update(
           userDoc.reference,
           {'coins': newCoins},
         );
 
-        // Add transaction record
         transaction.set(
           _firestore.collection('coin_transactions').doc(),
           {
-            'userId': 'current_user_id',
+            'userId': userId,
             'amount': option['amount'],
             'bonus': option['bonus'],
             'price': option['price'],
@@ -311,7 +321,6 @@ class _CoinChargingScreenState extends State<CoinChargingScreen> {
         );
       });
 
-      // Show success message
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
