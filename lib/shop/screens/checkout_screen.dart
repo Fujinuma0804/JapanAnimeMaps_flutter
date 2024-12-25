@@ -1,7 +1,8 @@
-import 'package:cloud_firestore/cloud_firestore.dart'; // Firestore パッケージをインポート
-import 'package:firebase_auth/firebase_auth.dart'; // FirebaseAuth パッケージをインポート
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:parts/shop/screens/order_completion_screen..dart';
+import 'package:parts/shop/screens/profile_screen.dart';
 
 import '../models/cart_item.dart';
 import '../services/cart_service.dart';
@@ -27,9 +28,13 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
   bool _isProcessing = false;
+  String? _selectedAddressId;
 
-  // 現在のユーザー情報を取得
   User? get currentUser => _auth.currentUser;
+
+  int get _shippingFee => 1500;
+
+  int get _totalWithShipping => widget.totalAmount + _shippingFee;
 
   @override
   Widget build(BuildContext context) {
@@ -56,7 +61,10 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   _buildOrderSummary(),
                   const SizedBox(height: 24),
                   _buildCoinBalance(),
+                  const SizedBox(height: 16),
                   _buildAfterCoins(),
+                  const SizedBox(height: 16),
+                  _buildAddressSelection(),
                 ],
               ),
             ),
@@ -109,18 +117,16 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   ),
                 )),
             const Divider(),
-            const SizedBox(height: 5),
             Row(
               children: [
-                Expanded(
+                const Expanded(
                   child: Text(
-                    '送料',
-                    style: const TextStyle(fontSize: 16),
+                    '商品合計',
+                    style: TextStyle(fontSize: 16),
                   ),
                 ),
-                const SizedBox(width: 16),
                 Text(
-                  '1500P',
+                  '${widget.totalAmount} P',
                   style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
@@ -128,20 +134,38 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                 ),
               ],
             ),
-            const SizedBox(height: 5),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                const Expanded(
+                  child: Text(
+                    '送料',
+                    style: TextStyle(fontSize: 16),
+                  ),
+                ),
+                Text(
+                  '$_shippingFee P',
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
             const Divider(),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 const Text(
-                  '合計',
+                  '合計（商品＋送料）',
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
                 Text(
-                  '${widget.totalAmount} P',
+                  '$_totalWithShipping P',
                   style: const TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
@@ -161,7 +185,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       stream: _coinService.getCoinBalance(),
       builder: (context, snapshot) {
         final balance = snapshot.data ?? 0;
-        final isEnoughBalance = balance >= widget.totalAmount;
+        final isEnoughBalance = balance >= _totalWithShipping;
 
         return SizedBox(
           width: double.infinity,
@@ -193,7 +217,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   if (!isEnoughBalance) ...[
                     const SizedBox(height: 8),
                     Text(
-                      '残高が不足しています（${(widget.totalAmount - balance)} P不足）',
+                      '残高が不足しています（${(_totalWithShipping - balance)} P不足）',
                       style: const TextStyle(
                         color: Colors.red,
                         fontSize: 14,
@@ -214,8 +238,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       stream: _coinService.getCoinBalance(),
       builder: (context, snapshot) {
         final balance = snapshot.data ?? 0;
-        final isEnoughBalance = balance >= widget.totalAmount;
-        final afterCoin = balance - widget.totalAmount;
+        final isEnoughBalance = balance >= _totalWithShipping;
+        final afterCoin = balance - _totalWithShipping;
 
         return SizedBox(
           width: double.infinity,
@@ -247,7 +271,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   if (!isEnoughBalance) ...[
                     const SizedBox(height: 8),
                     Text(
-                      '残高が不足しています（${(widget.totalAmount - balance)} P不足）',
+                      '残高が不足しています（${(_totalWithShipping - balance)} P不足）',
                       style: const TextStyle(
                         color: Colors.red,
                         fontSize: 14,
@@ -256,6 +280,135 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   ],
                 ],
               ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildAddressSelection() {
+    return StreamBuilder<QuerySnapshot>(
+      stream: _firestore
+          .collection('users')
+          .doc(currentUser?.uid)
+          .collection('user_addresses')
+          .snapshots(),
+      builder: (context, snapshot) {
+        if (snapshot.hasError) {
+          return const Text('エラーが発生しました');
+        }
+
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const CircularProgressIndicator();
+        }
+
+        final addresses = snapshot.data?.docs ?? [];
+
+        if (addresses.isEmpty) {
+          return SizedBox(
+            width: double.infinity,
+            child: Card(
+              elevation: 2,
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'お届け先住所',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    const Center(
+                      child: Text(
+                        '登録済みの住所がありません',
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Center(
+                      child: ElevatedButton(
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const AddressFormScreen(),
+                            ),
+                          );
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF00008B),
+                        ),
+                        child: const Text(
+                          '新しい住所を登録する',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        }
+
+        return Card(
+          elevation: 2,
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'お届け先住所',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                ...addresses.map<Widget>((doc) {
+                  final address = doc.data() as Map<String, dynamic>;
+                  final addressId = doc.id;
+                  final fullAddress =
+                      '${address['prefecture']} ${address['city']} ${address['street']} ${address['building']}';
+                  return RadioListTile<String>(
+                    title: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('${address['label']} - ${address['name']}'),
+                        Text(fullAddress, style: const TextStyle(fontSize: 14)),
+                        Text('〒${address['postalCode']}',
+                            style: const TextStyle(fontSize: 14)),
+                        Text(address['phoneNumber'],
+                            style: const TextStyle(fontSize: 14)),
+                      ],
+                    ),
+                    value: addressId,
+                    groupValue: _selectedAddressId,
+                    onChanged: (value) {
+                      setState(() => _selectedAddressId = value);
+                    },
+                  );
+                }).toList(),
+                TextButton(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const AddressFormScreen(),
+                      ),
+                    );
+                  },
+                  child: const Text('新しい住所を追加'),
+                ),
+              ],
             ),
           ),
         );
@@ -278,37 +431,61 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         ],
       ),
       child: SafeArea(
-        child: StreamBuilder<int>(
-          stream: _coinService.getCoinBalance(),
-          builder: (context, snapshot) {
-            final balance = snapshot.data ?? 0;
-            final isEnoughBalance = balance >= widget.totalAmount;
+        child: StreamBuilder<QuerySnapshot>(
+          stream: _firestore
+              .collection('users')
+              .doc(currentUser?.uid)
+              .collection('user_addresses')
+              .snapshots(),
+          builder: (context, addressSnapshot) {
+            return StreamBuilder<int>(
+              stream: _coinService.getCoinBalance(),
+              builder: (context, coinSnapshot) {
+                final balance = coinSnapshot.data ?? 0;
+                final isEnoughBalance = balance >= _totalWithShipping;
 
-            return ElevatedButton(
-              onPressed: _isProcessing || !isEnoughBalance
-                  ? null
-                  : () => _processCheckout(context),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF00008B),
-                minimumSize: const Size(double.infinity, 50),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-              child: _isProcessing
-                  ? const SizedBox(
-                      height: 24,
-                      width: 24,
-                      child: CircularProgressIndicator(color: Colors.white),
-                    )
-                  : Text(
-                      isEnoughBalance ? '注文を確定する' : 'コインをチャージしてください',
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
+                final hasAddress = (addressSnapshot.data?.docs.length ?? 0) > 0;
+
+                String buttonText = '注文を確定する';
+                bool isEnabled = !_isProcessing &&
+                    isEnoughBalance &&
+                    _selectedAddressId != null &&
+                    hasAddress;
+
+                if (!hasAddress) {
+                  buttonText = '住所を登録してください';
+                  isEnabled = false;
+                } else if (!isEnoughBalance) {
+                  buttonText = 'コインをチャージしてください';
+                } else if (_selectedAddressId == null) {
+                  buttonText = 'お届け先住所を選択してください';
+                }
+
+                return ElevatedButton(
+                  onPressed: isEnabled ? () => _processCheckout(context) : null,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF00008B),
+                    minimumSize: const Size(double.infinity, 50),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
                     ),
+                  ),
+                  child: _isProcessing
+                      ? const SizedBox(
+                          height: 24,
+                          width: 24,
+                          child: CircularProgressIndicator(color: Colors.white),
+                        )
+                      : Text(
+                          buttonText,
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                );
+              },
             );
           },
         ),
@@ -320,20 +497,31 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     setState(() => _isProcessing = true);
 
     try {
-      // コインを使用
-      await _coinService.useCoins(widget.totalAmount);
+      await _coinService.useCoins(_totalWithShipping);
 
-      // FirebaseAuth からユーザー情報を取得
       final user = currentUser;
       if (user == null) {
         throw 'ユーザーがログインしていません';
       }
 
-      // Firestore に注文情報を保存
+      // Get selected address
+      final addressDoc = await _firestore
+          .collection('users')
+          .doc(user.uid)
+          .collection('user_addresses')
+          .doc(_selectedAddressId)
+          .get();
+
+      if (!addressDoc.exists) {
+        throw '配送先住所が選択されていません';
+      }
+
+      final selectedAddress = addressDoc.data()!;
+
       final orderRef = _firestore.collection('shopping_list').doc();
       await orderRef.set({
         'orderId': orderRef.id,
-        'totalAmount': widget.totalAmount,
+        'totalAmount': _totalWithShipping,
         'orderItems': widget.cartItems
             .map((item) => {
                   'productName': item.productName,
@@ -341,23 +529,23 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   'totalPrice': item.totalPrice,
                 })
             .toList(),
-        'userId': user.uid, // FirebaseAuth のユーザー ID を使用
-        'userName': user.displayName ?? '匿名', // ユーザー名を取得（設定されていない場合は「匿名」）
-        'userEmail': user.email ?? '未設定', // ユーザーのメールアドレスを取得
+        'shippingFee': _shippingFee,
+        'userId': user.uid,
+        'userName': user.displayName ?? '匿名',
+        'userEmail': user.email ?? '未設定',
+        'deliveryAddress': selectedAddress,
         'timestamp': FieldValue.serverTimestamp(),
       });
 
-      // カートをクリア
       await _cartService.clearCart();
 
-      // 注文完了画面に遷移
       // ignore: use_build_context_synchronously
       Navigator.pushAndRemoveUntil(
         context,
         MaterialPageRoute(
           builder: (context) => OrderCompletionScreen(
             orderItems: widget.cartItems,
-            totalAmount: widget.totalAmount.toDouble(),
+            totalAmount: _totalWithShipping.toDouble(),
             orderId: orderRef.id,
           ),
         ),
