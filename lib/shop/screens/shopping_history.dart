@@ -117,27 +117,29 @@ class ShoppingHistoryScreen extends StatelessWidget {
                       const SizedBox(height: 12),
                       const Divider(),
                       const SizedBox(height: 8),
-                      Text(
-                        '注文日時: ${timestamp?.toDate()?.toLocal() ?? '不明'}',
-                        style:
-                            const TextStyle(fontSize: 14, color: Colors.grey),
-                      ),
-                      const SizedBox(height: 12),
-                      Align(
-                        alignment: Alignment.centerRight,
-                        child: IconButton(
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => InquiryFormPage(),
-                              ),
-                            );
-                          },
-                          icon: const Icon(Icons.more_vert,
-                              color: Color(0xFF00008B)),
+                      Row(children: [
+                        Text(
+                          '注文日時: ${timestamp?.toDate()?.toLocal() ?? '不明'}',
+                          style:
+                              const TextStyle(fontSize: 14, color: Colors.grey),
                         ),
-                      ),
+                        const SizedBox(height: 10),
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: IconButton(
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => InquiryFormPage(),
+                                ),
+                              );
+                            },
+                            icon: const Icon(Icons.more_vert,
+                                color: Color(0xFF00008B)),
+                          ),
+                        ),
+                      ]),
                     ],
                   ),
                 ),
