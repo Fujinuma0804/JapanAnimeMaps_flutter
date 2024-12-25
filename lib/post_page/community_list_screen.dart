@@ -39,7 +39,6 @@ class _CommunityListScreenState extends State<CommunityListScreen> {
   }
 
   // 検索条件に合致するかどうかをチェックする関数
-  // 検索条件に合致するかどうかをチェックする関数
   bool _matchesSearch(Map<String, dynamic> data) {
     if (_searchQuery.isEmpty) return true;
 

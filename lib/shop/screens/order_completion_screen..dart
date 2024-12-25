@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:parts/src/bottomnavigationbar.dart';
 
 import '../models/cart_item.dart';
-import 'product_list_screen.dart';
 
 class OrderCompletionScreen extends StatelessWidget {
   final List<CartItem> orderItems;
@@ -52,7 +52,9 @@ class OrderCompletionScreen extends StatelessWidget {
                   Navigator.pushAndRemoveUntil(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => const ProductListScreen(),
+                      builder: (context) => MainScreen(
+                        initalIndex: 1,
+                      ),
                     ),
                     (route) => false,
                   );
