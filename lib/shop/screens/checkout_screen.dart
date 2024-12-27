@@ -557,6 +557,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         'totalAmount': _totalWithShipping,
         'orderItems': widget.cartItems
             .map((item) => {
+                  'productId': item.productId, // 商品IDを追加
                   'productName': item.productName,
                   'quantity': item.quantity,
                   'totalPrice': item.totalPrice,

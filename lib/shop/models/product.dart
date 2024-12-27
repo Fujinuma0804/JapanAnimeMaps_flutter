@@ -8,7 +8,7 @@ class Product {
   final List<String> categories;
   final List<String> imageUrls;
   final double rating;
-  final int? stockCount; // nullableに変更
+  final int? stockCount;
   final String createdAt;
 
   const Product({
@@ -19,21 +19,21 @@ class Product {
     required this.categories,
     required this.imageUrls,
     required this.rating,
-    this.stockCount, // required を削除
+    this.stockCount,
     required this.createdAt,
   });
 
   factory Product.fromFirestore(DocumentSnapshot doc) {
     Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
     return Product(
-      id: doc.id,
+      id: doc.id, // idはdoc.idを使用し、これが商品IDとなる
       name: data['name'] ?? '',
       description: data['description'] ?? '',
       price: (data['price'] ?? 0).toDouble(),
       categories: List<String>.from(data['categories'] ?? []),
       imageUrls: List<String>.from(data['imageUrls'] ?? []),
       rating: (data['rating'] ?? 0).toDouble(),
-      stockCount: data['stockCount'], // nullを許容
+      stockCount: data['stockCount'],
       createdAt: data['createdAt'] ?? '',
     );
   }
@@ -46,11 +46,10 @@ class Product {
       'categories': categories,
       'imageUrls': imageUrls,
       'rating': rating,
-      'stockCount': stockCount, // nullの場合はそのまま
+      'stockCount': stockCount,
       'createdAt': createdAt,
     };
   }
 
-  // 在庫がnullの場合は在庫ありとして扱う
   bool get isInStock => stockCount == null || stockCount! > 0;
 }
