@@ -249,8 +249,8 @@ class CustomBottomNavigationBar extends StatelessWidget {
           label: language == 'Japanese' ? 'コミュニティ' : 'Community',
         ),
         BottomNavigationBarItem(
-          icon: Icon(Icons.settings_outlined),
-          label: language == 'Japanese' ? 'その他' : 'Other',
+          icon: Icon(Icons.score_outlined),
+          label: language == 'Japanese' ? 'ランキング' : 'Ranking',
         ),
       ],
     );
