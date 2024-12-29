@@ -825,47 +825,47 @@ class _AnimeListTestRankingState extends State<AnimeListTestRanking>
             votedAnimeToday.add(animeName);
             await prefs.setStringList('votedAnime_$today', votedAnimeToday);
             print("Incremented count for $animeName");
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('${animeName}の投票を受け付けました。'),
-                backgroundColor: Colors.green,
-              ),
-            );
+            // ScaffoldMessenger.of(context).showSnackBar(
+            //   SnackBar(
+            //     content: Text('${animeName}の投票を受け付けました。'),
+            //     backgroundColor: Colors.green,
+            //   ),
+            // );
           } else {
             print("Failed to increment count for $animeName");
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('投票に失敗しました。もう一度お試しください。'),
-                backgroundColor: Colors.red,
-              ),
-            );
+            // ScaffoldMessenger.of(context).showSnackBar(
+            //   SnackBar(
+            //     content: Text('投票に失敗しました。もう一度お試しください。'),
+            //     backgroundColor: Colors.red,
+            //   ),
+            // );
           }
         } else {
           print("Daily vote limit reached");
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('本日の投票回数の上限に達しました。また明日お試しください。'),
-              backgroundColor: Colors.orange,
-            ),
-          );
+          // ScaffoldMessenger.of(context).showSnackBar(
+          //   SnackBar(
+          //     content: Text('本日の投票回数の上限に達しました。また明日お試しください。'),
+          //     backgroundColor: Colors.orange,
+          //   ),
+          // );
         }
       } else {
         print("Already voted for this anime today");
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('このアニメには既に投票済みです。'),
-            backgroundColor: Colors.orange,
-          ),
-        );
+        // ScaffoldMessenger.of(context).showSnackBar(
+        //   SnackBar(
+        //     content: Text('このアニメには既に投票済みです。'),
+        //     backgroundColor: Colors.orange,
+        //   ),
+        // );
       }
     } catch (e) {
       print("Error incrementing anime count: $e");
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('エラーが発生しました。もう一度お試しください。'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      // ScaffoldMessenger.of(context).showSnackBar(
+      //   SnackBar(
+      //     content: Text('エラーが発生しました。もう一度お試しください。'),
+      //     backgroundColor: Colors.red,
+      //   ),
+      // );
     }
 
     // 投票処理の後で詳細画面に遷移

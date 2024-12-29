@@ -11,6 +11,7 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:share/share.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:video_player/video_player.dart';
+import 'package:youtube_player_flutter/youtube_player_flutter.dart';
 
 import 'anime_detail.dart';
 
@@ -27,6 +28,15 @@ class _AnimeDetailsPageState extends State<AnimeDetailsPage> {
   late Future<DocumentSnapshot> _animeData;
   OverlayEntry? _overlayEntry;
   final GlobalKey _infoIconKey = GlobalKey();
+  VideoPlayerController? _videoPlayerController;
+  ChewieController? _chewieController;
+  bool _isFavorite = false;
+  bool _isLoadingMoreReviews = false;
+  YoutubePlayerController? _youtubeController;
+  bool _showVideo = false;
+  bool _videoInitialized = false;
+  String? _videoId;
+  bool _isMuted = true;
 
   @override
   void initState() {
@@ -35,10 +45,158 @@ class _AnimeDetailsPageState extends State<AnimeDetailsPage> {
     WidgetsBinding.instance.addPostFrameCallback((_) => _showTutorialTooltip());
   }
 
-  @override
-  void dispose() {
-    _removeOverlay();
-    super.dispose();
+  Future<DocumentSnapshot> _fetchAnimeData() async {
+    try {
+      QuerySnapshot querySnapshot = await FirebaseFirestore.instance
+          .collection('animes')
+          .where('name', isEqualTo: widget.animeName)
+          .get();
+
+      if (querySnapshot.docs.isNotEmpty) {
+        DocumentSnapshot doc = querySnapshot.docs.first;
+        if (mounted) {
+          _initializeVideo(doc.data() as Map<String, dynamic>);
+        }
+        return doc;
+      } else {
+        throw Exception('Anime not found');
+      }
+    } catch (e) {
+      print("Error in _fetchAnimeData: $e");
+      rethrow;
+    }
+  }
+
+  Future<void> _initializeVideo(Map<String, dynamic> animeData) async {
+    if (animeData['officialVideoUrl'] != null &&
+        animeData['officialVideoUrl'].toString().isNotEmpty) {
+      try {
+        String originalUrl = animeData['officialVideoUrl'];
+        String? videoId = YoutubePlayer.convertUrlToId(originalUrl);
+        print("Attempting to initialize video with URL: $originalUrl");
+        print("Extracted video ID: $videoId");
+
+        if (videoId != null) {
+          setState(() {
+            _videoId = videoId;
+            _youtubeController = YoutubePlayerController(
+              initialVideoId: videoId,
+              flags: YoutubePlayerFlags(
+                mute: _isMuted,
+                autoPlay: true,
+                hideControls: true,
+                enableCaption: false,
+                isLive: false,
+                loop: true,
+                forceHD: false,
+              ),
+            );
+            _videoInitialized = true;
+          });
+
+          await Future.delayed(Duration(seconds: 1));
+          if (mounted) {
+            setState(() {
+              _showVideo = true;
+            });
+          }
+        }
+      } catch (e) {
+        print("Error initializing video: $e");
+        if (mounted) {
+          setState(() {
+            _videoInitialized = false;
+            _showVideo = false;
+          });
+        }
+      }
+    }
+  }
+
+  Widget _buildHeaderImage(String imageUrl) {
+    if (_showVideo && _videoInitialized && _youtubeController != null) {
+      return Container(
+        height: 200,
+        width: double.infinity,
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            Container(
+              height: 200,
+              child: YoutubePlayer(
+                controller: _youtubeController!,
+                showVideoProgressIndicator: false,
+                onReady: () {
+                  print("YouTube Player is ready");
+                },
+                onEnded: (YoutubeMetaData metaData) {
+                  _youtubeController?.seekTo(Duration.zero);
+                  _youtubeController?.play();
+                },
+              ),
+            ),
+            Positioned.fill(
+              child: GestureDetector(
+                onTap: () {
+                  setState(() {
+                    _isMuted = !_isMuted;
+                    if (_isMuted) {
+                      _youtubeController?.mute();
+                    } else {
+                      _youtubeController?.unMute();
+                    }
+                  });
+                },
+                child: Container(
+                  color: Colors.transparent,
+                  child: Center(
+                    child: Icon(
+                      _isMuted ? Icons.volume_off : Icons.volume_up,
+                      color: Colors.white.withOpacity(0.7),
+                      size: 30,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return Image.network(
+      imageUrl,
+      width: double.infinity,
+      height: 200,
+      fit: BoxFit.cover,
+      loadingBuilder: (BuildContext context, Widget child,
+          ImageChunkEvent? loadingProgress) {
+        if (loadingProgress == null) return child;
+        return Container(
+          width: double.infinity,
+          height: 200,
+          color: Colors.grey[200],
+          child: Center(
+            child: CircularProgressIndicator(
+              value: loadingProgress.expectedTotalBytes != null
+                  ? loadingProgress.cumulativeBytesLoaded /
+                      loadingProgress.expectedTotalBytes!
+                  : null,
+            ),
+          ),
+        );
+      },
+      errorBuilder: (context, error, stackTrace) {
+        return Container(
+          width: double.infinity,
+          height: 200,
+          color: Colors.grey[300],
+          child: Center(
+            child: Icon(Icons.error, color: Colors.grey[600]),
+          ),
+        );
+      },
+    );
   }
 
   Widget _buildNetworkImage(String imageUrl,
@@ -148,20 +306,6 @@ class _AnimeDetailsPageState extends State<AnimeDetailsPage> {
     );
   }
 
-  Future<DocumentSnapshot> _fetchAnimeData() async {
-    return await FirebaseFirestore.instance
-        .collection('animes')
-        .where('name', isEqualTo: widget.animeName)
-        .get()
-        .then((querySnapshot) {
-      if (querySnapshot.docs.isNotEmpty) {
-        return querySnapshot.docs.first;
-      } else {
-        throw Exception('Anime not found');
-      }
-    });
-  }
-
   Future<List<Map<String, dynamic>>> _fetchLocationsForAnime() async {
     List<Map<String, dynamic>> locations = [];
     try {
@@ -203,6 +347,15 @@ class _AnimeDetailsPageState extends State<AnimeDetailsPage> {
       print("Error fetching locations: $e");
     }
     return locations;
+  }
+
+  @override
+  void dispose() {
+    _removeOverlay();
+    _videoPlayerController?.dispose();
+    _chewieController?.dispose();
+    _youtubeController?.dispose();
+    super.dispose();
   }
 
   @override
@@ -256,11 +409,7 @@ class _AnimeDetailsPageState extends State<AnimeDetailsPage> {
 
           return Column(
             children: [
-              _buildNetworkImage(
-                imageUrl,
-                width: double.infinity,
-                height: 200,
-              ),
+              _buildHeaderImage(imageUrl),
               Padding(
                 padding: const EdgeInsets.all(8.0),
                 child: Align(
