@@ -488,15 +488,26 @@ class _UserPointUpdatePageState extends State<UserPointUpdatePage> {
             fontWeight: FontWeight.bold,
           ),
         ),
+        leading: Builder(
+          builder: (BuildContext context) {
+            return IconButton(
+              icon: const Icon(Icons.menu),
+              color: Colors.black,
+              onPressed: () {
+                Scaffold.of(context).openDrawer();
+              },
+            );
+          },
+        ),
         actions: [
           IconButton(
-            icon: Icon(
-              Icons.settings,
-            ),
+            icon: const Icon(Icons.settings),
             color: Colors.black,
             onPressed: () {
               Navigator.push(
-                  context, MaterialPageRoute(builder: (context) => ManualEn()));
+                context,
+                MaterialPageRoute(builder: (context) => ManualEn()),
+              );
             },
           ),
         ],
@@ -507,188 +518,245 @@ class _UserPointUpdatePageState extends State<UserPointUpdatePage> {
                 _language == '日本語' ? 'ログインしていません' : 'Not logged in',
               ),
             )
-          : SingleChildScrollView(
-              child: Column(
-                children: [
-                  StreamBuilder<DocumentSnapshot>(
-                    stream: FirebaseFirestore.instance
-                        .collection('users')
-                        .doc(currentUser.uid)
-                        .snapshots(),
-                    builder: (context, userSnapshot) {
-                      if (userSnapshot.connectionState ==
-                          ConnectionState.waiting) {
-                        return const Center(child: CircularProgressIndicator());
-                      }
-                      if (!userSnapshot.hasData || !userSnapshot.data!.exists) {
-                        return Center(
-                          child: Text(
-                            _language == '日本語'
-                                ? 'データが見つかりません'
-                                : 'No data found',
-                          ),
-                        );
-                      }
-
-                      final userData =
-                          userSnapshot.data!.data() as Map<String, dynamic>;
-                      final point = _getPointValue(userData);
-
-                      return StreamBuilder<QuerySnapshot>(
+          : SafeArea(
+              child: MediaQuery.removePadding(
+                context: context,
+                removeTop: true,
+                child: SingleChildScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  child: Column(
+                    children: [
+                      StreamBuilder<DocumentSnapshot>(
                         stream: FirebaseFirestore.instance
                             .collection('users')
+                            .doc(currentUser.uid)
                             .snapshots(),
-                        builder: (context, rankingSnapshot) {
-                          int userRank = 0;
-                          int totalUsers = 0;
-                          if (rankingSnapshot.hasData) {
-                            final sortedDocs =
-                                rankingSnapshot.data!.docs.toList()
-                                  ..sort((a, b) {
-                                    final aPoint = _getPointValue(
-                                        a.data() as Map<String, dynamic>);
-                                    final bPoint = _getPointValue(
-                                        b.data() as Map<String, dynamic>);
-                                    return bPoint.compareTo(aPoint);
-                                  });
-
-                            totalUsers = sortedDocs.length;
-
-                            for (int i = 0; i < sortedDocs.length; i++) {
-                              if (sortedDocs[i].id == currentUser.uid) {
-                                userRank = i + 1;
-                                break;
-                              }
-                            }
+                        builder: (context, userSnapshot) {
+                          if (userSnapshot.connectionState ==
+                              ConnectionState.waiting) {
+                            return const Center(
+                                child: CircularProgressIndicator());
+                          }
+                          if (!userSnapshot.hasData ||
+                              !userSnapshot.data!.exists) {
+                            return Center(
+                              child: Text(
+                                _language == '日本語'
+                                    ? 'データが見つかりません'
+                                    : 'No data found',
+                              ),
+                            );
                           }
 
-                          return Padding(
-                            padding: const EdgeInsets.all(16),
-                            child: Column(
-                              children: [
-                                Text(
-                                  _language == '日本語' ? 'あなたの成績' : 'Your Status',
-                                  style: const TextStyle(
-                                    fontSize: 24,
-                                    fontWeight: FontWeight.bold,
-                                    color: Color(0xFF00008b),
-                                  ),
-                                ),
-                                const SizedBox(height: 20),
-                                Row(
+                          final userData =
+                              userSnapshot.data!.data() as Map<String, dynamic>;
+                          final point = _getPointValue(userData);
+
+                          return StreamBuilder<QuerySnapshot>(
+                            stream: FirebaseFirestore.instance
+                                .collection('users')
+                                .snapshots(),
+                            builder: (context, rankingSnapshot) {
+                              int userRank = 0;
+                              int totalUsers = 0;
+                              if (rankingSnapshot.hasData) {
+                                final sortedDocs =
+                                    rankingSnapshot.data!.docs.toList()
+                                      ..sort((a, b) {
+                                        final aPoint = _getPointValue(
+                                            a.data() as Map<String, dynamic>);
+                                        final bPoint = _getPointValue(
+                                            b.data() as Map<String, dynamic>);
+                                        return bPoint.compareTo(aPoint);
+                                      });
+
+                                totalUsers = sortedDocs.length;
+
+                                for (int i = 0; i < sortedDocs.length; i++) {
+                                  if (sortedDocs[i].id == currentUser.uid) {
+                                    userRank = i + 1;
+                                    break;
+                                  }
+                                }
+                              }
+
+                              return Padding(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 16, vertical: 8),
+                                child: Column(
                                   children: [
-                                    Expanded(
-                                      child: Container(
-                                        padding: const EdgeInsets.all(20),
-                                        decoration: BoxDecoration(
-                                          color: const Color(0xFF00008b),
-                                          borderRadius:
-                                              BorderRadius.circular(15),
-                                          boxShadow: [
-                                            BoxShadow(
-                                              color:
-                                                  Colors.grey.withOpacity(0.5),
-                                              spreadRadius: 5,
-                                              blurRadius: 7,
-                                              offset: const Offset(0, 3),
-                                            ),
-                                          ],
-                                        ),
-                                        child: Column(
-                                          children: [
-                                            Text(
-                                              _language == '日本語'
-                                                  ? 'ポイント'
-                                                  : 'Points',
-                                              style: const TextStyle(
-                                                fontSize: 16,
-                                                fontWeight: FontWeight.bold,
-                                                color: Colors.white,
-                                              ),
-                                            ),
-                                            const SizedBox(height: 8),
-                                            Text(
-                                              '$point pt',
-                                              style: const TextStyle(
-                                                fontSize: 32,
-                                                fontWeight: FontWeight.bold,
-                                                color: Colors.white,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
+                                    Text(
+                                      _language == '日本語'
+                                          ? 'あなたの成績'
+                                          : 'Your Status',
+                                      style: const TextStyle(
+                                        fontSize: 24,
+                                        fontWeight: FontWeight.bold,
+                                        color: Color(0xFF00008b),
                                       ),
                                     ),
-                                    const SizedBox(width: 16),
-                                    Expanded(
-                                      child: Container(
-                                        padding: const EdgeInsets.all(20),
-                                        decoration: BoxDecoration(
-                                          color: const Color(0xFF00008b),
-                                          borderRadius:
-                                              BorderRadius.circular(15),
-                                          boxShadow: [
-                                            BoxShadow(
-                                              color:
-                                                  Colors.grey.withOpacity(0.5),
-                                              spreadRadius: 5,
-                                              blurRadius: 7,
-                                              offset: const Offset(0, 3),
+                                    const SizedBox(height: 16),
+                                    Row(
+                                      children: [
+                                        Expanded(
+                                          child: Container(
+                                            padding: const EdgeInsets.all(16),
+                                            decoration: BoxDecoration(
+                                              color: const Color(0xFF00008b),
+                                              borderRadius:
+                                                  BorderRadius.circular(15),
+                                              boxShadow: [
+                                                BoxShadow(
+                                                  color: Colors.grey
+                                                      .withOpacity(0.5),
+                                                  spreadRadius: 2,
+                                                  blurRadius: 5,
+                                                  offset: const Offset(0, 2),
+                                                ),
+                                              ],
                                             ),
-                                          ],
-                                        ),
-                                        child: Column(
-                                          children: [
-                                            Text(
-                                              _language == '日本語'
-                                                  ? 'ランキング'
-                                                  : 'Ranking',
-                                              style: const TextStyle(
-                                                fontSize: 16,
-                                                fontWeight: FontWeight.bold,
-                                                color: Colors.white,
-                                              ),
-                                            ),
-                                            const SizedBox(height: 8),
-                                            Row(
-                                              mainAxisAlignment:
-                                                  MainAxisAlignment.center,
+                                            child: Column(
                                               children: [
                                                 Text(
-                                                  '$userRank',
+                                                  _language == '日本語'
+                                                      ? 'ポイント'
+                                                      : 'Points',
                                                   style: const TextStyle(
-                                                    fontSize: 32,
+                                                    fontSize: 16,
                                                     fontWeight: FontWeight.bold,
                                                     color: Colors.white,
                                                   ),
                                                 ),
-                                                Text(
-                                                  _language == '日本語'
-                                                      ? ' /$totalUsers位'
-                                                      : ' /$totalUsers',
-                                                  style: const TextStyle(
-                                                    fontSize: 20,
-                                                    fontWeight: FontWeight.bold,
-                                                    color: Colors.white,
+                                                const SizedBox(height: 8),
+                                                FittedBox(
+                                                  fit: BoxFit.scaleDown,
+                                                  child: Text(
+                                                    '$point pt',
+                                                    style: const TextStyle(
+                                                      fontSize: 32,
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                      color: Colors.white,
+                                                    ),
                                                   ),
                                                 ),
                                               ],
                                             ),
-                                          ],
+                                          ),
                                         ),
-                                      ),
+                                        const SizedBox(width: 16),
+                                        Expanded(
+                                          child: Container(
+                                            padding: const EdgeInsets.all(16),
+                                            decoration: BoxDecoration(
+                                              color: const Color(0xFF00008b),
+                                              borderRadius:
+                                                  BorderRadius.circular(15),
+                                              boxShadow: [
+                                                BoxShadow(
+                                                  color: Colors.grey
+                                                      .withOpacity(0.5),
+                                                  spreadRadius: 2,
+                                                  blurRadius: 5,
+                                                  offset: const Offset(0, 2),
+                                                ),
+                                              ],
+                                            ),
+                                            child: Column(
+                                              children: [
+                                                Text(
+                                                  _language == '日本語'
+                                                      ? 'ランキング'
+                                                      : 'Ranking',
+                                                  style: const TextStyle(
+                                                    fontSize: 16,
+                                                    fontWeight: FontWeight.bold,
+                                                    color: Colors.white,
+                                                  ),
+                                                ),
+                                                const SizedBox(height: 8),
+                                                LayoutBuilder(
+                                                  builder:
+                                                      (context, constraints) {
+                                                    double rankFontSize =
+                                                        constraints.maxWidth *
+                                                            0.2;
+                                                    double totalFontSize =
+                                                        constraints.maxWidth *
+                                                            0.12;
+
+                                                    rankFontSize = rankFontSize
+                                                        .clamp(16.0, 32.0);
+                                                    totalFontSize =
+                                                        totalFontSize.clamp(
+                                                            12.0, 20.0);
+
+                                                    return Row(
+                                                      mainAxisAlignment:
+                                                          MainAxisAlignment
+                                                              .center,
+                                                      children: [
+                                                        Flexible(
+                                                          flex: 2,
+                                                          child: FittedBox(
+                                                            fit: BoxFit
+                                                                .scaleDown,
+                                                            child: Text(
+                                                              '$userRank',
+                                                              style: TextStyle(
+                                                                fontSize:
+                                                                    rankFontSize,
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .bold,
+                                                                color: Colors
+                                                                    .white,
+                                                              ),
+                                                            ),
+                                                          ),
+                                                        ),
+                                                        Flexible(
+                                                          flex: 3,
+                                                          child: FittedBox(
+                                                            fit: BoxFit
+                                                                .scaleDown,
+                                                            child: Text(
+                                                              _language == '日本語'
+                                                                  ? ' /$totalUsers位'
+                                                                  : ' /$totalUsers',
+                                                              style: TextStyle(
+                                                                fontSize:
+                                                                    totalFontSize,
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .bold,
+                                                                color: Colors
+                                                                    .white,
+                                                              ),
+                                                            ),
+                                                          ),
+                                                        ),
+                                                      ],
+                                                    );
+                                                  },
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ),
+                                      ],
                                     ),
                                   ],
                                 ),
-                              ],
-                            ),
+                              );
+                            },
                           );
                         },
-                      );
-                    },
+                      ),
+                      _buildPointRanking(),
+                    ],
                   ),
-                  _buildPointRanking(),
-                ],
+                ),
               ),
             ),
       drawer: Drawer(
@@ -733,8 +801,10 @@ class _UserPointUpdatePageState extends State<UserPointUpdatePage> {
               title:
                   Text(_language == '日本語' ? "ポイントの貯め方" : "How to Earn Points"),
               onTap: () {
-                Navigator.push(context,
-                    MaterialPageRoute(builder: (context) => PointManual()));
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => PointManual()),
+                );
               },
             ),
             ListTile(
@@ -742,11 +812,11 @@ class _UserPointUpdatePageState extends State<UserPointUpdatePage> {
               title: Text(_language == '日本語' ? "ポイント履歴" : "Point history"),
               onTap: () {
                 Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                        builder: (context) => PointsHistoryPage(
-                              userId: '',
-                            )));
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => PointsHistoryPage(userId: ''),
+                  ),
+                );
               },
             ),
             ListTile(
@@ -754,17 +824,19 @@ class _UserPointUpdatePageState extends State<UserPointUpdatePage> {
               title: Text(_language == '日本語' ? "ポイント交換" : "Exchange Points"),
               onTap: () {
                 Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                        builder: (context) => PresentListScreen()));
+                  context,
+                  MaterialPageRoute(builder: (context) => PresentListScreen()),
+                );
               },
             ),
             ListTile(
               leading: const Icon(Icons.book_outlined),
               title: Text(_language == '日本語' ? "ポイント利用規約" : "Terms of Use"),
               onTap: () {
-                Navigator.push(context,
-                    MaterialPageRoute(builder: (context) => TermsScreen()));
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => TermsScreen()),
+                );
               },
             ),
             ListTile(
@@ -772,9 +844,10 @@ class _UserPointUpdatePageState extends State<UserPointUpdatePage> {
               title: Text(_language == '日本語' ? "プライバシーポリシー" : "Privacy Policy"),
               onTap: () {
                 Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                        builder: (context) => PrivacyPolicyScreen()));
+                  context,
+                  MaterialPageRoute(
+                      builder: (context) => PrivacyPolicyScreen()),
+                );
               },
             ),
           ],
