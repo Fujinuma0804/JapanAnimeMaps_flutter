@@ -8,6 +8,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:parts/src/bubble_border.dart';
 import 'package:share/share.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:video_player/video_player.dart';
@@ -956,6 +957,87 @@ https://japananimemaps.page.link/ios
                 height: 200,
               ),
             ),
+            Stack(
+              children: [
+                Container(
+                  margin: EdgeInsets.only(
+                      top: 20, right: 20, left: 20), // 上部のスペースを確保
+                  padding: EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    border: Border.all(color: Color(0xFFF407FED)),
+                    borderRadius: BorderRadius.circular(8),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.grey,
+                        spreadRadius: 5,
+                        blurRadius: 10,
+                        offset: Offset(1, 1),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    children: [
+                      const SizedBox(
+                        height: 18.0,
+                      ),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Container(
+                            margin: EdgeInsets.only(top: 6, right: 8),
+                            width: 6,
+                            height: 6,
+                            decoration: BoxDecoration(
+                              color: Colors.black,
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                          Expanded(
+                            child: Text(
+                              widget.description,
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(
+                        height: 10.0,
+                      ),
+                    ],
+                  ),
+                ),
+                Positioned(
+                  top: 0,
+                  left: 16,
+                  child: Container(
+                    padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    decoration: ShapeDecoration(
+                      color: Color(0xFFF407FED),
+                      shape: BubbleBorder(),
+                      shadows: [
+                        BoxShadow(
+                          color: Color(0xFFF407FED).withOpacity(0.5),
+                          blurRadius: 4,
+                          offset: Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: Text(
+                      '『${widget.animeName}』での登場シーン',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
             _buildMainContent(),
             if (widget.subMedia.isNotEmpty)
               Padding(
@@ -984,28 +1066,55 @@ https://japananimemaps.page.link/ios
                   ),
                 ),
               ),
-            SizedBox(height: 10.0),
             _buildAddressCard(),
+            const SizedBox(
+              height: 2.0,
+            ),
+            Padding(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 24.0), // 左右に余裕を持たせる
+              child: SizedBox(
+                width: double.infinity,
+                child: Card(
+                  color: Color(0xFFF407FED),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          widget.description,
+                          style: const TextStyle(
+                            fontSize: 16,
+                            color: Colors.black,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
             Center(
               child: Padding(
                 padding: const EdgeInsets.all(16.0),
                 child: ElevatedButton(
                   onPressed: () => _openMapOptions(context),
-                  child: Text('ここへ行く'),
+                  child: Text(
+                    'ここへ行く',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                   style: ElevatedButton.styleFrom(
                     foregroundColor: Colors.white,
-                    backgroundColor: Color(0xFF00008b),
+                    backgroundColor: Color(0xFFF407FED),
                   ),
-                ),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Text(
-                widget.description,
-                style: const TextStyle(
-                  fontSize: 16,
-                  color: Colors.black,
                 ),
               ),
             ),
@@ -1018,62 +1127,76 @@ https://japananimemaps.page.link/ios
   }
 
   Widget _buildAddressCard() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16.0),
-      child: FutureBuilder<Map<String, String>>(
-        future: _getAddress(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return Center(child: CircularProgressIndicator());
-          }
-          if (snapshot.hasError) {
-            return Text('エラーが発生しました');
-          }
+    return FutureBuilder<Map<String, String>>(
+      future: _getAddress(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return Center(child: CircularProgressIndicator());
+        }
+        if (snapshot.hasError) {
+          return Text('エラーが発生しました');
+        }
 
-          final address = snapshot.data!;
-          return SizedBox(
-            width: double.infinity,
-            child: Card(
-              color: Colors.blue,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+        final address = snapshot.data!;
+        return Container(
+          margin:
+              EdgeInsets.only(top: 20, right: 20, left: 20), // Stackと同じマージンを使用
+          padding: EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            border: Border.all(color: Color(0xFFF407FED)),
+            borderRadius: BorderRadius.circular(8),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.grey,
+                spreadRadius: 5,
+                blurRadius: 10,
+                offset: Offset(1, 1),
               ),
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      widget.title,
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          widget.title,
+                          style: TextStyle(
+                            color: Colors.black,
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        SizedBox(height: 8),
+                        Text(
+                          '〒${address['postalCode']!}',
+                          style: TextStyle(
+                            color: Colors.black,
+                            fontSize: 14,
+                          ),
+                        ),
+                        Text(
+                          address['address']!,
+                          style: TextStyle(
+                            color: Colors.black,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ],
                     ),
-                    SizedBox(height: 8),
-                    Text(
-                      '〒${address['postalCode']!}',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 14,
-                      ),
-                    ),
-                    Text(
-                      address['address']!,
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 14,
-                      ),
-                    ),
-                  ],
-                ),
+                  ),
+                ],
               ),
-            ),
-          );
-        },
-      ),
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -1090,11 +1213,20 @@ https://japananimemaps.page.link/ios
               fontSize: 10.0,
             ),
           ),
-          Text(
-            widget.sourceLink,
-            style: TextStyle(
-              color: Colors.grey,
-              fontSize: 10.0,
+          GestureDetector(
+            onTap: () async {
+              final uri = Uri.parse(widget.sourceLink);
+              if (await canLaunchUrl(uri)) {
+                await launchUrl(uri);
+              }
+            },
+            child: Text(
+              widget.sourceLink,
+              style: TextStyle(
+                color: Colors.blue,
+                fontSize: 10.0,
+                decoration: TextDecoration.underline,
+              ),
             ),
           ),
         ],

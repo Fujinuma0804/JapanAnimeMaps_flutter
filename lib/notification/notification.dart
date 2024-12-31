@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 import 'admin_notices.dart';
 import 'contacts_notices.dart';
@@ -90,6 +91,15 @@ class _NotificationsPageState extends State<NotificationsPage> {
                   Navigator.of(context).pop();
                 },
               ),
+              actions: [
+                IconButton(
+                  onPressed: () {},
+                  icon: Icon(
+                    Icons.settings_outlined,
+                    color: Color(0xFF00008b),
+                  ),
+                ),
+              ],
             ),
             body: Center(
                 child: Text(_userLanguage == 'Japanese'
@@ -129,6 +139,17 @@ class _NotificationsPageState extends State<NotificationsPage> {
                   Tab(text: _userLanguage == 'Japanese' ? 'その他' : 'Other'),
                 ],
               ),
+              actions: [
+                IconButton(
+                  onPressed: () async {
+                    openAppSettings();
+                  },
+                  icon: Icon(
+                    Icons.settings_outlined,
+                    color: Color(0xFF00008b),
+                  ),
+                ),
+              ],
             ),
             body: TabBarView(
               children: [
