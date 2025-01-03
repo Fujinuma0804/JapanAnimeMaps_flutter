@@ -845,6 +845,8 @@ class _LikedMapsState extends State<LikedMaps> {
                                       builder: (context) => SpotDetailScreen(
                                         title: data['title'] ?? '',
                                         description: data['description'] ?? '',
+                                        spot_description:
+                                            data['spot_description'] ?? '',
                                         latitude: data['latitude'] != null
                                             ? data['latitude'].toDouble()
                                             : 0.0,

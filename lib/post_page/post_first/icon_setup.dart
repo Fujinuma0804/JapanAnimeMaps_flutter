@@ -6,6 +6,7 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:parts/post_page/post_first/post_id.dart';
+import 'package:parts/post_page/post_first/post_welcome.dart';
 
 class IconSetupScreen extends StatefulWidget {
   const IconSetupScreen({super.key});
@@ -93,6 +94,15 @@ class _IconSetupScreenState extends State<IconSetupScreen> {
             fontWeight: FontWeight.bold,
           ),
         ),
+        leading: (IconButton(
+            onPressed: () {
+              Navigator.push(context,
+                  MaterialPageRoute(builder: (context) => PostWelcome1()));
+            },
+            icon: Icon(
+              Icons.arrow_back_ios,
+              color: Color(0xFF00008b),
+            ))),
       ),
       body: SafeArea(
         child: Column(

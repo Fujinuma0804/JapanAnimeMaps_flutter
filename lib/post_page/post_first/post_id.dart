@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:parts/post_page/post_first/icon_setup.dart';
 import 'package:parts/src/bottomnavigationbar.dart';
 
 class IdSetupScreen extends StatefulWidget {
@@ -156,7 +157,8 @@ class _IdSetupScreenState extends State<IdSetupScreen> {
           elevation: 0,
           leading: IconButton(
             onPressed: () {
-              Navigator.of(context).pop();
+              Navigator.push(context,
+                  MaterialPageRoute(builder: (context) => IconSetupScreen()));
             },
             icon: const Icon(Icons.arrow_back_ios),
           ),

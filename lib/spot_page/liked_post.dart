@@ -280,6 +280,8 @@ class _FavoriteLocationsPageState extends State<FavoriteLocationsPage> {
           locationId: location['id'] ?? '',
           title: location['title'] ?? 'Not title',
           description: location['description'] ?? 'Not Description',
+          spot_description:
+              location['spot_description'] ?? 'Not spot_description',
           latitude: location['latitude'] ?? 0.0,
           longitude: location['longitude'] ?? 0.0,
           imageUrl: location['imageUrl'] ?? '',
@@ -364,6 +366,8 @@ class LocationSearchDelegate extends SearchDelegate {
                           title: location['title'] ?? 'Not title',
                           description:
                               location['description'] ?? 'Not Description',
+                          spot_description: location['spot_description'] ??
+                              'spot_description',
                           latitude: location['latitude'] ?? 0.0,
                           longitude: location['longitude'] ?? 0.0,
                           imageUrl: location['imageUrl'] ?? '',

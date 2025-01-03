@@ -827,6 +827,8 @@ class _MapScreenState extends State<MapScreen> {
                                             _selectedMarker!.markerId.value,
                                         title: data['title'] ?? '',
                                         description: data['description'] ?? '',
+                                        spot_description:
+                                            data['spot_description'] ?? '',
                                         latitude: data['latitude'] != null
                                             ? (data['latitude'] as num)
                                                 .toDouble()

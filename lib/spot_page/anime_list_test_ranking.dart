@@ -15,6 +15,101 @@ import 'anime_list_en_ranking.dart';
 import 'customer_anime_request.dart';
 import 'liked_post.dart';
 
+// AdManagerクラスの実装
+class AdManager {
+  static final Map<int, BannerAd?> _gridBannerAds = {};
+  static final Map<int, bool> _isGridBannerAdReady = {};
+  static final Map<int, DateTime> _lastAdLoadAttempt = {};
+  static final Map<int, int> _failureCount = {};
+  static const Duration _initialBackoff = Duration(seconds: 5);
+  static const int _maxRetries = 3;
+
+  static void dispose() {
+    _gridBannerAds.forEach((_, ad) => ad?.dispose());
+    _gridBannerAds.clear();
+    _isGridBannerAdReady.clear();
+    _lastAdLoadAttempt.clear();
+    _failureCount.clear();
+  }
+
+  static Duration _getBackoffDuration(int index) {
+    final failures = _failureCount[index] ?? 0;
+    // 指数関数的なバックオフ: 5秒 → 10秒 → 20秒
+    return Duration(seconds: _initialBackoff.inSeconds * (1 << failures));
+  }
+
+  static bool canLoadAdForIndex(int index) {
+    final lastAttempt = _lastAdLoadAttempt[index];
+    if (lastAttempt == null) return true;
+
+    final backoff = _getBackoffDuration(index);
+    return DateTime.now().difference(lastAttempt) >= backoff;
+  }
+
+  static Future<void> loadGridBannerAd(int index) async {
+    // 既に広告が読み込まれている場合はスキップ
+    if (_gridBannerAds[index] != null && _isGridBannerAdReady[index] == true) {
+      return;
+    }
+
+    // レート制限チェック
+    if (!canLoadAdForIndex(index)) {
+      return;
+    }
+
+    // 最大リトライ回数を超えた場合はスキップ
+    if ((_failureCount[index] ?? 0) >= _maxRetries) {
+      return;
+    }
+
+    _lastAdLoadAttempt[index] = DateTime.now();
+
+    // 既存の広告を破棄
+    _gridBannerAds[index]?.dispose();
+
+    _gridBannerAds[index] = BannerAd(
+      adUnitId: 'ca-app-pub-1580421227117187/3454220382',
+      request: AdRequest(),
+      size: AdSize.banner,
+      listener: BannerAdListener(
+        onAdLoaded: (_) {
+          _isGridBannerAdReady[index] = true;
+          _failureCount[index] = 0; // 成功時にカウントをリセット
+        },
+        onAdFailedToLoad: (ad, err) {
+          print('Grid banner ad failed to load: ${err.message}');
+          _isGridBannerAdReady[index] = false;
+          _failureCount[index] = (_failureCount[index] ?? 0) + 1;
+          ad.dispose();
+          _gridBannerAds[index] = null;
+        },
+      ),
+    );
+
+    try {
+      await _gridBannerAds[index]?.load();
+    } catch (e) {
+      print('Exception while loading ad: $e');
+      _isGridBannerAdReady[index] = false;
+      _failureCount[index] = (_failureCount[index] ?? 0) + 1;
+      _gridBannerAds[index]?.dispose();
+      _gridBannerAds[index] = null;
+    }
+  }
+
+  static bool isAdReadyForIndex(int index) {
+    return _isGridBannerAdReady[index] == true && _gridBannerAds[index] != null;
+  }
+
+  static BannerAd? getAdForIndex(int index) {
+    return _gridBannerAds[index];
+  }
+
+  static void resetFailureCount(int index) {
+    _failureCount[index] = 0;
+  }
+}
+
 class AnimeListTestRanking extends StatefulWidget {
   @override
   _AnimeListTestRankingState createState() => _AnimeListTestRankingState();
@@ -40,8 +135,6 @@ class _AnimeListTestRankingState extends State<AnimeListTestRanking>
 
   BannerAd? _bottomBannerAd;
   bool _isBottomBannerAdReady = false;
-  Map<int, BannerAd> _gridBannerAds = {};
-  Map<int, bool> _isGridBannerAdReady = {};
 
   late TabController _tabController;
   int _currentTabIndex = 0;
@@ -205,30 +298,6 @@ class _AnimeListTestRankingState extends State<AnimeListTestRanking>
     _bottomBannerAd?.load();
   }
 
-  void _loadGridBannerAd(int index) {
-    if (_gridBannerAds[index] != null) return;
-
-    _gridBannerAds[index] = BannerAd(
-      adUnitId: 'ca-app-pub-1580421227117187/7240101933',
-      request: AdRequest(),
-      size: AdSize.banner,
-      listener: BannerAdListener(
-        onAdLoaded: (_) {
-          setState(() {
-            _isGridBannerAdReady[index] = true;
-          });
-        },
-        onAdFailedToLoad: (ad, err) {
-          print('Grid banner ad failed to load: ${err.message}');
-          _isGridBannerAdReady[index] = false;
-          ad.dispose();
-        },
-      ),
-    );
-
-    _gridBannerAds[index]?.load();
-  }
-
   Future<void> _initializeTabController() async {
     await _checkActiveEvents();
     int tabCount = _activeEvents.isNotEmpty ? 3 : 2;
@@ -329,7 +398,7 @@ class _AnimeListTestRankingState extends State<AnimeListTestRanking>
     _searchController.dispose();
     _bannerAd?.dispose();
     _bottomBannerAd?.dispose();
-    _gridBannerAds.values.forEach((ad) => ad.dispose());
+    AdManager.dispose();
     super.dispose();
     _adMob.dispose();
   }
@@ -1011,20 +1080,28 @@ class _AnimeListTestRankingState extends State<AnimeListTestRanking>
                       itemCount: filteredAnimeData.length,
                       itemBuilder: (context, index) {
                         if (index != 0 && index % 6 == 0) {
-                          _loadGridBannerAd(index);
-                          if (_isGridBannerAdReady[index] == true &&
-                              _gridBannerAds[index] != null) {
+                          if (AdManager.canLoadAdForIndex(index)) {
+                            Future.microtask(
+                                () => AdManager.loadGridBannerAd(index));
+                          }
+
+                          if (AdManager.isAdReadyForIndex(index)) {
+                            final ad = AdManager.getAdForIndex(index);
                             return Container(
-                              width:
-                                  _gridBannerAds[index]!.size.width.toDouble(),
-                              height:
-                                  _gridBannerAds[index]!.size.height.toDouble(),
-                              child: AdWidget(ad: _gridBannerAds[index]!),
+                              width: ad!.size.width.toDouble(),
+                              height: ad.size.height.toDouble(),
+                              child: AdWidget(ad: ad),
                             );
                           } else {
                             return Container(
                               height: 50,
-                              child: Center(child: Text('広告')),
+                              child: Center(
+                                  child: Text(
+                                '広告',
+                                style: TextStyle(
+                                  color: Colors.grey,
+                                ),
+                              )),
                             );
                           }
                         }

@@ -69,6 +69,7 @@ class _SpotTestScreenState extends State<SpotTestScreen> {
             title: locationData['title'] ?? '',
             imageUrl: locationData['imageUrl'] ?? '',
             description: locationData['description'] ?? '',
+            spot_description: locationData['spot_description'] ?? '',
             latitude: locationData['latitude'] as double? ?? 0.0,
             longitude: locationData['longitude'] as double? ?? 0.0,
             sourceLink: locationData['sourceLink'] as String? ?? '',

@@ -1682,6 +1682,8 @@ class _PrefectureSpotListPageState extends State<PrefectureSpotListPage> {
                                     userId: '',
                                     imageUrl: data['imageUrl'] ?? '',
                                     description: data['description'] ?? '',
+                                    spot_description:
+                                        data['spot_description'] ?? '',
                                     latitude: (data['latitude'] as num?)
                                             ?.toDouble() ??
                                         0.0,

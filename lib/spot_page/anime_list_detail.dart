@@ -6,8 +6,10 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_html/flutter_html.dart' hide Marker;
 import 'package:geocoding/geocoding.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:parts/src/bubble.dart';
 import 'package:parts/src/bubble_border.dart';
 import 'package:share/share.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -317,6 +319,13 @@ class _AnimeDetailsPageState extends State<AnimeDetailsPage> {
 
       for (var doc in snapshot.docs) {
         var data = doc.data() as Map<String, dynamic>;
+
+        // デバッグ出力を追加
+        print('==== Fetched Location Data ====');
+        print('Document ID: ${doc.id}');
+        print('spot_description: ${data['spot_description']}');
+        print('============================');
+
         List<Map<String, dynamic>> processedSubMedia = [];
         var rawSubMedia = data['subMedia'];
         if (rawSubMedia != null) {
@@ -335,6 +344,8 @@ class _AnimeDetailsPageState extends State<AnimeDetailsPage> {
           'title': data['title'] ?? '',
           'imageUrl': data['imageUrl'] ?? '',
           'description': data['description'] ?? '',
+          'spot_description':
+              data['spot_description'] ?? '', // spot_descriptionを追加
           'latitude': data['latitude'] ?? 0.0,
           'longitude': data['longitude'] ?? 0.0,
           'sourceTitle': data['sourceTitle'] ?? '',
@@ -466,12 +477,32 @@ class _AnimeDetailsPageState extends State<AnimeDetailsPage> {
 
   Widget _buildLocationCard(
       Map<String, dynamic> location, BuildContext context) {
-    final String title = location['title'] as String;
-    final String imageUrl = location['imageUrl'] as String;
-    final String locationId = location['id'] as String;
-    final userEmail = location['userEmail'];
-    String userId;
+    // デバッグ出力を追加
+    print('==== Location Card Data ====');
+    print('Raw location data: $location');
+    print('============================');
 
+    final String title = location['title'] as String? ?? '';
+    final String imageUrl = location['imageUrl'] as String? ?? '';
+    final String locationId = location['id'] as String? ?? '';
+    final String description = location['description'] as String? ?? '';
+    final String spot_description =
+        location['spot_description'] as String? ?? '';
+    final double latitude = (location['latitude'] as num?)?.toDouble() ?? 0.0;
+    final double longitude = (location['longitude'] as num?)?.toDouble() ?? 0.0;
+    final String sourceTitle = location['sourceTitle'] as String? ?? '';
+    final String sourceLink = location['sourceLink'] as String? ?? '';
+    final String url = location['url'] as String? ?? '';
+    final userEmail = location['userEmail'];
+
+    // spot_descriptionのデバッグ出力
+    print('==== Spot Description Debug ====');
+    print('spot_description: $spot_description');
+    print('spot_description type: ${spot_description.runtimeType}');
+    print('spot_description length: ${spot_description.length}');
+    print('=============================');
+
+    String userId;
     if (userEmail is List) {
       userId = userEmail.isNotEmpty
           ? userEmail[0].toString().split('@')[0]
@@ -482,8 +513,24 @@ class _AnimeDetailsPageState extends State<AnimeDetailsPage> {
       userId = 'unknown';
     }
 
+    List<Map<String, dynamic>> subMedia = [];
+    if (location['subMedia'] != null) {
+      if (location['subMedia'] is List) {
+        subMedia = (location['subMedia'] as List)
+            .where((item) => item is Map<String, dynamic>)
+            .map((item) => Map<String, dynamic>.from(item))
+            .toList();
+      }
+    }
+
     return GestureDetector(
       onTap: () {
+        // SpotDetailScreen遷移時のデバッグ出力
+        print('==== Navigation Data ====');
+        print(
+            'Navigating to SpotDetailScreen with spot_description: $spot_description');
+        print('=======================');
+
         Navigator.push(
           context,
           MaterialPageRoute(
@@ -491,16 +538,14 @@ class _AnimeDetailsPageState extends State<AnimeDetailsPage> {
               title: title,
               imageUrl: imageUrl,
               userId: userId,
-              description: location['description'] as String,
-              latitude: location['latitude'] as double,
-              longitude: location['longitude'] as double,
-              sourceLink: location['sourceLink'] as String,
-              sourceTitle: location['sourceTitle'] as String,
-              url: location['url'] as String,
-              subMedia: (location['subMedia'] as List)
-                  .where((item) => item is Map<String, dynamic>)
-                  .cast<Map<String, dynamic>>()
-                  .toList(),
+              description: description,
+              spot_description: spot_description,
+              latitude: latitude,
+              longitude: longitude,
+              sourceLink: sourceLink,
+              sourceTitle: sourceTitle,
+              url: url,
+              subMedia: subMedia,
               locationId: locationId,
               animeName: widget.animeName,
             ),
@@ -550,6 +595,7 @@ class _AnimeDetailsPageState extends State<AnimeDetailsPage> {
 class SpotDetailScreen extends StatefulWidget {
   final String title;
   final String description;
+  final String spot_description;
   final double latitude;
   final double longitude;
   final String imageUrl;
@@ -565,12 +611,13 @@ class SpotDetailScreen extends StatefulWidget {
     Key? key,
     required this.title,
     required this.description,
+    this.spot_description = '', // Provide default value
     required this.latitude,
     required this.longitude,
     required this.imageUrl,
-    required this.sourceTitle,
-    required this.sourceLink,
-    required this.url,
+    this.sourceTitle = '', // Provide default value
+    this.sourceLink = '', // Provide default value
+    this.url = '', // Provide default value
     required this.subMedia,
     required this.locationId,
     required this.animeName,
@@ -1038,6 +1085,7 @@ https://japananimemaps.page.link/ios
                 ),
               ],
             ),
+// buildメソッド内の関連部分
             _buildMainContent(),
             if (widget.subMedia.isNotEmpty)
               Padding(
@@ -1059,7 +1107,7 @@ https://japananimemaps.page.link/ios
                     ),
                     markers: {
                       Marker(
-                        markerId: const MarkerId('spot_location'),
+                        markerId: MarkerId('spot_location'),
                         position: LatLng(widget.latitude, widget.longitude),
                       ),
                     },
@@ -1068,37 +1116,58 @@ https://japananimemaps.page.link/ios
               ),
             _buildAddressCard(),
             const SizedBox(
-              height: 2.0,
+              height: 20.0,
             ),
-            Padding(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 24.0), // 左右に余裕を持たせる
-              child: SizedBox(
-                width: double.infinity,
-                child: Card(
-                  color: Color(0xFFF407FED),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          widget.description,
-                          style: const TextStyle(
-                            fontSize: 16,
-                            color: Colors.black,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ),
+
+            // Center(
+            //   child: Container(
+            //     width: 350,
+            //     child: Padding(
+            //       padding: EdgeInsets.all(20),
+            //       child: Text(
+            //         widget.description,
+            //         style: GoogleFonts.notoSerif(
+            //           // notoSerifJP から notoSerif に変更
+            //           fontSize: 16,
+            //           color: Colors.black,
+            //           // fontWeight: FontWeight.w900,
+            //         ),
+            //       ),
+            //     ),
+            //   ),
+            // ),
+            //囲みありの場合↓
+            // Container(
+            //   margin:
+            //       EdgeInsets.only(top: 20, right: 20, left: 20), // Stackと同じマージン
+            //   padding: EdgeInsets.all(16),
+            //   decoration: BoxDecoration(
+            //     color: Colors.white,
+            //     border: Border.all(color: Color(0xFFF407FED)),
+            //     borderRadius: BorderRadius.circular(8),
+            //     boxShadow: [
+            //       BoxShadow(
+            //         color: Colors.grey,
+            //         spreadRadius: 5,
+            //         blurRadius: 10,
+            //         offset: Offset(1, 1),
+            //       ),
+            //     ],
+            //   ),
+            //   child: Column(
+            //     crossAxisAlignment: CrossAxisAlignment.start,
+            //     mainAxisSize: MainAxisSize.min,
+            //     children: [
+            //       Text(
+            //         widget.description,
+            //         style: const TextStyle(
+            //           fontSize: 16,
+            //           color: Colors.black,
+            //         ),
+            //       ),
+            //     ],
+            //   ),
+            // ),
             Center(
               child: Padding(
                 padding: const EdgeInsets.all(16.0),
@@ -1139,8 +1208,8 @@ https://japananimemaps.page.link/ios
 
         final address = snapshot.data!;
         return Container(
-          margin:
-              EdgeInsets.only(top: 20, right: 20, left: 20), // Stackと同じマージンを使用
+          width: double.infinity,
+          margin: EdgeInsets.only(top: 20, right: 20, left: 20),
           padding: EdgeInsets.all(16),
           decoration: BoxDecoration(
             color: Colors.white,
@@ -1158,41 +1227,86 @@ https://japananimemaps.page.link/ios
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          widget.title,
-                          style: TextStyle(
-                            color: Colors.black,
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        SizedBox(height: 8),
-                        Text(
-                          '〒${address['postalCode']!}',
-                          style: TextStyle(
-                            color: Colors.black,
-                            fontSize: 14,
-                          ),
-                        ),
-                        Text(
-                          address['address']!,
-                          style: TextStyle(
-                            color: Colors.black,
-                            fontSize: 14,
-                          ),
-                        ),
-                      ],
+              Text(
+                widget.title,
+                style: TextStyle(
+                  color: Colors.black,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              SizedBox(height: 8),
+              Text(
+                '〒${address['postalCode']!}',
+                style: TextStyle(
+                  color: Colors.black,
+                  fontSize: 14,
+                ),
+              ),
+              Text(
+                address['address']!,
+                style: TextStyle(
+                  color: Colors.black,
+                  fontSize: 14,
+                ),
+              ),
+              if (widget.spot_description != null &&
+                  widget.spot_description.isNotEmpty) ...[
+                const SizedBox(height: 25.0),
+                Container(
+                  padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  decoration: ShapeDecoration(
+                    color: Color(0xFFF407FED),
+                    shape: Bubble(),
+                    shadows: [
+                      BoxShadow(
+                        color: Color(0xFFF407FED).withOpacity(0.5),
+                        blurRadius: 4,
+                        offset: Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Text(
+                    'スポット詳細情報',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
                     ),
                   ),
-                ],
-              ),
+                ),
+                Container(
+                  margin: EdgeInsets.only(top: 8),
+                  child: Html(
+                    data: widget.spot_description,
+                    style: {
+                      "img": Style(
+                        display: Display.block,
+                      ),
+                    },
+                    extensions: [
+                      ImageExtension(
+                        builder: (context) {
+                          final attributes = context.attributes;
+                          final url = attributes['src'];
+                          return Container(
+                            margin: EdgeInsets.symmetric(vertical: 10),
+                            child: url != null
+                                ? Image.network(
+                                    url,
+                                    errorBuilder: (context, error, stackTrace) {
+                                      print("Image URL: $url");
+                                      return Text('Failed to load image');
+                                    },
+                                  )
+                                : Text('No image URL provided'),
+                          );
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ],
           ),
         );

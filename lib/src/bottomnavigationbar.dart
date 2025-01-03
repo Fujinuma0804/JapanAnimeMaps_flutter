@@ -1,9 +1,11 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_vibrate/flutter_vibrate.dart';
 import 'package:parts/post_page/timeline_screen.dart';
-import 'package:parts/ranking/ranking_top.dart';
+import 'package:parts/shop/shop_maintenance.dart';
+import 'package:parts/shop/shop_top.dart';
 
 import '../map_page/map.dart';
 import '../map_page/map_en.dart';
@@ -31,6 +33,7 @@ class _MainScreenState extends State<MainScreen> {
   double _latitude = 37.7749;
   double _longitude = -122.4194;
   bool _hasSeenWelcome = false;
+  final FirebaseAnalytics _analytics = FirebaseAnalytics.instance;
 
   @override
   void initState() {
@@ -126,10 +129,74 @@ class _MainScreenState extends State<MainScreen> {
       Vibrate.feedback(FeedbackType.selection);
     }
 
+    String tabName = '';
+    switch (index) {
+      case 0:
+        tabName = 'spot_tab';
+        break;
+      case 1:
+        tabName = 'genre_tab';
+        break;
+      case 2:
+        tabName = 'map_tab';
+        break;
+      case 3:
+        tabName = 'community_tab';
+        break;
+      case 4:
+        tabName = 'ranking_tab';
+        break;
+    }
+
+    await _analytics.logEvent(
+      name: 'bottom_nav_tap',
+      parameters: {
+        'tab_name': tabName,
+        'user_language': _userLanguage,
+        'user_id': _user.uid,
+      },
+    );
+
     setState(() {
       _selectedIndex = index;
     });
     _pageController.jumpToPage(index);
+  }
+
+  Widget _buildShopScreen() {
+    return StreamBuilder<QuerySnapshot>(
+      stream:
+          FirebaseFirestore.instance.collection('shopMaintenance').snapshots(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return Center(child: CircularProgressIndicator());
+        }
+
+        if (snapshot.hasError) {
+          return ShopHomeScreen();
+        }
+
+        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+          return ShopHomeScreen();
+        }
+
+        // 現在時刻を取得
+        final now = DateTime.now();
+
+        // メンテナンス情報をチェック
+        for (var doc in snapshot.data!.docs) {
+          final data = doc.data() as Map<String, dynamic>;
+          final startTime = (data['startTime'] as Timestamp).toDate();
+          final endTime = (data['endTime'] as Timestamp).toDate();
+
+          if (now.isAfter(startTime) && now.isBefore(endTime)) {
+            return MaintenanceScreen();
+          }
+        }
+
+        return ShopHomeScreen();
+      },
+    );
   }
 
   @override
@@ -171,7 +238,7 @@ class _MainScreenState extends State<MainScreen> {
                   ? AnimeListTestRanking()
                   : AnimeListTestRankingEng(),
               _userLanguage == 'Japanese'
-                  ? RankingTopPage()
+                  ? _buildShopScreen()
                   : RankingTopPageEn(),
               _userLanguage == 'Japanese'
                   ? MapScreen(latitude: _latitude, longitude: _longitude)
@@ -220,15 +287,15 @@ class CustomBottomNavigationBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BottomNavigationBar(
-      backgroundColor: const Color(0xFF00008b),
+      backgroundColor: Colors.white,
       type: BottomNavigationBarType.fixed,
-      selectedItemColor: Colors.white,
+      selectedItemColor: Colors.black,
       selectedLabelStyle: const TextStyle(
         fontSize: 10,
-        color: Colors.white,
+        color: Colors.black,
       ),
-      unselectedLabelStyle: const TextStyle(color: Colors.white, fontSize: 10),
-      unselectedItemColor: Colors.white,
+      unselectedLabelStyle: const TextStyle(color: Colors.grey, fontSize: 10),
+      unselectedItemColor: Colors.grey,
       currentIndex: currentIndex,
       onTap: onTap,
       items: [
@@ -237,8 +304,8 @@ class CustomBottomNavigationBar extends StatelessWidget {
           label: language == 'Japanese' ? 'スポット' : 'Spot',
         ),
         BottomNavigationBarItem(
-          icon: Icon(Icons.movie_creation_outlined),
-          label: language == 'Japanese' ? 'ジャンル' : 'Genre',
+          icon: Icon(Icons.shopping_bag_outlined),
+          label: language == 'Japanese' ? 'ショップ' : 'Shop',
         ),
         BottomNavigationBarItem(
           icon: Icon(Icons.map),
