@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:parts/setting_page/add_address_screen.dart';
 import 'package:settings_ui/settings_ui.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -264,6 +265,17 @@ class _SettingsEnState extends State<SettingsEn> {
                         context,
                         MaterialPageRoute(
                             builder: (context) => ProfileEnScreen()));
+                  },
+                ),
+                SettingsTile.navigation(
+                  leading: const Icon(Icons.signpost_outlined),
+                  title: Text(_language == '日本語' ? '住所一覧' : 'Address List'),
+                  value: const Text(''),
+                  onPressed: (context) {
+                    Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) => AddAddressScreen()));
                   },
                 ),
               ],

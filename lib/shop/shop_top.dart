@@ -3,6 +3,54 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+// Product model
+class Product {
+  final String id;
+  final String name;
+  final String brand;
+  final String imageUrl;
+  final double price;
+  final DateTime createdAt;
+
+  Product({
+    required this.id,
+    required this.name,
+    required this.brand,
+    required this.imageUrl,
+    required this.price,
+    required this.createdAt,
+  });
+
+  factory Product.fromMap(String id, Map<String, dynamic> map) {
+    try {
+      DateTime parseDateTime(dynamic value) {
+        if (value == null) {
+          return DateTime.now();
+        }
+        if (value is Timestamp) {
+          return value.toDate();
+        } else if (value is String) {
+          return DateTime.parse(value);
+        }
+        throw Exception('Invalid date format: $value');
+      }
+
+      return Product(
+        id: id,
+        name: map['name'] as String? ?? '',
+        brand: map['brand'] as String? ?? '',
+        imageUrl: map['imageUrl'] as String? ?? '',
+        price: (map['price'] as num?)?.toDouble() ?? 0.0,
+        createdAt: parseDateTime(map['createdAt']),
+      );
+    } catch (e) {
+      print('Error creating Product from map: $e');
+      print('Map data: $map');
+      rethrow;
+    }
+  }
+}
+
 // カテゴリーのデータモデル
 class ShopCategory {
   final String id;
@@ -16,62 +64,29 @@ class ShopCategory {
   });
 
   factory ShopCategory.fromMap(String id, Map<String, dynamic> map) {
-    DateTime parseDateTime(dynamic value) {
-      if (value == null) {
-        return DateTime.now();
-      }
-      if (value is Timestamp) {
-        return value.toDate();
-      } else if (value is String) {
-        return DateTime.parse(value);
-      }
-      throw Exception('Invalid date format: $value');
-    }
-
-    return ShopCategory(
-      id: id,
-      name: map['name'] as String? ?? '',
-      createdAt: parseDateTime(map['createdAt']),
-    );
-  }
-}
-
-// カテゴリーデータを取得する関数
-Future<List<ShopCategory>> fetchCategories() async {
-  try {
-    final snapshot = await FirebaseFirestore.instance
-        .collection('categories')
-        .orderBy('createdAt', descending: true)
-        .get();
-
-    if (snapshot.docs.isEmpty) {
-      print('No categories found');
-      return [];
-    }
-
-    List<ShopCategory> categories = [];
-    for (var doc in snapshot.docs) {
-      try {
-        final data = doc.data();
-        print('Processing category document: ${doc.id}');
-        print('Category data: $data');
-
-        // nameフィールドが存在する場合のみ追加
-        if (data.containsKey('name')) {
-          categories.add(ShopCategory.fromMap(doc.id, data));
-        } else {
-          print('Skipping category ${doc.id} due to missing name field');
+    try {
+      DateTime parseDateTime(dynamic value) {
+        if (value == null) {
+          return DateTime.now();
         }
-      } catch (e) {
-        print('Error processing category ${doc.id}: $e');
-        continue;
+        if (value is Timestamp) {
+          return value.toDate();
+        } else if (value is String) {
+          return DateTime.parse(value);
+        }
+        throw Exception('Invalid date format: $value');
       }
-    }
 
-    return categories;
-  } catch (e) {
-    print('Error fetching categories: $e');
-    return [];
+      return ShopCategory(
+        id: id,
+        name: map['name'] as String? ?? '',
+        createdAt: parseDateTime(map['createdAt']),
+      );
+    } catch (e) {
+      print('Error creating ShopCategory from map: $e');
+      print('Map data: $map');
+      rethrow;
+    }
   }
 }
 
@@ -122,33 +137,236 @@ class ShopEvent {
         startDate: parseDateTime(map['startDate']),
       );
     } catch (e) {
-      print('Error parsing ShopEvent: $e');
-      print('Raw data: $map');
+      print('Error creating ShopEvent from map: $e');
+      print('Map data: $map');
       rethrow;
     }
+  }
+}
+
+// Product Grid Widget
+class ProductGridSection extends StatelessWidget {
+  final String title;
+  final String viewAllText;
+  final List<Product> products;
+
+  const ProductGridSection({
+    Key? key,
+    required this.title,
+    required this.viewAllText,
+    required this.products,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16.0),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              TextButton(
+                onPressed: () {
+                  // Handle view all action
+                },
+                child: Text(
+                  viewAllText,
+                  style: const TextStyle(
+                    color: Colors.black54,
+                    fontSize: 14,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        GridView.builder(
+          padding: const EdgeInsets.all(16),
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 2,
+            childAspectRatio: 0.75,
+            crossAxisSpacing: 16,
+            mainAxisSpacing: 16,
+          ),
+          itemCount: products.length,
+          itemBuilder: (context, index) {
+            final product = products[index];
+            return ProductCard(product: product);
+          },
+        ),
+      ],
+    );
+  }
+}
+
+// Individual Product Card
+class ProductCard extends StatelessWidget {
+  final Product product;
+
+  const ProductCard({
+    Key? key,
+    required this.product,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: ClipRRect(
+              borderRadius:
+                  const BorderRadius.vertical(top: Radius.circular(8)),
+              child: Image.network(
+                product.imageUrl,
+                fit: BoxFit.cover,
+                width: double.infinity,
+                errorBuilder: (context, error, stackTrace) {
+                  print('Error loading image: $error');
+                  return const Center(
+                    child:
+                        Icon(Icons.error_outline, size: 40, color: Colors.red),
+                  );
+                },
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  product.brand,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: Colors.black54,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  product.name,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '¥${product.price.toStringAsFixed(0)}(税込)',
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 
 class ShopHomeScreen extends StatelessWidget {
   const ShopHomeScreen({Key? key}) : super(key: key);
 
-  // カテゴリーデータを取得する関数
-  Future<List<ShopCategory>> fetchCategories() async {
+  // カテゴリーごとの商品を取得する関数
+  Future<Map<ShopCategory, List<Product>>> fetchProductsByCategory() async {
     try {
-      final snapshot =
+      print('Starting fetchProductsByCategory');
+      final categoriesSnapshot =
           await FirebaseFirestore.instance.collection('categories').get();
 
-      return snapshot.docs
-          .map((doc) => ShopCategory.fromMap(doc.id, doc.data()))
-          .toList();
-    } catch (e) {
-      print('Error fetching categories: $e');
-      return [];
+      print('Retrieved ${categoriesSnapshot.docs.length} categories');
+
+      if (categoriesSnapshot.docs.isEmpty) {
+        print('No categories found');
+        return {};
+      }
+
+      final Map<ShopCategory, List<Product>> categoryProducts = {};
+
+      for (var categoryDoc in categoriesSnapshot.docs) {
+        try {
+          print('Processing category: ${categoryDoc.id}');
+          final category =
+              ShopCategory.fromMap(categoryDoc.id, categoryDoc.data());
+          print('Category parsed: ${category.name}');
+
+          // シンプルなクエリでプロダクトを取得
+          final productsSnapshot = await FirebaseFirestore.instance
+              .collection('products')
+              .where('categoryId', isEqualTo: category.id)
+              .get();
+
+          print(
+              'Retrieved ${productsSnapshot.docs.length} products for category ${category.name}');
+
+          if (productsSnapshot.docs.isEmpty) {
+            print('No products found for category ${category.name}');
+            continue;
+          }
+
+          // メモリ内でソートと制限を行う
+          final products = productsSnapshot.docs
+              .map((doc) {
+                try {
+                  return Product.fromMap(doc.id, doc.data());
+                } catch (e) {
+                  print('Error parsing product ${doc.id}: $e');
+                  return null;
+                }
+              })
+              .whereType<Product>()
+              .toList()
+            ..sort(
+                (a, b) => b.createdAt.compareTo(a.createdAt)); // createdAtでソート
+
+          // 最新の4件を取得
+          final limitedProducts = products.take(4).toList();
+
+          if (limitedProducts.isNotEmpty) {
+            print(
+                'Added ${limitedProducts.length} products for category ${category.name}');
+            categoryProducts[category] = limitedProducts;
+          }
+        } catch (e) {
+          print('Error processing category ${categoryDoc.id}: $e');
+          continue;
+        }
+      }
+
+      print(
+          'Finished processing all categories. Total categories with products: ${categoryProducts.length}');
+      return categoryProducts;
+    } catch (e, stackTrace) {
+      print('Error fetching products by category: $e');
+      print('Stack trace: $stackTrace');
+      return {};
     }
   }
 
   Future<List<ShopEvent>> fetchShopEvents() async {
     try {
+      print('Starting fetchShopEvents');
       final snapshot =
           await FirebaseFirestore.instance.collection('shop_event').get();
 
@@ -161,35 +379,46 @@ class ShopHomeScreen extends StatelessWidget {
       for (var doc in snapshot.docs) {
         try {
           final data = doc.data();
-          print('Processing document: ${doc.id}');
-          print('Document data: $data');
+          print('Processing event document: ${doc.id}');
+          print('Event data: $data');
 
           if (data.containsKey('images') &&
               data.containsKey('isActive') &&
               data.containsKey('link')) {
             events.add(ShopEvent.fromMap(data));
           } else {
-            print('Skipping document ${doc.id} due to missing required fields');
+            print(
+                'Skipping event document ${doc.id} due to missing required fields');
           }
         } catch (e) {
-          print('Error processing document ${doc.id}: $e');
+          print('Error processing event document ${doc.id}: $e');
           continue;
         }
       }
 
+      print('Finished processing events. Total events: ${events.length}');
       return events;
-    } catch (e) {
+    } catch (e, stackTrace) {
       print('Error fetching shop events: $e');
+      print('Stack trace: $stackTrace');
       rethrow;
     }
   }
 
   Future<void> _onRefresh() async {
-    await Future.delayed(const Duration(seconds: 2));
+    try {
+      await Future.delayed(const Duration(seconds: 2));
+      print('Refresh completed');
+    } catch (e) {
+      print('Error during refresh: $e');
+    }
   }
 
   Widget _buildCarousel(List<ShopEvent> activeEvents) {
-    if (activeEvents.isEmpty) return const SizedBox.shrink();
+    if (activeEvents.isEmpty) {
+      print('No active events to display in carousel');
+      return const SizedBox.shrink();
+    }
 
     return CarouselSlider(
       options: CarouselOptions(
@@ -223,6 +452,9 @@ class ShopHomeScreen extends StatelessWidget {
                   image: DecorationImage(
                     image: NetworkImage(event.imageUrl),
                     fit: BoxFit.cover,
+                    onError: (error, stackTrace) {
+                      print('Error loading carousel image: $error');
+                    },
                   ),
                 ),
               ),
@@ -244,8 +476,9 @@ class ShopHomeScreen extends StatelessWidget {
               child: SingleChildScrollView(
                 physics: const AlwaysScrollableScrollPhysics(),
                 child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Search Bar
+                    // Search Section
                     Padding(
                       padding: const EdgeInsets.all(16.0),
                       child: TextField(
@@ -268,21 +501,34 @@ class ShopHomeScreen extends StatelessWidget {
                       ),
                     ),
 
-                    // Banner Carousel
+                    // Event Section
                     FutureBuilder<List<ShopEvent>>(
                       future: fetchShopEvents(),
                       builder: (context, snapshot) {
                         if (snapshot.hasError) {
-                          return const SizedBox.shrink();
+                          print('Error in events: ${snapshot.error}');
+                          return Padding(
+                            padding: const EdgeInsets.all(16.0),
+                            child: Center(
+                              child:
+                                  Text('イベントの読み込みに失敗しました: ${snapshot.error}'),
+                            ),
+                          );
                         }
 
-                        if (!snapshot.hasData) {
+                        if (snapshot.connectionState ==
+                            ConnectionState.waiting) {
                           return const Center(
                             child: Padding(
                               padding: EdgeInsets.all(16.0),
                               child: CircularProgressIndicator(),
                             ),
                           );
+                        }
+
+                        if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                          print('No events data available');
+                          return const SizedBox.shrink();
                         }
 
                         final now = DateTime.now();
@@ -293,80 +539,77 @@ class ShopHomeScreen extends StatelessWidget {
                                 now.isBefore(event.endDate))
                             .toList();
 
+                        print('Active events: ${activeEvents.length}');
                         return _buildCarousel(activeEvents);
                       },
                     ),
 
-                    // Categories Section
-                    Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const SizedBox(height: 16),
-                          FutureBuilder<List<ShopCategory>>(
-                            future: fetchCategories(),
-                            builder: (context, snapshot) {
-                              if (snapshot.connectionState ==
-                                  ConnectionState.waiting) {
-                                return const Center(
-                                  child: CircularProgressIndicator(),
-                                );
-                              }
+                    // Categories and Products Section
+                    FutureBuilder<Map<ShopCategory, List<Product>>>(
+                      future: fetchProductsByCategory(),
+                      builder: (context, snapshot) {
+                        if (snapshot.hasError) {
+                          print('Error in categories: ${snapshot.error}');
+                          return Padding(
+                            padding: const EdgeInsets.all(16.0),
+                            child: Center(
+                              child:
+                                  Text('カテゴリーの読み込みに失敗しました: ${snapshot.error}'),
+                            ),
+                          );
+                        }
 
-                              if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                                return const Center(
-                                  child: Text('カテゴリーが見つかりません'),
-                                );
-                              }
+                        if (snapshot.connectionState ==
+                            ConnectionState.waiting) {
+                          return const Center(
+                            child: Padding(
+                              padding: EdgeInsets.all(16.0),
+                              child: CircularProgressIndicator(),
+                            ),
+                          );
+                        }
 
-                              return GridView.builder(
-                                shrinkWrap: true,
-                                physics: const NeverScrollableScrollPhysics(),
-                                gridDelegate:
-                                    SliverGridDelegateWithFixedCrossAxisCount(
-                                  crossAxisCount: 2,
-                                  childAspectRatio: 1.0,
-                                  crossAxisSpacing: 16,
-                                  mainAxisSpacing: 16,
+                        if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                          print('No category data available');
+                          return const Padding(
+                            padding: EdgeInsets.all(16.0),
+                            child: Center(
+                              child: Text('カテゴリーが見つかりませんでした'),
+                            ),
+                          );
+                        }
+
+                        final categoryEntries = snapshot.data!.entries.toList();
+                        print(
+                            'Number of categories to display: ${categoryEntries.length}');
+
+                        return Column(
+                          children: categoryEntries.map((entry) {
+                            final category = entry.key;
+                            final products = entry.value;
+
+                            print(
+                                'Processing category ${category.name} with ${products.length} products');
+
+                            if (products.isEmpty) {
+                              print(
+                                  'No products for category ${category.name}');
+                              return const SizedBox.shrink();
+                            }
+
+                            return Column(
+                              children: [
+                                ProductGridSection(
+                                  title: category.name,
+                                  viewAllText: 'すべて見る',
+                                  products: products,
                                 ),
-                                itemCount: snapshot.data!.length,
-                                itemBuilder: (context, index) {
-                                  final category = snapshot.data![index];
-                                  return Card(
-                                    elevation: 2,
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
-                                    child: InkWell(
-                                      onTap: () {
-                                        // カテゴリーがタップされたときの処理
-                                      },
-                                      child: Padding(
-                                        padding: const EdgeInsets.all(16.0),
-                                        child: Column(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.center,
-                                          children: [
-                                            Text(
-                                              category.name,
-                                              style: const TextStyle(
-                                                fontSize: 16,
-                                                fontWeight: FontWeight.bold,
-                                              ),
-                                              textAlign: TextAlign.center,
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ),
-                                  );
-                                },
-                              );
-                            },
-                          ),
-                        ],
-                      ),
+                                const SizedBox(height: 16), // カテゴリー間のスペース
+                              ],
+                            );
+                          }).toList(),
+                        );
+                      },
                     ),
 
                     const SizedBox(height: 80),
@@ -377,8 +620,6 @@ class ShopHomeScreen extends StatelessWidget {
           ],
         ),
       ),
-
-      // Fixed bottom bar
       bottomSheet: Container(
         decoration: BoxDecoration(
           color: Colors.white,
@@ -402,7 +643,9 @@ class ShopHomeScreen extends StatelessWidget {
                   child: Material(
                     color: Colors.white,
                     child: InkWell(
-                      onTap: () {},
+                      onTap: () {
+                        print('Favorite button tapped');
+                      },
                       borderRadius: BorderRadius.circular(8),
                       child: Container(
                         padding: const EdgeInsets.symmetric(vertical: 12),
@@ -440,7 +683,9 @@ class ShopHomeScreen extends StatelessWidget {
                   child: Material(
                     color: Colors.white,
                     child: InkWell(
-                      onTap: () {},
+                      onTap: () {
+                        print('Cart button tapped');
+                      },
                       borderRadius: BorderRadius.circular(8),
                       child: Container(
                         padding: const EdgeInsets.symmetric(vertical: 12),
@@ -471,51 +716,6 @@ class ShopHomeScreen extends StatelessWidget {
                         ),
                       ),
                     ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildBottomButton({
-    required BuildContext context,
-    required IconData icon,
-    required String label,
-    required VoidCallback onTap,
-  }) {
-    return Expanded(
-      child: Material(
-        color: Colors.white,
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(8),
-          child: Container(
-            padding: const EdgeInsets.symmetric(vertical: 8),
-            decoration: BoxDecoration(
-              border: Border.all(
-                color: Colors.black,
-                width: 1.0,
-              ),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  icon,
-                  color: Colors.black,
-                  size: 24,
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  label,
-                  style: const TextStyle(
-                    color: Colors.black,
-                    fontWeight: FontWeight.w500,
                   ),
                 ),
               ],

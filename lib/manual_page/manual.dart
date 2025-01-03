@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:parts/manual_page/usage_screen.dart';
+import 'package:parts/setting_page/settings_en.dart';
 import 'package:settings_ui/settings_ui.dart';
-
-import '../setting_page/settings.dart';
 
 class Manual extends StatelessWidget {
   const Manual({Key? key});
@@ -35,7 +34,7 @@ class Manual extends StatelessWidget {
                     onPressed: (context) {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (context) => Settings()),
+                        MaterialPageRoute(builder: (context) => SettingsEn()),
                       );
                     },
                   ),
