@@ -1,6 +1,7 @@
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:parts/shop/shop_cart.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 // Product model
@@ -10,6 +11,7 @@ class Product {
   final String brand;
   final String imageUrl;
   final double price;
+  final String categoryId; // カテゴリーIDを追加
   final DateTime createdAt;
 
   Product({
@@ -18,6 +20,7 @@ class Product {
     required this.brand,
     required this.imageUrl,
     required this.price,
+    required this.categoryId, // カテゴリーIDを追加
     required this.createdAt,
   });
 
@@ -41,6 +44,7 @@ class Product {
         brand: map['brand'] as String? ?? '',
         imageUrl: map['imageUrl'] as String? ?? '',
         price: (map['price'] as num?)?.toDouble() ?? 0.0,
+        categoryId: map['categoryId'] as String? ?? '', // カテゴリーIDを追加
         createdAt: parseDateTime(map['createdAt']),
       );
     } catch (e) {
@@ -146,6 +150,21 @@ class ShopEvent {
 
 // Product Grid Widget
 class ProductGridSection extends StatelessWidget {
+  static Widget _buildEmptyState() {
+    return const Padding(
+      padding: EdgeInsets.all(16.0),
+      child: Center(
+        child: Text(
+          '商品がありません',
+          style: TextStyle(
+            color: Colors.grey,
+            fontSize: 14,
+          ),
+        ),
+      ),
+    );
+  }
+
   final String title;
   final String viewAllText;
   final List<Product> products;
@@ -160,6 +179,7 @@ class ProductGridSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16.0),
@@ -188,22 +208,25 @@ class ProductGridSection extends StatelessWidget {
             ],
           ),
         ),
-        GridView.builder(
-          padding: const EdgeInsets.all(16),
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 2,
-            childAspectRatio: 0.75,
-            crossAxisSpacing: 16,
-            mainAxisSpacing: 16,
+        if (products.isEmpty)
+          _buildEmptyState()
+        else
+          GridView.builder(
+            padding: const EdgeInsets.all(16),
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              childAspectRatio: 0.75,
+              crossAxisSpacing: 16,
+              mainAxisSpacing: 16,
+            ),
+            itemCount: products.length,
+            itemBuilder: (context, index) {
+              final product = products[index];
+              return ProductCard(product: product);
+            },
           ),
-          itemCount: products.length,
-          itemBuilder: (context, index) {
-            final product = products[index];
-            return ProductCard(product: product);
-          },
-        ),
       ],
     );
   }
@@ -288,12 +311,15 @@ class ProductCard extends StatelessWidget {
 class ShopHomeScreen extends StatelessWidget {
   const ShopHomeScreen({Key? key}) : super(key: key);
 
-  // カテゴリーごとの商品を取得する関数
   Future<Map<ShopCategory, List<Product>>> fetchProductsByCategory() async {
     try {
       print('Starting fetchProductsByCategory');
-      final categoriesSnapshot =
-          await FirebaseFirestore.instance.collection('categories').get();
+
+      // カテゴリーを取得
+      final categoriesSnapshot = await FirebaseFirestore.instance
+          .collection('categories')
+          .orderBy('createdAt', descending: true)
+          .get();
 
       print('Retrieved ${categoriesSnapshot.docs.length} categories');
 
@@ -302,63 +328,49 @@ class ShopHomeScreen extends StatelessWidget {
         return {};
       }
 
-      final Map<ShopCategory, List<Product>> categoryProducts = {};
+      // すべての商品を一度に取得
+      final productsSnapshot = await FirebaseFirestore.instance
+          .collection('products')
+          .orderBy('createdAt', descending: true)
+          .get();
 
+      print('Retrieved ${productsSnapshot.docs.length} total products');
+
+      // 商品をカテゴリーIDでグループ化
+      final Map<String, List<Product>> productsByCategory = {};
+      for (var doc in productsSnapshot.docs) {
+        try {
+          final product = Product.fromMap(doc.id, doc.data());
+          if (!productsByCategory.containsKey(product.categoryId)) {
+            productsByCategory[product.categoryId] = [];
+          }
+          productsByCategory[product.categoryId]!.add(product);
+        } catch (e) {
+          print('Error processing product ${doc.id}: $e');
+          continue;
+        }
+      }
+
+      // カテゴリーと商品を関連付け
+      final Map<ShopCategory, List<Product>> result = {};
       for (var categoryDoc in categoriesSnapshot.docs) {
         try {
-          print('Processing category: ${categoryDoc.id}');
           final category =
               ShopCategory.fromMap(categoryDoc.id, categoryDoc.data());
-          print('Category parsed: ${category.name}');
+          final products = productsByCategory[category.id] ?? [];
 
-          // シンプルなクエリでプロダクトを取得
-          final productsSnapshot = await FirebaseFirestore.instance
-              .collection('products')
-              .where('categoryId', isEqualTo: category.id)
-              .get();
-
-          print(
-              'Retrieved ${productsSnapshot.docs.length} products for category ${category.name}');
-
-          if (productsSnapshot.docs.isEmpty) {
-            print('No products found for category ${category.name}');
-            continue;
-          }
-
-          // メモリ内でソートと制限を行う
-          final products = productsSnapshot.docs
-              .map((doc) {
-                try {
-                  return Product.fromMap(doc.id, doc.data());
-                } catch (e) {
-                  print('Error parsing product ${doc.id}: $e');
-                  return null;
-                }
-              })
-              .whereType<Product>()
-              .toList()
-            ..sort(
-                (a, b) => b.createdAt.compareTo(a.createdAt)); // createdAtでソート
-
-          // 最新の4件を取得
-          final limitedProducts = products.take(4).toList();
-
-          if (limitedProducts.isNotEmpty) {
-            print(
-                'Added ${limitedProducts.length} products for category ${category.name}');
-            categoryProducts[category] = limitedProducts;
-          }
+          // すべてのカテゴリーを追加（商品が0件でも）
+          result[category] = products.take(4).toList();
         } catch (e) {
           print('Error processing category ${categoryDoc.id}: $e');
           continue;
         }
       }
 
-      print(
-          'Finished processing all categories. Total categories with products: ${categoryProducts.length}');
-      return categoryProducts;
+      print('Finished processing. Categories with products: ${result.length}');
+      return result;
     } catch (e, stackTrace) {
-      print('Error fetching products by category: $e');
+      print('Error in fetchProductsByCategory: $e');
       print('Stack trace: $stackTrace');
       return {};
     }
@@ -396,6 +408,7 @@ class ShopHomeScreen extends StatelessWidget {
         }
       }
 
+      events.sort((a, b) => b.createdAt.compareTo(a.createdAt));
       print('Finished processing events. Total events: ${events.length}');
       return events;
     } catch (e, stackTrace) {
@@ -544,6 +557,9 @@ class ShopHomeScreen extends StatelessWidget {
                       },
                     ),
 
+                    const SizedBox(
+                      height: 20.0,
+                    ),
                     // Categories and Products Section
                     FutureBuilder<Map<ShopCategory, List<Product>>>(
                       future: fetchProductsByCategory(),
@@ -591,11 +607,9 @@ class ShopHomeScreen extends StatelessWidget {
                             print(
                                 'Processing category ${category.name} with ${products.length} products');
 
-                            if (products.isEmpty) {
-                              print(
-                                  'No products for category ${category.name}');
-                              return const SizedBox.shrink();
-                            }
+                            // 商品が空でもカテゴリーを表示
+                            print(
+                                'Processing category ${category.name} with ${products.length} products');
 
                             return Column(
                               children: [
@@ -604,7 +618,7 @@ class ShopHomeScreen extends StatelessWidget {
                                   viewAllText: 'すべて見る',
                                   products: products,
                                 ),
-                                const SizedBox(height: 16), // カテゴリー間のスペース
+                                const SizedBox(height: 16),
                               ],
                             );
                           }).toList(),
@@ -684,7 +698,10 @@ class ShopHomeScreen extends StatelessWidget {
                     color: Colors.white,
                     child: InkWell(
                       onTap: () {
-                        print('Cart button tapped');
+                        Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (context) => CartScreen()));
                       },
                       borderRadius: BorderRadius.circular(8),
                       child: Container(
