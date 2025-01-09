@@ -2,6 +2,7 @@ import 'package:carousel_slider/carousel_slider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:parts/shop/shop_cart.dart';
+import 'package:parts/shop/shop_event.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 // Product model
@@ -11,7 +12,7 @@ class Product {
   final String brand;
   final String imageUrl;
   final double price;
-  final String categoryId; // カテゴリーIDを追加
+  final String categoryId;
   final DateTime createdAt;
 
   Product({
@@ -20,7 +21,7 @@ class Product {
     required this.brand,
     required this.imageUrl,
     required this.price,
-    required this.categoryId, // カテゴリーIDを追加
+    required this.categoryId,
     required this.createdAt,
   });
 
@@ -44,7 +45,7 @@ class Product {
         brand: map['brand'] as String? ?? '',
         imageUrl: map['imageUrl'] as String? ?? '',
         price: (map['price'] as num?)?.toDouble() ?? 0.0,
-        categoryId: map['categoryId'] as String? ?? '', // カテゴリーIDを追加
+        categoryId: map['categoryId'] as String? ?? '',
         createdAt: parseDateTime(map['createdAt']),
       );
     } catch (e) {
@@ -55,7 +56,20 @@ class Product {
   }
 }
 
-// カテゴリーのデータモデル
+// Static Carousel Item Model
+class StaticCarouselItem {
+  final String assetImagePath;
+  final String routeName;
+  final Map<String, dynamic>? arguments;
+
+  StaticCarouselItem({
+    required this.assetImagePath,
+    required this.routeName,
+    this.arguments,
+  });
+}
+
+// Category model
 class ShopCategory {
   final String id;
   final String name;
@@ -88,60 +102,6 @@ class ShopCategory {
       );
     } catch (e) {
       print('Error creating ShopCategory from map: $e');
-      print('Map data: $map');
-      rethrow;
-    }
-  }
-}
-
-class ShopEvent {
-  final DateTime createdAt;
-  final DateTime endDate;
-  final String imageUrl;
-  final bool isActive;
-  final String link;
-  final DateTime startDate;
-
-  ShopEvent({
-    required this.createdAt,
-    required this.endDate,
-    required this.imageUrl,
-    required this.isActive,
-    required this.link,
-    required this.startDate,
-  });
-
-  factory ShopEvent.fromMap(Map<String, dynamic> map) {
-    try {
-      DateTime parseDateTime(dynamic value) {
-        if (value == null) {
-          return DateTime.now();
-        }
-        if (value is Timestamp) {
-          return value.toDate();
-        } else if (value is String) {
-          return value.contains('UTC')
-              ? DateTime.parse(value)
-              : DateTime.parse(value + ' UTC+9');
-        }
-        throw Exception('Invalid date format: $value');
-      }
-
-      final images = map['images'];
-      final imageUrl = images != null && images is List && images.isNotEmpty
-          ? images[0] as String
-          : '';
-
-      return ShopEvent(
-        createdAt: parseDateTime(map['createdAt']),
-        endDate: parseDateTime(map['endDate']),
-        imageUrl: imageUrl,
-        isActive: map['isActive'] as bool? ?? false,
-        link: map['link'] as String? ?? '',
-        startDate: parseDateTime(map['startDate']),
-      );
-    } catch (e) {
-      print('Error creating ShopEvent from map: $e');
       print('Map data: $map');
       rethrow;
     }
@@ -309,13 +269,20 @@ class ProductCard extends StatelessWidget {
 }
 
 class ShopHomeScreen extends StatelessWidget {
-  const ShopHomeScreen({Key? key}) : super(key: key);
+  ShopHomeScreen({Key? key}) : super(key: key);
+
+  // 静的なカルーセルアイテムのリスト
+  final List<StaticCarouselItem> staticItems = [
+    StaticCarouselItem(
+      assetImagePath: 'assets/images/not_found.png', // アセットパスを指定
+      routeName: '/product_purchase_agency', // 遷移先のルート名
+    ),
+  ];
 
   Future<Map<ShopCategory, List<Product>>> fetchProductsByCategory() async {
     try {
       print('Starting fetchProductsByCategory');
 
-      // カテゴリーを取得
       final categoriesSnapshot = await FirebaseFirestore.instance
           .collection('categories')
           .orderBy('createdAt', descending: true)
@@ -328,7 +295,6 @@ class ShopHomeScreen extends StatelessWidget {
         return {};
       }
 
-      // すべての商品を一度に取得
       final productsSnapshot = await FirebaseFirestore.instance
           .collection('products')
           .orderBy('createdAt', descending: true)
@@ -336,7 +302,6 @@ class ShopHomeScreen extends StatelessWidget {
 
       print('Retrieved ${productsSnapshot.docs.length} total products');
 
-      // 商品をカテゴリーIDでグループ化
       final Map<String, List<Product>> productsByCategory = {};
       for (var doc in productsSnapshot.docs) {
         try {
@@ -351,7 +316,6 @@ class ShopHomeScreen extends StatelessWidget {
         }
       }
 
-      // カテゴリーと商品を関連付け
       final Map<ShopCategory, List<Product>> result = {};
       for (var categoryDoc in categoriesSnapshot.docs) {
         try {
@@ -359,7 +323,6 @@ class ShopHomeScreen extends StatelessWidget {
               ShopCategory.fromMap(categoryDoc.id, categoryDoc.data());
           final products = productsByCategory[category.id] ?? [];
 
-          // すべてのカテゴリーを追加（商品が0件でも）
           result[category] = products.take(4).toList();
         } catch (e) {
           print('Error processing category ${categoryDoc.id}: $e');
@@ -428,8 +391,77 @@ class ShopHomeScreen extends StatelessWidget {
   }
 
   Widget _buildCarousel(List<ShopEvent> activeEvents) {
-    if (activeEvents.isEmpty) {
-      print('No active events to display in carousel');
+    // 静的アイテムとFirebaseのイベントを組み合わせる
+    List<Widget> allCarouselItems = [];
+
+    // 静的アイテムをカルーセルアイテムに変換
+    allCarouselItems.addAll(staticItems.map((item) {
+      return Builder(
+        builder: (BuildContext context) {
+          return GestureDetector(
+            onTap: () {
+              Navigator.of(context).pushNamed(
+                item.routeName,
+                arguments: item.arguments,
+              );
+            },
+            child: Container(
+              width: MediaQuery.of(context).size.width,
+              margin: const EdgeInsets.symmetric(horizontal: 5.0),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(10),
+                image: DecorationImage(
+                  image: AssetImage(item.assetImagePath),
+                  fit: BoxFit.cover,
+                  onError: (error, stackTrace) {
+                    print('Error loading static carousel image: $error');
+                  },
+                ),
+              ),
+            ),
+          );
+        },
+      );
+    }));
+
+    // Firebaseのイベントをカルーセルアイテムに変換
+    allCarouselItems.addAll(activeEvents.map((event) {
+      return Builder(
+        builder: (BuildContext context) {
+          return GestureDetector(
+            onTap: () async {
+              try {
+                final uri = Uri.parse(event.link);
+                if (await canLaunchUrl(uri)) {
+                  await launchUrl(uri);
+                } else {
+                  print('Could not launch ${event.link}');
+                }
+              } catch (e) {
+                print('Error launching URL: $e');
+              }
+            },
+            child: Container(
+              width: MediaQuery.of(context).size.width,
+              margin: const EdgeInsets.symmetric(horizontal: 5.0),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(10),
+                image: DecorationImage(
+                  image: NetworkImage(event.imageUrl),
+                  fit: BoxFit.cover,
+                  onError: (error, stackTrace) {
+                    print('Error loading carousel image: $error');
+                  },
+                ),
+              ),
+            ),
+          );
+        },
+      );
+    }));
+
+    if (allCarouselItems.isEmpty) {
+      print('No items to display in carousel');
       return const SizedBox.shrink();
     }
 
@@ -441,40 +473,7 @@ class ShopHomeScreen extends StatelessWidget {
         enlargeCenterPage: true,
         autoPlayInterval: const Duration(seconds: 5),
       ),
-      items: activeEvents.map((event) {
-        return Builder(
-          builder: (BuildContext context) {
-            return GestureDetector(
-              onTap: () async {
-                try {
-                  final uri = Uri.parse(event.link);
-                  if (await canLaunchUrl(uri)) {
-                    await launchUrl(uri);
-                  } else {
-                    print('Could not launch ${event.link}');
-                  }
-                } catch (e) {
-                  print('Error launching URL: $e');
-                }
-              },
-              child: Container(
-                width: MediaQuery.of(context).size.width,
-                margin: const EdgeInsets.symmetric(horizontal: 5.0),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(10),
-                  image: DecorationImage(
-                    image: NetworkImage(event.imageUrl),
-                    fit: BoxFit.cover,
-                    onError: (error, stackTrace) {
-                      print('Error loading carousel image: $error');
-                    },
-                  ),
-                ),
-              ),
-            );
-          },
-        );
-      }).toList(),
+      items: allCarouselItems,
     );
   }
 
@@ -514,52 +513,35 @@ class ShopHomeScreen extends StatelessWidget {
                       ),
                     ),
 
-                    // Event Section
+                    // Event Section with Combined Carousel
                     FutureBuilder<List<ShopEvent>>(
                       future: fetchShopEvents(),
                       builder: (context, snapshot) {
                         if (snapshot.hasError) {
                           print('Error in events: ${snapshot.error}');
-                          return Padding(
-                            padding: const EdgeInsets.all(16.0),
-                            child: Center(
-                              child:
-                                  Text('イベントの読み込みに失敗しました: ${snapshot.error}'),
-                            ),
-                          );
+                          return _buildCarousel([]); // 静的アイテムだけを表示
                         }
 
                         if (snapshot.connectionState ==
                             ConnectionState.waiting) {
-                          return const Center(
-                            child: Padding(
-                              padding: EdgeInsets.all(16.0),
-                              child: CircularProgressIndicator(),
-                            ),
-                          );
-                        }
-
-                        if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                          print('No events data available');
-                          return const SizedBox.shrink();
+                          return _buildCarousel([]); // 読み込み中も静的アイテムを表示
                         }
 
                         final now = DateTime.now();
-                        final activeEvents = snapshot.data!
-                            .where((event) =>
-                                event.isActive &&
-                                now.isAfter(event.startDate) &&
-                                now.isBefore(event.endDate))
-                            .toList();
+                        final activeEvents = snapshot.data
+                                ?.where((event) =>
+                                    event.isActive &&
+                                    now.isAfter(event.startDate) &&
+                                    now.isBefore(event.endDate))
+                                .toList() ??
+                            [];
 
-                        print('Active events: ${activeEvents.length}');
                         return _buildCarousel(activeEvents);
                       },
                     ),
 
-                    const SizedBox(
-                      height: 20.0,
-                    ),
+                    const SizedBox(height: 20.0),
+
                     // Categories and Products Section
                     FutureBuilder<Map<ShopCategory, List<Product>>>(
                       future: fetchProductsByCategory(),
@@ -604,10 +586,6 @@ class ShopHomeScreen extends StatelessWidget {
                             final category = entry.key;
                             final products = entry.value;
 
-                            print(
-                                'Processing category ${category.name} with ${products.length} products');
-
-                            // 商品が空でもカテゴリーを表示
                             print(
                                 'Processing category ${category.name} with ${products.length} products');
 
@@ -699,9 +677,9 @@ class ShopHomeScreen extends StatelessWidget {
                     child: InkWell(
                       onTap: () {
                         Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                                builder: (context) => CartScreen()));
+                          context,
+                          MaterialPageRoute(builder: (context) => CartScreen()),
+                        );
                       },
                       borderRadius: BorderRadius.circular(8),
                       child: Container(

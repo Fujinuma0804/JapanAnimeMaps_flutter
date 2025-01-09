@@ -7,6 +7,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:parts/shop/purchase_agency.dart';
 import 'package:parts/src/bottomnavigationbar.dart';
 import 'package:parts/top_page/welcome_page.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
@@ -125,6 +126,9 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      routes: {
+        '/product_purchase_agency': (context) => ConfirmationScreen(),
+      },
       debugShowCheckedModeBanner: false,
       title: 'JapanAnimeMaps',
       theme: ThemeData(
