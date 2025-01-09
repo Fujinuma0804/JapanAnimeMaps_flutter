@@ -7,7 +7,7 @@
 <img src="https://skillicons.dev/icons?i=dart,cpp,cmake,html,swift,ruby,css,javascript" /> <br /><br />
 
 ##　⚠️注意事項⚠️
-運用ルールなどを必ず確認してください。ブランチやレビューについては要確認です。
+運用ルールなどを必ず確認してください。ブランチやレビューについては要確認です。確認をお願いします。
 ## 目次
 
 1. JapanAnimeMapsについて
