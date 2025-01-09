@@ -202,8 +202,5 @@ lib/
 <p align="right">(<a href="#top">トップへ</a>)</p>
 
 ## トラブル・問い合わせ
-<<<<<<< HEAD
 もし、何か疑問点などありましたら、<a href="mailto:sota@jam-info.com">メール</a>へご連絡またはSlackなどでご連絡ください。
-=======
-もし、何か疑問点などありましたら、<a href="mailto:sota@jam-info.com">メール</a>へご連絡またはSlackなどでご連絡ください。
->>>>>>> 00f3b41f64a0a120ba5434a581e4bd3401884201
+
