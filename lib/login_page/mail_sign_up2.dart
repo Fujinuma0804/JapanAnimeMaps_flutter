@@ -2,7 +2,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:intl/date_symbol_data_local.dart';
 import 'package:intl/intl.dart';
 import 'package:parts/login_page/welcome_page/welcome_1.dart';
 
@@ -19,6 +18,12 @@ class SecondSignUpPage extends StatefulWidget {
 class _SecondSignUpPageState extends State<SecondSignUpPage>
     with TickerProviderStateMixin {
   final _firestore = FirebaseFirestore.instance;
+  final TextEditingController _yearController = TextEditingController();
+  final TextEditingController _monthController = TextEditingController();
+  final TextEditingController _dayController = TextEditingController();
+  final FocusNode _yearFocusNode = FocusNode();
+  final FocusNode _monthFocusNode = FocusNode();
+  final FocusNode _dayFocusNode = FocusNode();
 
   String userName = '';
   String name = '';
@@ -38,7 +43,6 @@ class _SecondSignUpPageState extends State<SecondSignUpPage>
   @override
   void initState() {
     super.initState();
-    initializeDateFormatting();
     _language = 'Japanese';
     _loadUserLanguage();
 
@@ -74,6 +78,49 @@ class _SecondSignUpPageState extends State<SecondSignUpPage>
       });
       _startLetterAnimations();
     });
+
+    // 年の入力が4桁になったら月にフォーカスを移動
+    _yearController.addListener(() {
+      if (_yearController.text.length == 4) {
+        _monthFocusNode.requestFocus();
+      }
+    });
+
+    // 月の入力が2桁になったら日にフォーカスを移動
+    _monthController.addListener(() {
+      if (_monthController.text.length == 2) {
+        _dayFocusNode.requestFocus();
+      }
+    });
+
+    // 日付が2桁になったら日付を生成
+    _dayController.addListener(() {
+      if (_dayController.text.length == 2) {
+        _updateSelectedDate();
+      }
+    });
+  }
+
+  void _updateSelectedDate() {
+    if (_yearController.text.length == 4 &&
+        _monthController.text.length > 0 &&
+        _dayController.text.length > 0) {
+      try {
+        final year = int.parse(_yearController.text);
+        final month = int.parse(_monthController.text);
+        final day = int.parse(_dayController.text);
+        final date = DateTime(year, month, day);
+        setState(() {
+          selectedDate = date;
+        });
+      } catch (e) {
+        // 無効な日付の場合は何もしない
+      }
+    } else {
+      setState(() {
+        selectedDate = null;
+      });
+    }
   }
 
   void _startLetterAnimations() {
@@ -92,6 +139,12 @@ class _SecondSignUpPageState extends State<SecondSignUpPage>
     for (var controller in _letterControllers) {
       controller.dispose();
     }
+    _yearController.dispose();
+    _monthController.dispose();
+    _dayController.dispose();
+    _yearFocusNode.dispose();
+    _monthFocusNode.dispose();
+    _dayFocusNode.dispose();
     super.dispose();
   }
 
@@ -112,95 +165,100 @@ class _SecondSignUpPageState extends State<SecondSignUpPage>
     }
   }
 
-  String _formatDate(DateTime date) {
-    if (_language == 'Japanese') {
-      return DateFormat('yyyy年M月d日', 'ja_JP').format(date);
-    } else {
-      return DateFormat('MMMM d, yyyy', 'en_US').format(date);
-    }
-  }
-
-  Future<void> _selectDate(BuildContext context) async {
-    final DateTime? picked = await showDatePicker(
-      context: context,
-      initialDate: selectedDate ?? DateTime(2000),
-      firstDate: DateTime(1900),
-      lastDate: DateTime.now(),
-      locale: _language == 'Japanese'
-          ? const Locale('ja', 'JP')
-          : const Locale('en', 'US'),
-      builder: (context, child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: ColorScheme.light(
-              primary: Color(0xFF7986CB),
-              onPrimary: Colors.white,
-              surface: Colors.white,
-              onSurface: Colors.black,
-            ),
-            textButtonTheme: TextButtonThemeData(
-              style: TextButton.styleFrom(
-                foregroundColor: Color(0xFF7986CB),
-              ),
-            ),
-          ),
-          child: child!,
-        );
-      },
-    );
-    if (picked != null && picked != selectedDate) {
-      setState(() {
-        selectedDate = picked;
-      });
-    }
-  }
-
-  Widget _buildBirthdayField() {
+  Widget _buildDateFields() {
     return Container(
       decoration: BoxDecoration(
         color: Colors.grey[100],
         borderRadius: BorderRadius.circular(25),
       ),
-      child: Stack(
-        alignment: Alignment.centerRight,
+      padding: EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          TextFormField(
-            readOnly: true,
-            style: TextStyle(color: Colors.black),
-            decoration: InputDecoration(
-              labelText: _language == 'Japanese'
-                  ? '誕生日を選択 (任意)'
-                  : 'Select Birthday (Optional)',
-              labelStyle: TextStyle(color: Colors.grey[700]),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(25),
-                borderSide: BorderSide.none,
-              ),
-              prefixIcon: Icon(Icons.cake, color: Color(0xFF7986CB)),
-              contentPadding:
-                  EdgeInsets.symmetric(horizontal: 20, vertical: 15),
-              suffixIcon: IconButton(
-                icon: Icon(Icons.calendar_today, color: Color(0xFF7986CB)),
-                onPressed: () => _selectDate(context),
-              ),
+          Text(
+            _language == 'Japanese' ? '誕生日を入力 (任意)' : 'Enter Birthday (Optional)',
+            style: TextStyle(
+              color: Colors.grey[700],
+              fontSize: 14,
             ),
-            controller: TextEditingController(
-              text: selectedDate == null ? '' : _formatDate(selectedDate!),
-            ),
-            onTap: () => _selectDate(context),
           ),
-          if (selectedDate != null)
-            Positioned(
-              right: 48,
-              child: IconButton(
-                icon: Icon(Icons.clear, color: Colors.grey),
-                onPressed: () {
-                  setState(() {
-                    selectedDate = null;
-                  });
-                },
+          SizedBox(height: 10),
+          Row(
+            children: [
+              // 年入力フィールド
+              Expanded(
+                flex: 2,
+                child: TextFormField(
+                  controller: _yearController,
+                  focusNode: _yearFocusNode,
+                  keyboardType: TextInputType.number,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Colors.black),
+                  decoration: InputDecoration(
+                    hintText: _language == 'Japanese' ? '年 / Year' : 'Year',
+                    hintStyle: TextStyle(color: Colors.grey[400]),
+                    contentPadding: EdgeInsets.symmetric(vertical: 8),
+                    isDense: true,
+                    border: UnderlineInputBorder(
+                      borderSide: BorderSide(color: Colors.grey),
+                    ),
+                  ),
+                  inputFormatters: [
+                    FilteringTextInputFormatter.digitsOnly,
+                    LengthLimitingTextInputFormatter(4),
+                  ],
+                ),
               ),
-            ),
+              SizedBox(width: 15),
+              // 月入力フィールド
+              Expanded(
+                child: TextFormField(
+                  controller: _monthController,
+                  focusNode: _monthFocusNode,
+                  keyboardType: TextInputType.number,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Colors.black),
+                  decoration: InputDecoration(
+                    hintText: _language == 'Japanese' ? '月 / Mon...' : 'Month',
+                    hintStyle: TextStyle(color: Colors.grey[400]),
+                    contentPadding: EdgeInsets.symmetric(vertical: 8),
+                    isDense: true,
+                    border: UnderlineInputBorder(
+                      borderSide: BorderSide(color: Colors.grey),
+                    ),
+                  ),
+                  inputFormatters: [
+                    FilteringTextInputFormatter.digitsOnly,
+                    LengthLimitingTextInputFormatter(2),
+                  ],
+                ),
+              ),
+              SizedBox(width: 15),
+              // 日入力フィールド
+              Expanded(
+                child: TextFormField(
+                  controller: _dayController,
+                  focusNode: _dayFocusNode,
+                  keyboardType: TextInputType.number,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Colors.black),
+                  decoration: InputDecoration(
+                    hintText: _language == 'Japanese' ? '日 / Day' : 'Day',
+                    hintStyle: TextStyle(color: Colors.grey[400]),
+                    contentPadding: EdgeInsets.symmetric(vertical: 8),
+                    isDense: true,
+                    border: UnderlineInputBorder(
+                      borderSide: BorderSide(color: Colors.grey),
+                    ),
+                  ),
+                  inputFormatters: [
+                    FilteringTextInputFormatter.digitsOnly,
+                    LengthLimitingTextInputFormatter(2),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ],
       ),
     );
@@ -209,193 +267,193 @@ class _SecondSignUpPageState extends State<SecondSignUpPage>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
         backgroundColor: Colors.white,
-        elevation: 0,
-        automaticallyImplyLeading: false,
-        title: Text(
-          _language == 'Japanese' ? '追加情報を登録' : 'Sign Up Additional Info',
-          style: const TextStyle(
-            color: Color(0xFF00008b),
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        actions: [
-          DropdownButton<String>(
-            value: _language,
-            dropdownColor: Colors.white,
-            icon: const Icon(Icons.language, color: Color(0xFF00008b)),
-            underline: Container(
-              height: 2,
-              color: Colors.transparent,
+        appBar: AppBar(
+          backgroundColor: Colors.white,
+          elevation: 0,
+          automaticallyImplyLeading: false,
+          title: Text(
+            _language == 'Japanese' ? '追加情報を登録' : 'Sign Up Additional Info',
+            style: const TextStyle(
+              color: Color(0xFF00008b),
+              fontWeight: FontWeight.bold,
             ),
-            onChanged: (String? newValue) {
-              setState(() {
-                _language = newValue!;
-              });
-            },
-            items: <String>['Japanese', 'English']
-                .map<DropdownMenuItem<String>>((String value) {
-              return DropdownMenuItem<String>(
-                value: value,
-                child: Text(
-                  value,
-                  style: const TextStyle(color: Color(0xFF00008b)),
-                ),
-              );
-            }).toList(),
           ),
-        ],
-      ),
-      body: SafeArea(
-        child: Stack(
-          children: [
-            Center(
-              child: SingleChildScrollView(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24.0),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      SlideTransition(
-                        position: _slideAnimation,
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            for (var i = 0; i < titleText.length; i++)
-                              if (_titleVisible)
-                                AnimatedBuilder(
-                                  animation: _letterAnimations[i],
-                                  builder: (context, child) {
-                                    return Transform.translate(
-                                      offset:
-                                          Offset(0, _letterAnimations[i].value),
-                                      child: Text(
-                                        titleText[i],
-                                        style: TextStyle(
-                                          color: Color(0xFF00008b),
-                                          fontSize: 28,
-                                          fontWeight: FontWeight.bold,
-                                          letterSpacing: 1.2,
-                                        ),
-                                      ),
-                                    );
-                                  },
-                                )
-                              else
-                                Container(),
-                          ],
-                        ),
-                      ),
-                      SizedBox(height: 60),
-                      Container(
-                        decoration: BoxDecoration(
-                          color: Colors.grey[100],
-                          borderRadius: BorderRadius.circular(25),
-                        ),
-                        child: TextFormField(
-                          onChanged: (value) {
-                            id = value;
-                          },
-                          style: TextStyle(color: Colors.black),
-                          decoration: InputDecoration(
-                            labelText: _language == 'Japanese'
-                                ? 'ユーザーIDを入力'
-                                : 'Enter User ID',
-                            labelStyle: TextStyle(color: Colors.grey[700]),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(25),
-                              borderSide: BorderSide.none,
-                            ),
-                            prefixIcon:
-                                Icon(Icons.person, color: Color(0xFF7986CB)),
-                            contentPadding: EdgeInsets.symmetric(
-                                horizontal: 20, vertical: 15),
-                          ),
-                          inputFormatters: [
-                            FilteringTextInputFormatter.singleLineFormatter
-                          ],
-                        ),
-                      ),
-                      SizedBox(height: 20),
-                      Container(
-                        decoration: BoxDecoration(
-                          color: Colors.grey[100],
-                          borderRadius: BorderRadius.circular(25),
-                        ),
-                        child: TextFormField(
-                          onChanged: (value) {
-                            name = value;
-                          },
-                          style: TextStyle(color: Colors.black),
-                          decoration: InputDecoration(
-                            labelText: _language == 'Japanese'
-                                ? '名前を入力 (任意)'
-                                : 'Enter Your Name (Optional)',
-                            labelStyle: TextStyle(color: Colors.grey[700]),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(25),
-                              borderSide: BorderSide.none,
-                            ),
-                            prefixIcon:
-                                Icon(Icons.badge, color: Color(0xFF7986CB)),
-                            contentPadding: EdgeInsets.symmetric(
-                                horizontal: 20, vertical: 15),
-                          ),
-                          inputFormatters: [
-                            FilteringTextInputFormatter.singleLineFormatter
-                          ],
-                        ),
-                      ),
-                      SizedBox(height: 20),
-                      _buildBirthdayField(),
-                      SizedBox(height: 40),
-                      Container(
-                        width: 350.0,
-                        height: 50.0,
-                        margin: EdgeInsets.symmetric(vertical: 8.0),
-                        child: ElevatedButton(
-                          onPressed: _isLoading ? null : _next,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF7986CB),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(25),
-                            ),
-                            elevation: 3,
-                          ),
-                          child: _isLoading
-                              ? CircularProgressIndicator(
-                                  valueColor: AlwaysStoppedAnimation<Color>(
-                                      Colors.white),
-                                )
-                              : Text(
-                                  _language == 'Japanese' ? '登録' : 'Sign Up',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 16,
-                                  ),
-                                ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+          actions: [
+            DropdownButton<String>(
+              value: _language,
+              dropdownColor: Colors.white,
+              icon: const Icon(Icons.language, color: Color(0xFF00008b)),
+              underline: Container(
+                height: 2,
+                color: Colors.transparent,
               ),
+              onChanged: (String? newValue) {
+                setState(() {
+                  _language = newValue!;
+                });
+              },
+              items: <String>['Japanese', 'English']
+                  .map<DropdownMenuItem<String>>((String value) {
+                return DropdownMenuItem<String>(
+                  value: value,
+                  child: Text(
+                    value,
+                    style: const TextStyle(color: Color(0xFF00008b)),
+                  ),
+                );
+              }).toList(),
             ),
-            if (_isLoading)
-              Container(
-                color: Colors.black.withOpacity(0.5),
-                child: Center(
-                  child: CircularProgressIndicator(
-                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                  ),
-                ),
-              ),
           ],
         ),
-      ),
+        body: SafeArea(
+        child: Stack(
+        children: [
+        Center(
+        child: SingleChildScrollView(
+    child: Padding(
+    padding: const EdgeInsets.symmetric(horizontal: 24.0),
+    child: Column(
+    mainAxisAlignment: MainAxisAlignment.center,
+    children: [
+    SlideTransition(
+    position: _slideAnimation,
+    child: Row(
+    mainAxisAlignment: MainAxisAlignment.center,
+    children: [
+    for (var i = 0; i < titleText.length; i++)
+    if (_titleVisible)
+    AnimatedBuilder(
+    animation: _letterAnimations[i],
+    builder: (context, child) {
+    return Transform.translate(
+    offset:
+    Offset(0, _letterAnimations[i].value),
+    child: Text(
+    titleText[i],
+    style: TextStyle(
+    color: Color(0xFF00008b),
+    fontSize: 28,
+    fontWeight: FontWeight.bold,
+    letterSpacing: 1.2,
+    ),
+    ),
+    );
+    },
+    )
+    else
+    Container(),
+    ],
+    ),
+    ),
+    SizedBox(height: 60),
+    Container(
+    decoration: BoxDecoration(
+    color: Colors.grey[100],
+    borderRadius: BorderRadius.circular(25),
+    ),
+    child: TextFormField(
+    onChanged: (value) {
+    id = value;
+    },
+    style: TextStyle(color: Colors.black),
+    decoration: InputDecoration(
+    labelText: _language == 'Japanese'
+    ? 'ユーザーIDを入力'
+        : 'Enter User ID',
+    labelStyle: TextStyle(color: Colors.grey[700]),
+    border: OutlineInputBorder(
+    borderRadius: BorderRadius.circular(25),
+    borderSide: BorderSide.none,
+    ),
+    prefixIcon:
+    Icon(Icons.person, color: Color(0xFF7986CB)),
+    contentPadding: EdgeInsets.symmetric(
+    horizontal: 20, vertical: 15),
+    ),
+    inputFormatters: [
+    FilteringTextInputFormatter.singleLineFormatter
+    ],
+    ),
+    ),
+    SizedBox(height: 20),
+    Container(
+    decoration: BoxDecoration(
+    color: Colors.grey[100],
+    borderRadius: BorderRadius.circular(25),
+    ),
+    child: TextFormField(
+    onChanged: (value) {
+    name = value;
+    },
+    style: TextStyle(color: Colors.black),
+    decoration: InputDecoration(
+    labelText: _language == 'Japanese'
+    ? '名前を入力 (任意)'
+        : 'Enter Your Name (Optional)',
+    labelStyle: TextStyle(color: Colors.grey[700]),
+    border: OutlineInputBorder(
+    borderRadius: BorderRadius.circular(25),
+    borderSide: BorderSide.none,
+    ),
+    prefixIcon:
+    Icon(Icons.badge, color: Color(0xFF7986CB)),
+    contentPadding: EdgeInsets.symmetric(
+    horizontal: 20, vertical: 15),
+    ),
+    inputFormatters: [
+    FilteringTextInputFormatter.singleLineFormatter
+    ],
+    ),
+    ),
+    SizedBox(height: 20),
+    _buildDateFields(),
+    SizedBox(height: 40),
+    Container(
+    width: 350.0,
+    height: 50.0,
+    margin: EdgeInsets.symmetric(vertical: 8.0),
+    child: ElevatedButton(
+    onPressed: _isLoading ? null : _next,
+    style: ElevatedButton.styleFrom(
+    backgroundColor: const Color(0xFF7986CB),
+    shape: RoundedRectangleBorder(
+    borderRadius: BorderRadius.circular(25),
+    ),
+    elevation: 3,
+    ),
+    child: _isLoading
+    ? CircularProgressIndicator(
+    valueColor: AlwaysStoppedAnimation<Color>(
+    Colors.white),
+    )
+        : Text(
+    _language == 'Japanese' ? '登録' : 'Sign Up',
+    style: TextStyle(
+      color: Colors.white,
+      fontWeight: FontWeight.w600,
+      fontSize: 16,
+    ),
+    ),
+    ),
+    ),
+    ],
+    ),
+    ),
+        ),
+        ),
+          if (_isLoading)
+            Container(
+              color: Colors.black.withOpacity(0.5),
+              child: Center(
+                child: CircularProgressIndicator(
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                ),
+              ),
+            ),
+        ],
+        ),
+        ),
     );
   }
 
@@ -413,7 +471,7 @@ class _SecondSignUpPageState extends State<SecondSignUpPage>
 
     // Check if ID is already in use
     final QuerySnapshot existingUsers =
-        await _firestore.collection('users').where('id', isEqualTo: id).get();
+    await _firestore.collection('users').where('id', isEqualTo: id).get();
 
     if (existingUsers.docs.isNotEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -462,7 +520,7 @@ class _SecondSignUpPageState extends State<SecondSignUpPage>
         MaterialPageRoute(
           builder: (context) => Welcome1(),
         ),
-        (route) => false,
+            (route) => false,
       );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
