@@ -176,7 +176,9 @@ class _SecondSignUpPageState extends State<SecondSignUpPage>
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            _language == 'Japanese' ? '誕生日を入力 (任意)' : 'Enter Birthday (Optional)',
+            _language == 'Japanese'
+                ? '誕生日を入力 (任意)'
+                : 'Enter Birthday (Optional)',
             style: TextStyle(
               color: Colors.grey[700],
               fontSize: 14,
@@ -267,193 +269,193 @@ class _SecondSignUpPageState extends State<SecondSignUpPage>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
+      appBar: AppBar(
         backgroundColor: Colors.white,
-        appBar: AppBar(
-          backgroundColor: Colors.white,
-          elevation: 0,
-          automaticallyImplyLeading: false,
-          title: Text(
-            _language == 'Japanese' ? '追加情報を登録' : 'Sign Up Additional Info',
-            style: const TextStyle(
-              color: Color(0xFF00008b),
-              fontWeight: FontWeight.bold,
-            ),
+        elevation: 0,
+        automaticallyImplyLeading: false,
+        title: Text(
+          _language == 'Japanese' ? '追加情報を登録' : 'Sign Up Additional Info',
+          style: const TextStyle(
+            color: Color(0xFF00008b),
+            fontWeight: FontWeight.bold,
           ),
-          actions: [
-            DropdownButton<String>(
-              value: _language,
-              dropdownColor: Colors.white,
-              icon: const Icon(Icons.language, color: Color(0xFF00008b)),
-              underline: Container(
-                height: 2,
-                color: Colors.transparent,
-              ),
-              onChanged: (String? newValue) {
-                setState(() {
-                  _language = newValue!;
-                });
-              },
-              items: <String>['Japanese', 'English']
-                  .map<DropdownMenuItem<String>>((String value) {
-                return DropdownMenuItem<String>(
-                  value: value,
-                  child: Text(
-                    value,
-                    style: const TextStyle(color: Color(0xFF00008b)),
-                  ),
-                );
-              }).toList(),
+        ),
+        actions: [
+          DropdownButton<String>(
+            value: _language,
+            dropdownColor: Colors.white,
+            icon: const Icon(Icons.language, color: Color(0xFF00008b)),
+            underline: Container(
+              height: 2,
+              color: Colors.transparent,
             ),
-          ],
-        ),
-        body: SafeArea(
+            onChanged: (String? newValue) {
+              setState(() {
+                _language = newValue!;
+              });
+            },
+            items: <String>['Japanese', 'English']
+                .map<DropdownMenuItem<String>>((String value) {
+              return DropdownMenuItem<String>(
+                value: value,
+                child: Text(
+                  value,
+                  style: const TextStyle(color: Color(0xFF00008b)),
+                ),
+              );
+            }).toList(),
+          ),
+        ],
+      ),
+      body: SafeArea(
         child: Stack(
-        children: [
-        Center(
-        child: SingleChildScrollView(
-    child: Padding(
-    padding: const EdgeInsets.symmetric(horizontal: 24.0),
-    child: Column(
-    mainAxisAlignment: MainAxisAlignment.center,
-    children: [
-    SlideTransition(
-    position: _slideAnimation,
-    child: Row(
-    mainAxisAlignment: MainAxisAlignment.center,
-    children: [
-    for (var i = 0; i < titleText.length; i++)
-    if (_titleVisible)
-    AnimatedBuilder(
-    animation: _letterAnimations[i],
-    builder: (context, child) {
-    return Transform.translate(
-    offset:
-    Offset(0, _letterAnimations[i].value),
-    child: Text(
-    titleText[i],
-    style: TextStyle(
-    color: Color(0xFF00008b),
-    fontSize: 28,
-    fontWeight: FontWeight.bold,
-    letterSpacing: 1.2,
-    ),
-    ),
-    );
-    },
-    )
-    else
-    Container(),
-    ],
-    ),
-    ),
-    SizedBox(height: 60),
-    Container(
-    decoration: BoxDecoration(
-    color: Colors.grey[100],
-    borderRadius: BorderRadius.circular(25),
-    ),
-    child: TextFormField(
-    onChanged: (value) {
-    id = value;
-    },
-    style: TextStyle(color: Colors.black),
-    decoration: InputDecoration(
-    labelText: _language == 'Japanese'
-    ? 'ユーザーIDを入力'
-        : 'Enter User ID',
-    labelStyle: TextStyle(color: Colors.grey[700]),
-    border: OutlineInputBorder(
-    borderRadius: BorderRadius.circular(25),
-    borderSide: BorderSide.none,
-    ),
-    prefixIcon:
-    Icon(Icons.person, color: Color(0xFF7986CB)),
-    contentPadding: EdgeInsets.symmetric(
-    horizontal: 20, vertical: 15),
-    ),
-    inputFormatters: [
-    FilteringTextInputFormatter.singleLineFormatter
-    ],
-    ),
-    ),
-    SizedBox(height: 20),
-    Container(
-    decoration: BoxDecoration(
-    color: Colors.grey[100],
-    borderRadius: BorderRadius.circular(25),
-    ),
-    child: TextFormField(
-    onChanged: (value) {
-    name = value;
-    },
-    style: TextStyle(color: Colors.black),
-    decoration: InputDecoration(
-    labelText: _language == 'Japanese'
-    ? '名前を入力 (任意)'
-        : 'Enter Your Name (Optional)',
-    labelStyle: TextStyle(color: Colors.grey[700]),
-    border: OutlineInputBorder(
-    borderRadius: BorderRadius.circular(25),
-    borderSide: BorderSide.none,
-    ),
-    prefixIcon:
-    Icon(Icons.badge, color: Color(0xFF7986CB)),
-    contentPadding: EdgeInsets.symmetric(
-    horizontal: 20, vertical: 15),
-    ),
-    inputFormatters: [
-    FilteringTextInputFormatter.singleLineFormatter
-    ],
-    ),
-    ),
-    SizedBox(height: 20),
-    _buildDateFields(),
-    SizedBox(height: 40),
-    Container(
-    width: 350.0,
-    height: 50.0,
-    margin: EdgeInsets.symmetric(vertical: 8.0),
-    child: ElevatedButton(
-    onPressed: _isLoading ? null : _next,
-    style: ElevatedButton.styleFrom(
-    backgroundColor: const Color(0xFF7986CB),
-    shape: RoundedRectangleBorder(
-    borderRadius: BorderRadius.circular(25),
-    ),
-    elevation: 3,
-    ),
-    child: _isLoading
-    ? CircularProgressIndicator(
-    valueColor: AlwaysStoppedAnimation<Color>(
-    Colors.white),
-    )
-        : Text(
-    _language == 'Japanese' ? '登録' : 'Sign Up',
-    style: TextStyle(
-      color: Colors.white,
-      fontWeight: FontWeight.w600,
-      fontSize: 16,
-    ),
-    ),
-    ),
-    ),
-    ],
-    ),
-    ),
-        ),
-        ),
-          if (_isLoading)
-            Container(
-              color: Colors.black.withOpacity(0.5),
-              child: Center(
-                child: CircularProgressIndicator(
-                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+          children: [
+            Center(
+              child: SingleChildScrollView(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      SlideTransition(
+                        position: _slideAnimation,
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            for (var i = 0; i < titleText.length; i++)
+                              if (_titleVisible)
+                                AnimatedBuilder(
+                                  animation: _letterAnimations[i],
+                                  builder: (context, child) {
+                                    return Transform.translate(
+                                      offset:
+                                          Offset(0, _letterAnimations[i].value),
+                                      child: Text(
+                                        titleText[i],
+                                        style: TextStyle(
+                                          color: Color(0xFF00008b),
+                                          fontSize: 28,
+                                          fontWeight: FontWeight.bold,
+                                          letterSpacing: 1.2,
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                )
+                              else
+                                Container(),
+                          ],
+                        ),
+                      ),
+                      SizedBox(height: 60),
+                      Container(
+                        decoration: BoxDecoration(
+                          color: Colors.grey[100],
+                          borderRadius: BorderRadius.circular(25),
+                        ),
+                        child: TextFormField(
+                          onChanged: (value) {
+                            id = value;
+                          },
+                          style: TextStyle(color: Colors.black),
+                          decoration: InputDecoration(
+                            labelText: _language == 'Japanese'
+                                ? 'ユーザーIDを入力'
+                                : 'Enter User ID',
+                            labelStyle: TextStyle(color: Colors.grey[700]),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(25),
+                              borderSide: BorderSide.none,
+                            ),
+                            prefixIcon:
+                                Icon(Icons.person, color: Color(0xFF7986CB)),
+                            contentPadding: EdgeInsets.symmetric(
+                                horizontal: 20, vertical: 15),
+                          ),
+                          inputFormatters: [
+                            FilteringTextInputFormatter.singleLineFormatter
+                          ],
+                        ),
+                      ),
+                      SizedBox(height: 20),
+                      Container(
+                        decoration: BoxDecoration(
+                          color: Colors.grey[100],
+                          borderRadius: BorderRadius.circular(25),
+                        ),
+                        child: TextFormField(
+                          onChanged: (value) {
+                            name = value;
+                          },
+                          style: TextStyle(color: Colors.black),
+                          decoration: InputDecoration(
+                            labelText: _language == 'Japanese'
+                                ? '名前を入力 (任意)'
+                                : 'Enter Your Name (Optional)',
+                            labelStyle: TextStyle(color: Colors.grey[700]),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(25),
+                              borderSide: BorderSide.none,
+                            ),
+                            prefixIcon:
+                                Icon(Icons.badge, color: Color(0xFF7986CB)),
+                            contentPadding: EdgeInsets.symmetric(
+                                horizontal: 20, vertical: 15),
+                          ),
+                          inputFormatters: [
+                            FilteringTextInputFormatter.singleLineFormatter
+                          ],
+                        ),
+                      ),
+                      SizedBox(height: 20),
+                      _buildDateFields(),
+                      SizedBox(height: 40),
+                      Container(
+                        width: 350.0,
+                        height: 50.0,
+                        margin: EdgeInsets.symmetric(vertical: 8.0),
+                        child: ElevatedButton(
+                          onPressed: _isLoading ? null : _next,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF7986CB),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(25),
+                            ),
+                            elevation: 3,
+                          ),
+                          child: _isLoading
+                              ? CircularProgressIndicator(
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                      Colors.white),
+                                )
+                              : Text(
+                                  _language == 'Japanese' ? '登録' : 'Sign Up',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 16,
+                                  ),
+                                ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
-        ],
+            if (_isLoading)
+              Container(
+                color: Colors.black.withOpacity(0.5),
+                child: Center(
+                  child: CircularProgressIndicator(
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                  ),
+                ),
+              ),
+          ],
         ),
-        ),
+      ),
     );
   }
 
@@ -471,7 +473,7 @@ class _SecondSignUpPageState extends State<SecondSignUpPage>
 
     // Check if ID is already in use
     final QuerySnapshot existingUsers =
-    await _firestore.collection('users').where('id', isEqualTo: id).get();
+        await _firestore.collection('users').where('id', isEqualTo: id).get();
 
     if (existingUsers.docs.isNotEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -520,7 +522,7 @@ class _SecondSignUpPageState extends State<SecondSignUpPage>
         MaterialPageRoute(
           builder: (context) => Welcome1(),
         ),
-            (route) => false,
+        (route) => false,
       );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
