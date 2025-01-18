@@ -129,7 +129,7 @@ class _TimelineScreenState extends State<TimelineScreen>
         // ブロックされたユーザーのリストを取得
         final userData = userSnapshot.data!.data() as Map<String, dynamic>?;
         final List<String> blockedUsers =
-            List<String>.from(userData?['blockedUsers'] ?? []);
+        List<String>.from(userData?['blockedUsers'] ?? []);
 
         return StreamBuilder<QuerySnapshot>(
           stream: _firestore
@@ -293,14 +293,14 @@ class _TimelineScreenState extends State<TimelineScreen>
                     ),
                     suffixIcon: _searchQuery.isNotEmpty
                         ? IconButton(
-                            icon: const Icon(Icons.clear),
-                            onPressed: () {
-                              setState(() {
-                                _searchController.clear();
-                                _searchQuery = '';
-                              });
-                            },
-                          )
+                      icon: const Icon(Icons.clear),
+                      onPressed: () {
+                        setState(() {
+                          _searchController.clear();
+                          _searchQuery = '';
+                        });
+                      },
+                    )
                         : null,
                   ),
                   onChanged: (value) {
@@ -356,7 +356,7 @@ class _TimelineScreenState extends State<TimelineScreen>
                     }
 
                     final communityIds =
-                        communities.map((doc) => doc.id).toList();
+                    communities.map((doc) => doc.id).toList();
 
                     return StreamBuilder<QuerySnapshot>(
                       stream: FirebaseFirestore.instance
@@ -370,9 +370,9 @@ class _TimelineScreenState extends State<TimelineScreen>
                         }
 
                         var filteredDocs =
-                            communitySnapshot.data!.docs.where((doc) {
+                        communitySnapshot.data!.docs.where((doc) {
                           final communityData =
-                              doc.data() as Map<String, dynamic>;
+                          doc.data() as Map<String, dynamic>;
                           final bool isActive =
                               communityData['isActive'] == true;
                           final communityName =
@@ -412,18 +412,18 @@ class _TimelineScreenState extends State<TimelineScreen>
                           itemBuilder: (context, index) {
                             final community = filteredDocs[index];
                             final communityData =
-                                community.data() as Map<String, dynamic>;
+                            community.data() as Map<String, dynamic>;
 
                             return ListTile(
                               leading: CircleAvatar(
                                 backgroundImage:
-                                    communityData['backgroundImageUrl'] != null
-                                        ? CachedNetworkImageProvider(
-                                            communityData['backgroundImageUrl'])
-                                        : null,
+                                communityData['backgroundImageUrl'] != null
+                                    ? CachedNetworkImageProvider(
+                                    communityData['backgroundImageUrl'])
+                                    : null,
                                 backgroundColor: Colors.grey[200],
                                 child: communityData['backgroundImageUrl'] ==
-                                        null
+                                    null
                                     ? Icon(Icons.group, color: Colors.grey[600])
                                     : null,
                               ),
@@ -436,10 +436,10 @@ class _TimelineScreenState extends State<TimelineScreen>
                                   MaterialPageRoute(
                                     builder: (context) => GroupChatScreen(
                                       roomName:
-                                          communityData['name'] ?? '不明なコミュニティ',
+                                      communityData['name'] ?? '不明なコミュニティ',
                                       communityId: community.id,
                                       participantCount:
-                                          communityData['memberCount'] ?? 1,
+                                      communityData['memberCount'] ?? 1,
                                     ),
                                   ),
                                 );
@@ -512,7 +512,7 @@ class _TimelineScreenState extends State<TimelineScreen>
                 String? avatarUrl;
                 if (snapshot.hasData && snapshot.data != null) {
                   final userData =
-                      snapshot.data!.data() as Map<String, dynamic>?;
+                  snapshot.data!.data() as Map<String, dynamic>?;
                   avatarUrl = userData?['avatarUrl'] as String?;
                 }
 
@@ -673,7 +673,7 @@ class _TimelineScreenState extends State<TimelineScreen>
                       }
 
                       final communityIds =
-                          communities.map((doc) => doc.id).toList();
+                      communities.map((doc) => doc.id).toList();
 
                       return Column(
                         children: [
@@ -698,15 +698,15 @@ class _TimelineScreenState extends State<TimelineScreen>
                                     color: Color(0xFF00008b)),
                                 suffixIcon: _searchQuery.isNotEmpty
                                     ? IconButton(
-                                        icon: const Icon(Icons.clear,
-                                            color: Color(0xFF00008b)),
-                                        onPressed: () {
-                                          setState(() {
-                                            _searchController.clear();
-                                            _searchQuery = '';
-                                          });
-                                        },
-                                      )
+                                  icon: const Icon(Icons.clear,
+                                      color: Color(0xFF00008b)),
+                                  onPressed: () {
+                                    setState(() {
+                                      _searchController.clear();
+                                      _searchQuery = '';
+                                    });
+                                  },
+                                )
                                     : null,
                                 filled: true,
                                 fillColor: Colors.grey[50],
@@ -729,7 +729,7 @@ class _TimelineScreenState extends State<TimelineScreen>
                               stream: FirebaseFirestore.instance
                                   .collection('community_list')
                                   .where(FieldPath.documentId,
-                                      whereIn: communityIds)
+                                  whereIn: communityIds)
                                   .snapshots(),
                               builder: (context, communitySnapshot) {
                                 if (!communitySnapshot.hasData) {
@@ -738,26 +738,26 @@ class _TimelineScreenState extends State<TimelineScreen>
                                 }
 
                                 var filteredDocs =
-                                    communitySnapshot.data!.docs.where((doc) {
+                                communitySnapshot.data!.docs.where((doc) {
                                   final communityData =
-                                      doc.data() as Map<String, dynamic>;
+                                  doc.data() as Map<String, dynamic>;
                                   final bool isActive =
                                       communityData['isActive'] == true;
                                   final String communityName =
-                                      (communityData['name'] as String? ?? '')
-                                          .toLowerCase();
+                                  (communityData['name'] as String? ?? '')
+                                      .toLowerCase();
                                   final String hashtag =
-                                      (communityData['hashtag'] as String? ??
-                                              '')
-                                          .toLowerCase();
+                                  (communityData['hashtag'] as String? ??
+                                      '')
+                                      .toLowerCase();
                                   final String invitationCode =
-                                      (communityData['invitationCode']
-                                                  as String? ??
-                                              '')
-                                          .toLowerCase();
+                                  (communityData['invitationCode']
+                                  as String? ??
+                                      '')
+                                      .toLowerCase();
 
                                   final searchQuery =
-                                      _searchQuery.toLowerCase();
+                                  _searchQuery.toLowerCase();
                                   final bool matchesSearch =
                                       communityName.contains(searchQuery) ||
                                           hashtag.contains(searchQuery) ||
@@ -770,7 +770,7 @@ class _TimelineScreenState extends State<TimelineScreen>
                                   return Center(
                                     child: Column(
                                       mainAxisAlignment:
-                                          MainAxisAlignment.center,
+                                      MainAxisAlignment.center,
                                       children: [
                                         Icon(Icons.search_off,
                                             size: 64, color: Colors.grey[400]),
@@ -797,7 +797,7 @@ class _TimelineScreenState extends State<TimelineScreen>
                                   itemBuilder: (context, index) {
                                     final community = filteredDocs[index];
                                     final communityData = community.data()
-                                        as Map<String, dynamic>;
+                                    as Map<String, dynamic>;
 
                                     return Container(
                                       margin: const EdgeInsets.only(bottom: 16),
@@ -817,22 +817,22 @@ class _TimelineScreenState extends State<TimelineScreen>
                                         color: Colors.transparent,
                                         child: InkWell(
                                           borderRadius:
-                                              BorderRadius.circular(16),
+                                          BorderRadius.circular(16),
                                           onTap: () {
                                             Navigator.push(
                                               context,
                                               MaterialPageRoute(
                                                 builder: (context) =>
                                                     GroupChatScreen(
-                                                  roomName:
+                                                      roomName:
                                                       communityData['name'] ??
                                                           '不明なコミュニティ',
-                                                  communityId: community.id,
-                                                  participantCount:
+                                                      communityId: community.id,
+                                                      participantCount:
                                                       communityData[
-                                                              'memberCount'] ??
+                                                      'memberCount'] ??
                                                           0,
-                                                ),
+                                                    ),
                                               ),
                                             );
                                           },
@@ -845,37 +845,37 @@ class _TimelineScreenState extends State<TimelineScreen>
                                                   height: 60,
                                                   decoration: BoxDecoration(
                                                     borderRadius:
-                                                        BorderRadius.circular(
-                                                            20),
+                                                    BorderRadius.circular(
+                                                        20),
                                                     color: Colors.grey[100],
                                                     image: communityData[
-                                                                'backgroundImageUrl'] !=
-                                                            null
+                                                    'backgroundImageUrl'] !=
+                                                        null
                                                         ? DecorationImage(
-                                                            image:
-                                                                CachedNetworkImageProvider(
-                                                              communityData[
-                                                                  'backgroundImageUrl'],
-                                                            ),
-                                                            fit: BoxFit.cover,
-                                                          )
+                                                      image:
+                                                      CachedNetworkImageProvider(
+                                                        communityData[
+                                                        'backgroundImageUrl'],
+                                                      ),
+                                                      fit: BoxFit.cover,
+                                                    )
                                                         : null,
                                                   ),
                                                   child: communityData[
-                                                              'backgroundImageUrl'] ==
-                                                          null
+                                                  'backgroundImageUrl'] ==
+                                                      null
                                                       ? Icon(Icons.group,
-                                                          color:
-                                                              Colors.grey[400],
-                                                          size: 30)
+                                                      color:
+                                                      Colors.grey[400],
+                                                      size: 30)
                                                       : null,
                                                 ),
                                                 const SizedBox(width: 16),
                                                 Expanded(
                                                   child: Column(
                                                     crossAxisAlignment:
-                                                        CrossAxisAlignment
-                                                            .start,
+                                                    CrossAxisAlignment
+                                                        .start,
                                                     children: [
                                                       Text(
                                                         communityData['name'] ??
@@ -883,9 +883,9 @@ class _TimelineScreenState extends State<TimelineScreen>
                                                         style: const TextStyle(
                                                           fontSize: 16,
                                                           fontWeight:
-                                                              FontWeight.bold,
+                                                          FontWeight.bold,
                                                           color:
-                                                              Color(0xFF00008b),
+                                                          Color(0xFF00008b),
                                                         ),
                                                       ),
                                                       const SizedBox(height: 4),
@@ -1071,7 +1071,7 @@ class PostCard extends StatelessWidget {
     try {
       final postData = post.data() as Map<String, dynamic>;
       final List<String> retweetedBy =
-          List<String>.from(postData['retweetedBy'] ?? []);
+      List<String>.from(postData['retweetedBy'] ?? []);
 
       final querySnapshot = await FirebaseFirestore.instance
           .collection('posts')
@@ -1142,7 +1142,7 @@ class PostCard extends StatelessWidget {
   Future<void> _toggleBookmark() async {
     final postData = post.data() as Map<String, dynamic>;
     final List<String> bookmarkedBy =
-        List<String>.from(postData['bookmarkedBy'] ?? []);
+    List<String>.from(postData['bookmarkedBy'] ?? []);
 
     if (bookmarkedBy.contains(currentUserId)) {
       await post.reference.update({
@@ -1202,9 +1202,9 @@ class PostCard extends StatelessWidget {
     final postData = post.data() as Map<String, dynamic>;
     final List<String> likedBy = List<String>.from(postData['likedBy'] ?? []);
     final List<String> retweetedBy =
-        List<String>.from(postData['retweetedBy'] ?? []);
+    List<String>.from(postData['retweetedBy'] ?? []);
     final List<String> bookmarkedBy =
-        List<String>.from(postData['bookmarkedBy'] ?? []);
+    List<String>.from(postData['bookmarkedBy'] ?? []);
     final likes = postData['likes'] ?? 0;
     final retweets = postData['retweets'] ?? 0;
     final commentCount = postData['replyCount'] ?? 0;
@@ -1321,20 +1321,20 @@ class PostCard extends StatelessWidget {
                       child: LayoutBuilder(
                         builder: (context, constraints) {
                           final List<String> mediaUrls =
-                              List<String>.from(postData['mediaUrls']);
+                          List<String>.from(postData['mediaUrls']);
                           final bool isSingleImage = mediaUrls.length == 1;
 
                           return GridView.builder(
                             shrinkWrap: true,
                             physics: const NeverScrollableScrollPhysics(),
                             gridDelegate:
-                                SliverGridDelegateWithFixedCrossAxisCount(
+                            SliverGridDelegateWithFixedCrossAxisCount(
                               crossAxisCount: isSingleImage ? 1 : 2,
                               crossAxisSpacing: 4,
                               mainAxisSpacing: 4,
                               childAspectRatio: isSingleImage
                                   ? constraints.maxWidth /
-                                      (constraints.maxWidth * 0.75)
+                                  (constraints.maxWidth * 0.75)
                                   : 1.0,
                             ),
                             itemCount: mediaUrls.length,
@@ -1363,12 +1363,12 @@ class PostCard extends StatelessWidget {
                       spacing: 4.0,
                       children: (postData['hashtags'] as List)
                           .map((tag) => Text(
-                                '#$tag',
-                                style: const TextStyle(
-                                  color: Colors.blue,
-                                  fontSize: 14.0,
-                                ),
-                              ))
+                        '#$tag',
+                        style: const TextStyle(
+                          color: Colors.blue,
+                          fontSize: 14.0,
+                        ),
+                      ))
                           .toList(),
                     ),
                   ),
@@ -1446,9 +1446,9 @@ class PostCard extends StatelessWidget {
                                               MaterialPageRoute(
                                                 builder: (context) =>
                                                     ReportPostsPage(
-                                                  communityId: '',
-                                                  userHandle: '',
-                                                ),
+                                                      communityId: '',
+                                                      userHandle: '',
+                                                    ),
                                               ),
                                             );
                                           },
@@ -1461,18 +1461,18 @@ class PostCard extends StatelessWidget {
                                             try {
                                               // 現在のユーザーのドキュメントを取得
                                               final currentUserDoc =
-                                                  await FirebaseFirestore
-                                                      .instance
-                                                      .collection('users')
-                                                      .doc(currentUserId)
-                                                      .get();
+                                              await FirebaseFirestore
+                                                  .instance
+                                                  .collection('users')
+                                                  .doc(currentUserId)
+                                                  .get();
 
                                               // blockedUsers配列を取得（存在しない場合は空配列を使用）
                                               List<String> blockedUsers =
-                                                  List<String>.from(
-                                                      currentUserDoc.data()?[
-                                                              'blockedUsers'] ??
-                                                          []);
+                                              List<String>.from(
+                                                  currentUserDoc.data()?[
+                                                  'blockedUsers'] ??
+                                                      []);
 
                                               // ブロックするユーザーのIDを追加
                                               if (!blockedUsers.contains(
@@ -1492,9 +1492,9 @@ class PostCard extends StatelessWidget {
                                                     .showSnackBar(
                                                   const SnackBar(
                                                     content:
-                                                        Text('ユーザーをブロックしました'),
+                                                    Text('ユーザーをブロックしました'),
                                                     duration:
-                                                        Duration(seconds: 2),
+                                                    Duration(seconds: 2),
                                                   ),
                                                 );
                                               }
@@ -1504,9 +1504,9 @@ class PostCard extends StatelessWidget {
                                                   .showSnackBar(
                                                 const SnackBar(
                                                   content:
-                                                      Text('ユーザーのブロックに失敗しました'),
+                                                  Text('ユーザーのブロックに失敗しました'),
                                                   duration:
-                                                      Duration(seconds: 2),
+                                                  Duration(seconds: 2),
                                                 ),
                                               );
                                             }
@@ -1600,7 +1600,7 @@ class PostDetailScreen extends StatelessWidget {
                     child: PostCard(
                       post: reply,
                       currentUserId:
-                          FirebaseAuth.instance.currentUser?.uid ?? '',
+                      FirebaseAuth.instance.currentUser?.uid ?? '',
                       isDetailScreen: true,
                     ),
                   ),
@@ -1922,7 +1922,7 @@ class _ReplyScreenState extends State<ReplyScreen> {
                       }
 
                       final userData =
-                          snapshot.data!.data() as Map<String, dynamic>?;
+                      snapshot.data!.data() as Map<String, dynamic>?;
                       final avatarUrl = userData?['avatarUrl'] as String?;
 
                       return Row(
@@ -1930,9 +1930,9 @@ class _ReplyScreenState extends State<ReplyScreen> {
                         children: [
                           CircleAvatar(
                             backgroundImage:
-                                avatarUrl != null && avatarUrl.isNotEmpty
-                                    ? CachedNetworkImageProvider(avatarUrl)
-                                    : null,
+                            avatarUrl != null && avatarUrl.isNotEmpty
+                                ? CachedNetworkImageProvider(avatarUrl)
+                                : null,
                             backgroundColor: Colors.grey[200],
                             child: avatarUrl == null || avatarUrl.isEmpty
                                 ? Icon(Icons.person, color: Colors.grey[600])

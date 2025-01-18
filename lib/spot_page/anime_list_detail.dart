@@ -130,7 +130,7 @@ class _AnimeDetailsPageState extends State<AnimeDetailsPage> {
                 controller: _youtubeController!,
                 showVideoProgressIndicator: false,
                 onReady: () {
-                  print("YouTube Player is ready");
+                  print("ローディング中...");
                 },
                 onEnded: (YoutubeMetaData metaData) {
                   _youtubeController?.seekTo(Duration.zero);
@@ -349,7 +349,9 @@ class _AnimeDetailsPageState extends State<AnimeDetailsPage> {
           'latitude': data['latitude'] ?? 0.0,
           'longitude': data['longitude'] ?? 0.0,
           'sourceTitle': data['sourceTitle'] ?? '',
+          'subsourceTitle': data['subsourceTitle'] ?? '',
           'sourceLink': data['sourceLink'] ?? '',
+          'subsourceLink': data['subsourceLink'] ?? '',
           'url': data['url'] ?? '',
           'subMedia': processedSubMedia,
           'userEmail': data['userEmail'] ?? [],
@@ -491,7 +493,9 @@ class _AnimeDetailsPageState extends State<AnimeDetailsPage> {
     final double latitude = (location['latitude'] as num?)?.toDouble() ?? 0.0;
     final double longitude = (location['longitude'] as num?)?.toDouble() ?? 0.0;
     final String sourceTitle = location['sourceTitle'] as String? ?? '';
+    final String subsourceTitle = location['subsourceTitle'] as String? ?? '';
     final String sourceLink = location['sourceLink'] as String? ?? '';
+    final String subsourceLink = location['subsourceLink'] as String? ?? '';
     final String url = location['url'] as String? ?? '';
     final userEmail = location['userEmail'];
 
@@ -543,7 +547,9 @@ class _AnimeDetailsPageState extends State<AnimeDetailsPage> {
               latitude: latitude,
               longitude: longitude,
               sourceLink: sourceLink,
+              subsourceLink: subsourceLink,
               sourceTitle: sourceTitle,
+              subsourceTitle: subsourceTitle,
               url: url,
               subMedia: subMedia,
               locationId: locationId,
@@ -600,7 +606,9 @@ class SpotDetailScreen extends StatefulWidget {
   final double longitude;
   final String imageUrl;
   final String sourceTitle;
+  final String subsourceTitle;
   final String sourceLink;
+  final String subsourceLink;
   final String url;
   final List<Map<String, dynamic>> subMedia;
   final String locationId;
@@ -616,7 +624,9 @@ class SpotDetailScreen extends StatefulWidget {
     required this.longitude,
     required this.imageUrl,
     this.sourceTitle = '', // Provide default value
+    this.subsourceTitle = '',//this is sub source Title
     this.sourceLink = '', // Provide default value
+    this.subsourceLink = '',//this is sub source link
     this.url = '', // Provide default value
     required this.subMedia,
     required this.locationId,
@@ -636,7 +646,8 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
 
   void _shareContent() {
     final String mapsUrl =
-        "https://www.google.com/maps/search/?api=1&query=${widget.latitude},${widget.longitude}";
+        "https://www.google.com/maps/search/?api=1&query=${widget
+        .latitude},${widget.longitude}";
     final String shareText = '''
 『${widget.animeName}』の聖地
 ${widget.title}
@@ -653,7 +664,8 @@ https://japananimemaps.page.link/ios
 
   Future<void> _openMapOptions(BuildContext context) async {
     final googleMapsUrl =
-        "https://www.google.com/maps/search/?api=1&query=${widget.latitude},${widget.longitude}";
+        "https://www.google.com/maps/search/?api=1&query=${widget
+        .latitude},${widget.longitude}";
     final appleMapsUrl =
         "http://maps.apple.com/?q=${widget.latitude},${widget.longitude}";
 
@@ -707,7 +719,8 @@ https://japananimemaps.page.link/ios
         Placemark place = placemarks[0];
         String postalCode = place.postalCode ?? '';
         String address =
-            '${place.administrativeArea ?? ''} ${place.locality ?? ''} ${place.street ?? ''}';
+            '${place.administrativeArea ?? ''} ${place.locality ?? ''} ${place
+            .street ?? ''}';
 
         return {
           'postalCode': postalCode,
@@ -876,46 +889,46 @@ https://japananimemaps.page.link/ios
       {double? width, double? height, BoxFit fit = BoxFit.cover}) {
     return imageUrl.isNotEmpty
         ? Image.network(
-            imageUrl,
-            width: width,
-            height: height,
-            fit: fit,
-            loadingBuilder: (BuildContext context, Widget child,
-                ImageChunkEvent? loadingProgress) {
-              if (loadingProgress == null) return child;
-              return Container(
-                width: width,
-                height: height,
-                color: Colors.grey[200],
-                child: Center(
-                  child: CircularProgressIndicator(
-                    value: loadingProgress.expectedTotalBytes != null
-                        ? loadingProgress.cumulativeBytesLoaded /
-                            loadingProgress.expectedTotalBytes!
-                        : null,
-                  ),
-                ),
-              );
-            },
-            errorBuilder: (context, error, stackTrace) {
-              return Container(
-                width: width,
-                height: height,
-                color: Colors.grey[300],
-                child: Center(
-                  child: Icon(Icons.error, color: Colors.grey[600]),
-                ),
-              );
-            },
-          )
-        : Container(
-            width: width,
-            height: height,
-            color: Colors.grey[300],
-            child: Center(
-              child: Icon(Icons.image_not_supported, color: Colors.grey[600]),
+      imageUrl,
+      width: width,
+      height: height,
+      fit: fit,
+      loadingBuilder: (BuildContext context, Widget child,
+          ImageChunkEvent? loadingProgress) {
+        if (loadingProgress == null) return child;
+        return Container(
+          width: width,
+          height: height,
+          color: Colors.grey[200],
+          child: Center(
+            child: CircularProgressIndicator(
+              value: loadingProgress.expectedTotalBytes != null
+                  ? loadingProgress.cumulativeBytesLoaded /
+                  loadingProgress.expectedTotalBytes!
+                  : null,
             ),
-          );
+          ),
+        );
+      },
+      errorBuilder: (context, error, stackTrace) {
+        return Container(
+          width: width,
+          height: height,
+          color: Colors.grey[300],
+          child: Center(
+            child: Icon(Icons.error, color: Colors.grey[600]),
+          ),
+        );
+      },
+    )
+        : Container(
+      width: width,
+      height: height,
+      color: Colors.grey[300],
+      child: Center(
+        child: Icon(Icons.image_not_supported, color: Colors.grey[600]),
+      ),
+    );
   }
 
   @override
@@ -1003,6 +1016,10 @@ https://japananimemaps.page.link/ios
                 width: double.infinity,
                 height: 200,
               ),
+            ),
+            _buildSourceInfo2(),
+            const SizedBox(
+              height: 10.0,
             ),
             Stack(
               children: [
@@ -1114,6 +1131,7 @@ https://japananimemaps.page.link/ios
                   ),
                 ),
               ),
+            _buildSourceInfo1(),
             _buildAddressCard(),
             const SizedBox(
               height: 20.0,
@@ -1187,7 +1205,6 @@ https://japananimemaps.page.link/ios
                 ),
               ),
             ),
-            _buildSourceInfo(),
             const SizedBox(height: 20.0),
           ],
         ),
@@ -1293,12 +1310,12 @@ https://japananimemaps.page.link/ios
                             margin: EdgeInsets.symmetric(vertical: 10),
                             child: url != null
                                 ? Image.network(
-                                    url,
-                                    errorBuilder: (context, error, stackTrace) {
-                                      print("Image URL: $url");
-                                      return Text('Failed to load image');
-                                    },
-                                  )
+                              url,
+                              errorBuilder: (context, error, stackTrace) {
+                                print("Image URL: $url");
+                                return Text('Failed to load image');
+                              },
+                            )
                                 : Text('No image URL provided'),
                           );
                         },
@@ -1314,36 +1331,143 @@ https://japananimemaps.page.link/ios
     );
   }
 
-  Widget _buildSourceInfo() {
+  Widget _buildSourceInfo1() {
+    if (widget.sourceTitle.isEmpty && widget.sourceLink.isEmpty) {
+      return SizedBox.shrink();
+    }
+
     return Padding(
-      padding: const EdgeInsets.all(16.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            widget.sourceTitle,
-            style: TextStyle(
-              color: Colors.grey,
-              fontSize: 10.0,
-            ),
+      padding: const EdgeInsets.all(10.0),
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.grey[50],
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: Colors.grey[200]!,
+            width: 1,
           ),
-          GestureDetector(
-            onTap: () async {
-              final uri = Uri.parse(widget.sourceLink);
-              if (await canLaunchUrl(uri)) {
-                await launchUrl(uri);
-              }
-            },
-            child: Text(
-              widget.sourceLink,
-              style: TextStyle(
-                color: Colors.blue,
-                fontSize: 10.0,
-                decoration: TextDecoration.underline,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 4,
+              offset: Offset(0, 2),
+            ),
+          ],
+        ),
+        padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        child: Row(
+          children: [
+            Icon(
+              Icons.source_outlined,
+              size: 16,
+              color: Colors.grey[600],
+            ),
+            SizedBox(width: 8),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (widget.sourceTitle.isNotEmpty)
+                    Text(
+                      widget.sourceTitle,
+                      style: TextStyle(
+                        color: Colors.grey[700],
+                        fontSize: 11.0,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  if (widget.sourceLink.isNotEmpty)
+                    GestureDetector(
+                      onTap: () async {
+                        final uri = Uri.parse(widget.sourceLink);
+                        if (await canLaunchUrl(uri)) {
+                          await launchUrl(uri);
+                        }
+                      },
+                      child: Text(
+                        widget.sourceLink,
+                        style: TextStyle(
+                          color: Color(0xFF407FED),
+                          fontSize: 10.0,
+                          fontWeight: FontWeight.w400,
+                        ),
+                      ),
+                    ),
+                ],
               ),
             ),
+          ],
+        ),
+      ),
+    );
+  }
+  Widget _buildSourceInfo2() {
+    if (widget.subsourceTitle.isEmpty && widget.subsourceLink.isEmpty) {
+      return SizedBox.shrink();
+    }
+
+    return Padding(
+      padding: const EdgeInsets.all(10.0),
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.grey[50],
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: Colors.grey[200]!,
+            width: 1,
           ),
-        ],
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 4,
+              offset: Offset(0, 2),
+            ),
+          ],
+        ),
+        padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        child: Row(
+          children: [
+            Icon(
+              Icons.source_outlined,
+              size: 16,
+              color: Colors.grey[600],
+            ),
+            SizedBox(width: 8),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (widget.subsourceTitle.isNotEmpty)
+                    Text(
+                      widget.subsourceTitle,
+                      style: TextStyle(
+                        color: Colors.grey[700],
+                        fontSize: 11.0,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  if (widget.subsourceLink.isNotEmpty)
+                    GestureDetector(
+                      onTap: () async {
+                        final uri = Uri.parse(widget.subsourceLink);
+                        if (await canLaunchUrl(uri)) {
+                          await launchUrl(uri);
+                        }
+                      },
+                      child: Text(
+                        widget.subsourceLink,
+                        style: TextStyle(
+                          color: Color(0xFF407FED),
+                          fontSize: 10.0,
+                          fontWeight: FontWeight.w400,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -1,51 +1,54 @@
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:parts/shop/shop_cart.dart';
 import 'package:parts/shop/shop_event.dart';
+import 'package:parts/shop/shop_product_detail.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-// Product model
+// Product Model
 class Product {
   final String id;
   final String name;
-  final String brand;
-  final String imageUrl;
   final double price;
-  final String categoryId;
+  final double costPrice;
+  final String description;
+  final List<String> imageUrls;
+  final List<String> categories;
+  final String officialUrl;
   final DateTime createdAt;
 
   Product({
     required this.id,
     required this.name,
-    required this.brand,
-    required this.imageUrl,
     required this.price,
-    required this.categoryId,
+    required this.costPrice,
+    required this.description,
+    required this.imageUrls,
+    required this.categories,
+    required this.officialUrl,
     required this.createdAt,
   });
 
   factory Product.fromMap(String id, Map<String, dynamic> map) {
     try {
       DateTime parseDateTime(dynamic value) {
-        if (value == null) {
-          return DateTime.now();
-        }
-        if (value is Timestamp) {
-          return value.toDate();
-        } else if (value is String) {
-          return DateTime.parse(value);
-        }
+        if (value == null) return DateTime.now();
+        if (value is Timestamp) return value.toDate();
+        if (value is String) return DateTime.parse(value);
         throw Exception('Invalid date format: $value');
       }
 
       return Product(
         id: id,
         name: map['name'] as String? ?? '',
-        brand: map['brand'] as String? ?? '',
-        imageUrl: map['imageUrl'] as String? ?? '',
         price: (map['price'] as num?)?.toDouble() ?? 0.0,
-        categoryId: map['categoryId'] as String? ?? '',
+        costPrice: (map['costPrice'] as num?)?.toDouble() ?? 0.0,
+        description: map['description'] as String? ?? '',
+        imageUrls: List<String>.from(map['imageUrls'] ?? []),
+        categories: List<String>.from(map['categories'] ?? []),
+        officialUrl: map['officialUrl'] as String? ?? '',
         createdAt: parseDateTime(map['createdAt']),
       );
     } catch (e) {
@@ -69,231 +72,91 @@ class StaticCarouselItem {
   });
 }
 
-// Category model
-class ShopCategory {
-  final String id;
-  final String name;
-  final DateTime createdAt;
-
-  ShopCategory({
-    required this.id,
-    required this.name,
-    required this.createdAt,
-  });
-
-  factory ShopCategory.fromMap(String id, Map<String, dynamic> map) {
-    try {
-      DateTime parseDateTime(dynamic value) {
-        if (value == null) {
-          return DateTime.now();
-        }
-        if (value is Timestamp) {
-          return value.toDate();
-        } else if (value is String) {
-          return DateTime.parse(value);
-        }
-        throw Exception('Invalid date format: $value');
-      }
-
-      return ShopCategory(
-        id: id,
-        name: map['name'] as String? ?? '',
-        createdAt: parseDateTime(map['createdAt']),
-      );
-    } catch (e) {
-      print('Error creating ShopCategory from map: $e');
-      print('Map data: $map');
-      rethrow;
-    }
-  }
-}
-
-// Product Grid Widget
-class ProductGridSection extends StatelessWidget {
-  static Widget _buildEmptyState() {
-    return const Padding(
-      padding: EdgeInsets.all(16.0),
-      child: Center(
-        child: Text(
-          '商品がありません',
-          style: TextStyle(
-            color: Colors.grey,
-            fontSize: 14,
-          ),
-        ),
-      ),
-    );
-  }
-
-  final String title;
-  final String viewAllText;
-  final List<Product> products;
-
-  const ProductGridSection({
-    Key? key,
-    required this.title,
-    required this.viewAllText,
-    required this.products,
-  }) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16.0),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                title,
-                style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              TextButton(
-                onPressed: () {
-                  // Handle view all action
-                },
-                child: Text(
-                  viewAllText,
-                  style: const TextStyle(
-                    color: Colors.black54,
-                    fontSize: 14,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-        if (products.isEmpty)
-          _buildEmptyState()
-        else
-          GridView.builder(
-            padding: const EdgeInsets.all(16),
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
-              childAspectRatio: 0.75,
-              crossAxisSpacing: 16,
-              mainAxisSpacing: 16,
-            ),
-            itemCount: products.length,
-            itemBuilder: (context, index) {
-              final product = products[index];
-              return ProductCard(product: product);
-            },
-          ),
-      ],
-    );
-  }
-}
-
-// Individual Product Card
+// Product Card Widget
 class ProductCard extends StatelessWidget {
   final Product product;
+  final VoidCallback? onTap;
 
   const ProductCard({
     Key? key,
     required this.product,
+    this.onTap,
   }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            child: ClipRRect(
-              borderRadius:
-                  const BorderRadius.vertical(top: Radius.circular(8)),
-              child: Image.network(
-                product.imageUrl,
-                fit: BoxFit.cover,
-                width: double.infinity,
-                errorBuilder: (context, error, stackTrace) {
-                  print('Error loading image: $error');
-                  return const Center(
-                    child:
-                        Icon(Icons.error_outline, size: 40, color: Colors.red),
-                  );
-                },
+    return GestureDetector(
+      onTap: onTap,
+      child: Card(
+        elevation: 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: ClipRRect(
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(8)),
+                child: Image.network(
+                  product.imageUrls.isNotEmpty ? product.imageUrls[0] : '',
+                  fit: BoxFit.cover,
+                  width: double.infinity,
+                  errorBuilder: (context, error, stackTrace) {
+                    print('Error loading image: $error');
+                    return const Center(
+                      child: Icon(Icons.error_outline, size: 40, color: Colors.red),
+                    );
+                  },
+                ),
               ),
             ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  product.brand,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: Colors.black54,
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    product.name,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  product.name,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
+                  const SizedBox(height: 4),
+                  Text(
+                    '¥${product.price.toStringAsFixed(0)}(税込)',
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  '¥${product.price.toStringAsFixed(0)}(税込)',
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
 }
 
+// Shop Home Screen
 class ShopHomeScreen extends StatelessWidget {
   ShopHomeScreen({Key? key}) : super(key: key);
 
-  // 静的なカルーセルアイテムのリスト
   final List<StaticCarouselItem> staticItems = [
     StaticCarouselItem(
-      assetImagePath: 'assets/images/not_found.png', // アセットパスを指定
-      routeName: '/product_purchase_agency', // 遷移先のルート名
+      assetImagePath: 'assets/images/not_found.png',
+      routeName: '/product_purchase_agency',
     ),
   ];
 
-  Future<Map<ShopCategory, List<Product>>> fetchProductsByCategory() async {
+  Future<Map<String, List<Product>>> fetchProductsByCategory() async {
     try {
       print('Starting fetchProductsByCategory');
-
-      final categoriesSnapshot = await FirebaseFirestore.instance
-          .collection('categories')
-          .orderBy('createdAt', descending: true)
-          .get();
-
-      print('Retrieved ${categoriesSnapshot.docs.length} categories');
-
-      if (categoriesSnapshot.docs.isEmpty) {
-        print('No categories found');
-        return {};
-      }
 
       final productsSnapshot = await FirebaseFirestore.instance
           .collection('products')
@@ -303,35 +166,24 @@ class ShopHomeScreen extends StatelessWidget {
       print('Retrieved ${productsSnapshot.docs.length} total products');
 
       final Map<String, List<Product>> productsByCategory = {};
+
       for (var doc in productsSnapshot.docs) {
         try {
           final product = Product.fromMap(doc.id, doc.data());
-          if (!productsByCategory.containsKey(product.categoryId)) {
-            productsByCategory[product.categoryId] = [];
+
+          for (String category in product.categories) {
+            if (!productsByCategory.containsKey(category)) {
+              productsByCategory[category] = [];
+            }
+            productsByCategory[category]!.add(product);
           }
-          productsByCategory[product.categoryId]!.add(product);
         } catch (e) {
           print('Error processing product ${doc.id}: $e');
           continue;
         }
       }
 
-      final Map<ShopCategory, List<Product>> result = {};
-      for (var categoryDoc in categoriesSnapshot.docs) {
-        try {
-          final category =
-              ShopCategory.fromMap(categoryDoc.id, categoryDoc.data());
-          final products = productsByCategory[category.id] ?? [];
-
-          result[category] = products.take(4).toList();
-        } catch (e) {
-          print('Error processing category ${categoryDoc.id}: $e');
-          continue;
-        }
-      }
-
-      print('Finished processing. Categories with products: ${result.length}');
-      return result;
+      return productsByCategory;
     } catch (e, stackTrace) {
       print('Error in fetchProductsByCategory: $e');
       print('Stack trace: $stackTrace');
@@ -342,8 +194,7 @@ class ShopHomeScreen extends StatelessWidget {
   Future<List<ShopEvent>> fetchShopEvents() async {
     try {
       print('Starting fetchShopEvents');
-      final snapshot =
-          await FirebaseFirestore.instance.collection('shop_event').get();
+      final snapshot = await FirebaseFirestore.instance.collection('shop_event').get();
 
       if (snapshot.docs.isEmpty) {
         print('No documents found in shop_event collection');
@@ -362,8 +213,7 @@ class ShopHomeScreen extends StatelessWidget {
               data.containsKey('link')) {
             events.add(ShopEvent.fromMap(data));
           } else {
-            print(
-                'Skipping event document ${doc.id} due to missing required fields');
+            print('Skipping event document ${doc.id} due to missing required fields');
           }
         } catch (e) {
           print('Error processing event document ${doc.id}: $e');
@@ -391,10 +241,8 @@ class ShopHomeScreen extends StatelessWidget {
   }
 
   Widget _buildCarousel(List<ShopEvent> activeEvents) {
-    // 静的アイテムとFirebaseのイベントを組み合わせる
     List<Widget> allCarouselItems = [];
 
-    // 静的アイテムをカルーセルアイテムに変換
     allCarouselItems.addAll(staticItems.map((item) {
       return Builder(
         builder: (BuildContext context) {
@@ -424,7 +272,6 @@ class ShopHomeScreen extends StatelessWidget {
       );
     }));
 
-    // Firebaseのイベントをカルーセルアイテムに変換
     allCarouselItems.addAll(activeEvents.map((event) {
       return Builder(
         builder: (BuildContext context) {
@@ -477,141 +324,254 @@ class ShopHomeScreen extends StatelessWidget {
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: SafeArea(
-        child: Stack(
-          children: [
-            RefreshIndicator(
-              onRefresh: _onRefresh,
-              child: SingleChildScrollView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Search Section
-                    Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: TextField(
-                        cursorColor: Colors.black,
-                        decoration: InputDecoration(
-                          hintText: '商品をさがす（アニメ・キャラクターなど）',
-                          prefixIcon: const Icon(Icons.search),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(30),
-                            borderSide: const BorderSide(color: Colors.black),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(30),
-                            borderSide: const BorderSide(
-                                color: Colors.black, width: 2.0),
-                          ),
-                          contentPadding:
-                              const EdgeInsets.symmetric(vertical: 0),
-                        ),
+  Widget _buildCategorySection(BuildContext context, String category, List<Product> products) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16.0),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                category,
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              TextButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => CategoryDetailScreen(
+                        category: category,
+                        products: products,
                       ),
                     ),
-
-                    // Event Section with Combined Carousel
-                    FutureBuilder<List<ShopEvent>>(
-                      future: fetchShopEvents(),
-                      builder: (context, snapshot) {
-                        if (snapshot.hasError) {
-                          print('Error in events: ${snapshot.error}');
-                          return _buildCarousel([]); // 静的アイテムだけを表示
-                        }
-
-                        if (snapshot.connectionState ==
-                            ConnectionState.waiting) {
-                          return _buildCarousel([]); // 読み込み中も静的アイテムを表示
-                        }
-
-                        final now = DateTime.now();
-                        final activeEvents = snapshot.data
-                                ?.where((event) =>
-                                    event.isActive &&
-                                    now.isAfter(event.startDate) &&
-                                    now.isBefore(event.endDate))
-                                .toList() ??
-                            [];
-
-                        return _buildCarousel(activeEvents);
-                      },
-                    ),
-
-                    const SizedBox(height: 20.0),
-
-                    // Categories and Products Section
-                    FutureBuilder<Map<ShopCategory, List<Product>>>(
-                      future: fetchProductsByCategory(),
-                      builder: (context, snapshot) {
-                        if (snapshot.hasError) {
-                          print('Error in categories: ${snapshot.error}');
-                          return Padding(
-                            padding: const EdgeInsets.all(16.0),
-                            child: Center(
-                              child:
-                                  Text('カテゴリーの読み込みに失敗しました: ${snapshot.error}'),
-                            ),
-                          );
-                        }
-
-                        if (snapshot.connectionState ==
-                            ConnectionState.waiting) {
-                          return const Center(
-                            child: Padding(
-                              padding: EdgeInsets.all(16.0),
-                              child: CircularProgressIndicator(),
-                            ),
-                          );
-                        }
-
-                        if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                          print('No category data available');
-                          return const Padding(
-                            padding: EdgeInsets.all(16.0),
-                            child: Center(
-                              child: Text('カテゴリーが見つかりませんでした'),
-                            ),
-                          );
-                        }
-
-                        final categoryEntries = snapshot.data!.entries.toList();
-                        print(
-                            'Number of categories to display: ${categoryEntries.length}');
-
-                        return Column(
-                          children: categoryEntries.map((entry) {
-                            final category = entry.key;
-                            final products = entry.value;
-
-                            print(
-                                'Processing category ${category.name} with ${products.length} products');
-
-                            return Column(
-                              children: [
-                                ProductGridSection(
-                                  title: category.name,
-                                  viewAllText: 'すべて見る',
-                                  products: products,
-                                ),
-                                const SizedBox(height: 16),
-                              ],
-                            );
-                          }).toList(),
-                        );
-                      },
-                    ),
-
-                    const SizedBox(height: 80),
-                  ],
+                  );
+                },
+                child: const Text(
+                  'もっと見る',
+                  style: TextStyle(
+                    color: Colors.black54,
+                    fontSize: 14,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        if (products.isEmpty)
+          const Padding(
+            padding: EdgeInsets.all(16.0),
+            child: Center(
+              child: Text(
+                '商品がありません',
+                style: TextStyle(
+                  color: Colors.grey,
+                  fontSize: 14,
                 ),
               ),
             ),
-          ],
+          )
+        else
+          SizedBox(
+            height: 180, // カードの高さを調整
+            child: ListView.builder(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              scrollDirection: Axis.horizontal,
+              itemCount: products.length,
+              itemBuilder: (context, index) {
+                return GestureDetector(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (context) => const ProductDetailScreen(),
+                      settings: RouteSettings(
+                        arguments: products[index],
+                      ),
+                    ),
+                  );
+                },
+                child:
+                  Container(
+                  width: 160, // カードの幅を調整
+                  margin: const EdgeInsets.only(right: 8),
+                  child: Card(
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // 商品画像
+                        Expanded(
+                          child: ClipRRect(
+                            borderRadius: const BorderRadius.vertical(top: Radius.circular(8)),
+                            child: Image.network(
+                              products[index].imageUrls.isNotEmpty ? products[index].imageUrls[0] : '',
+                              fit: BoxFit.cover,
+                              width: double.infinity,
+                              errorBuilder: (context, error, stackTrace) {
+                                return const Center(
+                                  child: Icon(Icons.error_outline, size: 24, color: Colors.red),
+                                );
+                              },
+                            ),
+                          ),
+                        ),
+                        // 商品情報
+                        Padding(
+                          padding: const EdgeInsets.all(4.0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                products[index].name,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: GoogleFonts.mPlusRounded1c(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                              Text(
+                                '¥${products[index].price.toStringAsFixed(0)}(税込)',
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  ),
+                );
+              },
+            ),
+          ),
+      ],
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+        body: SafeArea(
+        child: Stack(
+        children: [
+        RefreshIndicator(
+        onRefresh: _onRefresh,
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+          Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: TextField(
+            cursorColor: Colors.black,
+            decoration: InputDecoration(
+              hintText: '商品をさがす（アニメ・キャラクターなど）',
+              prefixIcon: const Icon(Icons.search),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(30),
+                borderSide: const BorderSide(color: Colors.black),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(30),
+                borderSide: const BorderSide(color: Colors.black, width: 2.0),
+              ),
+              contentPadding: const EdgeInsets.symmetric(vertical: 0),
+            ),
+          ),
         ),
-      ),
+
+        FutureBuilder<List<ShopEvent>>(
+          future: fetchShopEvents(),
+          builder: (context, snapshot) {
+            if (snapshot.hasError) {
+              print('Error in events: ${snapshot.error}');
+              return _buildCarousel([]);
+            }
+
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return _buildCarousel([]);
+            }
+
+            final now = DateTime.now();
+            final activeEvents = snapshot.data
+                ?.where((event) =>
+            event.isActive &&
+                now.isAfter(event.startDate) &&
+                now.isBefore(event.endDate))
+                .toList() ??
+                [];
+
+            return _buildCarousel(activeEvents);
+          },
+        ),
+
+        const SizedBox(height: 20.0),
+
+        FutureBuilder<Map<String, List<Product>>>(
+        future: fetchProductsByCategory(),
+    builder: (context, snapshot) {
+    if (snapshot.hasError) {
+    return Padding(
+    padding: const EdgeInsets.all(16.0),
+    child: Center(
+    child: Text('データの読み込みに失敗しました: ${snapshot.error}'),
+    ),
+    );
+    }
+
+    if (snapshot.connectionState == ConnectionState.waiting) {
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.all(16.0),
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+
+    if (!snapshot.hasData || snapshot.data!.isEmpty) {
+      return const Padding(
+        padding: EdgeInsets.all(16.0),
+        child: Center(
+          child: Text('商品が見つかりませんでした'),
+        ),
+      );
+    }
+
+    return Column(
+      children: snapshot.data!.entries.map((entry) {
+        return Column(
+          children: [
+            _buildCategorySection(context, entry.key, entry.value),
+            const SizedBox(height: 16),
+          ],
+        );
+      }).toList(),
+    );
+    },
+        ),
+
+                const SizedBox(height: 80),
+              ],
+          ),
+        ),
+        ),
+        ],
+        ),
+        ),
       bottomSheet: Container(
         decoration: BoxDecoration(
           color: Colors.white,
@@ -627,8 +587,7 @@ class ShopHomeScreen extends StatelessWidget {
         child: SafeArea(
           top: false,
           child: Padding(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
             child: Row(
               children: [
                 Expanded(
@@ -716,6 +675,61 @@ class ShopHomeScreen extends StatelessWidget {
               ],
             ),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+// Category Detail Screen
+class CategoryDetailScreen extends StatelessWidget {
+  final String category;
+  final List<Product> products;
+
+  const CategoryDetailScreen({
+    Key? key,
+    required this.category,
+    required this.products,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(category),
+        backgroundColor: Colors.white,
+        foregroundColor: Colors.black,
+        elevation: 0,
+      ),
+      body: products.isEmpty
+          ? const Center(
+        child: Text(
+          '商品がありません',
+          style: TextStyle(
+            color: Colors.grey,
+            fontSize: 14,
+          ),
+        ),
+      )
+          : GridView.builder(
+        padding: const EdgeInsets.all(16),
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 2,
+          childAspectRatio: 0.95,
+          crossAxisSpacing: 16,
+          mainAxisSpacing: 16,
+        ),
+        itemCount: products.length,
+        itemBuilder: (context, index) => ProductCard(
+          product: products[index],
+          onTap: () {
+            // 商品詳細画面への遷移
+            Navigator.pushNamed(
+              context,
+              '/product_detail',
+              arguments: products[index],
+            );
+          },
         ),
       ),
     );
