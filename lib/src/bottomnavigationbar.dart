@@ -239,7 +239,8 @@ class _MainScreenState extends State<MainScreen> {
                   ? AnimeListTestRanking()
                   : AnimeListTestRankingEng(),
               _userLanguage == 'Japanese'
-                  ? RankingTopPage()
+                  ?
+              RankingTopPage()
               // _buildShopScreen()
                   : RankingTopPageEn(),
               _userLanguage == 'Japanese'
@@ -307,7 +308,7 @@ class CustomBottomNavigationBar extends StatelessWidget {
         ),
         BottomNavigationBarItem(
           icon: Icon(Icons.movie_creation_outlined),
-          label: language == 'Japanese' ? 'ジャンル' : 'Genre',
+          label: language == 'Japanese' ? 'グッズ' : 'Genre',
         ),
         BottomNavigationBarItem(
           icon: Icon(Icons.map),

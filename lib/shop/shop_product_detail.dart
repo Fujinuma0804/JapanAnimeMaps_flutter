@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:parts/shop/shop_top.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class CarouselController {
   Function()? nextPage;
@@ -23,18 +25,18 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> with SingleTi
   int quantity = 1;
   late final AnimationController _animationController;
   late final Animation<double> _animation;
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   @override
   void initState() {
     super.initState();
 
-    // アニメーションコントローラーの初期化
     _animationController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1500),
     );
 
-    // アニメーションの設定
     _animation = TweenSequence([
       TweenSequenceItem(
         tween: Tween(begin: 0.0, end: 1.0)
@@ -53,6 +55,38 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> with SingleTi
   void dispose() {
     _animationController.dispose();
     super.dispose();
+  }
+
+  Future<void> _addToCart(Product product) async {
+    try {
+      final User? currentUser = _auth.currentUser;
+      if (currentUser == null) {
+        // ログインしていない場合はログイン画面へ遷移
+        Navigator.pushNamed(context, '/login');
+        return;
+      }
+
+      // ユーザーのshopping_cartコレクションに商品を追加
+      await _firestore
+          .collection('users')
+          .doc(currentUser.uid)
+          .collection('shopping_cart')
+          .add({
+        'productId': product.id,
+        'quantity': quantity,
+        'addedAt': FieldValue.serverTimestamp(),
+      });
+
+      _showSuccessAnimation();
+    } catch (e) {
+      // エラー処理
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('カートへの追加に失敗しました: ${e.toString()}'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   void _showSuccessAnimation() {
@@ -380,9 +414,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> with SingleTi
                       const SizedBox(width: 16),
                       Expanded(
                         child: ElevatedButton(
-                          onPressed: () {
-                            _showSuccessAnimation();
-                          },
+                          onPressed: () => _addToCart(product),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.black,
                             foregroundColor: Colors.white,

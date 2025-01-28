@@ -355,6 +355,7 @@ class _AnimeDetailsPageState extends State<AnimeDetailsPage> {
           'url': data['url'] ?? '',
           'subMedia': processedSubMedia,
           'userEmail': data['userEmail'] ?? [],
+          'userId': data['userId'] ?? '',
         });
       }
     } catch (e) {
@@ -497,7 +498,14 @@ class _AnimeDetailsPageState extends State<AnimeDetailsPage> {
     final String sourceLink = location['sourceLink'] as String? ?? '';
     final String subsourceLink = location['subsourceLink'] as String? ?? '';
     final String url = location['url'] as String? ?? '';
-    final userEmail = location['userEmail'];
+
+    String userId = location['userId'] as String? ?? '';
+    final String userEmail = location['userEmail'] as String? ?? '';
+    // userIdが空の場合、メールアドレスから抽出
+    if (userId.isEmpty && userEmail.isNotEmpty) {
+      userId = userEmail.split('@')[0];
+    }
+
 
     // spot_descriptionのデバッグ出力
     print('==== Spot Description Debug ====');
@@ -505,17 +513,6 @@ class _AnimeDetailsPageState extends State<AnimeDetailsPage> {
     print('spot_description type: ${spot_description.runtimeType}');
     print('spot_description length: ${spot_description.length}');
     print('=============================');
-
-    String userId;
-    if (userEmail is List) {
-      userId = userEmail.isNotEmpty
-          ? userEmail[0].toString().split('@')[0]
-          : 'unknown';
-    } else if (userEmail is String) {
-      userId = userEmail.split('@')[0];
-    } else {
-      userId = 'unknown';
-    }
 
     List<Map<String, dynamic>> subMedia = [];
     if (location['subMedia'] != null) {
@@ -583,7 +580,7 @@ class _AnimeDetailsPageState extends State<AnimeDetailsPage> {
             ),
             const SizedBox(height: 2.0),
             Text(
-              '投稿者:@$userId',
+              userId.isNotEmpty ? '投稿者: @$userId' : '投稿者: 不明',
               style: TextStyle(
                 fontSize: 12.0,
                 color: Colors.grey,

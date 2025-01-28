@@ -12,20 +12,41 @@ import 'package:parts/shop/shop_product_detail.dart';
 import 'package:parts/src/bottomnavigationbar.dart';
 import 'package:parts/top_page/welcome_page.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
+import 'package:flutter_stripe/flutter_stripe.dart';
 
 void main() async {
+  // Flutter binding初期化
   WidgetsFlutterBinding.ensureInitialized();
 
-  // RevenueCatの初期化
-  await initPlatformState();
+  try {
+    // Stripeの初期化
+    Stripe.publishableKey = 'pk_test_51QeIPUJR2jw9gpdILTofRSwaBs9pKKXfOse9EcwQTkfYNjtYb1rNsahb5uhm6QjcwzvGOhcZ0ZZgjW09HKtblHnH00Ps1dt4ZZ';
 
-  // その他のサービスの初期化
-  await Future.wait([
-    Firebase.initializeApp(),
-    MobileAds.instance.initialize(),
-  ]);
+    // iOSのApple Pay設定
+    if (Platform.isIOS) {
+      Stripe.merchantIdentifier = 'merchant.com.sotakawakami.jam';
+    }
 
-  runApp(const MyApp());
+    // Stripe設定の適用
+    await Stripe.instance.applySettings();
+
+    print('Stripe initialized successfully'); // デバッグログ追加
+
+    // RevenueCatの初期化
+    await initPlatformState();
+
+    // Firebase と AdMob の初期化
+    await Future.wait([
+      Firebase.initializeApp(),
+      MobileAds.instance.initialize(),
+    ]);
+
+    runApp(const MyApp());
+  } catch (e) {
+    print('Initialization error: $e'); // エラーログ
+    // エラーが発生してもアプリを起動
+    runApp(const MyApp());
+  }
 }
 
 Future<void> initPlatformState() async {
@@ -34,7 +55,7 @@ Future<void> initPlatformState() async {
   try {
     // RevenueCatの設定
     final configuration =
-        PurchasesConfiguration("appl_JfvzIYYEgsMeXVzavJRBnCnlKPS");
+    PurchasesConfiguration("appl_JfvzIYYEgsMeXVzavJRBnCnlKPS");
 
     await Purchases.configure(configuration);
     print('RevenueCat initialized successfully');
@@ -208,12 +229,12 @@ class _SplashScreenState extends State<SplashScreen> {
     if (Platform.isIOS) {
       try {
         final status =
-            await AppTrackingTransparency.trackingAuthorizationStatus;
+        await AppTrackingTransparency.trackingAuthorizationStatus;
 
         if (status == TrackingStatus.notDetermined) {
           await Future.delayed(const Duration(milliseconds: 200));
           final TrackingStatus newStatus =
-              await AppTrackingTransparency.requestTrackingAuthorization();
+          await AppTrackingTransparency.requestTrackingAuthorization();
           setState(() {
             _authStatus = newStatus.toString();
           });

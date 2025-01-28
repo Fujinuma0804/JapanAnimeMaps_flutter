@@ -11,6 +11,8 @@ import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
+import 'package:parts/map_page/background_location.dart';
+import 'package:parts/map_page/notification_service.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:video_player/video_player.dart';
 
@@ -287,6 +289,8 @@ class _MapScreenState extends State<MapScreen> {
   @override
   void initState() {
     super.initState();
+    NotificationService.initialize();
+    LocationService.initialize();
     _getCurrentLocation();
     _loadMarkersFromFirestore();
     _getUser();
@@ -440,7 +444,7 @@ class _MapScreenState extends State<MapScreen> {
     );
   }
 
-  void _calculateDistance(LatLng markerPosition) {
+  void _calculateDistance(LatLng markerPosition) async {
     if (_currentPosition != null) {
       double distance = Geolocator.distanceBetween(
         _currentPosition!.latitude,
@@ -448,10 +452,30 @@ class _MapScreenState extends State<MapScreen> {
         markerPosition.latitude,
         markerPosition.longitude,
       );
-      print('Distance: $distance meters');
+
+      bool wasInRange = _canCheckIn;
       setState(() {
         _canCheckIn = distance <= 500;
       });
+
+      if (!wasInRange && _canCheckIn) {
+        DocumentSnapshot doc = await FirebaseFirestore.instance
+            .collection('locations')
+            .doc(_selectedMarker!.markerId.value)
+            .get();
+
+        if (doc.exists) {
+          String locationName = (doc.data() as Map<String, dynamic>)['title'] ?? '';
+          bool hasCheckedIn = await _hasCheckedIn(_selectedMarker!.markerId.value);
+
+          await NotificationService.showCheckInAvailableNotification(
+            locationName,
+            _userId,
+            _selectedMarker!.markerId.value,
+            hasCheckedIn,
+          );
+        }
+      }
     }
   }
 

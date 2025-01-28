@@ -267,17 +267,17 @@ class _SettingsEnState extends State<SettingsEn> {
                             builder: (context) => ProfileEnScreen()));
                   },
                 ),
-                // SettingsTile.navigation(
-                //   leading: const Icon(Icons.signpost_outlined),
-                //   title: Text(_language == '日本語' ? '住所一覧' : 'Address List'),
-                //   value: const Text(''),
-                //   onPressed: (context) {
-                //     Navigator.push(
-                //         context,
-                //         MaterialPageRoute(
-                //             builder: (context) => AddAddressScreen()));
-                //   },
-                // ),
+                SettingsTile.navigation(
+                  leading: const Icon(Icons.signpost_outlined),
+                  title: Text(_language == '日本語' ? '住所一覧' : 'Address List'),
+                  value: const Text(''),
+                  onPressed: (context) {
+                    Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) => AddAddressScreen()));
+                  },
+                ),
               ],
             ),
             SettingsSection(

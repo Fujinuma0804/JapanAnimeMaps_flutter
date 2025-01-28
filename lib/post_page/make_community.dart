@@ -15,9 +15,9 @@ class AdHelper {
   // プラットフォームに応じたテスト用広告IDを返す
   static String get interstitialAdUnitId {
     if (Platform.isAndroid) {
-      return 'ca-app-pub-3940256099942544/1033173712'; // Androidのテスト用ID
+      return 'ca-app-pub-1580421227117187/9214767818'; // 本番用Android ID
     } else if (Platform.isIOS) {
-      return 'ca-app-pub-3940256099942544/4411151342'; // iOSのテスト用ID
+      return 'ca-app-pub-1580421227117187/9214767818'; // 本番用iOS ID
     } else {
       throw UnsupportedError('対応していないプラットフォームです');
     }
@@ -582,7 +582,7 @@ class _CreateOpenChatScreenState extends State<CreateOpenChatScreen> {
   // テスト用広告ID
   final String _adUnitId = Platform.isAndroid
       ? 'ca-app-pub-3940256099942544/1033173712' // Androidのテスト用ID
-      : 'ca-app-pub-3940256099942544/4411151342'; // iOSのテスト用ID
+      : 'ca-app-pub-1580421227117187/9214767818'; // iOSのテスト用ID
 
   @override
   void initState() {

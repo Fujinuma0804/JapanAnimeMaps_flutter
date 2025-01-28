@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:parts/setting_page/address/add_address_screen.dart';
+import 'package:parts/shop/check_out.dart';
 
 class CartScreen extends StatefulWidget {
   const CartScreen({Key? key}) : super(key: key);
@@ -12,18 +16,258 @@ class _CartScreenState extends State<CartScreen> {
   String _deliveryDate = '指定なし(最短発送)';
   String _deliveryTime = '時間指定なし';
 
-  // サンプルの商品データ
-  final CartItem _item = CartItem(
-    id: '1',
-    brand: 'patagonia (パタゴニア)',
-    name: 'DASパーカ/MENS',
-    variant: 'オレンジ/L',
-    price: 58300,
-    quantity: 1,
-  );
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  List<CartItem> cartItems = [];
+  bool isLoading = true;
+  User? _currentUser;
+
+  @override
+  void initState() {
+    super.initState();
+    _initializeUser();
+  }
+
+  Future<void> _initializeUser() async {
+    _currentUser = _auth.currentUser;
+    if (_currentUser == null) {
+      // ユーザーがログインしていない場合はログイン画面にリダイレクト
+      Navigator.of(context).pushReplacementNamed('/login');
+      return;
+    }
+    await _loadCartItems();
+  }
+
+  Future<void> _loadCartItems() async {
+    if (_currentUser == null) return;
+
+    try {
+      final cartSnapshot = await _firestore
+          .collection('users')
+          .doc(_currentUser!.uid)
+          .collection('shopping_cart')
+          .get();
+
+      List<CartItem> items = [];
+      for (var doc in cartSnapshot.docs) {
+        final productSnapshot = await _firestore
+            .collection('products')
+            .doc(doc.data()['productId'])
+            .get();
+
+        if (productSnapshot.exists) {
+          final productData = productSnapshot.data()!;
+          final imageUrls = productData['imageUrls'] as List<dynamic>?;
+          final imageUrl = imageUrls != null && imageUrls.isNotEmpty
+              ? imageUrls[0] as String
+              : '';
+
+          items.add(CartItem(
+            id: doc.id,
+            productId: doc.data()['productId'],
+            brand: '', // 必要に応じて追加
+            name: productData['name'],
+            variant: '', // 必要に応じて追加
+            price: productData['price'],
+            imageUrl: imageUrl,
+            quantity: doc.data()['quantity'],
+          ));
+        }
+      }
+
+      setState(() {
+        cartItems = items;
+        isLoading = false;
+      });
+    } catch (e) {
+      print('Error loading cart items: $e');
+      setState(() {
+        isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _updateQuantity(CartItem item, int newQuantity) async {
+    if (_currentUser == null) return;
+    if (newQuantity < 1) return;
+
+    try {
+      await _firestore
+          .collection('users')
+          .doc(_currentUser!.uid)
+          .collection('shopping_cart')
+          .doc(item.id)
+          .update({'quantity': newQuantity});
+
+      setState(() {
+        item.quantity = newQuantity;
+      });
+    } catch (e) {
+      print('Error updating quantity: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('数量の更新に失敗しました。もう一度お試しください。'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  Future<void> _removeItem(CartItem item) async {
+    if (_currentUser == null) return;
+
+    try {
+      await _firestore
+          .collection('users')
+          .doc(_currentUser!.uid)
+          .collection('shopping_cart')
+          .doc(item.id)
+          .delete();
+
+      setState(() {
+        cartItems.remove(item);
+      });
+    } catch (e) {
+      print('Error removing item: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('商品の削除に失敗しました。もう一度お試しください。'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  Future<void> _proceedToCheckout() async {
+    if (_currentUser == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('ログインが必要です'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      Navigator.of(context).pushReplacementNamed('/login');
+      return;
+    }
+
+    try {
+      final userAddressSnapshot = await _firestore
+          .collection('users')
+          .doc(_currentUser!.uid)
+          .collection('user_addresses')
+          .get();
+
+      final totalAmount = _calculateTotal();
+
+      if (userAddressSnapshot.docs.isEmpty) {
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (context) => const AddAddressScreen(),
+          ),
+        );
+      } else {
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (context) => CheckoutScreen(
+              totalAmount: totalAmount,
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('エラーが発生しました。もう一度お試しください。'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      print('Error checking user addresses: $e');
+    }
+  }
+
+  int _calculateTotal() {
+    return cartItems.fold(0, (sum, item) => sum + (item.price * item.quantity));
+  }
+
+  Widget _buildEmptyCart() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.shopping_cart_outlined,
+            size: 64,
+            color: Colors.grey[400],
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'カートには商品が入っていません',
+            style: TextStyle(
+              fontSize: 16,
+              color: Colors.grey[600],
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLoginRequired() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.account_circle_outlined,
+            size: 64,
+            color: Colors.grey[400],
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'ログインが必要です',
+            style: TextStyle(
+              fontSize: 16,
+              color: Colors.grey[600],
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const SizedBox(height: 16),
+          ElevatedButton(
+            onPressed: () => Navigator.of(context).pushReplacementNamed('/login'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF00008b),
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            child: const Text('ログインする'),
+          ),
+        ],
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
+    if (_currentUser == null) {
+      return Scaffold(
+        backgroundColor: Colors.white,
+        appBar: AppBar(
+          title: const Text(
+            'カート',
+            style: TextStyle(
+              color: Colors.black,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          backgroundColor: Colors.white,
+        ),
+        body: _buildLoginRequired(),
+      );
+    }
+
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -36,14 +280,17 @@ class _CartScreenState extends State<CartScreen> {
         ),
         backgroundColor: Colors.white,
       ),
-      body: Column(
+      body: isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : cartItems.isEmpty
+          ? _buildEmptyCart()
+          : Column(
         children: [
-          // カート内商品数
           Container(
             padding: const EdgeInsets.all(16),
-            child: const Text(
-              'カートに入っている商品：1点',
-              style: TextStyle(
+            child: Text(
+              'カートに入っている商品：${cartItems.length} 点',
+              style: const TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
               ),
@@ -54,120 +301,129 @@ class _CartScreenState extends State<CartScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // 商品情報
-                  Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // 商品画像をSizedBoxで表現
-                        Container(
-                          decoration: BoxDecoration(
-                            color: Colors.grey[200],
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: const SizedBox(
-                            width: 100,
-                            height: 100,
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        // 商品詳細
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                _item.brand,
-                                style: const TextStyle(
-                                  color: Colors.grey,
-                                  fontSize: 14,
+                  ...cartItems.map((item) => Column(
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Container(
+                              width: 100,
+                              height: 100,
+                              decoration: BoxDecoration(
+                                color: Colors.grey[200],
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(8),
+                                child: Image.network(
+                                  item.imageUrl,
+                                  fit: BoxFit.cover,
+                                  width: 100,
+                                  height: 100,
+                                  errorBuilder: (context, error, stackTrace) {
+                                    return Container(
+                                      color: Colors.grey[200],
+                                      child: const Icon(
+                                        Icons.image_not_supported,
+                                        color: Colors.grey,
+                                      ),
+                                    );
+                                  },
                                 ),
                               ),
-                              const SizedBox(height: 4),
-                              Text(
-                                _item.name,
-                                style: const TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                ),
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    item.brand,
+                                    style: const TextStyle(
+                                      color: Colors.grey,
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    item.name,
+                                    style: const TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    item.variant,
+                                    style: const TextStyle(
+                                      color: Colors.grey,
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    '¥${item.price.toString()}',
+                                    style: const TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
                               ),
-                              const SizedBox(height: 4),
-                              Text(
-                                _item.variant,
-                                style: const TextStyle(
-                                  color: Colors.grey,
-                                  fontSize: 14,
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                              Text(
-                                '¥${_item.price.toString()}',
-                                style: const TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ],
-                          ),
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
-                  ),
-                  // 数量調整と削除ボタン
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Container(
-                          decoration: BoxDecoration(
-                            border: Border.all(color: Colors.grey[300]!),
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          child: Row(
-                            children: [
-                              IconButton(
-                                icon: const Icon(Icons.remove),
-                                onPressed: () {
-                                  if (_item.quantity > 1) {
-                                    setState(() {
-                                      _item.quantity--;
-                                    });
-                                  }
-                                },
-                                padding: const EdgeInsets.all(8),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Container(
+                              decoration: BoxDecoration(
+                                border: Border.all(color: Colors.grey[300]!),
+                                borderRadius: BorderRadius.circular(4),
                               ),
-                              Text(
-                                _item.quantity.toString(),
-                                style: const TextStyle(fontSize: 16),
+                              child: Row(
+                                children: [
+                                  IconButton(
+                                    icon: const Icon(Icons.remove),
+                                    onPressed: () {
+                                      if (item.quantity > 1) {
+                                        _updateQuantity(item, item.quantity - 1);
+                                      }
+                                    },
+                                    padding: const EdgeInsets.all(8),
+                                  ),
+                                  Text(
+                                    item.quantity.toString(),
+                                    style: const TextStyle(fontSize: 16),
+                                  ),
+                                  IconButton(
+                                    icon: const Icon(Icons.add),
+                                    onPressed: () {
+                                      _updateQuantity(item, item.quantity + 1);
+                                    },
+                                    padding: const EdgeInsets.all(8),
+                                  ),
+                                ],
                               ),
-                              IconButton(
-                                icon: const Icon(Icons.add),
-                                onPressed: () {
-                                  setState(() {
-                                    _item.quantity++;
-                                  });
-                                },
-                                padding: const EdgeInsets.all(8),
+                            ),
+                            TextButton(
+                              onPressed: () => _removeItem(item),
+                              child: const Text(
+                                '削除',
+                                style: TextStyle(color: Colors.grey),
                               ),
-                            ],
-                          ),
+                            ),
+                          ],
                         ),
-                        TextButton(
-                          onPressed: () {
-                            // 削除処理
-                          },
-                          child: const Text(
-                            '削除',
-                            style: TextStyle(color: Colors.grey),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+                      ),
+                    ],
+                  )).toList(),
                   const Divider(height: 32),
-                  // 小計
                   Padding(
                     padding: const EdgeInsets.all(16),
                     child: Row(
@@ -178,7 +434,7 @@ class _CartScreenState extends State<CartScreen> {
                           style: TextStyle(fontSize: 16),
                         ),
                         Text(
-                          '¥${(_item.price * _item.quantity).toString()}',
+                          '¥${_calculateTotal().toString()}',
                           style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
@@ -188,7 +444,6 @@ class _CartScreenState extends State<CartScreen> {
                     ),
                   ),
                   const Divider(height: 1),
-                  // 配送方法
                   Padding(
                     padding: const EdgeInsets.all(16),
                     child: Column(
@@ -218,7 +473,6 @@ class _CartScreenState extends State<CartScreen> {
                     ),
                   ),
                   const Divider(height: 1),
-                  // 配送日時指定
                   Padding(
                     padding: const EdgeInsets.all(16),
                     child: Column(
@@ -243,8 +497,7 @@ class _CartScreenState extends State<CartScreen> {
                             child: DropdownButton<String>(
                               value: _deliveryDate,
                               isExpanded: true,
-                              padding:
-                                  const EdgeInsets.symmetric(horizontal: 16),
+                              padding: const EdgeInsets.symmetric(horizontal: 16),
                               items: ['指定なし(最短発送)'].map((String value) {
                                 return DropdownMenuItem<String>(
                                   value: value,
@@ -271,8 +524,7 @@ class _CartScreenState extends State<CartScreen> {
                             child: DropdownButton<String>(
                               value: _deliveryTime,
                               isExpanded: true,
-                              padding:
-                                  const EdgeInsets.symmetric(horizontal: 16),
+                              padding: const EdgeInsets.symmetric(horizontal: 16),
                               items: ['時間指定なし'].map((String value) {
                                 return DropdownMenuItem<String>(
                                   value: value,
@@ -320,7 +572,6 @@ class _CartScreenState extends State<CartScreen> {
               ),
             ),
           ),
-          // 購入ボタン
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
@@ -339,11 +590,9 @@ class _CartScreenState extends State<CartScreen> {
                 children: [
                   Expanded(
                     child: ElevatedButton(
-                      onPressed: () {
-                        // 購入手続き
-                      },
+                      onPressed: cartItems.isEmpty ? null : _proceedToCheckout,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Color(0xFF00008b),
+                        backgroundColor: const Color(0xFF00008b),
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(8),
@@ -384,18 +633,22 @@ class _CartScreenState extends State<CartScreen> {
 
 class CartItem {
   final String id;
+  final String productId;
   final String brand;
   final String name;
   final String variant;
   final int price;
+  final String imageUrl;
   int quantity;
 
   CartItem({
     required this.id,
+    required this.productId,
     required this.brand,
     required this.name,
     required this.variant,
     required this.price,
+    required this.imageUrl,
     required this.quantity,
   });
 }

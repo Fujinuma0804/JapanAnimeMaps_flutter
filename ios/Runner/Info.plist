@@ -45,6 +45,7 @@
    <string>$(FLUTTER_BUILD_NUMBER)</string>
    <key>LSApplicationQueriesSchemes</key>
    <array>
+      <string>stripe</string>
       <string>comgooglemaps</string>
       <string>baidumap</string>
       <string>iosamap</string>
@@ -69,9 +70,24 @@
    <true/>
    <key>NSCameraUsageDescription</key>
    <string>QRコードの読み取りなどに使います</string>
+   <key>BGTaskSchedulerPermittedIdentifiers</key>
+   <array>
+       <string>$(PRODUCT_BUNDLE_IDENTIFIER).location</string>
+       <string>$(PRODUCT_BUNDLE_IDENTIFIER).refresh</string>
+   </array>
+   <key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+   <string>近くの聖地をお知らせするために、位置情報へのアクセスが必要です。</string>
+   <key>NSLocationAlwaysUsageDescription</key>
+   <string>近くの聖地をお知らせするために、位置情報へのアクセスが必要です。</string>
+   <key>com.apple.developer.in-app-payments</key>
+   <array>
+      <string>merchant.com.sotakawakami.jam</string>
+   </array>
    <key>UIBackgroundModes</key>
     <array>
+      <string>location</string>
       <string>fetch</string>
+      <string>processing</string>
       <string>remote-notification</string>
     </array>
     <key>UIRequiredDeviceCapabilities</key>
@@ -79,7 +95,7 @@
       <string>arm64</string>
     </array>
    <key>NSLocationWhenInUseUsageDescription</key>
-   <string>写真やビデオを投稿する際に位置情報を投稿するために必要です。</string>
+   <string>近くの聖地をお知らせするために位置情報へのアクセスが必要です。</string>
    <key>NSPhotoLibraryUsageDescription</key>
    <string>アカウント登録や投稿機能に利用します。</string>
    <key>SignInWithApple</key>

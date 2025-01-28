@@ -101,6 +101,9 @@ dependencies:
   qr_flutter: ^4.1.0
   google_fonts: ^6.2.1
   carousel_slider: ^5.0.0
+  flutter_stripe: ^11.4.0
+  workmanager: ^0.5.2
+  flutter_background_service: ^5.1.0
 #  in_app_purchase: ^3.2.0
 ##  in_app_purchase_storekit: ^0.3.18+3
 #  in_app_purchase_ios: ^0.2.0+1
