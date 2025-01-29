@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:parts/components/ad_mob.dart';
 import 'package:parts/spot_page/check_in.dart';
+import 'package:parts/spot_page/user_activity_logger.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:tutorial_coach_mark/tutorial_coach_mark.dart';
 
@@ -117,6 +118,7 @@ class AnimeListTestRanking extends StatefulWidget {
 
 class _AnimeListTestRankingState extends State<AnimeListTestRanking>
     with SingleTickerProviderStateMixin {
+  final UserActivityLogger _logger = UserActivityLogger();
   final FirebaseFirestore firestore = FirebaseFirestore.instance;
   late rtdb.DatabaseReference databaseReference;
   final TextEditingController _searchController = TextEditingController();
@@ -417,11 +419,19 @@ class _AnimeListTestRankingState extends State<AnimeListTestRanking>
     }
   }
 
+  // タブ変更時のログを記録
   void _handleTabChange() {
     if (_tabController.indexIsChanging) {
       setState(() {
         _currentTabIndex = _tabController.index;
       });
+
+      _logger.logUserActivity('tab_change', {
+        'from_tab': _currentTabIndex == 0 ? 'anime' : 'location',
+        'to_tab': _tabController.index == 0 ? 'anime' : 'location',
+        'timestamp': DateTime.now().toIso8601String(),
+      });
+
       if (_currentTabIndex == 1 && !_isPrefectureDataFetched) {
         _fetchPrefectureData();
       }
@@ -857,6 +867,15 @@ class _AnimeListTestRankingState extends State<AnimeListTestRanking>
     setState(() {
       _searchQuery = query.toLowerCase();
     });
+
+    // 検索アクティビティを記録
+    if (query.isNotEmpty) {
+      _logger.logUserActivity('search', {
+        'query': query,
+        'currentTab': _currentTabIndex,
+        'timestamp': DateTime.now().toIso8601String(),
+      });
+    }
   }
 
   void _toggleSearch() {
@@ -870,10 +889,23 @@ class _AnimeListTestRankingState extends State<AnimeListTestRanking>
   }
 
   Future<void> _navigateAndVote(BuildContext context, String animeName) async {
+    // アニメ詳細表示のログを記録
+    await _logger.logUserActivity('anime_view', {
+      'animeName': animeName,
+      'timestamp': DateTime.now().toIso8601String(),
+    });
+
     try {
       final String today = DateTime.now().toString().split(' ')[0];
       final prefs = await SharedPreferences.getInstance();
       final String? lastVoteDate = prefs.getString('lastVote_$animeName');
+
+      // 投票アクティビティの記録準備
+      Map<String, dynamic> voteActivityData = {
+        'animeName': animeName,
+        'timestamp': DateTime.now().toIso8601String(),
+        'isFirstVoteToday': lastVoteDate == null || lastVoteDate != today,
+      };
 
       if (lastVoteDate == null || lastVoteDate != today) {
         final List<String> votedAnimeToday =
@@ -882,7 +914,7 @@ class _AnimeListTestRankingState extends State<AnimeListTestRanking>
         if (votedAnimeToday.length < 1) {
           rtdb.DatabaseReference animeRef = databaseReference.child(animeName);
           rtdb.TransactionResult result =
-              await animeRef.runTransaction((Object? currentValue) {
+          await animeRef.runTransaction((Object? currentValue) {
             if (currentValue == null) {
               return rtdb.Transaction.success(1);
             }
@@ -893,6 +925,12 @@ class _AnimeListTestRankingState extends State<AnimeListTestRanking>
             await prefs.setString('lastVote_$animeName', today);
             votedAnimeToday.add(animeName);
             await prefs.setStringList('votedAnime_$today', votedAnimeToday);
+
+            // 成功した投票のログを記録
+            voteActivityData['status'] = 'success';
+            voteActivityData['newCount'] = result.snapshot.value;
+            await _logger.logUserActivity('vote_success', voteActivityData);
+
             print("Incremented count for $animeName");
             // ScaffoldMessenger.of(context).showSnackBar(
             //   SnackBar(
@@ -901,6 +939,11 @@ class _AnimeListTestRankingState extends State<AnimeListTestRanking>
             //   ),
             // );
           } else {
+            // 投票失敗のログを記録
+            voteActivityData['status'] = 'failed';
+            voteActivityData['error'] = 'Transaction not committed';
+            await _logger.logUserActivity('vote_failure', voteActivityData);
+
             print("Failed to increment count for $animeName");
             // ScaffoldMessenger.of(context).showSnackBar(
             //   SnackBar(
@@ -910,6 +953,11 @@ class _AnimeListTestRankingState extends State<AnimeListTestRanking>
             // );
           }
         } else {
+          // 投票制限到達のログを記録
+          voteActivityData['status'] = 'limited';
+          voteActivityData['reason'] = 'daily_limit_reached';
+          await _logger.logUserActivity('vote_limit_reached', voteActivityData);
+
           print("Daily vote limit reached");
           // ScaffoldMessenger.of(context).showSnackBar(
           //   SnackBar(
@@ -919,6 +967,11 @@ class _AnimeListTestRankingState extends State<AnimeListTestRanking>
           // );
         }
       } else {
+        // 既に投票済みのログを記録
+        voteActivityData['status'] = 'already_voted';
+        voteActivityData['lastVoteDate'] = lastVoteDate;
+        await _logger.logUserActivity('vote_already_cast', voteActivityData);
+
         print("Already voted for this anime today");
         // ScaffoldMessenger.of(context).showSnackBar(
         //   SnackBar(
@@ -928,6 +981,13 @@ class _AnimeListTestRankingState extends State<AnimeListTestRanking>
         // );
       }
     } catch (e) {
+      // エラーのログを記録
+      await _logger.logUserActivity('vote_error', {
+        'animeName': animeName,
+        'error': e.toString(),
+        'timestamp': DateTime.now().toIso8601String(),
+      });
+
       print("Error incrementing anime count: $e");
       // ScaffoldMessenger.of(context).showSnackBar(
       //   SnackBar(
@@ -936,6 +996,14 @@ class _AnimeListTestRankingState extends State<AnimeListTestRanking>
       //   ),
       // );
     }
+
+    // 遷移のログを記録
+    await _logger.logUserActivity('navigation', {
+      'from': 'anime_list',
+      'to': 'anime_details',
+      'animeName': animeName,
+      'timestamp': DateTime.now().toIso8601String(),
+    });
 
     // 投票処理の後で詳細画面に遷移
     Navigator.push(
