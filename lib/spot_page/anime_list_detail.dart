@@ -1187,7 +1187,8 @@ https://japananimemaps.page.link/ios
               child: Padding(
                 padding: const EdgeInsets.all(16.0),
                 child: ElevatedButton(
-                  onPressed: () => _openMapOptions(context),
+                  onPressed: () =>
+                      _openMapOptions(context),
                   child: Text(
                     'ここへ行く',
                     style: TextStyle(

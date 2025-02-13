@@ -727,13 +727,64 @@ class _MapScreenState extends State<MapScreen> {
                             style: ElevatedButton.styleFrom(
                               backgroundColor: const Color(0xFF00008b),
                             ),
-                            onPressed: () {
-                              Navigator.pop(context);
-                              _showNavigationModalBottomSheet(
-                                  context, _selectedMarker!.position);
+                            onPressed: () async {
+                              // 選択されたマーカーのデータを取得
+                              DocumentSnapshot snapshot = await FirebaseFirestore.instance
+                                  .collection('locations')
+                                  .doc(_selectedMarker!.markerId.value)
+                                  .get();
+
+                              if (snapshot.exists) {
+                                Map<String, dynamic> data = snapshot.data() as Map<String, dynamic>;
+
+                                // subMediaの処理
+                                List<Map<String, dynamic>> subMediaList = [];
+                                if (data['subMedia'] != null && data['subMedia'] is List) {
+                                  subMediaList = (data['subMedia'] as List).map((item) {
+                                    return {
+                                      'type': item['type'] as String? ?? '',
+                                      'url': item['url'] as String? ?? '',
+                                      'title': item['title'] as String? ?? '',
+                                    };
+                                  }).toList();
+                                }
+
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => SpotDetailScreen(
+                                      title: data['title'] ?? '',
+                                      description: data['description'] ?? '',
+                                      spot_description: data['spot_description'] ?? '',
+                                      latitude: data['latitude'] != null
+                                          ? (data['latitude'] as num).toDouble()
+                                          : 0.0,
+                                      longitude: data['longitude'] != null
+                                          ? (data['longitude'] as num).toDouble()
+                                          : 0.0,
+                                      imageUrl: data['imageUrl'] ?? '',
+                                      sourceTitle: data['sourceTitle'] ?? '',
+                                      subsourceTitle: data['subsourceTitle'] ?? '',
+                                      sourceLink: data['sourceLink'] ?? '',
+                                      subsourceLink: data['subsourceLink'] ?? '',
+                                      url: data['url'] ?? '',
+                                      subMedia: subMediaList,
+                                      locationId: _selectedMarker!.markerId.value,
+                                      animeName: data['animeName'] ?? '',
+                                      userId: data['userId'] ?? '',
+                                    ),
+                                  ),
+                                );
+                              }
                             },
+                            //アプリバージョンver3.0.5までは、押下すると画像の投稿などのページへ遷移する。
+                            // onPressed: () {
+                            //   Navigator.pop(context);
+                            //   _showNavigationModalBottomSheet(
+                            //       context, _selectedMarker!.position);
+                            // },
                             child: const Text(
-                              'ここへ行く',
+                              'スポットを見る',
                               style: TextStyle(
                                 color: Colors.white,
                                 fontWeight: FontWeight.bold,

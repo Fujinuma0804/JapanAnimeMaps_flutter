@@ -8,6 +8,7 @@ import 'package:parts/post_page/make_community.dart';
 import 'package:parts/post_page/post_first/community_chat.dart';
 import 'package:parts/post_page/post_screen.dart';
 import 'package:parts/post_page/report_posts_page.dart';
+import 'package:parts/post_page/service/scraped_content.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:vibration/vibration.dart';
 
@@ -22,6 +23,7 @@ class TimelineScreen extends StatefulWidget {
 
 class _TimelineScreenState extends State<TimelineScreen>
     with AutomaticKeepAliveClientMixin, SingleTickerProviderStateMixin {
+  // final AutoPostService _autoPostService = AutoPostService();
   final ScrollController _scrollController = ScrollController();
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -45,13 +47,16 @@ class _TimelineScreenState extends State<TimelineScreen>
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
     _scrollController.addListener(_onScroll);
+    _initializeAutoPosting();
     currentUser = _auth.currentUser;
+
 
     _tabController.addListener(() {
       setState(() {
         _showCommunityOptions = false;
       });
     });
+    _initializeAutoPosting();
   }
 
   @override
@@ -59,6 +64,7 @@ class _TimelineScreenState extends State<TimelineScreen>
     _scrollController.dispose();
     _tabController.dispose();
     _searchController.dispose();
+    // _autoPostService.dispose();
     super.dispose();
   }
 
@@ -68,6 +74,32 @@ class _TimelineScreenState extends State<TimelineScreen>
       if (!_isLoadingMore && _hasMore) {
         _loadMorePosts();
       }
+    }
+  }
+
+  Future<void> _initializeAutoPosting() async {
+    try {
+      // 自動投稿の設定を取得
+      final configSnapshot = await _firestore
+          .collection('auto_post_configs')
+          .where('isActive', isEqualTo: true)
+          .get();
+
+      for (var doc in configSnapshot.docs) {
+        final config = AutoPostConfig.fromJson({
+          ...doc.data(),
+          'sourceUrl': doc.data()['sourceUrl'] ?? '',
+          'selector': doc.data()['selector'] ?? '',
+          'interval': doc.data()['interval'] ?? 3600, // デフォルト1時間
+        });
+
+        if (config.sourceUrl.isNotEmpty && config.selector.isNotEmpty) {
+          // _autoPostService.startAutoPosting(config);
+          print('Started auto posting for ${config.sourceUrl}');
+        }
+      }
+    } catch (e) {
+      print('Error initializing auto posting: $e');
     }
   }
 
