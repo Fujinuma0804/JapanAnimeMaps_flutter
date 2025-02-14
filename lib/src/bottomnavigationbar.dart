@@ -7,6 +7,7 @@ import 'package:parts/post_page/timeline_screen.dart';
 import 'package:parts/ranking/ranking_top.dart';
 import 'package:parts/shop/shop_maintenance.dart';
 import 'package:parts/shop/shop_top.dart';
+import 'package:parts/spot_page/anime_list_en_new.dart';
 
 import '../map_page/map.dart';
 import '../map_page/map_en.dart';
@@ -237,7 +238,9 @@ class _MainScreenState extends State<MainScreen> {
             children: [
               _userLanguage == 'Japanese'
                   ? AnimeListTestRanking()
-                  : AnimeListTestRankingEng(),
+              //ver3.0.6までは翻訳機能を実装し、表示していた。読み込み速度改善のために変更した。
+                  // : AnimeListTestRankingEng(),
+                  : AnimeListEnNew(),
               _userLanguage == 'Japanese'
                   ?
               RankingTopPage()
