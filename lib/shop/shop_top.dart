@@ -73,6 +73,30 @@ class StaticCarouselItem {
   });
 }
 
+// Category Circle Model
+class CategoryCircle {
+  final String name;
+  final String imageUrl;
+  final String route;
+
+  CategoryCircle({
+    required this.name,
+    required this.imageUrl,
+    required this.route,
+  });
+}
+
+// Square Item Model
+class SquareItem {
+  final String imageUrl;
+  final String route;
+
+  SquareItem({
+    required this.imageUrl,
+    required this.route,
+  });
+}
+
 // Product Card Widget
 class ProductCard extends StatelessWidget {
   final Product product;
@@ -98,8 +122,7 @@ class ProductCard extends StatelessWidget {
           children: [
             Expanded(
               child: ClipRRect(
-                borderRadius:
-                    const BorderRadius.vertical(top: Radius.circular(8)),
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(8)),
                 child: Image.network(
                   product.imageUrls.isNotEmpty ? product.imageUrls[0] : '',
                   fit: BoxFit.cover,
@@ -107,8 +130,7 @@ class ProductCard extends StatelessWidget {
                   errorBuilder: (context, error, stackTrace) {
                     print('Error loading image: $error');
                     return const Center(
-                      child: Icon(Icons.error_outline,
-                          size: 40, color: Colors.red),
+                      child: Icon(Icons.error_outline, size: 40, color: Colors.red),
                     );
                   },
                 ),
@@ -157,6 +179,66 @@ class ShopHomeScreen extends StatelessWidget {
     ),
   ];
 
+  final List<SquareItem> squareItems = [
+    SquareItem(
+      imageUrl: 'assets/images/squares/new_items.jpg',
+      route: '/new-items',
+    ),
+    SquareItem(
+      imageUrl: 'assets/images/squares/ranking.jpg',
+      route: '/ranking',
+    ),
+    SquareItem(
+      imageUrl: 'assets/images/squares/sale.jpg',
+      route: '/sale',
+    ),
+    SquareItem(
+      imageUrl: 'assets/images/squares/limited.jpg',
+      route: '/limited',
+    ),
+    SquareItem(
+      imageUrl: 'assets/images/squares/limited.jpg',
+      route: '/limited',
+    ),
+  ];
+
+  final List<CategoryCircle> categoryCircles = [
+    CategoryCircle(
+      name: 'アニメ',
+      imageUrl: 'assets/images/categories/anime.jpg',
+      route: '/category/anime',
+    ),
+    CategoryCircle(
+      name: 'ゲーム',
+      imageUrl: 'assets/images/categories/games.jpg',
+      route: '/category/games',
+    ),
+    CategoryCircle(
+      name: 'コミック',
+      imageUrl: 'assets/images/categories/comics.jpg',
+      route: '/category/comics',
+    ),
+    CategoryCircle(
+      name: 'フィギュア',
+      imageUrl: 'assets/images/categories/figures.jpg',
+      route: '/category/figures',
+    ),
+    CategoryCircle(
+      name: 'コスプレ',
+      imageUrl: 'assets/images/categories/cosplay.jpg',
+      route: '/category/cosplay',
+    ),
+    CategoryCircle(
+      name: 'コスプレ',
+      imageUrl: 'assets/images/categories/cosplay.jpg',
+      route: '/category/cosplay',
+    ),CategoryCircle(
+      name: 'コスプレ',
+      imageUrl: 'assets/images/categories/cosplay.jpg',
+      route: '/category/cosplay',
+    ),
+  ];
+
   Future<Map<String, List<Product>>> fetchProductsByCategory() async {
     try {
       print('Starting fetchProductsByCategory');
@@ -197,8 +279,7 @@ class ShopHomeScreen extends StatelessWidget {
   Future<List<ShopEvent>> fetchShopEvents() async {
     try {
       print('Starting fetchShopEvents');
-      final snapshot =
-          await FirebaseFirestore.instance.collection('shop_event').get();
+      final snapshot = await FirebaseFirestore.instance.collection('shop_event').get();
 
       if (snapshot.docs.isEmpty) {
         print('No documents found in shop_event collection');
@@ -217,8 +298,7 @@ class ShopHomeScreen extends StatelessWidget {
               data.containsKey('link')) {
             events.add(ShopEvent.fromMap(data));
           } else {
-            print(
-                'Skipping event document ${doc.id} due to missing required fields');
+            print('Skipping event document ${doc.id} due to missing required fields');
           }
         } catch (e) {
           print('Error processing event document ${doc.id}: $e');
@@ -329,8 +409,158 @@ class ShopHomeScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildCategorySection(
-      BuildContext context, String category, List<Product> products) {
+  Widget _buildCategoryCircles() {
+    return Container(
+      height: 100,
+      margin: const EdgeInsets.only(top: 8.0),
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 16.0),
+        itemCount: categoryCircles.length,
+        itemBuilder: (context, index) {
+          return Padding(
+            padding: const EdgeInsets.only(right: 16.0),
+            child: Column(
+              children: [
+                GestureDetector(
+                  onTap: () {
+                    Navigator.pushNamed(
+                      context,
+                      categoryCircles[index].route,
+                    );
+                  },
+                  child: Container(
+                    width: 60,
+                    height: 60,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: Colors.grey[300]!,
+                        width: 1,
+                      ),
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(30),
+                      child: Image.asset(
+                        categoryCircles[index].imageUrl,
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  categoryCircles[index].name,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildSquareItems() {
+    return Container(
+      height: 70,
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 16.0),
+        itemCount: squareItems.length,
+        itemBuilder: (context, index) {
+          return Padding(
+            padding: const EdgeInsets.only(right: 12.0),
+            child: GestureDetector(
+              onTap: () {
+                Navigator.pushNamed(
+                  context,
+                  squareItems[index].route,
+                );
+              },
+              child: Container(
+                width: 75,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: Colors.grey[300]!,
+                    width: 1,
+                  ),
+                ),
+                child: Column(
+                  children: [
+                    Expanded(
+                      child: ClipRRect(
+                        borderRadius: const BorderRadius.vertical(top: Radius.circular(8)),
+                        child: Image.asset(
+                          squareItems[index].imageUrl,
+                          width: double.infinity,
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildSquare2Items() {
+    return Container(
+      height: 145,
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 16.0),
+        itemCount: squareItems.length,
+        itemBuilder: (context, index) {
+          return Padding(
+            padding: const EdgeInsets.only(right: 12.0),
+            child: GestureDetector(
+              onTap: () {
+                Navigator.pushNamed(
+                  context,
+                  squareItems[index].route,
+                );
+              },
+              child: Container(
+                width: 140,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: Colors.grey[300]!,
+                    width: 1,
+                  ),
+                ),
+                child: Column(
+                  children: [
+                    Expanded(
+                      child: ClipRRect(
+                        borderRadius: const BorderRadius.vertical(top: Radius.circular(8)),
+                        child: Image.asset(
+                          squareItems[index].imageUrl,
+                          width: double.infinity,
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildCategorySection(BuildContext context, String category, List<Product> products) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -415,8 +645,7 @@ class ShopHomeScreen extends StatelessWidget {
                         children: [
                           Expanded(
                             child: ClipRRect(
-                              borderRadius: const BorderRadius.vertical(
-                                  top: Radius.circular(8)),
+                              borderRadius: const BorderRadius.vertical(top: Radius.circular(8)),
                               child: Image.network(
                                 products[index].imageUrls.isNotEmpty
                                     ? products[index].imageUrls[0]
@@ -471,7 +700,7 @@ class ShopHomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      endDrawer: const CustomDrawer(), // drawer から endDrawer に変更
+      endDrawer: const CustomDrawer(),
       body: SafeArea(
         child: Stack(
           children: [
@@ -494,16 +723,13 @@ class ShopHomeScreen extends StatelessWidget {
                                 prefixIcon: const Icon(Icons.search),
                                 border: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(30),
-                                  borderSide:
-                                      const BorderSide(color: Colors.black),
+                                  borderSide: const BorderSide(color: Colors.black),
                                 ),
                                 focusedBorder: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(30),
-                                  borderSide: const BorderSide(
-                                      color: Colors.black, width: 2.0),
+                                  borderSide: const BorderSide(color: Colors.black, width: 2.0),
                                 ),
-                                contentPadding:
-                                    const EdgeInsets.symmetric(vertical: 0),
+                                contentPadding: const EdgeInsets.symmetric(vertical: 0),
                               ),
                             ),
                           ),
@@ -521,6 +747,11 @@ class ShopHomeScreen extends StatelessWidget {
                         ],
                       ),
                     ),
+                    _buildCategoryCircles(),
+                    _buildSquareItems(),
+                    const SizedBox(height: 5.0),
+                    _buildSquare2Items(),
+                    const SizedBox(height: 16.0),
                     FutureBuilder<List<ShopEvent>>(
                       future: fetchShopEvents(),
                       builder: (context, snapshot) {
@@ -529,18 +760,17 @@ class ShopHomeScreen extends StatelessWidget {
                           return _buildCarousel([]);
                         }
 
-                        if (snapshot.connectionState ==
-                            ConnectionState.waiting) {
+                        if (snapshot.connectionState == ConnectionState.waiting) {
                           return _buildCarousel([]);
                         }
 
                         final now = DateTime.now();
                         final activeEvents = snapshot.data
-                                ?.where((event) =>
-                                    event.isActive &&
-                                    now.isAfter(event.startDate) &&
-                                    now.isBefore(event.endDate))
-                                .toList() ??
+                            ?.where((event) =>
+                        event.isActive &&
+                            now.isAfter(event.startDate) &&
+                            now.isBefore(event.endDate))
+                            .toList() ??
                             [];
 
                         return _buildCarousel(activeEvents);
@@ -559,8 +789,7 @@ class ShopHomeScreen extends StatelessWidget {
                           );
                         }
 
-                        if (snapshot.connectionState ==
-                            ConnectionState.waiting) {
+                        if (snapshot.connectionState == ConnectionState.waiting) {
                           return const Center(
                             child: Padding(
                               padding: EdgeInsets.all(16.0),
@@ -582,8 +811,7 @@ class ShopHomeScreen extends StatelessWidget {
                           children: snapshot.data!.entries.map((entry) {
                             return Column(
                               children: [
-                                _buildCategorySection(
-                                    context, entry.key, entry.value),
+                                _buildCategorySection(context, entry.key, entry.value),
                                 const SizedBox(height: 16),
                               ],
                             );
@@ -614,8 +842,7 @@ class ShopHomeScreen extends StatelessWidget {
         child: SafeArea(
           top: false,
           child: Padding(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
             child: Row(
               children: [
                 Expanded(
@@ -731,34 +958,34 @@ class CategoryDetailScreen extends StatelessWidget {
       ),
       body: products.isEmpty
           ? const Center(
-              child: Text(
-                '商品がありません',
-                style: TextStyle(
-                  color: Colors.grey,
-                  fontSize: 14,
-                ),
-              ),
-            )
+        child: Text(
+          '商品がありません',
+          style: TextStyle(
+            color: Colors.grey,
+            fontSize: 14,
+          ),
+        ),
+      )
           : GridView.builder(
-              padding: const EdgeInsets.all(16),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                childAspectRatio: 0.95,
-                crossAxisSpacing: 16,
-                mainAxisSpacing: 16,
-              ),
-              itemCount: products.length,
-              itemBuilder: (context, index) => ProductCard(
-                product: products[index],
-                onTap: () {
-                  Navigator.pushNamed(
-                    context,
-                    '/product_detail',
-                    arguments: products[index],
-                  );
-                },
-              ),
-            ),
+        padding: const EdgeInsets.all(16),
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 2,
+          childAspectRatio: 0.95,
+          crossAxisSpacing: 16,
+          mainAxisSpacing: 16,
+        ),
+        itemCount: products.length,
+        itemBuilder: (context, index) => ProductCard(
+          product: products[index],
+          onTap: () {
+            Navigator.pushNamed(
+              context,
+              '/product_detail',
+              arguments: products[index],
+            );
+          },
+        ),
+      ),
     );
   }
 }

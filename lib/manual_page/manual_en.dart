@@ -4,6 +4,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:parts/manual_page/usage_screen.dart';
+import 'package:parts/payment/payment.dart';
+import 'package:parts/subscription/payment_subscription.dart';
 import 'package:settings_ui/settings_ui.dart';
 
 import '../setting_page/settings_en.dart';
@@ -155,10 +157,12 @@ class _ManualEnState extends State<ManualEn> {
             //       title: Text(_language == '日本語' ? '広告を非表示にする' : 'Hide ads'),
             //       value: const Text(''),
             //       onPressed: (context) {
-            //         Navigator.push(
-            //             context,
-            //             MaterialPageRoute(
-            //                 builder: (context) => PaymentScreen()));
+            //         showModalBottomSheet(
+            //           context: context,
+            //           isScrollControlled: true,
+            //           backgroundColor: Colors.transparent,
+            //           builder: (context) => const PaymentSubscriptionScreen(),
+            //         );
             //       },
             //     ),
             //   ],
