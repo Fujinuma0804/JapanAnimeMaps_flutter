@@ -155,13 +155,13 @@ class _AnimeListEnNewState extends State<AnimeListEnNew>
   final FirebaseInAppMessaging fiam = FirebaseInAppMessaging.instance;
 
   final Map<String, Map<String, double>> prefectureBounds = {
-    '北海道': {'minLat': 41.3, 'maxLat': 45.6, 'minLng': 139.3, 'maxLng': 148.9},
-    '青森県': {'minLat': 40.2, 'maxLat': 41.6, 'minLng': 139.5, 'maxLng': 141.7},
-    '岩手県': {'minLat': 38.7, 'maxLat': 40.5, 'minLng': 140.6, 'maxLng': 142.1},
-    '宮城県': {'minLat': 37.8, 'maxLat': 39.0, 'minLng': 140.3, 'maxLng': 141.7},
-    '秋田県': {'minLat': 38.8, 'maxLat': 40.5, 'minLng': 139.7, 'maxLng': 141.0},
-    '山形県': {'minLat': 37.8, 'maxLat': 39.0, 'minLng': 139.5, 'maxLng': 140.6},
-    '福島県': {'minLat': 36.8, 'maxLat': 38.0, 'minLng': 139.2, 'maxLng': 141.0},
+    'Hokkaido': {'minLat': 41.3, 'maxLat': 45.6, 'minLng': 139.3, 'maxLng': 148.9},
+    'Aomori': {'minLat': 40.2, 'maxLat': 41.6, 'minLng': 139.5, 'maxLng': 141.7},
+    'Iwate': {'minLat': 38.7, 'maxLat': 40.5, 'minLng': 140.6, 'maxLng': 142.1},
+    'Miyagi': {'minLat': 37.8, 'maxLat': 39.0, 'minLng': 140.3, 'maxLng': 141.7},
+    'Akita': {'minLat': 38.8, 'maxLat': 40.5, 'minLng': 139.7, 'maxLng': 141.0},
+    'Yamagata': {'minLat': 37.8, 'maxLat': 39.0, 'minLng': 139.5, 'maxLng': 140.6},
+    'Fukushima': {'minLat': 36.8, 'maxLat': 38.0, 'minLng': 139.2, 'maxLng': 141.0},
     '茨城県': {'minLat': 35.8, 'maxLat': 36.9, 'minLng': 139.7, 'maxLng': 140.9},
     '栃木県': {'minLat': 36.2, 'maxLat': 37.2, 'minLng': 139.3, 'maxLng': 140.3},
     '群馬県': {'minLat': 36.0, 'maxLat': 37.0, 'minLng': 138.4, 'maxLng': 139.7},
@@ -205,7 +205,7 @@ class _AnimeListEnNewState extends State<AnimeListEnNew>
   };
 
   final List<String> _allPrefectures = [
-    '北海道',
+    'Hokkaido',
     '青森県',
     '岩手県',
     '宮城県',
@@ -456,7 +456,7 @@ class _AnimeListEnNewState extends State<AnimeListEnNew>
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  "ランキング機能",
+                  "Ranking function",
                   style: TextStyle(
                     color: Colors.yellow,
                     fontSize: 20,
@@ -465,7 +465,8 @@ class _AnimeListEnNewState extends State<AnimeListEnNew>
                 ),
                 SizedBox(height: 10),
                 Text(
-                  "ユーザーが最も訪れているアニメ聖地のランキングです。\n人気のスポットを見つけるのに役立ちます。",
+                  "This is a ranking of the anime sacred places most visited by users.\n"
+                      "Helps you find popular spots.",
                   style: TextStyle(color: Colors.white, fontSize: 16),
                 ),
               ],
@@ -484,7 +485,7 @@ class _AnimeListEnNewState extends State<AnimeListEnNew>
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  "検索機能",
+                  "Search function",
                   style: TextStyle(
                     color: Colors.yellow,
                     fontSize: 20,
@@ -493,7 +494,8 @@ class _AnimeListEnNewState extends State<AnimeListEnNew>
                 ),
                 SizedBox(height: 10),
                 Text(
-                  "アニメのタイトルや都道府県名で検索できます。\n気になる聖地をすぐに見つけることができます。",
+                  "You can search by anime title or prefecture name.\n"
+                      "You can quickly find the sacred place you are interested in.",
                   style: TextStyle(color: Colors.white, fontSize: 16),
                 ),
               ],
@@ -512,7 +514,7 @@ class _AnimeListEnNewState extends State<AnimeListEnNew>
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  "新規スポットのリクエスト",
+                  "Request a new spot",
                   style: TextStyle(
                     color: Colors.yellow,
                     fontSize: 20,
@@ -521,7 +523,8 @@ class _AnimeListEnNewState extends State<AnimeListEnNew>
                 ),
                 SizedBox(height: 10),
                 Text(
-                  "まだ登録されていないアニメ聖地を見つけた場合は、\nこちらから追加リクエストを送ることができます。",
+                  "If you find an anime sacred place that has not been registered yet,\n"
+                      "you can submit additional requests here.",
                   style: TextStyle(color: Colors.white, fontSize: 16),
                 ),
               ],
@@ -540,7 +543,7 @@ class _AnimeListEnNewState extends State<AnimeListEnNew>
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  "お気に入り機能",
+                  "Favorites feature",
                   style: TextStyle(
                     color: Colors.yellow,
                     fontSize: 20,
@@ -549,7 +552,8 @@ class _AnimeListEnNewState extends State<AnimeListEnNew>
                 ),
                 SizedBox(height: 10),
                 Text(
-                  "気になるスポットをお気に入りに登録できます。\n後で見返したい場所を保存しておきましょう。",
+                  "You can register the spots you are interested in as favorites.\n"
+                      "Save the locations you want to refer to later.",
                   style: TextStyle(color: Colors.white, fontSize: 16),
                 ),
               ],
@@ -568,7 +572,7 @@ class _AnimeListEnNewState extends State<AnimeListEnNew>
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  "チェックイン機能",
+                  "Check-in function",
                   style: TextStyle(
                     color: Colors.yellow,
                     fontSize: 20,
@@ -577,7 +581,8 @@ class _AnimeListEnNewState extends State<AnimeListEnNew>
                 ),
                 SizedBox(height: 10),
                 Text(
-                  "実際に訪れたスポットにチェックインできます。\n思い出を記録して、訪問履歴を残しましょう。",
+                  "You can check in at the spots you actually visited.\n"
+                      "Record your memories and keep a history of your visits.",
                   style: TextStyle(color: Colors.white, fontSize: 16),
                 ),
               ],
@@ -596,7 +601,7 @@ class _AnimeListEnNewState extends State<AnimeListEnNew>
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  "アニメ作品",
+                  "anime works",
                   style: TextStyle(
                     color: Colors.yellow,
                     fontSize: 20,
@@ -628,7 +633,7 @@ class _AnimeListEnNewState extends State<AnimeListEnNew>
         paddingFocus: 10,
         opacityShadow: 0.8,
         onFinish: () {
-          print("チュートリアル完了");
+          print("Tutorial completed");
         },
         onClickTarget: (target) {
           print('${target.identify} がクリックされました');
@@ -1030,7 +1035,7 @@ class _AnimeListEnNewState extends State<AnimeListEnNew>
         ExpansionTile(
           title: Text(
             key: rankingKey,
-            '■ ランキング (Top 10)',
+            '■ Ranking (Top 10)',
             style: TextStyle(
               color: Color(0xFF00008b),
               fontWeight: FontWeight.bold,
@@ -1119,7 +1124,7 @@ class _AnimeListEnNewState extends State<AnimeListEnNew>
         Padding(
           padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
           child: Text(
-            '■ アニメ一覧',
+            '■ Anime list',
             style: TextStyle(
               color: Color(0xFF00008b),
               fontWeight: FontWeight.bold,
@@ -1132,7 +1137,7 @@ class _AnimeListEnNewState extends State<AnimeListEnNew>
               ? Center(child: CircularProgressIndicator())
               : filteredAnimeData.isEmpty
               ? Center(
-            child: Text('何も見つかりませんでした。。'),
+            child: Text('nothing found..'),
           )
               : GridView.builder(
             controller: _scrollController,
@@ -1163,7 +1168,7 @@ class _AnimeListEnNewState extends State<AnimeListEnNew>
                     height: 50,
                     child: Center(
                         child: Text(
-                          '広告',
+                          'advertisement',
                           style: TextStyle(
                             color: Colors.grey,
                           ),
@@ -1212,16 +1217,16 @@ class _AnimeListEnNewState extends State<AnimeListEnNew>
         return await showDialog<bool>(
           context: context,
           builder: (context) => AlertDialog(
-            title: Text('アプリを終了しますか？'),
-            content: Text('アプリを閉じてもよろしいですか？'),
+            title: Text('Do you want to close the app?'),
+            content: Text('Are you sure you want to close the app?'),
             actions: [
               TextButton(
                 onPressed: () => Navigator.of(context).pop(false),
-                child: Text('キャンセル'),
+                child: Text('cancel'),
               ),
               TextButton(
                 onPressed: () => Navigator.of(context).pop(true),
-                child: Text('終了'),
+                child: Text('close'),
               ),
             ],
           ),
@@ -1238,17 +1243,17 @@ class _AnimeListEnNewState extends State<AnimeListEnNew>
             autofocus: true,
             decoration: InputDecoration(
               hintText: _currentTabIndex == 0
-                  ? 'アニメで検索...'
+                  ? 'Search by anime...'
                   : _currentTabIndex == 1
-                  ? '都道府県で検索...'
-                  : 'イベントで検索...',
+                  ? 'Search by prefecture...'
+                  : 'Search by event...',
               hintStyle: TextStyle(color: Colors.grey),
               border: InputBorder.none,
             ),
             style: TextStyle(color: Colors.black),
           )
               : Text(
-            '巡礼スポット',
+            'Pilgrimage spot',
             style: TextStyle(
               color: Color(0xFF00008b),
               fontWeight: FontWeight.bold,
@@ -1295,8 +1300,8 @@ class _AnimeListEnNewState extends State<AnimeListEnNew>
           bottom: TabBar(
             controller: _tabController,
             tabs: [
-              Tab(text: 'アニメから探す'),
-              Tab(text: '場所から探す'),
+              Tab(text: 'Search by anime'),
+              Tab(text: 'Search by location'),
             ],
             labelColor: Color(0xFF00008b),
             unselectedLabelColor: Colors.grey,
