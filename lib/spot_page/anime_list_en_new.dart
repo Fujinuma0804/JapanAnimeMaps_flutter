@@ -35,7 +35,6 @@ class AdManager {
 
   static Duration _getBackoffDuration(int index) {
     final failures = _failureCount[index] ?? 0;
-    // 指数関数的なバックオフ: 5秒 → 10秒 → 20秒
     return Duration(seconds: _initialBackoff.inSeconds * (1 << failures));
   }
 
@@ -48,24 +47,19 @@ class AdManager {
   }
 
   static Future<void> loadGridBannerAd(int index) async {
-    // 既に広告が読み込まれている場合はスキップ
     if (_gridBannerAds[index] != null && _isGridBannerAdReady[index] == true) {
       return;
     }
 
-    // レート制限チェック
     if (!canLoadAdForIndex(index)) {
       return;
     }
 
-    // 最大リトライ回数を超えた場合はスキップ
     if ((_failureCount[index] ?? 0) >= _maxRetries) {
       return;
     }
 
     _lastAdLoadAttempt[index] = DateTime.now();
-
-    // 既存の広告を破棄
     _gridBannerAds[index]?.dispose();
 
     _gridBannerAds[index] = BannerAd(
@@ -75,7 +69,7 @@ class AdManager {
       listener: BannerAdListener(
         onAdLoaded: (_) {
           _isGridBannerAdReady[index] = true;
-          _failureCount[index] = 0; // 成功時にカウントをリセット
+          _failureCount[index] = 0;
         },
         onAdFailedToLoad: (ad, err) {
           print('Grid banner ad failed to load: ${err.message}');
@@ -108,6 +102,196 @@ class AdManager {
 
   static void resetFailureCount(int index) {
     _failureCount[index] = 0;
+  }
+}
+
+class PrefectureListPage2 extends StatelessWidget {
+  final Map<String, List<Map<String, dynamic>>> prefectureSpots;
+  final String searchQuery;
+  final Function onFetchPrefectureData;
+
+  // 画像ファイル名用の英語から日本語への都道府県名マッピング
+  final Map<String, String> prefectureImageMapping = {
+    'Hokkaido': '北海道',
+    'Aomori': '青森県',
+    'Iwate': '岩手県',
+    'Miyagi': '宮城県',
+    'Akita': '秋田県',
+    'Yamagata': '山形県',
+    'Fukushima': '福島県',
+    'Ibaraki': '茨城県',
+    'Tochigi': '栃木県',
+    'Gunma': '群馬県',
+    'Saitama': '埼玉県',
+    'Chiba': '千葉県',
+    'Tokyo': '東京都',
+    'Kanagawa': '神奈川県',
+    'Nigata': '新潟県',
+    'Toyama': '富山県',
+    'Ishikawa': '石川県',
+    'Fukui': '福井県',
+    'Yamanashi': '山梨県',
+    'Nagano': '長野県',
+    'Gifu': '岐阜県',
+    'Shizuoka': '静岡県',
+    'Aichi': '愛知県',
+    'Mie': '三重県',
+    'Shiga': '滋賀県',
+    'Kyoto': '京都府',
+    'Osaka': '大阪府',
+    'Hyogo': '兵庫県',
+    'Nara': '奈良県',
+    'Wakayama': '和歌山県',
+    'Tottori': '鳥取県',
+    'Shimane': '島根県',
+    'Okayama': '岡山県',
+    'Hiroshima': '広島県',
+    'Yamaguchi': '山口県',
+    'Tokushima': '徳島県',
+    'Kagawa': '香川県',
+    'Ehime': '愛媛県',
+    'Kochi': '高知県',
+    'Fukuoka': '福岡県',
+    'Saga': '佐賀県',
+    'Nagasaki': '長崎県',
+    'Kumamoto': '熊本県',
+    'Oita': '大分県',
+    'Miyazaki': '宮崎県',
+    'Kagoshima': '鹿児島県',
+    'Okinawa': '沖縄県',
+  };
+
+  PrefectureListPage2({
+    required this.prefectureSpots,
+    required this.searchQuery,
+    required this.onFetchPrefectureData,
+  });
+
+  String _getPrefectureImagePath(String englishName) {
+    final japaneseName = prefectureImageMapping[englishName] ?? '';
+    return 'assets/images/prefectures/$japaneseName.jpg';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    List<String> filteredPrefectures = prefectureImageMapping.keys
+        .where((prefecture) =>
+        prefecture.toLowerCase().contains(searchQuery.toLowerCase()))
+        .toList();
+
+    return GridView.builder(
+      padding: EdgeInsets.all(8.0),
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        childAspectRatio: 1.3,
+        crossAxisSpacing: 10,
+        mainAxisSpacing: 10,
+      ),
+      itemCount: filteredPrefectures.length,
+      itemBuilder: (context, index) {
+        final prefecture = filteredPrefectures[index];
+        final spots = prefectureSpots[prefecture] ?? [];
+
+        return Card(
+          elevation: 2,
+          child: InkWell(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => PrefectureDetailPage(
+                    prefecture: prefecture,
+                    spots: spots,
+                  ),
+                ),
+              );
+            },
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Expanded(
+                  child: Image.asset(
+                    _getPrefectureImagePath(prefecture),
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) {
+                      return Center(
+                        child: Icon(Icons.image_not_supported, size: 40),
+                      );
+                    },
+                  ),
+                ),
+                Container(
+                  padding: EdgeInsets.all(8),
+                  color: Colors.white,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        prefecture,
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      Text(
+                        '${spots.length} spots',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class PrefectureDetailPage extends StatelessWidget {
+  final String prefecture;
+  final List<Map<String, dynamic>> spots;
+
+  PrefectureDetailPage({
+    required this.prefecture,
+    required this.spots,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(prefecture),
+      ),
+      body: ListView.builder(
+        itemCount: spots.length,
+        itemBuilder: (context, index) {
+          final spot = spots[index];
+          return Card(
+            margin: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            child: ListTile(
+              leading: CachedNetworkImage(
+                imageUrl: spot['imageUrl'] ?? '',
+                width: 60,
+                height: 60,
+                fit: BoxFit.cover,
+                placeholder: (context, url) => CircularProgressIndicator(),
+                errorWidget: (context, url, error) => Icon(Icons.error),
+              ),
+              title: Text(spot['name'] ?? ''),
+              subtitle: Text(spot['anime'] ?? ''),
+              onTap: () {
+                // スポットの詳細ページへの遷移処理
+              },
+            ),
+          );
+        },
+      ),
+    );
   }
 }
 
@@ -155,103 +339,103 @@ class _AnimeListEnNewState extends State<AnimeListEnNew>
   final FirebaseInAppMessaging fiam = FirebaseInAppMessaging.instance;
 
   final Map<String, Map<String, double>> prefectureBounds = {
-    'Hokkaido': {'minLat': 41.3, 'maxLat': 45.6, 'minLng': 139.3, 'maxLng': 148.9},
-    'Aomori': {'minLat': 40.2, 'maxLat': 41.6, 'minLng': 139.5, 'maxLng': 141.7},
-    'Iwate': {'minLat': 38.7, 'maxLat': 40.5, 'minLng': 140.6, 'maxLng': 142.1},
-    'Miyagi': {'minLat': 37.8, 'maxLat': 39.0, 'minLng': 140.3, 'maxLng': 141.7},
-    'Akita': {'minLat': 38.8, 'maxLat': 40.5, 'minLng': 139.7, 'maxLng': 141.0},
-    'Yamagata': {'minLat': 37.8, 'maxLat': 39.0, 'minLng': 139.5, 'maxLng': 140.6},
-    'Fukushima': {'minLat': 36.8, 'maxLat': 38.0, 'minLng': 139.2, 'maxLng': 141.0},
-    '茨城県': {'minLat': 35.8, 'maxLat': 36.9, 'minLng': 139.7, 'maxLng': 140.9},
-    '栃木県': {'minLat': 36.2, 'maxLat': 37.2, 'minLng': 139.3, 'maxLng': 140.3},
-    '群馬県': {'minLat': 36.0, 'maxLat': 37.0, 'minLng': 138.4, 'maxLng': 139.7},
-    '埼玉県': {'minLat': 35.7, 'maxLat': 36.3, 'minLng': 138.8, 'maxLng': 139.9},
-    '千葉県': {'minLat': 34.9, 'maxLat': 36.1, 'minLng': 139.7, 'maxLng': 140.9},
-    '東京都': {'minLat': 35.5, 'maxLat': 35.9, 'minLng': 138.9, 'maxLng': 139.9},
-    '神奈川県': {'minLat': 35.1, 'maxLat': 35.7, 'minLng': 139.0, 'maxLng': 139.8},
-    '新潟県': {'minLat': 36.8, 'maxLat': 38.6, 'minLng': 137.6, 'maxLng': 139.8},
-    '富山県': {'minLat': 36.2, 'maxLat': 36.9, 'minLng': 136.8, 'maxLng': 137.7},
-    '石川県': {'minLat': 36.0, 'maxLat': 37.6, 'minLng': 136.2, 'maxLng': 137.4},
-    '福井県': {'minLat': 35.3, 'maxLat': 36.3, 'minLng': 135.4, 'maxLng': 136.8},
-    '山梨県': {'minLat': 35.2, 'maxLat': 35.9, 'minLng': 138.2, 'maxLng': 139.1},
-    '長野県': {'minLat': 35.2, 'maxLat': 37.0, 'minLng': 137.3, 'maxLng': 138.7},
-    '岐阜県': {'minLat': 35.2, 'maxLat': 36.5, 'minLng': 136.3, 'maxLng': 137.6},
-    '静岡県': {'minLat': 34.6, 'maxLat': 35.7, 'minLng': 137.4, 'maxLng': 139.1},
-    '愛知県': {'minLat': 34.6, 'maxLat': 35.4, 'minLng': 136.7, 'maxLng': 137.8},
-    '三重県': {'minLat': 33.7, 'maxLat': 35.3, 'minLng': 135.9, 'maxLng': 136.9},
-    '滋賀県': {'minLat': 34.8, 'maxLat': 35.7, 'minLng': 135.8, 'maxLng': 136.4},
-    '京都府': {'minLat': 34.7, 'maxLat': 35.8, 'minLng': 134.8, 'maxLng': 136.0},
-    '大阪府': {'minLat': 34.2, 'maxLat': 35.0, 'minLng': 135.1, 'maxLng': 135.7},
-    '兵庫県': {'minLat': 34.2, 'maxLat': 35.7, 'minLng': 134.2, 'maxLng': 135.4},
-    '奈良県': {'minLat': 33.8, 'maxLat': 34.7, 'minLng': 135.6, 'maxLng': 136.2},
-    '和歌山県': {'minLat': 33.4, 'maxLat': 34.3, 'minLng': 135.0, 'maxLng': 136.0},
-    '鳥取県': {'minLat': 35.1, 'maxLat': 35.6, 'minLng': 133.1, 'maxLng': 134.4},
-    '島根県': {'minLat': 34.3, 'maxLat': 35.6, 'minLng': 131.6, 'maxLng': 133.4},
-    '岡山県': {'minLat': 34.3, 'maxLat': 35.4, 'minLng': 133.3, 'maxLng': 134.4},
-    '広島県': {'minLat': 34.0, 'maxLat': 35.1, 'minLng': 132.0, 'maxLng': 133.5},
-    '山口県': {'minLat': 33.8, 'maxLat': 34.8, 'minLng': 130.8, 'maxLng': 132.4},
-    '徳島県': {'minLat': 33.5, 'maxLat': 34.2, 'minLng': 133.6, 'maxLng': 134.8},
-    '香川県': {'minLat': 34.0, 'maxLat': 34.6, 'minLng': 133.5, 'maxLng': 134.4},
-    '愛媛県': {'minLat': 32.9, 'maxLat': 34.3, 'minLng': 132.0, 'maxLng': 133.7},
-    '高知県': {'minLat': 32.7, 'maxLat': 33.9, 'minLng': 132.5, 'maxLng': 134.3},
-    '福岡県': {'minLat': 33.1, 'maxLat': 34.0, 'minLng': 129.9, 'maxLng': 131.0},
-    '佐賀県': {'minLat': 32.9, 'maxLat': 33.6, 'minLng': 129.7, 'maxLng': 130.5},
-    '長崎県': {'minLat': 32.6, 'maxLat': 34.7, 'minLng': 128.6, 'maxLng': 130.4},
-    '熊本県': {'minLat': 32.1, 'maxLat': 33.2, 'minLng': 129.9, 'maxLng': 131.2},
-    '大分県': {'minLat': 32.7, 'maxLat': 33.7, 'minLng': 130.7, 'maxLng': 132.1},
-    '宮崎県': {'minLat': 31.3, 'maxLat': 32.9, 'minLng': 130.7, 'maxLng': 131.9},
-    '鹿児島県': {'minLat': 30.4, 'maxLat': 32.2, 'minLng': 129.5, 'maxLng': 131.1},
-    '沖縄県': {'minLat': 24.0, 'maxLat': 27.9, 'minLng': 122.9, 'maxLng': 131.3},
+  'Hokkaido': {'minLat': 41.3, 'maxLat': 45.6, 'minLng': 139.3, 'maxLng': 148.9},
+  'Aomori': {'minLat': 40.2, 'maxLat': 41.6, 'minLng': 139.5, 'maxLng': 141.7},
+  'Iwate': {'minLat': 38.7, 'maxLat': 40.5, 'minLng': 140.6, 'maxLng': 142.1},
+  'Miyagi': {'minLat': 37.8, 'maxLat': 39.0, 'minLng': 140.3, 'maxLng': 141.7},
+  'Akita': {'minLat': 38.8, 'maxLat': 40.5, 'minLng': 139.7, 'maxLng': 141.0},
+  'Yamagata': {'minLat': 37.8, 'maxLat': 39.0, 'minLng': 139.5, 'maxLng': 140.6},
+  'Fukushima': {'minLat': 36.8, 'maxLat': 38.0, 'minLng': 139.2, 'maxLng': 141.0},
+  'Ibaraki': {'minLat': 35.8, 'maxLat': 36.9, 'minLng': 139.7, 'maxLng': 140.9},
+    'Tochigi': {'minLat': 36.2, 'maxLat': 37.2, 'minLng': 139.3, 'maxLng': 140.3},
+    'Gunma': {'minLat': 36.0, 'maxLat': 37.0, 'minLng': 138.4, 'maxLng': 139.7},
+    'Saitama': {'minLat': 35.7, 'maxLat': 36.3, 'minLng': 138.8, 'maxLng': 139.9},
+    'Chiba': {'minLat': 34.9, 'maxLat': 36.1, 'minLng': 139.7, 'maxLng': 140.9},
+    'Tokyo': {'minLat': 35.5, 'maxLat': 35.9, 'minLng': 138.9, 'maxLng': 139.9},
+    'Kanagawa': {'minLat': 35.1, 'maxLat': 35.7, 'minLng': 139.0, 'maxLng': 139.8},
+    'Nigata': {'minLat': 36.8, 'maxLat': 38.6, 'minLng': 137.6, 'maxLng': 139.8},
+    'Toyama': {'minLat': 36.2, 'maxLat': 36.9, 'minLng': 136.8, 'maxLng': 137.7},
+    'Ishikawa': {'minLat': 36.0, 'maxLat': 37.6, 'minLng': 136.2, 'maxLng': 137.4},
+    'Fukui': {'minLat': 35.3, 'maxLat': 36.3, 'minLng': 135.4, 'maxLng': 136.8},
+    'Yamanashi': {'minLat': 35.2, 'maxLat': 35.9, 'minLng': 138.2, 'maxLng': 139.1},
+    'Nagano': {'minLat': 35.2, 'maxLat': 37.0, 'minLng': 137.3, 'maxLng': 138.7},
+    'Gifu': {'minLat': 35.2, 'maxLat': 36.5, 'minLng': 136.3, 'maxLng': 137.6},
+    'Shizuoka': {'minLat': 34.6, 'maxLat': 35.7, 'minLng': 137.4, 'maxLng': 139.1},
+    'Aichi': {'minLat': 34.6, 'maxLat': 35.4, 'minLng': 136.7, 'maxLng': 137.8},
+    'Mie': {'minLat': 33.7, 'maxLat': 35.3, 'minLng': 135.9, 'maxLng': 136.9},
+    'Shiga': {'minLat': 34.8, 'maxLat': 35.7, 'minLng': 135.8, 'maxLng': 136.4},
+    'Kyoto': {'minLat': 34.7, 'maxLat': 35.8, 'minLng': 134.8, 'maxLng': 136.0},
+    'Osaka': {'minLat': 34.2, 'maxLat': 35.0, 'minLng': 135.1, 'maxLng': 135.7},
+    'Hyogo': {'minLat': 34.2, 'maxLat': 35.7, 'minLng': 134.2, 'maxLng': 135.4},
+    'Nara': {'minLat': 33.8, 'maxLat': 34.7, 'minLng': 135.6, 'maxLng': 136.2},
+    'Wakayama': {'minLat': 33.4, 'maxLat': 34.3, 'minLng': 135.0, 'maxLng': 136.0},
+    'Tottori': {'minLat': 35.1, 'maxLat': 35.6, 'minLng': 133.1, 'maxLng': 134.4},
+    'Shimane': {'minLat': 34.3, 'maxLat': 35.6, 'minLng': 131.6, 'maxLng': 133.4},
+    'Okayama': {'minLat': 34.3, 'maxLat': 35.4, 'minLng': 133.3, 'maxLng': 134.4},
+    'Hiroshima': {'minLat': 34.0, 'maxLat': 35.1, 'minLng': 132.0, 'maxLng': 133.5},
+    'Yamaguchi': {'minLat': 33.8, 'maxLat': 34.8, 'minLng': 130.8, 'maxLng': 132.4},
+    'Tokushima': {'minLat': 33.5, 'maxLat': 34.2, 'minLng': 133.6, 'maxLng': 134.8},
+    'Kagawa': {'minLat': 34.0, 'maxLat': 34.6, 'minLng': 133.5, 'maxLng': 134.4},
+    'Ehime': {'minLat': 32.9, 'maxLat': 34.3, 'minLng': 132.0, 'maxLng': 133.7},
+    'Kochi': {'minLat': 32.7, 'maxLat': 33.9, 'minLng': 132.5, 'maxLng': 134.3},
+    'Fukuoka': {'minLat': 33.1, 'maxLat': 34.0, 'minLng': 129.9, 'maxLng': 131.0},
+    'Saga': {'minLat': 32.9, 'maxLat': 33.6, 'minLng': 129.7, 'maxLng': 130.5},
+    'Nagasaki': {'minLat': 32.6, 'maxLat': 34.7, 'minLng': 128.6, 'maxLng': 130.4},
+    'Kumamoto': {'minLat': 32.1, 'maxLat': 33.2, 'minLng': 129.9, 'maxLng': 131.2},
+    'Oita': {'minLat': 32.7, 'maxLat': 33.7, 'minLng': 130.7, 'maxLng': 132.1},
+    'Miyazaki': {'minLat': 31.3, 'maxLat': 32.9, 'minLng': 130.7, 'maxLng': 131.9},
+    'Kagoshima': {'minLat': 30.4, 'maxLat': 32.2, 'minLng': 129.5, 'maxLng': 131.1},
+    'Okinawa': {'minLat': 24.0, 'maxLat': 27.9, 'minLng': 122.9, 'maxLng': 131.3},
   };
 
   final List<String> _allPrefectures = [
     'Hokkaido',
-    '青森県',
-    '岩手県',
-    '宮城県',
-    '秋田県',
-    '山形県',
-    '福島県',
-    '茨城県',
-    '栃木県',
-    '群馬県',
-    '埼玉県',
-    '千葉県',
-    '東京都',
-    '神奈川県',
-    '新潟県',
-    '富山県',
-    '石川県',
-    '福井県',
-    '山梨県',
-    '長野県',
-    '岐阜県',
-    '静岡県',
-    '愛知県',
-    '三重県',
-    '滋賀県',
-    '京都府',
-    '大阪府',
-    '兵庫県',
-    '奈良県',
-    '和歌山県',
-    '鳥取県',
-    '島根県',
-    '岡山県',
-    '広島県',
-    '山口県',
-    '徳島県',
-    '香川県',
-    '愛媛県',
-    '高知県',
-    '福岡県',
-    '佐賀県',
-    '長崎県',
-    '熊本県',
-    '大分県',
-    '宮崎県',
-    '鹿児島県',
-    '沖縄県'
+    'Aomori',
+    'Iwate',
+    'Miyagi',
+    'Akita',
+    'Yamagata',
+    'Fukushima',
+    'Ibaraki',
+    'Tochigi',
+    'Gunma',
+    'Saitama',
+    'Chiba',
+    'Tokyo',
+    'Kanagawa',
+    'Nigata',
+    'Toyama',
+    'Ishikawa',
+    'Fukui',
+    'Yamanashi',
+    'Nagano',
+    'Gifu',
+    'Shizuoka',
+    'Aichi',
+    'Mie',
+    'Shiga',
+    'Kyoto',
+    'Osaka',
+    'Hyogo',
+    'Nara',
+    'Wakayama',
+    'Tottori',
+    'Shimane',
+    'Okayama',
+    'Hiroshima',
+    'Yamaguchi',
+    'Tokushima',
+    'Kagawa',
+    'Ehime',
+    'Kochi',
+    'Fukuoka',
+    'Saga',
+    'Nagasaki',
+    'Kumamoto',
+    'Oita',
+    'Miyazaki',
+    'Kagoshima',
+    'Okinawa'
   ];
 
   final ScrollController _scrollController = ScrollController();
@@ -264,8 +448,7 @@ class _AnimeListEnNewState extends State<AnimeListEnNew>
   void initState() {
     super.initState();
     _initializeTabController();
-    databaseReference =
-        rtdb.FirebaseDatabase.instance.reference().child('anime_rankings');
+    databaseReference = rtdb.FirebaseDatabase.instance.reference().child('anime_rankings');
     _fetchAnimeData();
     _fetchEventData();
     _initTargets();
@@ -419,7 +602,6 @@ class _AnimeListEnNewState extends State<AnimeListEnNew>
     }
   }
 
-  // タブ変更時のログを記録
   void _handleTabChange() {
     if (_tabController.indexIsChanging) {
       setState(() {
@@ -651,11 +833,11 @@ class _AnimeListEnNewState extends State<AnimeListEnNew>
       _allAnimeData = animeSnapshot.docs.map((doc) {
         var data = doc.data() as Map<String, dynamic>;
         return {
-          'name': data['name'] ?? '',  // 画像表示用に保持
-          'nameEn': data['nameEn'] ?? '', // 新しく追加した英語名フィールド
+          'name': data['name'] ?? '',
+          'nameEn': data['nameEn'] ?? '',
           'imageUrl': data['imageUrl'] ?? '',
           'count': 0,
-          'sortKey': _getSortKey(data['nameEn'] ?? ''),  // 英語名でソート
+          'sortKey': _getSortKey(data['nameEn'] ?? ''),
         };
       }).toList();
 
@@ -699,122 +881,11 @@ class _AnimeListEnNewState extends State<AnimeListEnNew>
     }
   }
 
-  String _getSortKey(String name) {
-    if (name.isEmpty) return '';
-
-    String hiragana = _katakanaToHiragana(name);
-
-    if (RegExp(r'^[A-Za-z]').hasMatch(name)) {
-      return 'ん' + name.toLowerCase();
-    }
-
-    return hiragana;
-  }
-
-  String _katakanaToHiragana(String kata) {
-    const Map<String, String> katakanaToHiragana = {
-      'ア': 'あ',
-      'イ': 'い',
-      'ウ': 'う',
-      'エ': 'え',
-      'オ': 'お',
-      'カ': 'か',
-      'キ': 'き',
-      'ク': 'く',
-      'ケ': 'け',
-      'コ': 'こ',
-      'サ': 'さ',
-      'シ': 'し',
-      'ス': 'す',
-      'セ': 'せ',
-      'ソ': 'そ',
-      'タ': 'た',
-      'チ': 'ち',
-      'ツ': 'つ',
-      'テ': 'て',
-      'ト': 'と',
-      'ナ': 'な',
-      'ニ': 'に',
-      'ヌ': 'ぬ',
-      'ネ': 'ね',
-      'ノ': 'の',
-      'ハ': 'は',
-      'ヒ': 'ひ',
-      'フ': 'ふ',
-      'ヘ': 'へ',
-      'ホ': 'ほ',
-      'マ': 'ま',
-      'ミ': 'み',
-      'ム': 'む',
-      'メ': 'め',
-      'モ': 'も',
-      'ヤ': 'や',
-      'ユ': 'ゆ',
-      'ヨ': 'よ',
-      'ラ': 'ら',
-      'リ': 'り',
-      'ル': 'る',
-      'レ': 'れ',
-      'ロ': 'ろ',
-      'ワ': 'わ',
-      'ヲ': 'を',
-      'ン': 'ん',
-      'ガ': 'が',
-      'ギ': 'ぎ',
-      'グ': 'ぐ',
-      'ゲ': 'げ',
-      'ゴ': 'ご',
-      'ザ': 'ざ',
-      'ジ': 'じ',
-      'ズ': 'ず',
-      'ゼ': 'ぜ',
-      'ゾ': 'ぞ',
-      'ダ': 'だ',
-      'ヂ': 'ぢ',
-      'ヅ': 'づ',
-      'デ': 'で',
-      'ド': 'ど',
-      'バ': 'ば',
-      'ビ': 'び',
-      'ブ': 'ぶ',
-      'ベ': 'べ',
-      'ボ': 'ぼ',
-      'パ': 'ぱ',
-      'ピ': 'ぴ',
-      'プ': 'ぷ',
-      'ペ': 'ぺ',
-      'ポ': 'ぽ',
-      'ャ': 'ゃ',
-      'ュ': 'ゅ',
-      'ョ': 'ょ',
-      'ッ': 'っ',
-      'ー': '-',
-    };
-
-    String result = kata;
-    katakanaToHiragana.forEach((k, v) {
-      result = result.replaceAll(k, v);
-    });
-    return result;
-  }
-
-  int _compareNames(String a, String b) {
-    if (a.startsWith('ん') && !b.startsWith('ん')) {
-      return 1;
-    } else if (!a.startsWith('ん') && b.startsWith('ん')) {
-      return -1;
-    } else if (a.startsWith('ん') && b.startsWith('ん')) {
-      return a.substring(1).compareTo(b.substring(1));
-    }
-    return a.compareTo(b);
-  }
-
   Future<void> _fetchPrefectureData() async {
     if (_isPrefectureDataFetched) return;
 
     try {
-      QuerySnapshot spotSnapshot =
-      await firestore.collection('locations').get();
+      QuerySnapshot spotSnapshot = await firestore.collection('locations').get();
       print("Fetched ${spotSnapshot.docs.length} documents in total");
 
       for (String prefecture in _allPrefectures) {
@@ -859,12 +930,62 @@ class _AnimeListEnNewState extends State<AnimeListEnNew>
     double lat = spot['latitude'];
     double lng = spot['longitude'];
 
-    bool result = lat >= bounds['minLat']! &&
+    return lat >= bounds['minLat']! &&
         lat <= bounds['maxLat']! &&
         lng >= bounds['minLng']! &&
         lng <= bounds['maxLng']!;
+  }
 
+  String _getSortKey(String name) {
+    if (name.isEmpty) return '';
+
+    String hiragana = _katakanaToHiragana(name);
+
+    if (RegExp(r'^[A-Za-z]').hasMatch(name)) {
+      return 'ん' + name.toLowerCase();
+    }
+
+    return hiragana;
+  }
+
+  String _katakanaToHiragana(String kata) {
+    const Map<String, String> katakanaToHiragana = {
+      'ア': 'あ', 'イ': 'い', 'ウ': 'う', 'エ': 'え', 'オ': 'お',
+      'カ': 'か', 'キ': 'き', 'ク': 'く', 'ケ': 'け', 'コ': 'こ',
+      'サ': 'さ', 'シ': 'し', 'ス': 'す', 'セ': 'せ', 'ソ': 'そ',
+      'タ': 'た', 'チ': 'ち', 'ツ': 'つ', 'テ': 'て', 'ト': 'と',
+      'ナ': 'な', 'ニ': 'に', 'ヌ': 'ぬ', 'ネ': 'ね', 'ノ': 'の',
+      'ハ': 'は', 'ヒ': 'ひ', 'フ': 'ふ', 'ヘ': 'へ', 'ホ': 'ほ',
+      'マ': 'ま', 'ミ': 'み', 'ム': 'む', 'メ': 'め', 'モ': 'も',
+      'ヤ': 'や', 'ユ': 'ゆ', 'ヨ': 'よ',
+      'ラ': 'ら', 'リ': 'り', 'ル': 'る', 'レ': 'れ', 'ロ': 'ろ',
+      'ワ': 'わ', 'ヲ': 'を', 'ン': 'ん',
+      'ガ': 'が', 'ギ': 'ぎ', 'グ': 'ぐ', 'ゲ': 'げ', 'ゴ': 'ご',
+      'ザ': 'ざ', 'ジ': 'じ', 'ズ': 'ず', 'ゼ': 'ぜ', 'ゾ': 'ぞ',
+      'ダ': 'だ', 'ヂ': 'ぢ', 'ヅ': 'づ', 'デ': 'で', 'ド': 'ど',
+      'バ': 'ば', 'ビ': 'び', 'ブ': 'ぶ', 'ベ': 'べ', 'ボ': 'ぼ',
+      'パ': 'ぱ', 'ピ': 'ぴ', 'プ': 'ぷ', 'ペ': 'ぺ', 'ポ': 'ぽ',
+      'ャ': 'ゃ', 'ュ': 'ゅ', 'ョ': 'ょ',
+      'ッ': 'っ',
+      'ー': '-',
+    };
+
+    String result = kata;
+    katakanaToHiragana.forEach((k, v) {
+      result = result.replaceAll(k, v);
+    });
     return result;
+  }
+
+  int _compareNames(String a, String b) {
+    if (a.startsWith('ん') && !b.startsWith('ん')) {
+      return 1;
+    } else if (!a.startsWith('ん') && b.startsWith('ん')) {
+      return -1;
+    } else if (a.startsWith('ん') && b.startsWith('ん')) {
+      return a.substring(1).compareTo(b.substring(1));
+    }
+    return a.compareTo(b);
   }
 
   void _onSearchChanged(String query) {
@@ -872,7 +993,6 @@ class _AnimeListEnNewState extends State<AnimeListEnNew>
       _searchQuery = query.toLowerCase();
     });
 
-    // 検索アクティビティを記録
     if (query.isNotEmpty) {
       _logger.logUserActivity('search', {
         'query': query,
@@ -893,7 +1013,6 @@ class _AnimeListEnNewState extends State<AnimeListEnNew>
   }
 
   Future<void> _navigateAndVote(BuildContext context, String animeName) async {
-    // アニメ詳細表示のログを記録
     await _logger.logUserActivity('anime_view', {
       'animeName': animeName,
       'timestamp': DateTime.now().toIso8601String(),
@@ -904,7 +1023,6 @@ class _AnimeListEnNewState extends State<AnimeListEnNew>
       final prefs = await SharedPreferences.getInstance();
       final String? lastVoteDate = prefs.getString('lastVote_$animeName');
 
-      // 投票アクティビティの記録準備
       Map<String, dynamic> voteActivityData = {
         'animeName': animeName,
         'timestamp': DateTime.now().toIso8601String(),
@@ -930,78 +1048,32 @@ class _AnimeListEnNewState extends State<AnimeListEnNew>
             votedAnimeToday.add(animeName);
             await prefs.setStringList('votedAnime_$today', votedAnimeToday);
 
-            // 成功した投票のログを記録
             voteActivityData['status'] = 'success';
             voteActivityData['newCount'] = result.snapshot.value;
             await _logger.logUserActivity('vote_success', voteActivityData);
-
-            print("Incremented count for $animeName");
-            // ScaffoldMessenger.of(context).showSnackBar(
-            //   SnackBar(
-            //     content: Text('${animeName}の投票を受け付けました。'),
-            //     backgroundColor: Colors.green,
-            //   ),
-            // );
           } else {
-            // 投票失敗のログを記録
             voteActivityData['status'] = 'failed';
             voteActivityData['error'] = 'Transaction not committed';
             await _logger.logUserActivity('vote_failure', voteActivityData);
-
-            print("Failed to increment count for $animeName");
-            // ScaffoldMessenger.of(context).showSnackBar(
-            //   SnackBar(
-            //     content: Text('投票に失敗しました。もう一度お試しください。'),
-            //     backgroundColor: Colors.red,
-            //   ),
-            // );
           }
         } else {
-          // 投票制限到達のログを記録
           voteActivityData['status'] = 'limited';
           voteActivityData['reason'] = 'daily_limit_reached';
           await _logger.logUserActivity('vote_limit_reached', voteActivityData);
-
-          print("Daily vote limit reached");
-          // ScaffoldMessenger.of(context).showSnackBar(
-          //   SnackBar(
-          //     content: Text('本日の投票回数の上限に達しました。また明日お試しください。'),
-          //     backgroundColor: Colors.orange,
-          //   ),
-          // );
         }
       } else {
-        // 既に投票済みのログを記録
         voteActivityData['status'] = 'already_voted';
         voteActivityData['lastVoteDate'] = lastVoteDate;
         await _logger.logUserActivity('vote_already_cast', voteActivityData);
-
-        print("Already voted for this anime today");
-        // ScaffoldMessenger.of(context).showSnackBar(
-        //   SnackBar(
-        //     content: Text('このアニメには既に投票済みです。'),
-        //     backgroundColor: Colors.orange,
-        //   ),
-        // );
       }
     } catch (e) {
-      // エラーのログを記録
       await _logger.logUserActivity('vote_error', {
         'animeName': animeName,
         'error': e.toString(),
         'timestamp': DateTime.now().toIso8601String(),
       });
-
-      print("Error incrementing anime count: $e");
-      // ScaffoldMessenger.of(context).showSnackBar(
-      //   SnackBar(
-      //     content: Text('エラーが発生しました。もう一度お試しください。'),
-      //     backgroundColor: Colors.red,
-      //   ),
-      // );
     }
 
-    // 遷移のログを記録
     await _logger.logUserActivity('navigation', {
       'from': 'anime_list',
       'to': 'anime_details',
@@ -1009,7 +1081,6 @@ class _AnimeListEnNewState extends State<AnimeListEnNew>
       'timestamp': DateTime.now().toIso8601String(),
     });
 
-    // 投票処理の後で詳細画面に遷移
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -1089,8 +1160,7 @@ class _AnimeListEnNewState extends State<AnimeListEnNew>
                                       horizontal: 8, vertical: 4),
                                   decoration: BoxDecoration(
                                     color: Colors.black.withOpacity(0.7),
-                                    borderRadius:
-                                    BorderRadius.circular(12),
+                                    borderRadius: BorderRadius.circular(12),
                                   ),
                                   child: Text(
                                     '${index + 1}',
@@ -1106,7 +1176,7 @@ class _AnimeListEnNewState extends State<AnimeListEnNew>
                           ),
                           SizedBox(height: 8),
                           Text(
-                            anime['nameEn'],  // nameEn を表示
+                            anime['nameEn'],
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(fontWeight: FontWeight.bold),
@@ -1182,18 +1252,16 @@ class _AnimeListEnNewState extends State<AnimeListEnNew>
                 return SizedBox();
               }
 
-              final animeName =
-              filteredAnimeData[adjustedIndex]['name'];
-              final imageUrl =
-              filteredAnimeData[adjustedIndex]['imageUrl'];
               final key = adjustedIndex == 0 ? firstItemKey : null;
 
               return GestureDetector(
                 key: key,
-                onTap: () => _navigateAndVote(context, animeName),
+                onTap: () => _navigateAndVote(
+                    context, filteredAnimeData[adjustedIndex]['name']),
                 child: AnimeGridItem(
                   animeName: filteredAnimeData[adjustedIndex]['name'],
-                  animeNameEn: filteredAnimeData[adjustedIndex]['nameEn'],
+                  animeNameEn: filteredAnimeData[adjustedIndex]
+                  ['nameEn'],
                   imageUrl: filteredAnimeData[adjustedIndex]['imageUrl'],
                 ),
               );
