@@ -2,20 +2,18 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:translator/translator.dart';
+import 'package:parts/spot_page/anime_list_detail_en.dart';
 
 import 'anime_list_detail.dart';
 
 class FavoriteLocationsEnPage extends StatefulWidget {
   @override
-  _FavoriteLocationsEnPageState createState() =>
-      _FavoriteLocationsEnPageState();
+  _FavoriteLocationsEnPageState createState() => _FavoriteLocationsEnPageState();
 }
 
 class _FavoriteLocationsEnPageState extends State<FavoriteLocationsEnPage> {
   final FirebaseFirestore firestore = FirebaseFirestore.instance;
   final FirebaseAuth auth = FirebaseAuth.instance;
-  final translator = GoogleTranslator();
   String searchQuery = '';
   List<Map<String, dynamic>> cachedFavoriteLocations = [];
   bool isLoading = false;
@@ -53,30 +51,17 @@ class _FavoriteLocationsEnPageState extends State<FavoriteLocationsEnPage> {
           .limit(itemsPerPage)
           .get();
 
-      List<Future<Map<String, dynamic>>> futures =
-          favoriteSnapshot.docs.map((doc) async {
+      List<Future<Map<String, dynamic>>> futures = favoriteSnapshot.docs.map((doc) async {
         String locationId = doc.id;
-        DocumentSnapshot locationDoc =
-            await firestore.collection('locations').doc(locationId).get();
+        DocumentSnapshot locationDoc = await firestore.collection('locations').doc(locationId).get();
 
         if (locationDoc.exists) {
-          Map<String, dynamic> locationData =
-              locationDoc.data() as Map<String, dynamic>;
+          Map<String, dynamic> locationData = locationDoc.data() as Map<String, dynamic>;
           locationData['isFavorite'] = true;
           locationData['id'] = locationId;
-          locationData['subMedia'] =
-              (locationData['subMedia'] as List<dynamic>?)
-                      ?.map((item) => item as Map<String, dynamic>)
-                      .toList() ??
-                  [];
-
-          locationData['title'] = (await translator
-                  .translate(locationData['title'] ?? 'No title', to: 'en'))
-              .text;
-          locationData['description'] = (await translator.translate(
-                  locationData['description'] ?? 'No description',
-                  to: 'en'))
-              .text;
+          locationData['subMedia'] = (locationData['subMedia'] as List<dynamic>?)
+              ?.map((item) => item as Map<String, dynamic>)
+              .toList() ?? [];
 
           return locationData;
         } else {
@@ -113,34 +98,21 @@ class _FavoriteLocationsEnPageState extends State<FavoriteLocationsEnPage> {
 
       for (var doc in favoriteSnapshot.docs) {
         String locationId = doc.id;
-        DocumentSnapshot locationDoc =
-            await firestore.collection('locations').doc(locationId).get();
+        DocumentSnapshot locationDoc = await firestore.collection('locations').doc(locationId).get();
 
         if (locationDoc.exists) {
-          Map<String, dynamic> locationData =
-              locationDoc.data() as Map<String, dynamic>;
+          Map<String, dynamic> locationData = locationDoc.data() as Map<String, dynamic>;
 
-          String title = locationData['title'] ?? '';
-          String description = locationData['description'] ?? '';
+          String title = locationData['titleEn'] ?? '';
+          String description = locationData['descriptionEn'] ?? '';
 
           if (title.toLowerCase().contains(query.toLowerCase()) ||
               description.toLowerCase().contains(query.toLowerCase())) {
             locationData['isFavorite'] = true;
             locationData['id'] = locationId;
-            locationData['subMedia'] =
-                (locationData['subMedia'] as List<dynamic>?)
-                        ?.map((item) => item as Map<String, dynamic>)
-                        .toList() ??
-                    [];
-
-            // 翻訳を追加し、text プロパティを取得
-            locationData['title'] = (await translator
-                    .translate(locationData['title'] ?? 'No title', to: 'en'))
-                .text;
-            locationData['description'] = (await translator.translate(
-                    locationData['description'] ?? 'No description',
-                    to: 'en'))
-                .text;
+            locationData['subMedia'] = (locationData['subMedia'] as List<dynamic>?)
+                ?.map((item) => item as Map<String, dynamic>)
+                .toList() ?? [];
 
             searchResults.add(locationData);
           }
@@ -189,8 +161,7 @@ class _FavoriteLocationsEnPageState extends State<FavoriteLocationsEnPage> {
     return Scaffold(
       appBar: AppBar(
         title: Text('Favorite Spots',
-            style: TextStyle(
-                color: Color(0xFF00008b), fontWeight: FontWeight.bold)),
+            style: TextStyle(color: Color(0xFF00008b), fontWeight: FontWeight.bold)),
         actions: [
           IconButton(
             onPressed: () {
@@ -208,41 +179,39 @@ class _FavoriteLocationsEnPageState extends State<FavoriteLocationsEnPage> {
       body: isLoading
           ? Center(child: CircularProgressIndicator())
           : NotificationListener<ScrollNotification>(
-              onNotification: (ScrollNotification scrollInfo) {
-                if (!isLoading &&
-                    scrollInfo.metrics.pixels ==
-                        scrollInfo.metrics.maxScrollExtent) {
-                  _fetchFavoriteLocations();
-                  return true;
-                }
-                return false;
-              },
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                child: GridView.builder(
-                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2,
-                    crossAxisSpacing: 8.0,
-                    mainAxisSpacing: 8.0,
-                    childAspectRatio: 0.7,
-                  ),
-                  itemCount:
-                      cachedFavoriteLocations.length + (isLoading ? 1 : 0),
-                  itemBuilder: (context, index) {
-                    if (index == cachedFavoriteLocations.length) {
-                      return Center(child: CircularProgressIndicator());
-                    }
-                    final location = cachedFavoriteLocations[index];
-                    return _buildLocationCard(context, location);
-                  },
-                ),
-              ),
+        onNotification: (ScrollNotification scrollInfo) {
+          if (!isLoading &&
+              scrollInfo.metrics.pixels ==
+                  scrollInfo.metrics.maxScrollExtent) {
+            _fetchFavoriteLocations();
+            return true;
+          }
+          return false;
+        },
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8.0),
+          child: GridView.builder(
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              crossAxisSpacing: 8.0,
+              mainAxisSpacing: 8.0,
+              childAspectRatio: 0.7,
             ),
+            itemCount: cachedFavoriteLocations.length + (isLoading ? 1 : 0),
+            itemBuilder: (context, index) {
+              if (index == cachedFavoriteLocations.length) {
+                return Center(child: CircularProgressIndicator());
+              }
+              final location = cachedFavoriteLocations[index];
+              return _buildLocationCard(context, location);
+            },
+          ),
+        ),
+      ),
     );
   }
 
-  Widget _buildLocationCard(
-      BuildContext context, Map<String, dynamic> location) {
+  Widget _buildLocationCard(BuildContext context, Map<String, dynamic> location) {
     return GestureDetector(
       onTap: () => _navigateToDetails(context, location),
       child: Card(
@@ -264,15 +233,13 @@ class _FavoriteLocationsEnPageState extends State<FavoriteLocationsEnPage> {
                     placeholder: (context, url) => Container(
                         color: Colors.grey[300],
                         child: Center(child: CircularProgressIndicator())),
-                    errorWidget: (context, url, error) => Container(
-                        color: Colors.grey[300], child: Icon(Icons.error)),
+                    errorWidget: (context, url, error) =>
+                        Container(color: Colors.grey[300], child: Icon(Icons.error)),
                   ),
                 ),
                 IconButton(
                   icon: Icon(
-                      location['isFavorite']
-                          ? Icons.favorite
-                          : Icons.favorite_border,
+                      location['isFavorite'] ? Icons.favorite : Icons.favorite_border,
                       color: Colors.red),
                   onPressed: () => _toggleFavorite(location['id']),
                 ),
@@ -284,14 +251,14 @@ class _FavoriteLocationsEnPageState extends State<FavoriteLocationsEnPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    location['title'] ?? 'No title',
+                    location['titleEn'] ?? 'Error',
                     style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                     overflow: TextOverflow.ellipsis,
                     maxLines: 1,
                   ),
                   SizedBox(height: 4),
                   Text(
-                    location['description'] ?? 'No description',
+                    location['descriptionEn'] ?? 'Error',
                     style: TextStyle(fontSize: 14),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
@@ -311,10 +278,9 @@ class _FavoriteLocationsEnPageState extends State<FavoriteLocationsEnPage> {
       MaterialPageRoute(
         builder: (context) => SpotDetailScreen(
           locationId: location['id'] ?? '',
-          title: location['title'] ?? 'No title',
-          description: location['description'] ?? 'No description',
-          spot_description:
-              location['spot_description'] ?? 'No spot_description',
+          title: location['titleEn'] ?? 'Error',
+          description: location['descriptionEn'] ?? 'No description',
+          spot_description: location['spot_description'] ?? 'No spot_description',
           latitude: location['latitude'] ?? 0.0,
           longitude: location['longitude'] ?? 0.0,
           imageUrl: location['imageUrl'] ?? '',
@@ -400,13 +366,11 @@ class LocationSearchDelegate extends SearchDelegate {
                   placeholder: (context, url) => CircularProgressIndicator(),
                   errorWidget: (context, url, error) => Icon(Icons.error),
                 ),
-                title: Text(location['title'] ?? 'No title'),
-                subtitle: Text(location['description'] ?? 'No description'),
+                title: Text(location['titleEn'] ?? 'Error'),
+                subtitle: Text(location['descriptionEn'] ?? 'No description'),
                 trailing: IconButton(
                   icon: Icon(
-                    location['isFavorite']
-                        ? Icons.favorite
-                        : Icons.favorite_border,
+                    location['isFavorite'] ? Icons.favorite : Icons.favorite_border,
                     color: Colors.red,
                   ),
                   onPressed: () async {
@@ -419,23 +383,17 @@ class LocationSearchDelegate extends SearchDelegate {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => SpotDetailScreen(
+                      builder: (context) => SpotDetailEnScreen(
                         locationId: location['id'] ?? '',
                         title: location['title'] ?? 'No title',
-                        description:
-                            location['description'] ?? 'No description',
-                        spot_description:
-                            location['spot_description'] ?? 'spot_description',
+                        description: location['descriptionEn'] ?? 'No description',
                         latitude: location['latitude'] ?? 0.0,
                         longitude: location['longitude'] ?? 0.0,
                         imageUrl: location['imageUrl'] ?? '',
-                        sourceTitle:
-                            location['sourceTitle'] ?? 'No quote source',
+                        sourceTitle: location['sourceTitle'] ?? 'No quote source',
                         sourceLink: location['sourceLink'] ?? 'No link',
                         url: location['url'] ?? '',
                         subMedia: location['subMedia'] ?? [],
-                        animeName: '',
-                        userId: '',
                       ),
                     ),
                   );

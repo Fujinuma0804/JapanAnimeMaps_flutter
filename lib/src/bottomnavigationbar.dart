@@ -239,7 +239,7 @@ class _MainScreenState extends State<MainScreen> {
               _userLanguage == 'Japanese'
                   ? AnimeListTestRanking()
               //ver3.0.6までは翻訳機能を実装し、表示していた。読み込み速度改善のために変更した。
-                  // : AnimeListTestRankingEng(),
+              //     : AnimeListTestRankingEng(),
                   : AnimeListEnNew(),
               _userLanguage == 'Japanese'
                   ?

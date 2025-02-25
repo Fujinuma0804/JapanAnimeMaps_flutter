@@ -6,7 +6,10 @@ import 'package:firebase_in_app_messaging/firebase_in_app_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:parts/components/ad_mob.dart';
+import 'package:parts/spot_page/anime_list_en_detail.dart';
 import 'package:parts/spot_page/check_in.dart';
+import 'package:parts/spot_page/liked_post_en.dart';
+import 'package:parts/spot_page/prefecture_list_en.dart';
 import 'package:parts/spot_page/user_activity_logger.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:tutorial_coach_mark/tutorial_coach_mark.dart';
@@ -282,8 +285,8 @@ class PrefectureDetailPage extends StatelessWidget {
                 placeholder: (context, url) => CircularProgressIndicator(),
                 errorWidget: (context, url, error) => Icon(Icons.error),
               ),
-              title: Text(spot['name'] ?? ''),
-              subtitle: Text(spot['anime'] ?? ''),
+              title: Text(spot['nameEn'] ?? ''),
+              subtitle: Text(spot['animeEn'] ?? ''),
               onTap: () {
                 // スポットの詳細ページへの遷移処理
               },
@@ -339,7 +342,7 @@ class _AnimeListEnNewState extends State<AnimeListEnNew>
   final FirebaseInAppMessaging fiam = FirebaseInAppMessaging.instance;
 
   final Map<String, Map<String, double>> prefectureBounds = {
-  'Hokkaido': {'minLat': 41.3, 'maxLat': 45.6, 'minLng': 139.3, 'maxLng': 148.9},
+  'hokkaido': {'minLat': 41.3, 'maxLat': 45.6, 'minLng': 139.3, 'maxLng': 148.9},
   'Aomori': {'minLat': 40.2, 'maxLat': 41.6, 'minLng': 139.5, 'maxLng': 141.7},
   'Iwate': {'minLat': 38.7, 'maxLat': 40.5, 'minLng': 140.6, 'maxLng': 142.1},
   'Miyagi': {'minLat': 37.8, 'maxLat': 39.0, 'minLng': 140.3, 'maxLng': 141.7},
@@ -389,53 +392,53 @@ class _AnimeListEnNewState extends State<AnimeListEnNew>
   };
 
   final List<String> _allPrefectures = [
-    'Hokkaido',
-    'Aomori',
-    'Iwate',
-    'Miyagi',
-    'Akita',
-    'Yamagata',
-    'Fukushima',
-    'Ibaraki',
-    'Tochigi',
-    'Gunma',
-    'Saitama',
-    'Chiba',
-    'Tokyo',
-    'Kanagawa',
-    'Nigata',
-    'Toyama',
-    'Ishikawa',
-    'Fukui',
-    'Yamanashi',
-    'Nagano',
-    'Gifu',
-    'Shizuoka',
-    'Aichi',
-    'Mie',
-    'Shiga',
-    'Kyoto',
-    'Osaka',
-    'Hyogo',
-    'Nara',
-    'Wakayama',
-    'Tottori',
-    'Shimane',
-    'Okayama',
-    'Hiroshima',
-    'Yamaguchi',
-    'Tokushima',
-    'Kagawa',
-    'Ehime',
-    'Kochi',
-    'Fukuoka',
-    'Saga',
-    'Nagasaki',
-    'Kumamoto',
-    'Oita',
-    'Miyazaki',
-    'Kagoshima',
-    'Okinawa'
+    'hokkaido',
+    'aomori',
+    'iwate',
+    'miyagi',
+    'akita',
+    'yamagata',
+    'fukushima',
+    'ibaraki',
+    'tochigi',
+    'gunma',
+    'saitama',
+    'chiba',
+    'tokyo',
+    'kanagawa',
+    'nigata',
+    'toyama',
+    'ishikawa',
+    'fukui',
+    'yamanashi',
+    'nagano',
+    'gihu',
+    'shizuoka',
+    'aichi',
+    'mie',
+    'shiga',
+    'kyoto',
+    'osaka',
+    'hyogo',
+    'nara',
+    'wakayama',
+    'tottori',
+    'shimane',
+    'okayama',
+    'hiroshima',
+    'yamaguchi',
+    'tokushima',
+    'kagawa',
+    'ehime',
+    'kochi',
+    'fukuoka',
+    'saga',
+    'nagasaki',
+    'kumamoto',
+    'oita',
+    'miyazaki',
+    'kagoshima',
+    'okinawa'
   ];
 
   final ScrollController _scrollController = ScrollController();
@@ -1012,19 +1015,19 @@ class _AnimeListEnNewState extends State<AnimeListEnNew>
     });
   }
 
-  Future<void> _navigateAndVote(BuildContext context, String animeName) async {
+  Future<void> _navigateAndVote2(BuildContext context, String animeNameEn) async {
     await _logger.logUserActivity('anime_view', {
-      'animeName': animeName,
+      'animeNameEn': animeNameEn,
       'timestamp': DateTime.now().toIso8601String(),
     });
 
     try {
       final String today = DateTime.now().toString().split(' ')[0];
       final prefs = await SharedPreferences.getInstance();
-      final String? lastVoteDate = prefs.getString('lastVote_$animeName');
+      final String? lastVoteDate = prefs.getString('lastVote_$animeNameEn');
 
       Map<String, dynamic> voteActivityData = {
-        'animeName': animeName,
+        'animeNameEn': animeNameEn,
         'timestamp': DateTime.now().toIso8601String(),
         'isFirstVoteToday': lastVoteDate == null || lastVoteDate != today,
       };
@@ -1034,7 +1037,7 @@ class _AnimeListEnNewState extends State<AnimeListEnNew>
             prefs.getStringList('votedAnime_$today') ?? [];
 
         if (votedAnimeToday.length < 1) {
-          rtdb.DatabaseReference animeRef = databaseReference.child(animeName);
+          rtdb.DatabaseReference animeRef = databaseReference.child(animeNameEn);
           rtdb.TransactionResult result =
           await animeRef.runTransaction((Object? currentValue) {
             if (currentValue == null) {
@@ -1044,8 +1047,8 @@ class _AnimeListEnNewState extends State<AnimeListEnNew>
           });
 
           if (result.committed) {
-            await prefs.setString('lastVote_$animeName', today);
-            votedAnimeToday.add(animeName);
+            await prefs.setString('lastVote_$animeNameEn', today);
+            votedAnimeToday.add(animeNameEn);
             await prefs.setStringList('votedAnime_$today', votedAnimeToday);
 
             voteActivityData['status'] = 'success';
@@ -1068,7 +1071,7 @@ class _AnimeListEnNewState extends State<AnimeListEnNew>
       }
     } catch (e) {
       await _logger.logUserActivity('vote_error', {
-        'animeName': animeName,
+        'animeNameEn': animeNameEn,
         'error': e.toString(),
         'timestamp': DateTime.now().toIso8601String(),
       });
@@ -1077,14 +1080,14 @@ class _AnimeListEnNewState extends State<AnimeListEnNew>
     await _logger.logUserActivity('navigation', {
       'from': 'anime_list',
       'to': 'anime_details',
-      'animeName': animeName,
+      'animeNameEn': animeNameEn,
       'timestamp': DateTime.now().toIso8601String(),
     });
 
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => AnimeDetailsPage(animeName: animeName),
+        builder: (context) => AnimeDetailsEngPage(animeNameEn: animeNameEn),
       ),
     );
   }
@@ -1130,7 +1133,7 @@ class _AnimeListEnNewState extends State<AnimeListEnNew>
                 itemBuilder: (context, index) {
                   final anime = _topRankedAnime[index];
                   return GestureDetector(
-                    onTap: () => _navigateAndVote(context, anime['name']),
+                    onTap: () => _navigateAndVote2(context, anime['nameEn']),
                     child: Container(
                       width: 160,
                       margin: EdgeInsets.only(right: 16),
@@ -1256,10 +1259,10 @@ class _AnimeListEnNewState extends State<AnimeListEnNew>
 
               return GestureDetector(
                 key: key,
-                onTap: () => _navigateAndVote(
-                    context, filteredAnimeData[adjustedIndex]['name']),
+                onTap: () => _navigateAndVote2(
+                    context, filteredAnimeData[adjustedIndex]['nameEn']),
                 child: AnimeGridItem(
-                  animeName: filteredAnimeData[adjustedIndex]['name'],
+                  animeName: filteredAnimeData[adjustedIndex]['nameEn'],
                   animeNameEn: filteredAnimeData[adjustedIndex]
                   ['nameEn'],
                   imageUrl: filteredAnimeData[adjustedIndex]['imageUrl'],
@@ -1341,7 +1344,7 @@ class _AnimeListEnNewState extends State<AnimeListEnNew>
               onPressed: () => Navigator.push(
                 context,
                 MaterialPageRoute(
-                    builder: (context) => FavoriteLocationsPage()),
+                    builder: (context) => FavoriteLocationsEnPage()),
               ),
               icon: const Icon(Icons.favorite, color: Color(0xFF00008b)),
             ),
@@ -1385,7 +1388,7 @@ class _AnimeListEnNewState extends State<AnimeListEnNew>
                 children: [
                   _buildAnimeList(),
                   _currentTabIndex == 1
-                      ? PrefectureListPage(
+                      ? PrefectureListEnPage(
                     prefectureSpots: _prefectureSpots,
                     searchQuery: _searchQuery,
                     onFetchPrefectureData: _fetchPrefectureData,
