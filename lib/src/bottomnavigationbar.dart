@@ -3,7 +3,10 @@ import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_vibrate/flutter_vibrate.dart';
+import 'package:parts/map_page/map_subsc.dart';
+import 'package:parts/map_page/new_map_en.dart';
 import 'package:parts/post_page/timeline_screen.dart';
+import 'package:parts/post_page/timeline_screen_en.dart';
 import 'package:parts/ranking/ranking_top.dart';
 import 'package:parts/shop/shop_maintenance.dart';
 import 'package:parts/shop/shop_top.dart';
@@ -247,15 +250,15 @@ class _MainScreenState extends State<MainScreen> {
               // _buildShopScreen()
                   : RankingTopPageEn(),
               _userLanguage == 'Japanese'
-                  ? MapScreen(latitude: _latitude, longitude: _longitude)
-                  : MapEnScreen(latitude: _latitude, longitude: _longitude),
+                  ? MapSubscription(latitude: _latitude, longitude: _longitude)
+                  : NewMapEn(latitude: _latitude, longitude: _longitude),
               _userLanguage == 'Japanese'
                   ? (!_hasSeenWelcome
                       ? PostWelcome1(showScaffold: false)
                       : TimelineScreen())
                   : (!_hasSeenWelcome
                       ? PostWelcome1(showScaffold: false)
-                      : TimelineScreen()),
+                      : TimelineScreenEn()),
               _userLanguage == 'Japanese'
                   ? UserPointUpdatePage()
                   : UserPointUpdatePage(),
