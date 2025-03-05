@@ -250,7 +250,7 @@ class _MainScreenState extends State<MainScreen> {
               // _buildShopScreen()
                   : RankingTopPageEn(),
               _userLanguage == 'Japanese'
-                  ? MapSubscription(latitude: _latitude, longitude: _longitude)
+                  ? MapScreen(latitude: _latitude, longitude: _longitude)
                   : NewMapEn(latitude: _latitude, longitude: _longitude),
               _userLanguage == 'Japanese'
                   ? (!_hasSeenWelcome
