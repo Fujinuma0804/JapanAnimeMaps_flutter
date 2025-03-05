@@ -36,18 +36,18 @@ class _FavoriteLocationsPageState extends State<FavoriteLocationsPage> {
         print('Fetching location data for location ID: $locationId');
 
         DocumentSnapshot locationDoc =
-            await firestore.collection('locations').doc(locationId).get();
+        await firestore.collection('locations').doc(locationId).get();
 
         if (locationDoc.exists) {
           print('Location data for $locationId: ${locationDoc.data()}');
           Map<String, dynamic> locationData =
-              locationDoc.data() as Map<String, dynamic>;
+          locationDoc.data() as Map<String, dynamic>;
           locationData['isFavorite'] = true;
           locationData['id'] = locationId;
           locationData['subMedia'] =
               (locationData['subMedia'] as List<dynamic>?)
-                      ?.map((item) => item as Map<String, dynamic>)
-                      .toList() ??
+                  ?.map((item) => item as Map<String, dynamic>)
+                  .toList() ??
                   [];
           favoriteLocations.add(locationData);
         } else {
@@ -78,11 +78,11 @@ class _FavoriteLocationsPageState extends State<FavoriteLocationsPage> {
       for (var doc in favoriteSnapshot.docs) {
         String locationId = doc.id;
         DocumentSnapshot locationDoc =
-            await firestore.collection('locations').doc(locationId).get();
+        await firestore.collection('locations').doc(locationId).get();
 
         if (locationDoc.exists) {
           Map<String, dynamic> locationData =
-              locationDoc.data() as Map<String, dynamic>;
+          locationDoc.data() as Map<String, dynamic>;
 
           String title = locationData['title'] ?? '';
           String description = locationData['description'] ?? '';
@@ -93,8 +93,8 @@ class _FavoriteLocationsPageState extends State<FavoriteLocationsPage> {
             locationData['id'] = locationId;
             locationData['subMedia'] =
                 (locationData['subMedia'] as List<dynamic>?)
-                        ?.map((item) => item as Map<String, dynamic>)
-                        .toList() ??
+                    ?.map((item) => item as Map<String, dynamic>)
+                    .toList() ??
                     [];
             searchResults.add(locationData);
           }
@@ -142,11 +142,14 @@ class _FavoriteLocationsPageState extends State<FavoriteLocationsPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        elevation: 0,
+        backgroundColor: Colors.white,
         title: Text(
           'お気に入りスポット',
           style: TextStyle(
             color: Color(0xFF00008b),
             fontWeight: FontWeight.bold,
+            fontSize: 22,
           ),
         ),
         actions: [
@@ -163,111 +166,200 @@ class _FavoriteLocationsPageState extends State<FavoriteLocationsPage> {
             icon: Icon(
               Icons.search,
               color: Color(0xFF00008b),
+              size: 28,
             ),
           ),
         ],
       ),
-      body: FutureBuilder<List<Map<String, dynamic>>>(
-        future: _fetchFavoriteLocations(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return Center(child: CircularProgressIndicator());
-          } else if (snapshot.hasError) {
-            return Center(child: Text('Error: ${snapshot.error}'));
-          } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            return Center(child: Text('お気に入りのスポットが見つかりません。'));
-          } else {
-            final favoriteLocations = snapshot.data!;
-            return Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8.0),
-              child: GridView.builder(
-                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
-                  crossAxisSpacing: 8.0,
-                  mainAxisSpacing: 8.0,
-                  childAspectRatio: 0.7,
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [Colors.white, Color(0xFFF5F5F5)],
+          ),
+        ),
+        child: FutureBuilder<List<Map<String, dynamic>>>(
+          future: _fetchFavoriteLocations(),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return Center(
+                child: CircularProgressIndicator(
+                  valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF00008b)),
                 ),
+              );
+            } else if (snapshot.hasError) {
+              return Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.error_outline, size: 48, color: Colors.red[300]),
+                    SizedBox(height: 16),
+                    Text(
+                      'Error: ${snapshot.error}',
+                      style: TextStyle(fontSize: 16),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
+              );
+            } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+              return Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.favorite_border, size: 64, color: Colors.grey),
+                    SizedBox(height: 16),
+                    Text(
+                      'お気に入りのスポットが見つかりません。',
+                      style: TextStyle(
+                        fontSize: 18,
+                        color: Colors.grey[700],
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            } else {
+              final favoriteLocations = snapshot.data!;
+              return ListView.builder(
+                padding: EdgeInsets.all(12.0),
                 itemCount: favoriteLocations.length,
                 itemBuilder: (context, index) {
                   final location = favoriteLocations[index];
-                  return GestureDetector(
-                    onTap: () => _navigateToDetails(context, location),
-                    child: Card(
-                      elevation: 2,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Stack(
-                            alignment: Alignment.topRight,
-                            children: [
-                              ClipRRect(
-                                borderRadius: BorderRadius.vertical(
-                                    top: Radius.circular(10)),
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 12.0),
+                    child: GestureDetector(
+                      onTap: () => _navigateToDetails(context, location),
+                      child: Card(
+                        elevation: 4,
+                        shadowColor: Colors.black26,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Row(
+                          children: [
+                            // 画像部分
+                            ClipRRect(
+                              borderRadius: BorderRadius.only(
+                                topLeft: Radius.circular(16),
+                                bottomLeft: Radius.circular(16),
+                              ),
+                              child: Hero(
+                                tag: 'location_image_${location['id']}',
                                 child: CachedNetworkImage(
                                   imageUrl: location['imageUrl'] ?? '',
-                                  width: double.infinity,
+                                  width: 120,
                                   height: 120,
                                   fit: BoxFit.cover,
                                   placeholder: (context, url) => Container(
-                                    color: Colors.grey[300],
+                                    color: Colors.grey[200],
+                                    width: 120,
+                                    height: 120,
                                     child: Center(
-                                        child: CircularProgressIndicator()),
+                                      child: CircularProgressIndicator(
+                                        valueColor: AlwaysStoppedAnimation<Color>(
+                                            Color(0xFF00008b)),
+                                        strokeWidth: 2,
+                                      ),
+                                    ),
                                   ),
-                                  errorWidget: (context, url, error) =>
-                                      Container(
-                                    color: Colors.grey[300],
-                                    child: Icon(Icons.error),
+                                  errorWidget: (context, url, error) => Container(
+                                    color: Colors.grey[200],
+                                    width: 120,
+                                    height: 120,
+                                    child: Icon(
+                                      Icons.image_not_supported_outlined,
+                                      color: Colors.grey[400],
+                                    ),
                                   ),
                                 ),
                               ),
-                              IconButton(
-                                icon: Icon(
-                                  location['isFavorite']
-                                      ? Icons.favorite
-                                      : Icons.favorite_border,
-                                  color: Colors.red,
-                                ),
-                                onPressed: () =>
-                                    _toggleFavorite(location['id']),
-                              ),
-                            ],
-                          ),
-                          Padding(
-                            padding: const EdgeInsets.all(8.0),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  location['title'] ?? 'No title',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 16,
-                                  ),
-                                  overflow: TextOverflow.ellipsis,
-                                  maxLines: 1,
-                                ),
-                                SizedBox(height: 4),
-                                Text(
-                                  location['description'] ?? 'Not Description',
-                                  style: TextStyle(fontSize: 14),
-                                  maxLines: 4,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ],
                             ),
-                          ),
-                        ],
+                            // テキスト部分
+                            Expanded(
+                              child: Container(
+                                height: 120,
+                                child: Stack(
+                                  children: [
+                                    Padding(
+                                      padding: const EdgeInsets.all(12.0),
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            location['title'] ?? 'No title',
+                                            style: TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 16,
+                                              color: Color(0xFF00008b),
+                                            ),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                          SizedBox(height: 8),
+                                          Expanded(
+                                            child: Text(
+                                              location['description'] ?? 'Not Description',
+                                              style: TextStyle(
+                                                fontSize: 14,
+                                                color: Colors.grey[700],
+                                                height: 1.3,
+                                              ),
+                                              maxLines: 3,
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    // お気に入りボタン
+                                    Positioned(
+                                      top: 4,
+                                      right: 4,
+                                      child: Container(
+                                        decoration: BoxDecoration(
+                                          color: Colors.white.withOpacity(0.8),
+                                          shape: BoxShape.circle,
+                                          boxShadow: [
+                                            BoxShadow(
+                                              color: Colors.black12,
+                                              spreadRadius: 1,
+                                              blurRadius: 2,
+                                            ),
+                                          ],
+                                        ),
+                                        child: IconButton(
+                                          icon: Icon(
+                                            location['isFavorite']
+                                                ? Icons.favorite
+                                                : Icons.favorite_border,
+                                            color: Colors.redAccent,
+                                            size: 20,
+                                          ),
+                                          onPressed: () => _toggleFavorite(location['id']),
+                                          padding: EdgeInsets.all(6),
+                                          constraints: BoxConstraints(
+                                            minWidth: 32,
+                                            minHeight: 32,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   );
                 },
-              ),
-            );
-          }
-        },
+              );
+            }
+          },
+        ),
       ),
     );
   }
@@ -281,7 +373,7 @@ class _FavoriteLocationsPageState extends State<FavoriteLocationsPage> {
           title: location['title'] ?? 'Not title',
           description: location['description'] ?? 'Not Description',
           spot_description:
-              location['spot_description'] ?? 'Not spot_description',
+          location['spot_description'] ?? 'Not spot_description',
           latitude: location['latitude'] ?? 0.0,
           longitude: location['longitude'] ?? 0.0,
           imageUrl: location['imageUrl'] ?? '',
@@ -291,8 +383,8 @@ class _FavoriteLocationsPageState extends State<FavoriteLocationsPage> {
           animeName: '',
           userId: '',
           subMedia: (location['subMedia'] as List<dynamic>?)
-                  ?.map((item) => item as Map<String, dynamic>)
-                  .toList() ??
+              ?.map((item) => item as Map<String, dynamic>)
+              .toList() ??
               [],
         ),
       ),
@@ -313,7 +405,7 @@ class LocationSearchDelegate extends SearchDelegate {
   List<Widget>? buildActions(BuildContext context) {
     return [
       IconButton(
-        icon: Icon(Icons.clear),
+        icon: Icon(Icons.clear, color: Color(0xFF00008b)),
         onPressed: () {
           query = '';
         },
@@ -324,7 +416,7 @@ class LocationSearchDelegate extends SearchDelegate {
   @override
   Widget? buildLeading(BuildContext context) {
     return IconButton(
-      icon: Icon(Icons.arrow_back),
+      icon: Icon(Icons.arrow_back, color: Color(0xFF00008b)),
       onPressed: () {
         close(context, null);
       },
@@ -332,138 +424,262 @@ class LocationSearchDelegate extends SearchDelegate {
   }
 
   @override
+  ThemeData appBarTheme(BuildContext context) {
+    final ThemeData theme = Theme.of(context);
+    return theme.copyWith(
+      appBarTheme: AppBarTheme(
+        color: Colors.white,
+        elevation: 0,
+      ),
+      inputDecorationTheme: InputDecorationTheme(
+        border: InputBorder.none,
+        hintStyle: TextStyle(color: Colors.grey),
+      ),
+    );
+  }
+
+  @override
   Widget buildResults(BuildContext context) {
-    return FutureBuilder<List<Map<String, dynamic>>>(
-      future: onSearch(query),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return Center(child: CircularProgressIndicator());
-        } else if (snapshot.hasError) {
-          return Center(child: Text('Error: ${snapshot.error}'));
-        } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-          return Center(child: Text('No results found.'));
-        } else {
-          final searchResults = snapshot.data!;
-          return Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8.0),
-            child: GridView.builder(
-              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                crossAxisSpacing: 8.0,
-                mainAxisSpacing: 8.0,
-                childAspectRatio: 0.7,
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [Colors.white, Color(0xFFF5F5F5)],
+        ),
+      ),
+      child: FutureBuilder<List<Map<String, dynamic>>>(
+        future: onSearch(query),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return Center(
+              child: CircularProgressIndicator(
+                valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF00008b)),
               ),
+            );
+          } else if (snapshot.hasError) {
+            return Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.error_outline, size: 48, color: Colors.red[300]),
+                  SizedBox(height: 16),
+                  Text(
+                    'Error: ${snapshot.error}',
+                    style: TextStyle(fontSize: 16),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
+            );
+          } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+            return Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.search_off, size: 64, color: Colors.grey),
+                  SizedBox(height: 16),
+                  Text(
+                    'No results found.',
+                    style: TextStyle(
+                      fontSize: 18,
+                      color: Colors.grey[700],
+                    ),
+                  ),
+                ],
+              ),
+            );
+          } else {
+            final searchResults = snapshot.data!;
+            return ListView.builder(
+              padding: EdgeInsets.all(12.0),
               itemCount: searchResults.length,
               itemBuilder: (context, index) {
                 final location = searchResults[index];
-                return GestureDetector(
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => SpotDetailScreen(
-                          locationId: location['id'] ?? '',
-                          title: location['title'] ?? 'Not title',
-                          description:
-                              location['description'] ?? 'Not Description',
-                          spot_description: location['spot_description'] ??
-                              'spot_description',
-                          latitude: location['latitude'] ?? 0.0,
-                          longitude: location['longitude'] ?? 0.0,
-                          imageUrl: location['imageUrl'] ?? '',
-                          sourceTitle:
-                              location['sourceTitle'] ?? 'Not Quote source',
-                          sourceLink: location['sourceLink'] ?? 'Not Link',
-                          url: location['url'] ?? '',
-                          animeName: '',
-                          userId: '',
-                          subMedia: (location['subMedia'] as List<dynamic>?)
-                                  ?.map((item) => item as Map<String, dynamic>)
-                                  .toList() ??
-                              [],
-                        ),
-                      ),
-                    );
-                  },
-                  child: Card(
-                    elevation: 2,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Stack(
-                          alignment: Alignment.topRight,
-                          children: [
-                            ClipRRect(
-                              borderRadius: BorderRadius.vertical(
-                                  top: Radius.circular(10)),
-                              child: CachedNetworkImage(
-                                imageUrl: location['imageUrl'] ?? '',
-                                width: double.infinity,
-                                height: 120,
-                                fit: BoxFit.cover,
-                                placeholder: (context, url) => Container(
-                                  color: Colors.grey[300],
-                                  child: Center(
-                                      child: CircularProgressIndicator()),
-                                ),
-                                errorWidget: (context, url, error) => Container(
-                                  color: Colors.grey[300],
-                                  child: Icon(Icons.error),
-                                ),
-                              ),
-                            ),
-                            IconButton(
-                              icon: Icon(
-                                location['isFavorite']
-                                    ? Icons.favorite
-                                    : Icons.favorite_border,
-                                color: Colors.red,
-                              ),
-                              onPressed: () => toggleFavorite(location['id']),
-                            ),
-                          ],
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.all(8.0),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                location['title'] ?? 'No title',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 16,
-                                ),
-                                overflow: TextOverflow.ellipsis,
-                                maxLines: 1,
-                              ),
-                              SizedBox(height: 4),
-                              Text(
-                                location['description'] ?? 'Not Description',
-                                style: TextStyle(fontSize: 14),
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+                return Padding(
+                    padding: const EdgeInsets.only(bottom: 12.0),
+                child: GestureDetector(
+                onTap: () {
+                Navigator.push(
+                context,
+                MaterialPageRoute(
+                builder: (context) => SpotDetailScreen(
+                locationId: location['id'] ?? '',
+                title: location['title'] ?? 'Not title',
+                description:
+                location['description'] ?? 'Not Description',
+                spot_description: location['spot_description'] ??
+                'spot_description',
+                latitude: location['latitude'] ?? 0.0,
+                longitude: location['longitude'] ?? 0.0,
+                imageUrl: location['imageUrl'] ?? '',
+                sourceTitle:
+                location['sourceTitle'] ?? 'Not Quote source',
+                sourceLink: location['sourceLink'] ?? 'Not Link',
+                url: location['url'] ?? '',
+                animeName: '',
+                userId: '',
+                subMedia: (location['subMedia'] as List<dynamic>?)
+                    ?.map((item) => item as Map<String, dynamic>)
+                    .toList() ??
+                [],
+                ),
+                ),
                 );
-              },
-            ),
-          );
+                },
+                child: Card(
+                elevation: 4,
+                shadowColor: Colors.black26,
+                shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+                ),
+                child: Row(
+                children: [
+                // 画像部分
+                ClipRRect(
+                borderRadius: BorderRadius.only(
+                topLeft: Radius.circular(16),
+                bottomLeft: Radius.circular(16),
+                ),
+                child: CachedNetworkImage(
+                imageUrl: location['imageUrl'] ?? '',
+                width: 120,
+                height: 120,
+                fit: BoxFit.cover,
+                placeholder: (context, url) => Container(
+                color: Colors.grey[200],
+                width: 120,
+                height: 120,
+                child: Center(
+                child: CircularProgressIndicator(
+                valueColor: AlwaysStoppedAnimation<Color>(
+                Color(0xFF00008b)),
+                strokeWidth: 2,
+                ),
+                ),
+                ),
+                errorWidget: (context, url, error) => Container(
+                color: Colors.grey[200],
+                width: 120,
+                height: 120,
+                child: Icon(
+                Icons.image_not_supported_outlined,
+                color: Colors.grey[400],
+                ),
+                ),
+                ),
+                ),
+                // テキスト部分
+                Expanded(
+                child: Container(
+                height: 120,
+                child: Stack(
+                children: [
+                Padding(
+                padding: const EdgeInsets.all(12.0),
+                child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                Text(
+                location['title'] ?? 'No title',
+                style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+                color: Color(0xFF00008b),
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                ),
+                SizedBox(height: 8),
+                Expanded(
+                child: Text(
+                location['description'] ?? 'Not Description',
+                style: TextStyle(
+                fontSize: 14,
+                color: Colors.grey[700],
+                height: 1.3,
+                ),
+                maxLines: 3,
+                overflow: TextOverflow.ellipsis,
+                ),
+                ),
+                ],
+                ),
+                ),
+                // お気に入りボタン
+                Positioned(
+                top: 4,
+                right: 4,
+                child: Container(
+                decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.8),
+                shape: BoxShape.circle,
+                boxShadow: [
+                BoxShadow(
+                color: Colors.black12,
+                spreadRadius: 1,
+                blurRadius: 2,
+                ),
+                ],
+                ),
+                child: IconButton(
+                icon: Icon(
+                location['isFavorite']
+                ? Icons.favorite
+                    : Icons.favorite_border,
+                color: Colors.redAccent,
+                size: 20,
+                ),
+                onPressed: () => toggleFavorite(location['id']),
+                padding: EdgeInsets.all(6),
+                constraints: BoxConstraints(
+                minWidth: 32,
+                minHeight: 32,
+                ),
+                ),
+                ),
+                ),
+                ],
+                ),
+                ),
+                ),
+                ],
+                ),
+                ),
+                )
+                );
+                },
+            );
         }
-      },
+        },
+      ),
     );
   }
 
   @override
   Widget buildSuggestions(BuildContext context) {
-    return Container();
+    return Container(
+      color: Colors.white,
+      child: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.search,
+              size: 64,
+              color: Colors.grey[300],
+            ),
+            SizedBox(height: 16),
+            Text(
+              '検索キーワードを入力してください',
+              style: TextStyle(
+                color: Colors.grey[600],
+                fontSize: 16,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
