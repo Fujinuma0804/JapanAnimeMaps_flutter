@@ -814,7 +814,7 @@ class _UserPointUpdatePageState extends State<UserPointUpdatePage> {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => PointsHistoryPage(userId: ''),
+                    builder: (context) => PointHistoryPage(),
                   ),
                 );
               },
