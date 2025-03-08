@@ -3,10 +3,13 @@ import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:in_app_review/in_app_review.dart';
 import 'package:parts/manual_page/usage_screen.dart';
 import 'package:parts/payment/payment.dart';
 import 'package:parts/subscription/payment_subscription.dart';
 import 'package:settings_ui/settings_ui.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'dart:io' show Platform;
 
 import '../setting_page/settings_en.dart';
 import '../web_page/website.dart';
@@ -35,6 +38,8 @@ class _ManualEnState extends State<ManualEn> {
     _languageSubscription.cancel();
     super.dispose();
   }
+
+  final InAppReview inAppReview = InAppReview.instance;
 
   void _monitorLanguageChange() {
     User? user = _auth.currentUser;
@@ -149,6 +154,34 @@ class _ManualEnState extends State<ManualEn> {
                 ),
               ],
             ),
+            SettingsSection(
+              title: Text(_language == '日本語' ? 'レビュー' : 'Review'),
+              tiles: <SettingsTile>[
+                SettingsTile.navigation(
+                  leading: const Icon(Icons.star_rounded),
+                  title: Text(_language == '日本語' ? 'このアプリをレビューする' : 'Review this app'),
+                  value: const Text(''),
+                  onPressed: (context) {
+                    inAppReview.openStoreListing(appStoreId: '6608967051', microsoftStoreId: '...');
+                  },
+                ),
+              ],
+            ),
+            // SettingsSection(
+            //   title: Text(_language == '日本語' ? 'レビュー' : 'Review'),
+            //   tiles: <SettingsTile>[
+            //     SettingsTile.navigation(
+            //       leading: const Icon(Icons.star_rounded),
+            //       title: Text(_language == '日本語' ? 'このアプリをレビューする' : 'Review this app'),
+            //       value: const Text(''),
+            //       onPressed: (context) {
+            //         // url_launcherを使って直接App Storeを開く
+            //         final url = Uri.parse('https://apps.apple.com/jp/app/japananimemaps/id6608967051');
+            //         launchUrl(url, mode: LaunchMode.externalApplication);
+            //       },
+            //     ),
+            //   ],
+            // ),
             // SettingsSection(
             //   title: Text(_language == '日本語' ? '有料プラン' : 'Paid plan'),
             //   tiles: <SettingsTile>[
