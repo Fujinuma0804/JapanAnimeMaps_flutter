@@ -8,6 +8,8 @@ import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:parts/components/ad_mob.dart';
 import 'package:parts/spot_page/anime_list_en_detail.dart';
 import 'package:parts/spot_page/check_in.dart';
+import 'package:parts/spot_page/check_in_en.dart';
+import 'package:parts/spot_page/check_in_en_screen.dart';
 import 'package:parts/spot_page/liked_post_en.dart';
 import 'package:parts/spot_page/prefecture_list_en.dart';
 import 'package:parts/spot_page/user_activity_logger.dart';
@@ -1335,7 +1337,7 @@ class _AnimeListEnNewState extends State<AnimeListEnNew>
               key: checkInKey,
               onPressed: () => Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => const SpotTestScreen()),
+                MaterialPageRoute(builder: (context) => const CheckInEnScreen()),
               ),
               icon: const Icon(Icons.check_circle, color: Color(0xFF00008b)),
             ),
