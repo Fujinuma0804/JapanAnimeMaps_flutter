@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:parts/setting_page/address/add_address_screen.dart';
 import 'package:settings_ui/settings_ui.dart';
@@ -74,38 +75,51 @@ class _SettingsEnState extends State<SettingsEn> {
     showDialog(
       context: context,
       builder: (context) {
-        return AlertDialog(
-          title: Column(children: [
-            Text(_language == '日本語' ? '言語設定' : 'Language Settings'),
-            Text(
-              _language == '日本語'
-                  ? '変更後はアプリを再起動してください。'
-                  : 'Please restart the app after making changes.',
-              style: TextStyle(
-                color: Colors.black,
-                fontSize: 15.0,
-              ),
-            )
-          ]),
+        return CupertinoAlertDialog(
+          title: Column(
+            children: [
+              Text(_language == '日本語' ? '言語設定' : 'Language Settings'),
+              SizedBox(height: 8),
+            ],
+          ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              ListTile(
-                title: Text('日本語'),
-                onTap: () {
+              CupertinoDialogAction(
+                child: Text(
+                  '日本語',
+                  style: TextStyle(
+                    color: Color(0xFF00008b),
+                  ),
+                ),
+                onPressed: () {
                   _changeLanguage('Japanese');
                   Navigator.of(context).pop();
                 },
               ),
-              ListTile(
-                title: Text('English'),
-                onTap: () {
+              CupertinoDialogAction(
+                child: Text(
+                    'English',
+                  style: TextStyle(
+                    color: Color(0xFF00008b),
+                  ),
+                ),
+                onPressed: () {
                   _changeLanguage('English');
                   Navigator.of(context).pop();
                 },
               ),
             ],
           ),
+          actions: [
+            CupertinoDialogAction(
+              isDestructiveAction: true,
+              child: Text(_language == '日本語' ? 'キャンセル' : 'Cancel'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
         );
       },
     );

@@ -168,21 +168,6 @@ class _ManualEnState extends State<ManualEn> {
               ],
             ),
             // SettingsSection(
-            //   title: Text(_language == '日本語' ? 'レビュー' : 'Review'),
-            //   tiles: <SettingsTile>[
-            //     SettingsTile.navigation(
-            //       leading: const Icon(Icons.star_rounded),
-            //       title: Text(_language == '日本語' ? 'このアプリをレビューする' : 'Review this app'),
-            //       value: const Text(''),
-            //       onPressed: (context) {
-            //         // url_launcherを使って直接App Storeを開く
-            //         final url = Uri.parse('https://apps.apple.com/jp/app/japananimemaps/id6608967051');
-            //         launchUrl(url, mode: LaunchMode.externalApplication);
-            //       },
-            //     ),
-            //   ],
-            // ),
-            // SettingsSection(
             //   title: Text(_language == '日本語' ? '有料プラン' : 'Paid plan'),
             //   tiles: <SettingsTile>[
             //     SettingsTile.navigation(

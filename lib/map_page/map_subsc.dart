@@ -19,9 +19,11 @@ import 'package:parts/map_page/background_location.dart';
 import 'package:parts/map_page/notification_service.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:video_player/video_player.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart'; // 追加
 
 import '../PostScreen.dart';
 import '../spot_page/anime_list_detail.dart';
+import '../map_page/admob/admanager.dart';
 
 class MapSubscription extends StatefulWidget {
   const MapSubscription(
@@ -52,6 +54,15 @@ class _MapSubscriptionState extends State<MapSubscription> {
   bool _isLoadingMoreMarkers = false;
   List<QueryDocumentSnapshot> _pendingMarkers = [];
   bool _isLoadingNearbyMarkers = false;
+
+  // 検索制限に関する変数
+  int _searchesRemaining = 3; // デフォルト値（Firestoreからロードするまで）
+  bool _searchLimitReached = false;
+  DateTime _lastSearchDate = DateTime.now();
+
+  // 広告関連の新しい変数
+  bool _isWatchingAd = false;
+  bool _isAdAvailable = false;
 
   TextEditingController _searchController = TextEditingController();
   List<DocumentSnapshot> _searchResults = [];
@@ -314,6 +325,32 @@ class _MapSubscriptionState extends State<MapSubscription> {
     _getCurrentLocation();
     _loadMarkersFromFirestore();
     _getUser();
+    _loadSearchLimitData(); // 検索制限データをロードする新しいメソッド
+
+    // Initialize AdMob
+    print('MapSubscription: Initializing AdManager');
+    AdManager.initialize().then((_) {
+      print('MapSubscription: AdManager initialized');
+      AdManager.addAdStatusListener(_onAdStatusChanged);
+      _isAdAvailable = AdManager.isRewardedAdAvailable();
+      print('MapSubscription: Initial ad availability: $_isAdAvailable');
+      if (mounted) {
+        setState(() {
+          _isAdAvailable = AdManager.isRewardedAdAvailable();
+          print('MapSubscription: Ad availability set to $_isAdAvailable');
+        });
+      }
+    }).catchError((error) {
+      print('MapSubscription: Error initializing AdManager: $error');
+    });
+  }
+  void _onAdStatusChanged(bool available) {
+    print('MapSubscription: Ad status changed to: $available');
+    if (mounted) {
+      setState(() {
+        _isAdAvailable = available;
+      });
+    }
   }
 
   @override
@@ -321,7 +358,275 @@ class _MapSubscriptionState extends State<MapSubscription> {
     _videoPlayerController.dispose();
     _searchController.dispose();
     _searchFocusNode.dispose();
+    AdManager.removeAdStatusListener(_onAdStatusChanged);
+    AdManager.dispose(); // Dispose AdMob resources
     super.dispose();
+  }
+
+  // 検索制限データをFirestoreからロードする新しいメソッド
+  Future<void> _loadSearchLimitData() async {
+    // ユーザーの初期化を待つ
+    if (_userId == null || _userId.isEmpty) {
+      await _getUser();
+    }
+
+    try {
+      // 現在のユーザーの検索使用状況ドキュメントを取得
+      DocumentSnapshot searchUsageDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(_userId)
+          .collection('search_usage')
+          .doc('daily_limit')
+          .get();
+
+      if (searchUsageDoc.exists) {
+        Map<String, dynamic> data = searchUsageDoc.data() as Map<String, dynamic>;
+        DateTime lastSearchDate = (data['lastSearchDate'] as Timestamp).toDate();
+        int searchCount = data['searchCount'] ?? 0;
+
+        // 最後の検索が別の日（午前0時以降）に行われたかチェック
+        bool isNewDay = DateTime.now().day != lastSearchDate.day ||
+            DateTime.now().month != lastSearchDate.month ||
+            DateTime.now().year != lastSearchDate.year;
+
+        if (isNewDay) {
+          // 新しい日なら、検索カウントをリセット
+          setState(() {
+            _searchesRemaining = 3;
+            _searchLimitReached = false;
+            _lastSearchDate = DateTime.now();
+          });
+
+          // リセットした値でFirestoreを更新
+          await FirebaseFirestore.instance
+              .collection('users')
+              .doc(_userId)
+              .collection('search_usage')
+              .doc('daily_limit')
+              .set({
+            'searchCount': 0,
+            'lastSearchDate': Timestamp.now(),
+          });
+        } else {
+          // 同じ日なら、既存の検索カウントを使用
+          setState(() {
+            _searchesRemaining = 3 - searchCount;
+            _searchLimitReached = _searchesRemaining <= 0;
+            _lastSearchDate = lastSearchDate;
+          });
+        }
+      } else {
+        // ドキュメントが存在しない場合、デフォルト値で作成
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(_userId)
+            .collection('search_usage')
+            .doc('daily_limit')
+            .set({
+          'searchCount': 0,
+          'lastSearchDate': Timestamp.now(),
+        });
+
+        setState(() {
+          _searchesRemaining = 3;
+          _searchLimitReached = false;
+        });
+      }
+    } catch (e) {
+      print('Error loading search limit data: $e');
+      // エラーの場合はデフォルト値を設定
+      setState(() {
+        _searchesRemaining = 3;
+        _searchLimitReached = false;
+      });
+    }
+  }
+
+  // 検索カウントをFirestoreでインクリメントする新しいメソッド
+  Future<void> _incrementSearchCount() async {
+    try {
+      // 現在のドキュメントを取得
+      DocumentSnapshot searchUsageDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(_userId)
+          .collection('search_usage')
+          .doc('daily_limit')
+          .get();
+
+      if (searchUsageDoc.exists) {
+        Map<String, dynamic> data = searchUsageDoc.data() as Map<String, dynamic>;
+        int currentCount = data['searchCount'] ?? 0;
+        DateTime lastSearchDate = (data['lastSearchDate'] as Timestamp).toDate();
+
+        // 新しい日かチェック
+        bool isNewDay = DateTime.now().day != lastSearchDate.day ||
+            DateTime.now().month != lastSearchDate.month ||
+            DateTime.now().year != lastSearchDate.year;
+
+        if (isNewDay) {
+          // 新しい日なら、カウントを1にリセット（この検索）
+          await FirebaseFirestore.instance
+              .collection('users')
+              .doc(_userId)
+              .collection('search_usage')
+              .doc('daily_limit')
+              .set({
+            'searchCount': 1,
+            'lastSearchDate': Timestamp.now(),
+          });
+
+          setState(() {
+            _searchesRemaining = 2; // 合計3回 - 使用済み1回
+            _searchLimitReached = false;
+            _lastSearchDate = DateTime.now();
+          });
+        } else {
+          // 同じ日なら、カウントをインクリメント
+          int newCount = currentCount + 1;
+          await FirebaseFirestore.instance
+              .collection('users')
+              .doc(_userId)
+              .collection('search_usage')
+              .doc('daily_limit')
+              .update({
+            'searchCount': newCount,
+            'lastSearchDate': Timestamp.now(),
+          });
+
+          setState(() {
+            _searchesRemaining = 3 - newCount;
+            _searchLimitReached = _searchesRemaining <= 0;
+            _lastSearchDate = DateTime.now();
+          });
+        }
+      } else {
+        // ドキュメントが存在しない場合、count = 1で作成
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(_userId)
+            .collection('search_usage')
+            .doc('daily_limit')
+            .set({
+          'searchCount': 1,
+          'lastSearchDate': Timestamp.now(),
+        });
+
+        setState(() {
+          _searchesRemaining = 2; // 合計3回 - 使用済み1回
+          _searchLimitReached = false;
+        });
+      }
+
+      // 検索上限に達した場合、メッセージを表示
+      if (_searchLimitReached) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('今日の検索上限に達しました。明日また試してください。'),
+            duration: Duration(seconds: 3),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      print('Error incrementing search count: $e');
+    }
+  }
+
+  // 広告視聴後に検索上限をリセットするメソッド
+// 広告視聴後に検索上限をリセットするメソッド
+  Future<void> _resetSearchLimitAfterAd() async {
+    print('MapSubscription: Resetting search limit after ad');
+    try {
+      // Firestoreの検索上限をリセット
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(_userId)
+          .collection('search_usage')
+          .doc('daily_limit')
+          .set({
+        'searchCount': 0,
+        'lastSearchDate': Timestamp.now(),
+      });
+
+      print('MapSubscription: Firestore search limit reset successful');
+
+      // 状態を更新
+      setState(() {
+        _searchesRemaining = 3;
+        _searchLimitReached = false;
+        _lastSearchDate = DateTime.now();
+        _isWatchingAd = false;
+      });
+
+      // 成功メッセージを表示
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('広告視聴ありがとうございます！検索制限がリセットされました。'),
+          duration: Duration(seconds: 3),
+          backgroundColor: Colors.green,
+        ),
+      );
+    } catch (e) {
+      print('MapSubscription: Error resetting search limit: $e');
+      setState(() {
+        _isWatchingAd = false;
+      });
+
+      // エラーメッセージを表示
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('検索制限のリセットに失敗しました。もう一度お試しください。'),
+          duration: Duration(seconds: 3),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  // 広告を表示するメソッド
+  void _showRewardedAd() {
+    print('MapSubscription: Show rewarded ad button pressed');
+
+    // 最新の状態を再確認
+    bool adAvailable = AdManager.isRewardedAdAvailable();
+    print('MapSubscription: Current ad availability: $adAvailable');
+
+    if (!adAvailable) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('広告の準備ができていません。しばらくしてからもう一度お試しください。'),
+          duration: Duration(seconds: 3),
+          backgroundColor: Colors.orange,
+        ),
+      );
+
+      // 広告の再読み込みを試みる
+      AdManager.initialize();
+      return;
+    }
+
+    setState(() {
+      _isWatchingAd = true;
+    });
+
+    // 広告を表示
+    AdManager.showRewardedAd(() {
+      _resetSearchLimitAfterAd();
+    }).then((bool success) {
+      if (!success && mounted) {
+        setState(() {
+          _isWatchingAd = false;
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('広告の表示に失敗しました。もう一度お試しください。'),
+            duration: Duration(seconds: 3),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    });
   }
 
   Future<void> _getUser() async {
@@ -350,7 +655,6 @@ class _MapSubscriptionState extends State<MapSubscription> {
     }
     return '';
   }
-
   Future<void> _getCurrentLocation() async {
     bool serviceEnabled;
     LocationPermission permission;
@@ -404,12 +708,30 @@ class _MapSubscriptionState extends State<MapSubscription> {
     _moveToCurrentLocation();
   }
 
+  // 検索機能のメソッドを修正
   void _performSearch(String query) async {
     if (query.isEmpty) {
       setState(() {
         _isSearching = false;
         _searchResults = [];
       });
+      return;
+    }
+
+    // 検索の前に検索上限に達しているかチェック
+    if (_searchLimitReached) {
+      setState(() {
+        _isSearching = false;
+        _searchResults = [];
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('今日の検索上限に達しました。\n明日また試してください。'),
+          duration: Duration(seconds: 3),
+          backgroundColor: Colors.red,
+        ),
+      );
       return;
     }
 
@@ -448,8 +770,29 @@ class _MapSubscriptionState extends State<MapSubscription> {
     }
   }
 
-// マーカー表示を含め、変数名のエラーを修正したjumpToLocationメソッド
+  // 検索使用状況を追跡するように_jumpToLocationメソッドを修正
   void _jumpToLocation(DocumentSnapshot locationDoc) async {
+    // 検索上限に達しているかチェック
+    if (_searchLimitReached) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('今日の検索上限に達しました。明日また試してください。'),
+          duration: Duration(seconds: 3),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return; // 上限に達していたら処理を中止
+    }
+
+    // 検索カウントをインクリメント
+    await _incrementSearchCount();
+
+    // インクリメントによって上限に達した場合、処理を中止
+    if (_searchLimitReached) {
+      return;
+    }
+
+    // 元の_jumpToLocationコードの続き
     Map<String, dynamic> data = locationDoc.data() as Map<String, dynamic>;
     double latitude = (data['latitude'] as num).toDouble();
     double longitude = (data['longitude'] as num).toDouble();
@@ -553,254 +896,302 @@ class _MapSubscriptionState extends State<MapSubscription> {
     });
   }
 
+  // 検索バーウィジェットを更新して残りの検索回数を表示
   Widget _buildSearchBar() {
     return Positioned(
-      top: MediaQuery.of(context).padding.top + 10,
-      left: 15,
-      right: 15,
-      child: Container(
+        top: MediaQuery.of(context).padding.top + 10,
+        left: 15,
+        right: 15,
+        child: Container(
         decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.95),
-          borderRadius: BorderRadius.circular(30),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.2),
-              blurRadius: 10,
-              spreadRadius: 1,
-              offset: Offset(0, 3),
+        color: Colors.white.withOpacity(0.95),
+    borderRadius: BorderRadius.circular(30),
+    boxShadow: [
+    BoxShadow(
+    color: Colors.black.withOpacity(0.2),
+    blurRadius: 10,
+    spreadRadius: 1,
+    offset: Offset(0, 3),
+    ),
+    ],
+    border: Border.all(
+    color: Colors.grey.withOpacity(0.2),
+    width: 1,
+    ),
+    ),
+    child: Column(
+    mainAxisSize: MainAxisSize.min,
+    children: [
+    Material(
+    color: Colors.transparent,
+    child: TextField(
+    controller: _searchController,
+    focusNode: _searchFocusNode,
+    style: TextStyle(fontSize: 16),
+    decoration: InputDecoration(
+    hintText: _searchLimitReached
+    ? '本日の検索上限に達しました'
+        : 'スポットまたはアニメ名を検索 (残り$_searchesRemaining回)',
+    hintStyle: TextStyle(
+    color: _searchLimitReached ? Colors.red[400] : Colors.grey[400],
+    fontWeight: FontWeight.w400,
+    ),
+    prefixIcon: Container(
+    padding: EdgeInsets.all(12),
+    child: Icon(
+    Icons.search,
+    color: _searchLimitReached ? Colors.red[400] : Color(0xFF00008b),
+    size: 22,
+    ),
+    ),
+      // 検索バーの広告アイコン部分を修正
+      suffixIcon: _searchController.text.isNotEmpty
+          ? Container(
+        padding: EdgeInsets.all(8),
+        child: AnimatedOpacity(
+          opacity: _searchController.text.isNotEmpty ? 1.0 : 0.0,
+          duration: Duration(milliseconds: 200),
+          child: IconButton(
+            icon: Icon(
+              Icons.clear,
+              color: Colors.grey[500],
+              size: 18,
             ),
-          ],
-          border: Border.all(
-            color: Colors.grey.withOpacity(0.2),
-            width: 1,
+            onPressed: () {
+              _searchController.clear();
+              setState(() {
+                _searchResults = [];
+              });
+              FocusScope.of(context).unfocus();
+            },
+            splashRadius: 20,
           ),
         ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Material(
-              color: Colors.transparent,
-              child: TextField(
-                controller: _searchController,
-                focusNode: _searchFocusNode,
-                style: TextStyle(fontSize: 16),
-                decoration: InputDecoration(
-                  hintText: 'スポットまたはアニメ名を検索',
-                  hintStyle: TextStyle(
-                    color: Colors.grey[400],
-                    fontWeight: FontWeight.w400,
-                  ),
-                  prefixIcon: Container(
-                    padding: EdgeInsets.all(12),
-                    child: Icon(
-                      Icons.search,
-                      color: Color(0xFF00008b),
-                      size: 22,
-                    ),
-                  ),
-                  suffixIcon: _searchController.text.isNotEmpty
-                      ? Container(
-                    padding: EdgeInsets.all(8),
-                    child: AnimatedOpacity(
-                      opacity: _searchController.text.isNotEmpty ? 1.0 : 0.0,
-                      duration: Duration(milliseconds: 200),
-                      child: IconButton(
-                        icon: Icon(
-                          Icons.clear,
-                          color: Colors.grey[500],
-                          size: 18,
-                        ),
-                        onPressed: () {
-                          _searchController.clear();
-                          setState(() {
-                            _searchResults = [];
-                          });
-                          FocusScope.of(context).unfocus();
-                        },
-                        splashRadius: 20,
-                      ),
-                    ),
-                  )
-                      : null,
-                  border: InputBorder.none,
-                  contentPadding: EdgeInsets.symmetric(vertical: 16, horizontal: 5),
+      )
+          : _searchLimitReached
+          ? Container(
+        padding: EdgeInsets.all(8),
+        child: IconButton(
+          icon: Icon(
+            _isAdAvailable ? Icons.video_library : Icons.hourglass_empty,
+            color: _isAdAvailable ? Colors.amber[700] : Colors.grey[400],
+            size: 22,
+          ),
+          onPressed: _isWatchingAd || !_isAdAvailable ? null : _showRewardedAd,
+          tooltip: _isAdAvailable
+              ? '広告を見て検索制限をリセット'
+              : '広告を準備中...',
+          splashRadius: 20,
+        ),
+      )
+          : null,
+    ),
+      onChanged: (value) {
+        _performSearch(value);
+      },
+      enabled: !_searchLimitReached, // 上限に達したらテキスト入力を無効化
+    ),
+    ),
+      AnimatedContainer(
+        duration: Duration(milliseconds: 300),
+        height: _isSearching || _isWatchingAd ? 4 : 0,
+        child: _isWatchingAd
+            ? LinearProgressIndicator(
+          backgroundColor: Colors.transparent,
+          valueColor: AlwaysStoppedAnimation<Color>(Colors.amber[700]!),
+        )
+            : _isSearching
+            ? LinearProgressIndicator(
+          backgroundColor: Colors.transparent,
+          valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF00008b)),
+        )
+            : null,
+      ),
+      if (_searchLimitReached && _searchResults.isEmpty)
+        Container(
+          padding: EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+          decoration: BoxDecoration(
+            color: Colors.red.withOpacity(0.1),
+            borderRadius: BorderRadius.only(
+              bottomLeft: Radius.circular(30),
+              bottomRight: Radius.circular(30),
+            ),
+          ),
+          child: Row(
+            children: [
+              Icon(Icons.info_outline, color: Colors.red, size: 18),
+              SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  _isWatchingAd
+                      ? '広告を読み込み中...'
+                      : '本日の検索上限に達しました。\n右側の広告アイコンをタップして制限をリセットするか、\n翌日までお待ちください。',
+                  style: TextStyle(color: Colors.red, fontSize: 13),
                 ),
-                onChanged: (value) {
-                  _performSearch(value);
-                },
               ),
-            ),
-            AnimatedContainer(
+            ],
+          ),
+        ),
+      if (_searchResults.isNotEmpty)
+        FutureBuilder<List<Map<String, dynamic>>>(
+          future: Future.wait(_searchResults.map((doc) async {
+            Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
+            String locationInfo = '';
+
+            // データに緯度と経度が含まれている場合は住所を取得
+            if (data['latitude'] != null && data['longitude'] != null) {
+              double latitude = (data['latitude'] as num).toDouble();
+              double longitude = (data['longitude'] as num).toDouble();
+              locationInfo = await _getAddressFromLatLng(latitude, longitude);
+            }
+
+            return {
+              ...data,
+              'locationInfo': locationInfo,
+              'doc': doc,
+            };
+          }).toList()),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return Container(
+                height: 100,
+                child: Center(
+                  child: CircularProgressIndicator(
+                    valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF00008b)),
+                  ),
+                ),
+              );
+            }
+
+            if (!snapshot.hasData || snapshot.data!.isEmpty) {
+              return Container(
+                height: 100,
+                child: Center(child: Text('検索結果がありません')),
+              );
+            }
+            final searchResultsWithAddress = snapshot.data!;
+
+            return AnimatedContainer(
               duration: Duration(milliseconds: 300),
-              height: _isSearching ? 4 : 0,
-              child: _isSearching
-                  ? LinearProgressIndicator(
-                backgroundColor: Colors.transparent,
-                valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF00008b)),
-              )
-                  : null,
-            ),
-            if (_searchResults.isNotEmpty)
-              FutureBuilder<List<Map<String, dynamic>>>(
-                future: Future.wait(_searchResults.map((doc) async {
-                  Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
-                  String locationInfo = '';
+              height: min(searchResultsWithAddress.length * 72.0, 300),
+              constraints: BoxConstraints(maxHeight: 300),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.only(
+                  bottomLeft: Radius.circular(30),
+                  bottomRight: Radius.circular(30),
+                ),
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.only(
+                  bottomLeft: Radius.circular(30),
+                  bottomRight: Radius.circular(30),
+                ),
+                child: ListView.separated(
+                  padding: EdgeInsets.only(top: 8, bottom: 8),
+                  shrinkWrap: true,
+                  itemCount: searchResultsWithAddress.length,
+                  separatorBuilder: (context, index) => Divider(
+                    height: 1,
+                    color: Colors.grey.withOpacity(0.3),
+                    indent: 70,
+                    endIndent: 20,
+                  ),
+                  itemBuilder: (context, index) {
+                    final data = searchResultsWithAddress[index];
+                    final doc = data['doc'] as DocumentSnapshot;
+                    final locationInfo = data['locationInfo'] as String;
 
-                  // データに緯度と経度が含まれている場合は住所を取得
-                  if (data['latitude'] != null && data['longitude'] != null) {
-                    double latitude = (data['latitude'] as num).toDouble();
-                    double longitude = (data['longitude'] as num).toDouble();
-                    locationInfo = await _getAddressFromLatLng(latitude, longitude);
-                  }
-
-                  return {
-                    ...data,
-                    'locationInfo': locationInfo,
-                    'doc': doc,
-                  };
-                }).toList()),
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return Container(
-                      height: 100,
-                      child: Center(
-                        child: CircularProgressIndicator(
-                          valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF00008b)),
-                        ),
-                      ),
-                    );
-                  }
-
-                  if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                    return Container(
-                      height: 100,
-                      child: Center(child: Text('検索結果がありません')),
-                    );
-                  }
-
-                  final searchResultsWithAddress = snapshot.data!;
-
-                  return AnimatedContainer(
-                    duration: Duration(milliseconds: 300),
-                    height: min(searchResultsWithAddress.length * 72.0, 300),
-                    constraints: BoxConstraints(maxHeight: 300),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.only(
-                        bottomLeft: Radius.circular(30),
-                        bottomRight: Radius.circular(30),
-                      ),
-                    ),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.only(
-                        bottomLeft: Radius.circular(30),
-                        bottomRight: Radius.circular(30),
-                      ),
-                      child: ListView.separated(
-                        padding: EdgeInsets.only(top: 8, bottom: 8),
-                        shrinkWrap: true,
-                        itemCount: searchResultsWithAddress.length,
-                        separatorBuilder: (context, index) => Divider(
-                          height: 1,
-                          color: Colors.grey.withOpacity(0.3),
-                          indent: 70,
-                          endIndent: 20,
-                        ),
-                        itemBuilder: (context, index) {
-                          final data = searchResultsWithAddress[index];
-                          final doc = data['doc'] as DocumentSnapshot;
-                          final locationInfo = data['locationInfo'] as String;
-
-                          return InkWell(
-                            onTap: () {
-                              _jumpToLocation(doc);
-                            },
-                            child: Padding(
-                              padding: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-                              child: Row(
-                                children: [
-                                  Container(
-                                    width: 50,
-                                    height: 50,
-                                    decoration: BoxDecoration(
-                                      shape: BoxShape.circle,
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: Colors.black.withOpacity(0.1),
-                                          blurRadius: 4,
-                                          offset: Offset(0, 2),
-                                        ),
-                                      ],
-                                    ),
-                                    child: ClipRRect(
-                                      borderRadius: BorderRadius.circular(25),
-                                      child: data['imageUrl'] != null && data['imageUrl'].toString().isNotEmpty
-                                          ? Image.network(
-                                        data['imageUrl'],
-                                        fit: BoxFit.cover,
-                                        errorBuilder: (context, error, stackTrace) {
-                                          return Container(
-                                            color: Color(0xFF00008b),
-                                            child: Icon(Icons.location_on, color: Colors.white, size: 24),
-                                          );
-                                        },
-                                      )
-                                          : Container(
-                                        color: Color(0xFF00008b),
-                                        child: Icon(Icons.location_on, color: Colors.white, size: 24),
-                                      ),
-                                    ),
-                                  ),
-                                  SizedBox(width: 16),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          (data['title'] ?? 'No Title') + locationInfo,
-                                          style: TextStyle(
-                                            fontWeight: FontWeight.w600,
-                                            fontSize: 15,
-                                          ),
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                        if (data['animeName'] != null && data['animeName'].toString().isNotEmpty)
-                                          Text(
-                                            data['animeName'],
-                                            style: TextStyle(
-                                              color: Colors.grey[600],
-                                              fontSize: 13,
-                                            ),
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
-                                          ),
-                                      ],
-                                    ),
-                                  ),
-                                  IconButton(
-                                    icon: Icon(
-                                      Icons.arrow_forward_ios,
-                                      color: Colors.grey[400],
-                                      size: 14,
-                                    ),
-                                    onPressed: () {
-                                      _jumpToLocation(doc);
-                                    },
+                    return InkWell(
+                      onTap: () {
+                        _jumpToLocation(doc);
+                      },
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 50,
+                              height: 50,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.1),
+                                    blurRadius: 4,
+                                    offset: Offset(0, 2),
                                   ),
                                 ],
                               ),
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(25),
+                                child: data['imageUrl'] != null && data['imageUrl'].toString().isNotEmpty
+                                    ? Image.network(
+                                  data['imageUrl'],
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) {
+                                    return Container(
+                                      color: Color(0xFF00008b),
+                                      child: Icon(Icons.location_on, color: Colors.white, size: 24),
+                                    );
+                                  },
+                                )
+                                    : Container(
+                                  color: Color(0xFF00008b),
+                                  child: Icon(Icons.location_on, color: Colors.white, size: 24),
+                                ),
+                              ),
                             ),
-                          );
-                        },
+                            SizedBox(width: 16),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    (data['title'] ?? 'No Title') + locationInfo,
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 15,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  if (data['animeName'] != null && data['animeName'].toString().isNotEmpty)
+                                    Text(
+                                      data['animeName'],
+                                      style: TextStyle(
+                                        color: Colors.grey[600],
+                                        fontSize: 13,
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                ],
+                              ),
+                            ),
+                            IconButton(
+                              icon: Icon(
+                                Icons.arrow_forward_ios,
+                                color: Colors.grey[400],
+                                size: 14,
+                              ),
+                              onPressed: () {
+                                _jumpToLocation(doc);
+                              },
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                  );
-                },
+                    );
+                  },
+                ),
               ),
-          ],
+            );
+          },
         ),
-      ),
+    ],
+    ),
+        ),
     );
   }
 
@@ -925,7 +1316,6 @@ class _MapSubscriptionState extends State<MapSubscription> {
       }
     }
   }
-
   Future<void> _loadMarkersFromFirestore() async {
     try {
       CollectionReference locations = FirebaseFirestore.instance.collection(
@@ -1209,7 +1599,6 @@ class _MapSubscriptionState extends State<MapSubscription> {
       return null;
     }
   }
-
   // Optimized method to fetch image bytes from URL
   Future<Uint8List> _getBytesFromUrl(String url, int width, int height) async {
     try {
@@ -1511,22 +1900,22 @@ class _MapSubscriptionState extends State<MapSubscription> {
 
       // Routes API リクエストボディを構築
       final Map<String, dynamic> requestBody = {
-        'origin': {
-          'location': {
-            'latLng': {
-              'latitude': origin.latitude,
-              'longitude': origin.longitude
-            }
-          }
-        },
-        'destination': {
-          'location': {
-            'latLng': {
-              'latitude': destination.latitude,
-              'longitude': destination.longitude
-            }
-          }
-        },
+      'origin': {
+      'location': {
+      'latLng': {
+      'latitude': origin.latitude,
+      'longitude': origin.longitude
+      }
+      }
+      },
+      'destination': {
+      'location': {
+      'latLng': {
+        'latitude': destination.latitude,
+        'longitude': destination.longitude
+      }
+      }
+      },
         'travelMode': _selectedTravelMode,
         'routingPreference': 'TRAFFIC_AWARE',
         'computeAlternativeRoutes': false,
@@ -1842,8 +2231,6 @@ class _MapSubscriptionState extends State<MapSubscription> {
       ),
     );
   }
-
-
   // ルート情報表示ウィジェット
   Widget _buildRouteInfoCard() {
     if (_routeDuration == null || _routeDistance == null) {
@@ -2194,7 +2581,6 @@ class _MapSubscriptionState extends State<MapSubscription> {
       });
     });
   }
-
   Future<void> _toggleFavorite(String locationId) async {
     try {
       DocumentReference userFavoriteRef = FirebaseFirestore.instance
@@ -2357,7 +2743,7 @@ class _MapSubscriptionState extends State<MapSubscription> {
       FirebaseFirestore.instance.collection('locations').doc(locationId);
 
       // トランザクションで複数の更新を実行
-      await FirebaseFirestore.instance.runTransaction((transaction) async {
+      await FirebaseFirestore.instance.runTransaction((transaction) async{
         // ロケーションドキュメントを取得
         DocumentSnapshot locationSnapshot = await transaction.get(locationRef);
         // ユーザードキュメントを取得
