@@ -3,8 +3,6 @@ import 'dart:io';
 import 'package:app_tracking_transparency/app_tracking_transparency.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:firebase_remote_config/firebase_remote_config.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
@@ -15,18 +13,12 @@ import 'package:parts/src/bottomnavigationbar.dart';
 import 'package:parts/top_page/welcome_page.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
 import 'package:flutter_stripe/flutter_stripe.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 void main() async {
   // Flutter binding初期化
   WidgetsFlutterBinding.ensureInitialized();
 
   try {
-    // デバッグ: アプリバージョンの取得と表示
-    final packageInfo = await PackageInfo.fromPlatform();
-    print('App version: ${packageInfo.version}');
-    print('Build number: ${packageInfo.buildNumber}');
-
     // Stripeの初期化
     Stripe.publishableKey = 'pk_test_51QeIPUJR2jw9gpdILTofRSwaBs9pKKXfOse9EcwQTkfYNjtYb1rNsahb5uhm6QjcwzvGOhcZ0ZZgjW09HKtblHnH00Ps1dt4ZZ';
 
@@ -49,42 +41,11 @@ void main() async {
       MobileAds.instance.initialize(),
     ]);
 
-    // Firebase Remote Configの初期化
-    await initRemoteConfig();
-
     runApp(const MyApp());
   } catch (e) {
     print('Initialization error: $e'); // エラーログ
     // エラーが発生してもアプリを起動
     runApp(const MyApp());
-  }
-}
-
-// Firebase Remote Configの初期化
-Future<void> initRemoteConfig() async {
-  final remoteConfig = FirebaseRemoteConfig.instance;
-  await remoteConfig.setConfigSettings(RemoteConfigSettings(
-    fetchTimeout: const Duration(minutes: 1),
-    minimumFetchInterval: const Duration(hours: 1),
-  ));
-
-  // デフォルト値の設定
-  await remoteConfig.setDefaults({
-    'min_version_code': '1',
-    'min_version_name': '1.0.0',
-    'update_url_android': 'https://play.google.com/store/apps/details?id=com.sotakawakami.jam',
-    'update_url_ios': 'https://apps.apple.com/app/japananimemaps/idXXXXXXXXXX',
-    'update_message': 'アプリの新しいバージョンが利用可能です。アップデートしてください。',
-    'update_title': 'アップデートのお知らせ',
-    'force_update': false,
-  });
-
-  try {
-    // リモート設定を取得
-    await remoteConfig.fetchAndActivate();
-    print('Remote config fetched successfully');
-  } catch (e) {
-    print('Remote config fetch failed: $e');
   }
 }
 
@@ -213,10 +174,6 @@ class _SplashScreenState extends State<SplashScreen> {
   String _authStatus = 'Unknown';
   bool _isInitialized = false;
   String? _initError;
-  bool _updateRequired = false;
-  String _updateMessage = '';
-  String _updateTitle = '';
-  String _updateUrl = '';
 
   @override
   void initState() {
@@ -226,26 +183,6 @@ class _SplashScreenState extends State<SplashScreen> {
 
   Future<void> _initializeApp() async {
     try {
-      // デバッグ: アプリバージョンの取得と表示
-      final packageInfo = await PackageInfo.fromPlatform();
-      if (kDebugMode) {
-        print('Debug - App version: ${packageInfo.version}');
-        print('Debug - Build number: ${packageInfo.buildNumber}');
-      }
-
-      // バージョンチェック
-      final shouldUpdate = await _checkForceUpdate(
-        currentVersion: packageInfo.version,
-        buildNumber: packageInfo.buildNumber,
-      );
-
-      if (shouldUpdate) {
-        setState(() {
-          _updateRequired = true;
-        });
-        return;
-      }
-
       // ATTダイアログの表示
       await _requestTrackingPermission();
 
@@ -256,76 +193,32 @@ class _SplashScreenState extends State<SplashScreen> {
         _isInitialized = true;
       });
 
-      await _navigateToNextScreen();
+      // 少し待機して確実に初期化を完了させる
+      await Future.delayed(const Duration(seconds: 1));
+
+      if (mounted) {
+        // 直接認証状態を確認
+        final user = FirebaseAuth.instance.currentUser;
+        print('Current user: ${user?.uid ?? "No user"}');
+
+        if (user != null) {
+          print('Navigating to MainScreen');
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (context) => MainScreen()),
+          );
+        } else {
+          print('Navigating to WelcomePage');
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (context) => const WelcomePage()),
+          );
+        }
+      }
     } catch (e) {
       setState(() {
         _initError = e.toString();
       });
       print('Initialization error: $e');
     }
-  }
-
-  Future<bool> _checkForceUpdate({
-    required String currentVersion,
-    required String buildNumber,
-  }) async {
-    try {
-      final remoteConfig = FirebaseRemoteConfig.instance;
-
-      // 必要なバージョン情報を取得
-      final minVersionName = remoteConfig.getString('min_version_name');
-      final minVersionCode = remoteConfig.getString('min_version_code');
-      final forceUpdate = remoteConfig.getBool('force_update');
-
-      // 更新メッセージを取得
-      _updateTitle = remoteConfig.getString('update_title');
-      _updateMessage = remoteConfig.getString('update_message');
-
-      // プラットフォーム別のURLを取得
-      _updateUrl = Platform.isIOS
-          ? remoteConfig.getString('update_url_ios')
-          : remoteConfig.getString('update_url_android');
-
-      if (kDebugMode) {
-        print('Current version: $currentVersion (build $buildNumber)');
-        print('Minimum version: $minVersionName (build $minVersionCode)');
-        print('Force update: $forceUpdate');
-      }
-
-      // バージョンコードで比較（ビルド番号）
-      if (forceUpdate && int.parse(buildNumber) < int.parse(minVersionCode)) {
-        print('Update required: Current build $buildNumber < Required build $minVersionCode');
-        return true;
-      }
-
-      // バージョン名で比較（例: 1.0.0 < 1.0.1）
-      if (forceUpdate && _compareVersions(currentVersion, minVersionName) < 0) {
-        print('Update required: Current version $currentVersion < Required version $minVersionName');
-        return true;
-      }
-
-      return false;
-    } catch (e) {
-      print('Error checking for update: $e');
-      return false;
-    }
-  }
-
-  // セマンティックバージョニング比較用のヘルパーメソッド
-  int _compareVersions(String version1, String version2) {
-    List<int> v1Parts = version1.split('.').map(int.parse).toList();
-    List<int> v2Parts = version2.split('.').map(int.parse).toList();
-
-    // パディングして同じ長さにする
-    while (v1Parts.length < v2Parts.length) v1Parts.add(0);
-    while (v2Parts.length < v1Parts.length) v2Parts.add(0);
-
-    // 各セグメントを比較
-    for (int i = 0; i < v1Parts.length; i++) {
-      if (v1Parts[i] < v2Parts[i]) return -1;
-      if (v1Parts[i] > v2Parts[i]) return 1;
-    }
-    return 0;
   }
 
   Future<void> _syncRevenueCatUser() async {
@@ -377,14 +270,12 @@ class _SplashScreenState extends State<SplashScreen> {
   Future<void> _navigateToNextScreen() async {
     if (!mounted) return;
 
-    await Future.delayed(const Duration(seconds: 1));
-    _checkAuthState();
-  }
+    // より長い待機時間を設定して初期化が確実に完了するようにする
+    await Future.delayed(const Duration(seconds: 2));
 
-  void _checkAuthState() {
-    FirebaseAuth.instance.authStateChanges().listen((User? user) {
-      if (!mounted) return;
-
+    // 直接currentUserを確認する方法に変更
+    final user = FirebaseAuth.instance.currentUser;
+    if (mounted) {
       if (user != null) {
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(builder: (context) => MainScreen()),
@@ -394,95 +285,12 @@ class _SplashScreenState extends State<SplashScreen> {
           MaterialPageRoute(builder: (context) => const WelcomePage()),
         );
       }
-    });
-  }
-
-  Future<void> _launchAppStore() async {
-    if (_updateUrl.isEmpty) return;
-
-    final Uri uri = Uri.parse(_updateUrl);
-    try {
-      if (await canLaunchUrl(uri)) {
-        await launchUrl(uri, mode: LaunchMode.externalApplication);
-      } else {
-        print('Could not launch $uri');
-      }
-    } catch (e) {
-      print('Error launching URL: $e');
     }
-  }
-
-  // iOSスタイルのアップデートダイアログを表示
-  void _showIOSStyleUpdateDialog(BuildContext context) {
-    showCupertinoDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (BuildContext context) {
-        return CupertinoAlertDialog(
-          title: Text(
-            _updateTitle.isNotEmpty ? _updateTitle : 'アップデートが必要です',
-          ),
-          content: Padding(
-            padding: const EdgeInsets.only(top: 8.0),
-            child: Text(
-              _updateMessage.isNotEmpty ? _updateMessage : 'アプリの新しいバージョンが利用可能です。ストアからアップデートしてください。',
-            ),
-          ),
-          actions: <Widget>[
-            CupertinoDialogAction(
-              isDefaultAction: true,
-              onPressed: () {
-                Navigator.of(context).pop();
-                _launchAppStore();
-              },
-              child: const Text('今すぐアップデート'),
-            ),
-            if (kDebugMode)
-              CupertinoDialogAction(
-                isDestructiveAction: true,
-                onPressed: () {
-                  Navigator.of(context).pop();
-                  setState(() {
-                    _updateRequired = false;
-                  });
-                  _initializeApp();
-                },
-                child: const Text('デバッグ: スキップ'),
-              ),
-          ],
-        );
-      },
-    );
   }
 
   @override
   Widget build(BuildContext context) {
-    // アップデートが必要な場合のiOSスタイルダイアログ
-    if (_updateRequired) {
-      // ビルド後にダイアログを表示するためのポストフレームコールバック
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        _showIOSStyleUpdateDialog(context);
-      });
 
-      // 基本的なスプラッシュ画面を背景として表示
-      return Scaffold(
-        body: WillPopScope(
-          onWillPop: () async => false, // 戻るボタンを無効化
-          child: const Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                CircularProgressIndicator(),
-                SizedBox(height: 20),
-                Text('初期化中...'),
-              ],
-            ),
-          ),
-        ),
-      );
-    }
-
-    // 初期化エラーの場合
     if (_initError != null) {
       return Scaffold(
         body: Center(

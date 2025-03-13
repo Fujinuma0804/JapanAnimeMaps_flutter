@@ -3,10 +3,12 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_database/firebase_database.dart' as rtdb;
 import 'package:firebase_database/firebase_database.dart';
 import 'package:firebase_in_app_messaging/firebase_in_app_messaging.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:parts/components/ad_mob.dart';
 import 'package:parts/spot_page/check_in.dart';
+import 'package:parts/spot_page/customer_animename_request.dart';
 import 'package:parts/spot_page/user_activity_logger.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:tutorial_coach_mark/tutorial_coach_mark.dart';
@@ -1273,14 +1275,73 @@ class _AnimeListTestRankingState extends State<AnimeListTestRanking>
               ),
               icon: const Icon(Icons.favorite, color: Color(0xFF00008b)),
             ),
+            // _AnimeListTestRankingStateクラス内のIconButtonの部分を修正
+
             IconButton(
               key: addKey,
               icon: Icon(Icons.add, color: Color(0xFF00008b)),
               onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                      builder: (context) => AnimeRequestCustomerForm()),
+                // Cupertinoのアクションシートを表示
+                showCupertinoModalPopup(
+                  context: context,
+                  builder: (BuildContext context) => CupertinoActionSheet(
+                    title: Text(
+                        'リクエストを選択',
+                      style: TextStyle(
+                        color: Colors.black,
+                      ),
+                    ),
+                    message: Text(
+                        '新しく追加したいコンテンツを選択してください',
+                      style: TextStyle(
+                        color: Colors.black,
+                      ),
+                    ),
+                    actions: <CupertinoActionSheetAction>[
+                      CupertinoActionSheetAction(
+                        onPressed: () {
+                          Navigator.pop(context); // アクションシートを閉じる
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (context) => AnimeRequestCustomerForm()),
+                          );
+                        },
+                        child: Text(
+                            '聖地をリクエストする',
+                          style: TextStyle(
+                            color: Color(0xFF00008b),
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      CupertinoActionSheetAction(
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (context) => AnimeNameRequestCustomerForm()),
+                          );
+                        },
+                        child: Text(
+                            'アニメをリクエストする',
+                          style: TextStyle(
+                            color: Color(0xFF00008b),
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
+                    cancelButton: CupertinoActionSheetAction(
+                      onPressed: () {
+                        Navigator.pop(context); // アクションシートを閉じる
+                      },
+                      child: Text(
+                          'キャンセル',
+                        style: TextStyle(
+                          color: Colors.red,
+                        ),
+                      ),
+                    ),
+                  ),
                 );
               },
             ),

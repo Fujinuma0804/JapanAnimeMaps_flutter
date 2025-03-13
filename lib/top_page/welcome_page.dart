@@ -98,15 +98,60 @@ class _WelcomePageState extends State<WelcomePage> {
   }
 
   bool _isUpdateRequired(String currentVersion, String minRequiredVersion) {
-    List<int> current = currentVersion.split('.').map(int.parse).toList();
-    List<int> required = minRequiredVersion.split('.').map(int.parse).toList();
+    try {
+      // バージョン文字列が空ではないことを確認
+      if (minRequiredVersion.isEmpty) {
+        print('Warning: minRequiredVersion is empty');
+        return false;
+      }
 
-    for (int i = 0; i < 3; i++) {
-      if (current[i] < required[i]) return true;
-      if (current[i] > required[i]) return false;
+      // デバッグ情報の出力
+      print('Comparing versions - Current: "$currentVersion", Required: "$minRequiredVersion"');
+
+      // バージョンを分割
+      List<String> currentParts = currentVersion.split('.');
+      List<String> requiredParts = minRequiredVersion.split('.');
+
+      // 各部分を整数に変換（安全に）
+      List<int> current = [];
+      List<int> required = [];
+
+      // 現在のバージョンを処理
+      for (String part in currentParts) {
+        if (int.tryParse(part) != null) {
+          current.add(int.parse(part));
+        } else {
+          current.add(0);
+          print('Warning: Non-numeric version part in currentVersion: $part');
+        }
+      }
+
+      // 必要なバージョンを処理
+      for (String part in requiredParts) {
+        if (int.tryParse(part) != null) {
+          required.add(int.parse(part));
+        } else {
+          required.add(0);
+          print('Warning: Non-numeric version part in minRequiredVersion: $part');
+        }
+      }
+
+      // 長さを確保（足りない場合は0で埋める）
+      while (current.length < 3) current.add(0);
+      while (required.length < 3) required.add(0);
+
+      // バージョン比較（最大3要素まで）
+      for (int i = 0; i < 3; i++) {
+        if (current[i] < required[i]) return true;
+        if (current[i] > required[i]) return false;
+      }
+
+      return false;
+    } catch (e) {
+      print('Error in version comparison: $e');
+      // エラーが発生した場合はアップデートなしと判断
+      return false;
     }
-
-    return false;
   }
 
   void _showUpdateDialog() {
