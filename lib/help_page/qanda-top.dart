@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class MenuItem {
   final IconData icon;
@@ -12,8 +14,22 @@ class MenuItem {
   });
 }
 
-class QandATopPage extends StatelessWidget {
+class QandATopPage extends StatefulWidget {
   QandATopPage({Key? key}) : super(key: key);
+
+  @override
+  State<QandATopPage> createState() => _QandATopPageState();
+}
+
+class _QandATopPageState extends State<QandATopPage> {
+  // 検索用TextEditingController
+  final TextEditingController _searchController = TextEditingController();
+
+  // ユーザー名を保持する変数
+  String userName = '';
+
+  // Firebaseからユーザーデータを読み込むフラグ
+  bool isLoading = true;
 
   // メニュー項目のリスト
   final List<MenuItem> menuItems = [
@@ -27,6 +43,79 @@ class QandATopPage extends StatelessWidget {
     MenuItem(icon: Icons.warning, text: '不審な荷物および連絡（電話、Eメール、SMS）について'),
     // ここに追加のメニュー項目を追加できます
   ];
+
+  // 検索結果をフィルターするためのリスト
+  List<MenuItem> filteredItems = [];
+
+  @override
+  void initState() {
+    super.initState();
+    // 初期状態では全てのアイテムを表示
+    filteredItems = List.from(menuItems);
+
+    // 検索テキスト変更時のリスナーを追加
+    _searchController.addListener(_filterItems);
+
+    // ユーザー情報の取得
+    fetchUserData();
+  }
+
+  // ユーザーデータをFirebaseから取得
+  Future<void> fetchUserData() async {
+    try {
+      User? user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        DocumentSnapshot<Map<String, dynamic>> userDoc = await FirebaseFirestore
+            .instance
+            .collection('users')
+            .doc(user.uid)
+            .get();
+
+        if (userDoc.exists && userDoc.data()?['name'] != null) {
+          setState(() {
+            userName = userDoc.data()?['name'];
+            isLoading = false;
+          });
+        } else {
+          setState(() {
+            userName = 'ゲスト';
+            isLoading = false;
+          });
+        }
+      } else {
+        setState(() {
+          userName = 'ゲスト';
+          isLoading = false;
+        });
+      }
+    } catch (e) {
+      print('Error fetching user data: $e');
+      setState(() {
+        userName = 'ゲスト';
+        isLoading = false;
+      });
+    }
+  }
+
+  // 検索テキストに基づいてアイテムをフィルタリングする関数
+  void _filterItems() {
+    setState(() {
+      if (_searchController.text.isEmpty) {
+        filteredItems = List.from(menuItems);
+      } else {
+        filteredItems = menuItems
+            .where((item) => item.text.toLowerCase().contains(_searchController.text.toLowerCase()))
+            .toList();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    // コントローラーを破棄
+    _searchController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -42,22 +131,44 @@ class QandATopPage extends StatelessWidget {
           },
         ),
         title: Container(
-          height: 40,
+          height: 42,
           decoration: BoxDecoration(
-            color: const Color(0xFFF0F0F0), // より明確なグレー背景
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: const Color(0xFFE0E0E0)), // 薄いグレーの枠線を追加
-          ),
-          child: Row(
-            children: [
-              const SizedBox(width: 8),
-              const Icon(Icons.search, color: Colors.black54),
-              const SizedBox(width: 8),
-              const Text(
-                '検索または質問する',
-                style: TextStyle(color: Colors.black54, fontSize: 16),
+            color: const Color(0xFFF5F5F7), // 少し青みがかったグレー
+            borderRadius: BorderRadius.circular(20), // より丸みを持たせる
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.05),
+                blurRadius: 4,
+                offset: const Offset(0, 2),
               ),
             ],
+          ),
+          child: TextField(
+            controller: _searchController,
+            decoration: const InputDecoration(
+              hintText: '検索または質問する',
+              hintStyle: TextStyle(
+                color: Color(0xFF6E7491),
+                fontSize: 15,
+                fontWeight: FontWeight.w400,
+              ),
+              prefixIcon: Icon(
+                Icons.search,
+                color: Color(0xFF6E7491),
+                size: 20,
+              ),
+              border: InputBorder.none,
+              contentPadding: EdgeInsets.symmetric(vertical: 10),
+            ),
+            style: const TextStyle(
+              color: Color(0xFF6E7491),
+              fontSize: 15,
+            ),
+            // サブミットされたときの処理
+            onSubmitted: (value) {
+              // 検索実行ロジック（必要に応じて実装）
+              print('検索実行: $value');
+            },
           ),
         ),
       ),
@@ -72,16 +183,25 @@ class QandATopPage extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    '川上さん、ご希望の操作を選択してください',
-                    style: TextStyle(
+                  isLoading
+                      ? const SizedBox(
+                    height: 18,
+                    width: 200,
+                    child: LinearProgressIndicator(
+                      backgroundColor: Colors.grey,
+                      valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF00A0C6)),
+                    ),
+                  )
+                      : Text(
+                    '$userNameさん、ご希望の操作を選択してください。',
+                    style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
                   const SizedBox(height: 8),
                   const Text(
-                    'ここですぐに解決できます。または、問題を解決できる担当者にお繋ぎします。',
+                    'よくある質問から解決できます。または、問題を解決できる担当者にお繋ぎします。',
                     style: TextStyle(
                       fontSize: 14,
                       color: Colors.black54,
@@ -96,12 +216,22 @@ class QandATopPage extends StatelessWidget {
             Expanded(
               child: Container(
                 color: Colors.white, // スクロール部分の背景色も白に
-                child: ListView.separated(
+                child: filteredItems.isEmpty
+                    ? const Center(
+                  child: Text(
+                    '該当する項目がありません',
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: Colors.black54,
+                    ),
+                  ),
+                )
+                    : ListView.separated(
                   physics: const AlwaysScrollableScrollPhysics(),
-                  itemCount: menuItems.length,
+                  itemCount: filteredItems.length,
                   separatorBuilder: (context, index) => const Divider(height: 1, thickness: 1),
                   itemBuilder: (context, index) {
-                    final item = menuItems[index];
+                    final item = filteredItems[index];
                     return _buildMenuItem(
                       icon: item.icon,
                       text: item.text,
@@ -115,7 +245,6 @@ class QandATopPage extends StatelessWidget {
           ],
         ),
       ),
-
     );
   }
 
@@ -174,7 +303,10 @@ class QandATopPage extends StatelessWidget {
           ),
         ),
         trailing: const Icon(Icons.chevron_right),
-        onTap: () {},
+        onTap: () {
+          // タップ時の処理
+          print('選択されたアイテム: $text');
+        },
       ),
     );
   }
@@ -184,5 +316,5 @@ class QandATopPage extends StatelessWidget {
 // or navigate to it using:
 // Navigator.push(
 //   context,
-//   MaterialPageRoute(builder: (context) => const QandATopPage()),
+//   MaterialPageRoute(builder: (context) => QandATopPage()),
 // );
