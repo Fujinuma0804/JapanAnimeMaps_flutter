@@ -451,7 +451,7 @@ class _AnimeDetailsPageState extends State<AnimeDetailsPage> {
                     if (!snapshot.hasData || snapshot.data!.isEmpty) {
                       return Center(
                           child: Text(
-                              'No locations found for ${widget.animeName}.'));
+                              '${widget.animeName}の聖地が見つかりません。'));
                     }
 
                     final locations = snapshot.data!;
