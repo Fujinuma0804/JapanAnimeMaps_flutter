@@ -1,4 +1,6 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:parts/help_page/chat_sender.dart';
 import 'package:parts/setting_page/q_a.dart';
 import 'package:settings_ui/settings_ui.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -86,23 +88,23 @@ class HelpCenter extends StatelessWidget {
                   ),
                 ),
                 onPressed: (context) {
-                  // final User? currentUser = FirebaseAuth.instance.currentUser;
-                  // if (currentUser != null) {
-                  //   Navigator.push(
-                  //     context,
-                  //     MaterialPageRoute(
-                  //       builder: (context) => ChatRoom(
-                  //         userId: currentUser.uid,
-                  //       ),
-                  //     ),
-                  //   );
-                  // } else {
-                  //   ScaffoldMessenger.of(context).showSnackBar(
-                  //     const SnackBar(
-                  //       content: Text('ログインが必要です'),
-                  //     ),
-                  //   );
-                  // }
+                  final User? currentUser = FirebaseAuth.instance.currentUser;
+                  if (currentUser != null) {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => ChatRoom(
+                          userId: currentUser.uid,
+                        ),
+                      ),
+                    );
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('ログインが必要です'),
+                      ),
+                    );
+                  }
                   // 画面遷移処理
                 },
               ),

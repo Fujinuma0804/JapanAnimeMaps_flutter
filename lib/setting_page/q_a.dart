@@ -22,7 +22,7 @@ class _WebsiteScreenState extends State<QA>
     controller = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
       ..loadRequest(
-          Uri.parse('https://infomapanime.click/home_q_a/?page_id=6'));
+          Uri.parse('https://animetourism.co.jp/faq.html'));
 
     SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle(
       statusBarColor: Colors.transparent,
