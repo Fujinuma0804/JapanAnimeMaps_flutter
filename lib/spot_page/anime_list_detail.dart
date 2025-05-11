@@ -1016,13 +1016,13 @@ https://japananimemaps.page.link/ios
             ),
             _buildSourceInfo2(),
             const SizedBox(
-              height: 10.0,
+              height: 20.0,
             ),
             Stack(
               children: [
                 Container(
                   margin: EdgeInsets.only(
-                      top: 20, right: 20, left: 20), // 上部のスペースを確保
+                      top: 40, right: 20, left: 20, bottom: 30), // 下部のマージンを追加
                   padding: EdgeInsets.all(16),
                   decoration: BoxDecoration(
                     color: Colors.white,
@@ -1075,7 +1075,7 @@ https://japananimemaps.page.link/ios
                   top: 0,
                   left: 16,
                   child: Container(
-                    padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    padding: EdgeInsets.symmetric(horizontal: 20, vertical: 8),
                     decoration: ShapeDecoration(
                       color: Color(0xFFF407FED),
                       shape: BubbleBorder(),
@@ -1083,17 +1083,35 @@ https://japananimemaps.page.link/ios
                         BoxShadow(
                           color: Color(0xFFF407FED).withOpacity(0.5),
                           blurRadius: 4,
-                          offset: Offset(0, 2),
+                          offset: Offset(0, 4),
                         ),
                       ],
                     ),
-                    child: Text(
-                      '『${widget.animeName}』での登場シーン',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14,
-                      ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start, // 左詰め
+                      children: [
+                        Text(
+                          '『${widget.animeName}』',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                          ),
+                          textAlign: TextAlign.left, // 左詰め
+                          overflow: TextOverflow.visible, // テキストを省略しない
+                        ),
+                        SizedBox(height: 2), // 行間のスペース
+                        Text(
+                          'での登場シーン',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                          ),
+                          textAlign: TextAlign.left, // 左詰め
+                        ),
+                      ],
                     ),
                   ),
                 ),

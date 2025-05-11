@@ -6,6 +6,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
+import 'package:loading_animation_widget/loading_animation_widget.dart'; // 追加
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:parts/shop/purchase_agency.dart';
 import 'package:parts/shop/shop_product_detail.dart';
@@ -13,6 +14,8 @@ import 'package:parts/src/bottomnavigationbar.dart';
 import 'package:parts/top_page/welcome_page.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
 import 'package:flutter_stripe/flutter_stripe.dart';
+import 'package:intl/date_symbol_data_local.dart'; // 日本語ロケールデータ初期化用
+import 'package:cloud_firestore/cloud_firestore.dart'; // Firestoreを追加
 
 void main() async {
   // Flutter binding初期化
@@ -26,6 +29,9 @@ void main() async {
     if (Platform.isIOS) {
       Stripe.merchantIdentifier = 'merchant.com.sotakawakami.jam';
     }
+
+    // 日本語ロケールデータの初期化
+    await initializeDateFormatting('ja_JP');
 
     // Stripe設定の適用
     await Stripe.instance.applySettings();
@@ -142,6 +148,41 @@ Future<void> _configureAndroidTest() async {
   }
 }
 
+// 新規追加: ユーザーのログイン情報を更新する関数
+Future<void> updateUserLoginInfo(String userId) async {
+  try {
+    // Firestoreの参照
+    final userRef = FirebaseFirestore.instance.collection('users').doc(userId);
+
+    // 現在の日時を日本時間で取得
+    final now = DateTime.now();
+
+    // ユーザードキュメントを取得
+    final userDoc = await userRef.get();
+
+    if (userDoc.exists) {
+      // ドキュメントが存在する場合、ログイン回数を増やす
+      final currentLoginCount = userDoc.data()?['loginCount'] ?? 0;
+
+      await userRef.update({
+        'lastLoginAt': now, // 最終ログイン日時を更新
+        'loginCount': currentLoginCount + 1, // ログイン回数をインクリメント
+      });
+      print('User login info updated: $userId, count: ${currentLoginCount + 1}');
+    } else {
+      // ドキュメントが存在しない場合は新規作成
+      await userRef.set({
+        'lastLoginAt': now,
+        'loginCount': 1,
+        'createdAt': now, // 初回作成日時
+      }, SetOptions(merge: true)); // 既存データとマージする
+      print('New user login record created: $userId');
+    }
+  } catch (e) {
+    print('Error updating user login info: $e');
+  }
+}
+
 class MyApp extends StatelessWidget {
   const MyApp({Key? key}) : super(key: key);
 
@@ -175,6 +216,13 @@ class _SplashScreenState extends State<SplashScreen> {
   bool _isInitialized = false;
   String? _initError;
 
+  // ローディングアニメーションウィジェットの定数
+  // アプリ全体で統一したローディングウィジェットを使用するために定数として定義
+  static final loadingWidget = LoadingAnimationWidget.discreteCircle(
+    color: Colors.blue,
+    size: 50,
+  );
+
   @override
   void initState() {
     super.initState();
@@ -202,6 +250,9 @@ class _SplashScreenState extends State<SplashScreen> {
         print('Current user: ${user?.uid ?? "No user"}');
 
         if (user != null) {
+          // ユーザーがログインしている場合はログイン情報を更新
+          await updateUserLoginInfo(user.uid);
+
           print('Navigating to MainScreen');
           Navigator.of(context).pushReplacement(
             MaterialPageRoute(builder: (context) => MainScreen()),
@@ -277,6 +328,9 @@ class _SplashScreenState extends State<SplashScreen> {
     final user = FirebaseAuth.instance.currentUser;
     if (mounted) {
       if (user != null) {
+        // ユーザーがログインしている場合はログイン情報を更新
+        await updateUserLoginInfo(user.uid);
+
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(builder: (context) => MainScreen()),
         );
@@ -315,7 +369,8 @@ class _SplashScreenState extends State<SplashScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const CircularProgressIndicator(),
+            // CircularProgressIndicator() を LoadingAnimationWidget に置き換え
+            loadingWidget,
             if (!_isInitialized) ...[
               const SizedBox(height: 20),
               const Text('初期化中...'),

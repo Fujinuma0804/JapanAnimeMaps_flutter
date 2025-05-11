@@ -140,6 +140,10 @@
    </array>
    <key>SKPaymentTransactionObserverUsageDescription</key>
    <string>アプリ内課金の処理に必要です</string>
+   <key>NSPhotoLibraryAddUsageDescription</key>
+   <string>JAMがメディアを端末に保存するために使用されます</string>
+   <key>NSPhotoLibraryUsageDescription</key>
+   <string>JAMがメディアを端末に保存するために使用されます</string>
    <key>StoreKit</key>
    <array>
       <dict>

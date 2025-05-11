@@ -3,6 +3,7 @@ import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_vibrate/flutter_vibrate.dart';
+import 'package:parts/event_tab/event_more_movie.dart';
 import 'package:parts/map_page/map_subsc.dart';
 import 'package:parts/map_page/new_map_en.dart';
 import 'package:parts/post_page/timeline_screen.dart';
@@ -10,6 +11,8 @@ import 'package:parts/post_page/timeline_screen_en.dart';
 import 'package:parts/ranking/ranking_top.dart';
 import 'package:parts/shop/shop_maintenance.dart';
 import 'package:parts/shop/shop_top.dart';
+import 'package:parts/spot_page/anime_event_list.dart';
+import 'package:parts/event_tab/anime_event_ver.dart';
 import 'package:parts/spot_page/anime_list_en_new.dart';
 
 import '../map_page/map.dart';
@@ -228,7 +231,6 @@ class _MainScreenState extends State<MainScreen> {
             _hasSeenWelcome = userData['hasSeenWelcome'] ?? false;
           }
         }
-
         return Scaffold(
           body: PageView(
             controller: _pageController,
@@ -240,17 +242,20 @@ class _MainScreenState extends State<MainScreen> {
             },
             children: [
               _userLanguage == 'Japanese'
-                  ? AnimeListTestRanking()
+              //AnimeEventListは現在作成中。
+              //     ? AnimeEventList()
+              ? AnimeListTestRanking()
+              //は現在リリース中
+              // AnimeListTestRanking()
               //ver3.0.6までは翻訳機能を実装し、表示していた。読み込み速度改善のために変更した。
               //     : AnimeListTestRankingEng(),
                   : AnimeListEnNew(),
               _userLanguage == 'Japanese'
-                  ?
-              RankingTopPage()
+                  ? NewtAppUI()
               // _buildShopScreen()
                   : RankingTopPageEn(),
               _userLanguage == 'Japanese'
-                  ? MapScreen(latitude: _latitude, longitude: _longitude)
+                  ? MapSubscription(latitude: _latitude, longitude: _longitude)
                   : NewMapEn(latitude: _latitude, longitude: _longitude),
               _userLanguage == 'Japanese'
                   ? (!_hasSeenWelcome
@@ -313,8 +318,8 @@ class CustomBottomNavigationBar extends StatelessWidget {
           label: language == 'Japanese' ? 'スポット' : 'Spot',
         ),
         BottomNavigationBarItem(
-          icon: Icon(Icons.movie_creation_outlined),
-          label: language == 'Japanese' ? 'ジャンル' : 'Genre',
+          icon: Icon(Icons.calendar_today_outlined),
+          label: language == 'Japanese' ? 'イベント' : 'Event',
         ),
         BottomNavigationBarItem(
           icon: Icon(Icons.map),

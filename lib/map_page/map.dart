@@ -481,7 +481,7 @@ class _MapScreenState extends State<MapScreen> {
 
   Future<void> _loadMarkersFromFirestore() async {
     CollectionReference markers =
-        FirebaseFirestore.instance.collection('locations');
+    FirebaseFirestore.instance.collection('locations');
 
     QuerySnapshot snapshot = await markers.get();
     for (var doc in snapshot.docs) {
@@ -527,17 +527,17 @@ class _MapScreenState extends State<MapScreen> {
   // ... [previous code remains the same until _createMarkerWithImage method]
 
   Future<Marker> _createMarkerWithImage(
-    LatLng position,
-    String imageUrl,
-    String markerId,
-    int width,
-    int height,
-    String title,
-    String animeName,
-    String snippet,
-  ) async {
+      LatLng position,
+      String imageUrl,
+      String markerId,
+      int width,
+      int height,
+      String title,
+      String animeName,
+      String snippet,
+      ) async {
     final Uint8List markerIcon =
-        await _getBytesFromUrl(imageUrl, width, height);
+    await _getBytesFromUrl(imageUrl, width, height);
 
     final ui.PictureRecorder pictureRecorder = ui.PictureRecorder();
     final Canvas canvas = Canvas(pictureRecorder);
@@ -573,7 +573,7 @@ class _MapScreenState extends State<MapScreen> {
     );
 
     final img =
-        await pictureRecorder.endRecording().toImage(width + 40, height + 60);
+    await pictureRecorder.endRecording().toImage(width + 40, height + 60);
     final data = await img.toByteData(format: ui.ImageByteFormat.png);
 
     return Marker(
@@ -709,10 +709,10 @@ class _MapScreenState extends State<MapScreen> {
                               ),
                               onPressed: _canCheckIn
                                   ? () {
-                                      _checkIn(title,
-                                          _selectedMarker!.markerId.value);
-                                      Navigator.pop(context);
-                                    }
+                                _checkIn(title,
+                                    _selectedMarker!.markerId.value);
+                                Navigator.pop(context);
+                              }
                                   : null,
                               child: const Text(
                                 'チェックイン',
@@ -871,14 +871,14 @@ class _MapScreenState extends State<MapScreen> {
                             icon: const Icon(Icons.more_horiz),
                             onPressed: () async {
                               DocumentSnapshot snapshot =
-                                  await FirebaseFirestore.instance
-                                      .collection('locations')
-                                      .doc(_selectedMarker!.markerId.value)
-                                      .get();
+                              await FirebaseFirestore.instance
+                                  .collection('locations')
+                                  .doc(_selectedMarker!.markerId.value)
+                                  .get();
 
                               if (snapshot.exists) {
                                 Map<String, dynamic>? data =
-                                    snapshot.data() as Map<String, dynamic>?;
+                                snapshot.data() as Map<String, dynamic>?;
                                 if (data != null) {
                                   // subMediaの処理を追加
                                   List<Map<String, dynamic>> subMediaList = [];
@@ -886,12 +886,12 @@ class _MapScreenState extends State<MapScreen> {
                                       data['subMedia'] is List) {
                                     subMediaList =
                                         (data['subMedia'] as List).map((item) {
-                                      return {
-                                        'type': item['type'] as String? ?? '',
-                                        'url': item['url'] as String? ?? '',
-                                        'title': item['title'] as String? ?? '',
-                                      };
-                                    }).toList();
+                                          return {
+                                            'type': item['type'] as String? ?? '',
+                                            'url': item['url'] as String? ?? '',
+                                            'title': item['title'] as String? ?? '',
+                                          };
+                                        }).toList();
                                   }
 
                                   Navigator.push(
@@ -899,18 +899,18 @@ class _MapScreenState extends State<MapScreen> {
                                     MaterialPageRoute(
                                       builder: (context) => SpotDetailScreen(
                                         locationId:
-                                            _selectedMarker!.markerId.value,
+                                        _selectedMarker!.markerId.value,
                                         title: data['title'] ?? '',
                                         description: data['description'] ?? '',
                                         spot_description:
-                                            data['spot_description'] ?? '',
+                                        data['spot_description'] ?? '',
                                         latitude: data['latitude'] != null
                                             ? (data['latitude'] as num)
-                                                .toDouble()
+                                            .toDouble()
                                             : 0.0,
                                         longitude: data['longitude'] != null
                                             ? (data['longitude'] as num)
-                                                .toDouble()
+                                            .toDouble()
                                             : 0.0,
                                         imageUrl: data['imageUrl'] ?? '',
                                         sourceTitle: data['sourceTitle'] ?? '',
@@ -954,13 +954,13 @@ class _MapScreenState extends State<MapScreen> {
                             icon: const Icon(Icons.link),
                             onPressed: () async {
                               DocumentSnapshot snapshot =
-                                  await FirebaseFirestore.instance
-                                      .collection('locations')
-                                      .doc(_selectedMarker!.markerId.value)
-                                      .get();
+                              await FirebaseFirestore.instance
+                                  .collection('locations')
+                                  .doc(_selectedMarker!.markerId.value)
+                                  .get();
                               if (snapshot.exists) {
                                 Map<String, dynamic>? data =
-                                    snapshot.data() as Map<String, dynamic>?;
+                                snapshot.data() as Map<String, dynamic>?;
                                 if (data != null &&
                                     data.containsKey('sourceLink')) {
                                   final String sourceLink = data['sourceLink'];
@@ -1012,7 +1012,7 @@ class _MapScreenState extends State<MapScreen> {
                           shrinkWrap: true,
                           physics: const NeverScrollableScrollPhysics(),
                           gridDelegate:
-                              const SliverGridDelegateWithFixedCrossAxisCount(
+                          const SliverGridDelegateWithFixedCrossAxisCount(
                             crossAxisCount: 3,
                             crossAxisSpacing: 4,
                             mainAxisSpacing: 4,
@@ -1181,11 +1181,11 @@ class _MapScreenState extends State<MapScreen> {
 
       // ユーザードキュメントの参照を取得
       DocumentReference userRef =
-          FirebaseFirestore.instance.collection('users').doc(_userId);
+      FirebaseFirestore.instance.collection('users').doc(_userId);
 
       // ロケーションの参照を取得
       DocumentReference locationRef =
-          FirebaseFirestore.instance.collection('locations').doc(locationId);
+      FirebaseFirestore.instance.collection('locations').doc(locationId);
 
       // トランザクションで複数の更新を実行
       await FirebaseFirestore.instance.runTransaction((transaction) async {
@@ -1197,7 +1197,7 @@ class _MapScreenState extends State<MapScreen> {
         if (locationSnapshot.exists) {
           // チェックインカウントを更新
           int currentCount = (locationSnapshot.data()
-                  as Map<String, dynamic>)['checkinCount'] ??
+          as Map<String, dynamic>)['checkinCount'] ??
               0;
           transaction.update(locationRef, {'checkinCount': currentCount + 1});
         }
@@ -1205,7 +1205,7 @@ class _MapScreenState extends State<MapScreen> {
         if (userSnapshot.exists) {
           // 現在のポイントとcorrectCountを取得
           Map<String, dynamic> userData =
-              userSnapshot.data() as Map<String, dynamic>;
+          userSnapshot.data() as Map<String, dynamic>;
           int currentPoints = userData['points'] ?? 0;
           int currentCorrectCount = userData['correctCount'] ?? 0;
 
@@ -1325,42 +1325,42 @@ class _MapScreenState extends State<MapScreen> {
           _isLoading
               ? const Center(child: CircularProgressIndicator())
               : _errorOccurred
-                  ? const Center(child: Text('エラーが発生しました。'))
-                  : Stack(
-                      children: [
-                        GoogleMap(
-                          initialCameraPosition: const CameraPosition(
-                            target: LatLng(35.658581, 139.745433),
-                            zoom: 16.0,
-                            bearing: 30.0,
-                            tilt: 60.0,
-                          ),
-                          markers: _markers,
-                          circles: _circles,
-                          polylines: _polylines,
-                          myLocationEnabled: true,
-                          myLocationButtonEnabled: true,
-                          onMapCreated: (GoogleMapController controller) {
-                            _mapController = controller;
-                            controller.setMapStyle(_mapStyle);
-                            _moveToCurrentLocation();
-                          },
-                          onCameraMove: (CameraPosition position) {
-                            if (_currentPosition != null) {
-                              double distance = Geolocator.distanceBetween(
-                                _currentPosition!.latitude,
-                                _currentPosition!.longitude,
-                                position.target.latitude,
-                                position.target.longitude,
-                              );
-                              if (distance > _maxDisplayRadius) {
-                                _moveToCurrentLocation();
-                              }
-                            }
-                          },
-                        ),
-                      ],
-                    ),
+              ? const Center(child: Text('エラーが発生しました。'))
+              : Stack(
+            children: [
+              GoogleMap(
+                initialCameraPosition: const CameraPosition(
+                  target: LatLng(35.658581, 139.745433),
+                  zoom: 16.0,
+                  bearing: 30.0,
+                  tilt: 60.0,
+                ),
+                markers: _markers,
+                circles: _circles,
+                polylines: _polylines,
+                myLocationEnabled: true,
+                myLocationButtonEnabled: true,
+                onMapCreated: (GoogleMapController controller) {
+                  _mapController = controller;
+                  controller.setMapStyle(_mapStyle);
+                  _moveToCurrentLocation();
+                },
+                onCameraMove: (CameraPosition position) {
+                  if (_currentPosition != null) {
+                    double distance = Geolocator.distanceBetween(
+                      _currentPosition!.latitude,
+                      _currentPosition!.longitude,
+                      position.target.latitude,
+                      position.target.longitude,
+                    );
+                    if (distance > _maxDisplayRadius) {
+                      _moveToCurrentLocation();
+                    }
+                  }
+                },
+              ),
+            ],
+          ),
           if (_showConfirmation)
             Center(
               child: Container(
