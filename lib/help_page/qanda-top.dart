@@ -1,16 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:parts/help_page/qanda-template.dart';
 
 class MenuItem {
+  final String id;
   final IconData icon;
   final String text;
   final String? imagePath;
+  final Color color;
 
   MenuItem({
+    required this.id,
     required this.icon,
     required this.text,
     this.imagePath,
+    this.color = const Color(0xFF00A0C6),
   });
 }
 
@@ -33,16 +38,19 @@ class _QandATopPageState extends State<QandATopPage> {
 
   // メニュー項目のリスト
   final List<MenuItem> menuItems = [
-    MenuItem(icon: Icons.inventory, text: '注文内容について'),
-    MenuItem(icon: Icons.account_circle, text: 'アカウントについて'),
-    MenuItem(icon: Icons.card_membership, text: 'Amazonプライム会員', imagePath: 'prime'),
-    MenuItem(icon: Icons.payment, text: 'お支払い、請求、ギフトカード'),
-    MenuItem(icon: Icons.devices, text: 'Kindle、Alexa、その他のAmazonデバイス'),
-    MenuItem(icon: Icons.video_library, text: 'Prime Video、Amazon Music、Kindleアプリ、Kids+'),
-    MenuItem(icon: Icons.games, text: 'ゲーム&ソフトウェア、Prime Gaming'),
-    MenuItem(icon: Icons.warning, text: '不審な荷物および連絡（電話、Eメール、SMS）について'),
-    // ここに追加のメニュー項目を追加できます
+    MenuItem(id: 'faq', icon: Icons.help_outline, text: 'よくあるお問い合わせ'),
+    MenuItem(id: 'account', icon: Icons.account_circle, text: 'アカウントについて'),
+    MenuItem(id: 'premium', icon: Icons.card_membership, text: 'プレミアム会員サービス', color: Colors.amber[700] ?? const Color(0xFFFFB300)),
+    MenuItem(id: 'service', icon: Icons.info_outline, text: 'サービスについて'),
+    MenuItem(id: 'app', icon: Icons.smartphone, text: 'アプリの使い方'),
+    MenuItem(id: 'business', icon: Icons.business, text: 'ビジネス連携について', color: const Color(0xFFFF9800)),
+    MenuItem(id: 'technical', icon: Icons.warning_amber, text: '技術的問題とトラブルシューティング'),
+    MenuItem(id: 'report', icon: Icons.contact_support_outlined, text: '不審な活動および連絡について', color: const Color(0xFFE91E63)),
   ];
+
+  // Firebaseから読み込むジャンルのキャッシュ
+  List<String> availableGenres = [];
+  bool genresLoaded = false;
 
   // 検索結果をフィルターするためのリスト
   List<MenuItem> filteredItems = [];
@@ -58,6 +66,33 @@ class _QandATopPageState extends State<QandATopPage> {
 
     // ユーザー情報の取得
     fetchUserData();
+
+    // 利用可能なジャンルをFirebaseから取得しておく
+    loadAvailableGenres();
+  }
+
+  // Firebaseから利用可能なジャンルを事前に取得
+  Future<void> loadAvailableGenres() async {
+    try {
+      final snapshot = await FirebaseFirestore.instance
+          .collection('q-a_genres')
+          .get();
+
+      final genres = snapshot.docs.map((doc) {
+        final data = doc.data();
+        return data['name'] as String? ?? doc.id;
+      }).toList();
+
+      setState(() {
+        availableGenres = genres.whereType<String>().toList();
+        genresLoaded = true;
+      });
+
+      print('Available genres loaded: $availableGenres');
+    } catch (e) {
+      print('Error loading genres from Firebase: $e');
+      // エラー時は空のリストのままにする
+    }
   }
 
   // ユーザーデータをFirebaseから取得
@@ -189,7 +224,7 @@ class _QandATopPageState extends State<QandATopPage> {
                     width: 200,
                     child: LinearProgressIndicator(
                       backgroundColor: Colors.grey,
-                      valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF00A0C6)),
+                      valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF00008b)),
                     ),
                   )
                       : Text(
@@ -233,10 +268,7 @@ class _QandATopPageState extends State<QandATopPage> {
                   itemBuilder: (context, index) {
                     final item = filteredItems[index];
                     return _buildMenuItem(
-                      icon: item.icon,
-                      text: item.text,
-                      color: const Color(0xFF00A0C6),
-                      imagePath: item.imagePath,
+                      item: item,
                     );
                   },
                 ),
@@ -249,10 +281,7 @@ class _QandATopPageState extends State<QandATopPage> {
   }
 
   Widget _buildMenuItem({
-    required IconData icon,
-    String? imagePath,
-    required String text,
-    required Color color,
+    required MenuItem item,
   }) {
     return Container(
       color: Colors.white,
@@ -261,12 +290,12 @@ class _QandATopPageState extends State<QandATopPage> {
           width: 40,
           height: 40,
           decoration: BoxDecoration(
-            color: color,
+            color: item.color,
             shape: BoxShape.circle,
           ),
           child: Center(
-            child: imagePath != null
-                ? imagePath == 'prime'
+            child: item.imagePath != null
+                ? item.imagePath == 'prime'
                 ? Stack(
               alignment: Alignment.center,
               children: [
@@ -285,36 +314,142 @@ class _QandATopPageState extends State<QandATopPage> {
               ],
             )
                 : Image.asset(
-              'assets/images/$imagePath.png',
+              'assets/images/${item.imagePath}.png',
               width: 24,
               height: 24,
               color: Colors.white,
             )
                 : Icon(
-              icon,
+              item.icon,
               color: Colors.white,
             ),
           ),
         ),
         title: Text(
-          text,
+          item.text,
           style: const TextStyle(
             fontSize: 16,
           ),
         ),
         trailing: const Icon(Icons.chevron_right),
         onTap: () {
-          // タップ時の処理
-          print('選択されたアイテム: $text');
+          // 対応する詳細ページに遷移
+          navigateToDetailPage(context, item);
         },
       ),
     );
   }
-}
 
-// To use this widget, import it in main.dart and add it to your routes
-// or navigate to it using:
-// Navigator.push(
-//   context,
-//   MaterialPageRoute(builder: (context) => QandATopPage()),
-// );
+  // 詳細ページへの遷移処理
+  void navigateToDetailPage(BuildContext context, MenuItem item) {
+    // メニューIDをジャンル名にマッピング
+    String? initialGenre;
+
+    // Firebaseのジャンルデータがロードされているかチェック
+    if (genresLoaded && availableGenres.isNotEmpty) {
+      switch (item.id) {
+        case 'faq':
+        // すべてのジャンルを表示（ジャンル未指定）
+          initialGenre = null;
+          break;
+        case 'account':
+        // Firebaseのジャンルからアカウント関連ジャンルを検索
+          initialGenre = findMatchingGenre(['アカウント', 'アカウントについて']);
+          break;
+        case 'premium':
+        // プレミアムサービス関連ジャンルを検索
+          initialGenre = findMatchingGenre(['プレミアム', 'プレミアム会員', 'プレミアム会員サービス']);
+          break;
+        case 'service':
+        // サービス関連ジャンルを検索
+          initialGenre = findMatchingGenre(['サービス', 'サービスについて']);
+          break;
+        case 'app':
+        // アプリ関連ジャンルを検索
+          initialGenre = findMatchingGenre(['アプリ', 'アプリについて', 'アプリの使い方']);
+          break;
+        case 'business':
+        // ビジネス関連ジャンルを検索
+          initialGenre = findMatchingGenre(['ビジネス', 'ビジネス連携', 'ビジネス連携について']);
+          break;
+        case 'technical':
+        // 技術サポート関連ジャンルを検索
+          initialGenre = findMatchingGenre(['技術', '技術サポート', 'トラブル', 'トラブルシューティング']);
+          break;
+        case 'report':
+        // お問い合わせ関連ジャンルを検索
+          initialGenre = findMatchingGenre(['お問い合わせ', '報告', '連絡', 'レポート']);
+          break;
+        default:
+        // デフォルト処理（例外ケース）
+          print('未定義のメニュー項目: ${item.id}');
+          initialGenre = null;
+          break;
+      }
+    } else {
+      // ジャンルデータがロードされていない場合は従来のマッピングを使用
+      switch (item.id) {
+        case 'faq':
+          initialGenre = null;
+          break;
+        case 'account':
+          initialGenre = 'アカウントについて';
+          break;
+        case 'premium':
+          initialGenre = 'プレミアム会員サービス';
+          break;
+        case 'service':
+          initialGenre = 'サービスについて';
+          break;
+        case 'app':
+          initialGenre = 'アプリについて';
+          break;
+        case 'business':
+          initialGenre = 'ビジネス連携';
+          break;
+        case 'technical':
+          initialGenre = '技術サポート';
+          break;
+        case 'report':
+          initialGenre = 'お問い合わせ';
+          break;
+        default:
+          initialGenre = null;
+          break;
+      }
+    }
+
+    print('Selected genre for ${item.id}: $initialGenre');
+
+    // 選択されたジャンルを初期値として設定したFAQページに遷移
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => AnimeToursimFAQPage(initialGenre: initialGenre),
+      ),
+    );
+  }
+
+  // 利用可能なジャンルから最適なマッチを見つける
+  String? findMatchingGenre(List<String> possibleMatches) {
+    // 完全一致
+    for (final match in possibleMatches) {
+      if (availableGenres.contains(match)) {
+        return match;
+      }
+    }
+
+    // 部分一致
+    for (final genre in availableGenres) {
+      for (final match in possibleMatches) {
+        if (genre.toLowerCase().contains(match.toLowerCase()) ||
+            match.toLowerCase().contains(genre.toLowerCase())) {
+          return genre;
+        }
+      }
+    }
+
+    // マッチするものがなければnull
+    return null;
+  }
+}
