@@ -1,171 +1,299 @@
+// 必要なインポートを追加
 import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
-import Stripe from "stripe";
+import * as nodemailer from "nodemailer";
 
-admin.initializeApp();
+// Firebase Admin SDK 初期化（もしまだ初期化していない場合）
+// もし別のファイルで初期化している場合はこの行は不要
+if (!admin.apps.length) {
+  admin.initializeApp();
+}
 
-const stripe = new Stripe(functions.config().stripe.secret_key, {
-  apiVersion: "2023-10-16",
+// SMTP接続情報（環境変数から取得するか、または直接設定）
+// 実際のプロダクション環境では環境変数を使うことを推奨します
+const SMTP_EMAIL =
+functions.config().smtp?.email || "noreply-jam@animetourism.co.jp";
+const SMTP_PASSWORD = functions.config().smtp?.password || "10172002Sota@";
+const SMTP_HOST = functions.config().smtp?.host || "mail19.onamae.ne.jp";
+const SMTP_PORT = parseInt(functions.config().smtp?.port || "465");
+
+// nodemailerのトランスポーター設定
+const transporter = nodemailer.createTransport({
+  host: SMTP_HOST,
+  port: SMTP_PORT,
+  secure: SMTP_PORT === 465, // true for 465, false for other ports
+  auth: {
+    user: SMTP_EMAIL,
+    pass: SMTP_PASSWORD,
+  },
 });
 
-export const createPaymentIntent = functions
+// sendCheckInEmail 関数
+export const sendCheckInEmail = functions
   .region("asia-northeast1")
-  .https.onCall(async (data, context) => {
-    // デバッグログ: 関数開始
-    console.log("createPaymentIntent function started", {
-      userId: context.auth?.uid,
-      orderId: data.orderId,
+  .https.onCall(async (data: any, context: functions.https.CallableContext) => {
+    // リクエストデータのロギング - デバッグのために追加
+    console.log("チェックインメール送信リクエスト受信:", {
+      data: data,
+      auth: context.auth ?
+        {
+          uid: context.auth.uid,
+          email: context.auth.token.email,
+        } :
+        "認証なし",
     });
 
-    // 認証確認
+    // 認証チェック
     if (!context.auth) {
-      console.error("Authentication error: No user context");
+      console.error("認証がありません");
       throw new functions.https.HttpsError(
         "unauthenticated",
-        "ユーザー認証が必要です。"
+        "この機能を使用するにはログインが必要です。"
       );
     }
 
-    try {
-      // 注文情報の取得
-      console.log("Fetching order data...");
-      const orderRef = await admin
-        .firestore()
-        .collection("orders")
-        .doc(data.orderId)
-        .get();
+    const userId = context.auth.uid;
 
-      const orderData = orderRef.data();
-      if (!orderData) {
-        console.error("Order not found", {orderId: data.orderId});
+    try {
+      // リクエストからデータを取得
+      if (!data || typeof data !== "object") {
+        console.error("無効なデータ形式です", data);
         throw new functions.https.HttpsError(
-          "not-found",
-          "注文情報が見つかりません。"
+          "invalid-argument",
+          "無効なデータ形式です"
         );
       }
 
-      // カート内の商品情報を取得
-      console.log("Fetching cart items...");
-      const cartSnapshot = await admin
+      const locationId = data.locationId;
+      const checkInTitle = data.title;
+
+      if (!locationId) {
+        console.error("locationIdが指定されていません", data);
+        throw new functions.https.HttpsError(
+          "invalid-argument",
+          "locationIdが指定されていません"
+        );
+      }
+
+      console.log(
+        `チェックインメール処理開始: userId=${userId}, ` +
+        `locationId=${locationId}, title=${checkInTitle || "未指定"}`
+      );
+
+      // ユーザー情報を取得
+      const userRecord = await admin.auth().getUser(userId);
+      const userEmail = userRecord.email;
+
+      // メールアドレスがない場合は終了
+      if (!userEmail) {
+        console.error(
+          `ユーザー ${userId} にメールアドレスが設定されていません。`
+        );
+        throw new functions.https.HttpsError(
+          "failed-precondition",
+          "メールアドレスが設定されていません。"
+        );
+      }
+
+      const userName = userRecord.displayName || "ユーザー";
+      console.log(
+        `ユーザー情報取得完了: email=${userEmail}, name=${userName}`
+      );
+
+      // ロケーション情報を取得
+      const locationSnapshot = await admin
         .firestore()
-        .collection("users")
-        .doc(context.auth.uid)
-        .collection("shopping_cart")
+        .collection("locations")
+        .doc(locationId)
         .get();
 
-      // 合計金額の計算（小計）
-      let subtotal = 0;
-      const cartItems = cartSnapshot.docs.map((doc) => {
-        const item = doc.data();
-        const itemTotal = item.price * item.quantity;
-        subtotal += itemTotal;
-        return {
-          id: doc.id,
-          price: item.price,
-          quantity: item.quantity,
-          total: itemTotal,
-        };
-      });
+      let locationTitle = checkInTitle || "不明なスポット";
+      let imageUrl = "";
+      let locationInfo = "";
 
-      // デバッグログ: カート内容と小計
-      console.log("Cart summary:", {
-        items: cartItems,
-        subtotal: subtotal,
-      });
+      if (locationSnapshot.exists) {
+        const locationData = locationSnapshot.data();
+        if (locationData) {
+          locationTitle = locationData.title || locationTitle;
+          imageUrl = locationData.imageUrl || "";
 
-      // PaymentIntentの作成
-      console.log("Creating PaymentIntent...");
-      const paymentIntent = await stripe.paymentIntents.create({
-        amount: subtotal, // 税抜き金額（小計）で決済
-        currency: "jpy",
-        customer: data.customerId,
-        metadata: {
-          orderId: data.orderId,
-          userId: context.auth.uid,
-          subtotal: subtotal.toString(),
-        },
-        automatic_payment_methods: {
-          enabled: true,
-        },
-      });
-
-      // デバッグログ: PaymentIntent作成結果
-      console.log("PaymentIntent created", {
-        paymentIntentId: paymentIntent.id,
-        amount: paymentIntent.amount,
-        status: paymentIntent.status,
-      });
-
-      // 注文情報の更新
-      console.log("Updating order information...");
-      await orderRef.ref.update({
-        paymentIntentId: paymentIntent.id,
-        subtotal: subtotal,
-        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-        paymentStatus: paymentIntent.status,
-      });
-
-      console.log("Payment process completed successfully");
-      return {
-        clientSecret: paymentIntent.client_secret,
-        amount: subtotal,
-        paymentIntentId: paymentIntent.id,
-      };
-    } catch (error) {
-      console.error("Payment Intent creation error:", error);
-      throw new functions.https.HttpsError(
-        "internal",
-        "Payment Intent の作成に失敗しました。"
-      );
-    }
-  });
-
-// 決済状況の監視用関数
-export const onPaymentStatusUpdate = functions
-  .region("asia-northeast1")
-  .https.onRequest(async (request, response) => {
-    console.log("Received webhook event:", request.body.type);
-
-    const sig = request.headers["stripe-signature"];
-    let event;
-
-    try {
-      event = stripe.webhooks.constructEvent(
-        request.rawBody,
-        sig,
-        functions.config().stripe.webhook_secret
-      );
-    } catch (err) {
-      console.error("Webhook signature verification failed", err);
-      response.status(400).send("Webhook Error");
-      return;
-    }
-
-    if (event.type === "payment_intent.succeeded") {
-      const paymentIntent = event.data.object;
-      console.log("PaymentIntent succeeded:", {
-        id: paymentIntent.id,
-        orderId: paymentIntent.metadata.orderId,
-      });
-
-      // 注文ステータスの更新
-      const orderId = paymentIntent.metadata.orderId;
-      if (orderId) {
-        try {
-          await admin
-            .firestore()
-            .collection("orders")
-            .doc(orderId)
-            .update({
-              paymentStatus: "succeeded",
-              paidAt: admin.firestore.FieldValue.serverTimestamp(),
-            });
-          console.log("Order status updated to succeeded", {orderId});
-        } catch (error) {
-          console.error("Error updating order status", error);
+          // 長い行を分割
+          locationInfo = `
+            <p>スポット名: <strong>${locationData.title || "情報なし"}</strong></p>
+            ${locationData.animeName ?`<p>アニメ:
+                <strong>${locationData.animeName}</strong></p>` :""}
+            <p>説明: ${locationData.description || "情報なし"}</p>
+          `;
         }
       }
-    }
+      console.log(
+        `ロケーション情報取得完了: title=${locationTitle}, ` +
+        `imageUrl=${imageUrl ? "あり" : "なし"}`
+      );
 
-    response.json({received: true});
+      // チェックイン日時のフォーマット
+      const checkInDate = new Date();
+      const formattedDate = checkInDate.toLocaleString("ja-JP");
+
+      // メールテンプレートの作成
+      const htmlTemplate = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <title>チェックイン完了</title>
+        <style>
+          body {
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+          }
+          .header {
+            background-color: #00008b;
+            color: white;
+            padding: 20px;
+            text-align: center;
+            border-radius: 5px 5px 0 0;
+          }
+          .content {
+            padding: 20px;
+            background-color: #f9f9f9;
+            border-left: 1px solid #eee;
+            border-right: 1px solid #eee;
+          }
+          .location-info {
+            background-color: white;
+            border: 1px solid #eee;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+          }
+          .footer {
+            font-size: 12px;
+            text-align: center;
+            padding: 10px 20px;
+            background-color: #f1f1f1;
+            color: #666;
+            border-radius: 0 0 5px 5px;
+          }
+          .image-container {
+            text-align: center;
+            margin: 15px 0;
+          }
+          .image-container img {
+            max-width: 100%;
+            border-radius: 5px;
+            border: 1px solid #eee;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <h1>チェックイン完了！</h1>
+        </div>
+        <div class="content">
+          <p>${userName} 様</p>
+          <p><strong>${locationTitle}</strong> へのチェックインが完了しました。</p>
+
+          ${imageUrl ?
+    `<div class="image-container">
+            <img src="${imageUrl}"
+            alt="${locationTitle}" style="max-width: 300px;">
+          </div>
+          ` :
+    ""}
+
+          <div class="location-info">
+            ${locationInfo}
+            <p>チェックイン日時: ${formattedDate}</p>
+          </div>
+
+          <p>今回のチェックインでポイントを獲得しました！</p>
+          <p>引き続き聖地巡礼をお楽しみください。</p>
+        </div>
+        <div class="footer">
+          <p>※このメールは自動送信されています。返信はできません。</p>
+          <p>&copy; 2025 聖地巡礼アプリ</p>
+        </div>
+      </body>
+      </html>
+      `;
+
+      // プレーンテキスト版も作成
+      const textTemplate = `
+チェックイン完了のお知らせ
+
+${userName} 様
+
+${locationTitle} へのチェックインが完了しました。
+
+■ スポット情報 ■
+${locationSnapshot.exists && locationSnapshot.data() ?
+    locationSnapshot.data()?.title || "" :
+    ""}
+${locationSnapshot.exists &&
+          locationSnapshot.data() &&
+          locationSnapshot.data()?.animeName ?
+    "アニメ: " + locationSnapshot.data()?.animeName :
+    ""}
+チェックイン日時: ${formattedDate}
+
+引き続き聖地巡礼をお楽しみください。
+
+※このメールは自動送信されています。返信はできません。
+      `;
+
+      // メール送信
+      const mailOptions = {
+        from: `"聖地巡礼アプリ" <${SMTP_EMAIL}>`,
+        to: userEmail,
+        subject: `【チェックイン完了】${locationTitle}`,
+        text: textTemplate,
+        html: htmlTemplate,
+      };
+
+      console.log(
+        `メール送信準備完了: to=${userEmail}, ` +
+        `subject=【チェックイン完了】${locationTitle}`
+      );
+
+      // SMTPサーバーを使用してメール送信
+      await transporter.sendMail(mailOptions);
+
+      console.log(`ユーザー ${userId} にチェックイン完了メールを送信しました。`);
+
+      // ログ記録
+      await admin.firestore().collection("email_logs").add({
+        type: "check_in_email",
+        userId: userId,
+        locationId: locationId,
+        locationTitle: locationTitle,
+        timestamp: admin.firestore.FieldValue.serverTimestamp(),
+        success: true,
+      });
+
+      return {
+        success: true,
+        message: "チェックイン完了メールを送信しました。",
+      };
+    } catch (error) {
+      console.error("メール送信エラー:", error);
+
+      // エラーログを記録
+      await admin.firestore().collection("error_logs").add({
+        type: "email_send_failure",
+        userId: userId,
+        error: (error as Error).message,
+        timestamp: admin.firestore.FieldValue.serverTimestamp(),
+        stack: (error as Error).stack, // スタックトレースも記録
+      });
+
+      throw new functions.https.HttpsError(
+        "internal",
+        "メール送信に失敗しました: " + (error as Error).message
+      );
+    }
   });

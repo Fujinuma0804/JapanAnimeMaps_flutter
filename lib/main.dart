@@ -16,6 +16,7 @@ import 'package:purchases_flutter/purchases_flutter.dart';
 import 'package:flutter_stripe/flutter_stripe.dart';
 import 'package:intl/date_symbol_data_local.dart'; // 日本語ロケールデータ初期化用
 import 'package:cloud_firestore/cloud_firestore.dart'; // Firestoreを追加
+import 'package:cloud_functions/cloud_functions.dart'; // Cloud Functions追加
 
 void main() async {
   // Flutter binding初期化
@@ -42,10 +43,14 @@ void main() async {
     await initPlatformState();
 
     // Firebase と AdMob の初期化
-    await Future.wait([
-      Firebase.initializeApp(),
-      MobileAds.instance.initialize(),
-    ]);
+    await Firebase.initializeApp();
+
+    // Firebase Functionsの明示的な初期化
+    FirebaseFunctions.instanceFor(region: 'us-central1'); // us-central1リージョンを指定
+    print('Firebase Functions initialized successfully');
+
+    // AdMobの初期化
+    await MobileAds.instance.initialize();
 
     runApp(const MyApp());
   } catch (e) {
@@ -53,6 +58,182 @@ void main() async {
     // エラーが発生してもアプリを起動
     runApp(const MyApp());
   }
+}
+
+// テストメール送信機能
+Future<void> testSendMail(BuildContext context, String email) async {
+  try {
+    // Firebaseの初期化状態を確認
+    print('Firebase apps: ${Firebase.apps.length}');
+    if (Firebase.apps.isEmpty) {
+      throw Exception('Firebaseが初期化されていません');
+    }
+
+    print('Initializing Firebase Functions...');
+
+    // リージョン指定でFunctions初期化（us-central1に修正）
+    final FirebaseFunctions functions = FirebaseFunctions.instanceFor(
+      region: 'us-central1',
+    );
+
+    print('Calling testSendMail function...');
+    final HttpsCallable callable = functions.httpsCallable('testSendMail');
+
+    final params = {'emailTo': email};
+    print('Calling with params: $params');
+
+    final result = await callable.call(params);
+    print('Function result: ${result.data}');
+
+    // 成功メッセージ
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('$emailにテストメールを送信しました'),
+        backgroundColor: Colors.green,
+        duration: Duration(seconds: 3),
+      ),
+    );
+
+    return;
+  } catch (e) {
+    print('テストメール送信エラー: $e');
+
+    // エラーメッセージ
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('エラー: $e'),
+        backgroundColor: Colors.red,
+        duration: Duration(seconds: 5),
+      ),
+    );
+
+    return;
+  }
+}
+
+// テストメール送信ダイアログ
+void showTestEmailDialog(BuildContext context) {
+  final TextEditingController emailController = TextEditingController();
+  bool isLoading = false;
+  String statusMessage = 'メールアドレスを入力してください';
+  Color statusColor = Colors.black;
+
+  showDialog(
+    context: context,
+    barrierDismissible: false,
+    builder: (BuildContext context) {
+      return StatefulBuilder(
+        builder: (context, setState) {
+          return AlertDialog(
+            title: Text('テストメール送信'),
+            content: Container(
+              width: 300,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: double.infinity,
+                    padding: EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: statusColor.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Text(
+                      statusMessage,
+                      style: TextStyle(color: statusColor),
+                    ),
+                  ),
+                  SizedBox(height: 16),
+                  TextField(
+                    controller: emailController,
+                    decoration: InputDecoration(
+                      labelText: 'メールアドレス',
+                      border: OutlineInputBorder(),
+                      prefixIcon: Icon(Icons.email),
+                    ),
+                    keyboardType: TextInputType.emailAddress,
+                    enabled: !isLoading,
+                  ),
+                  if (isLoading)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 16.0),
+                      child: Center(
+                        child: CircularProgressIndicator(),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: isLoading ? null : () {
+                  Navigator.of(context).pop();
+                },
+                child: Text('キャンセル'),
+              ),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF00008b),
+                ),
+                onPressed: isLoading ? null : () async {
+                  final email = emailController.text.trim();
+
+                  if (email.isEmpty) {
+                    setState(() {
+                      statusMessage = 'メールアドレスを入力してください';
+                      statusColor = Colors.red;
+                    });
+                    return;
+                  }
+
+                  if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(email)) {
+                    setState(() {
+                      statusMessage = '有効なメールアドレスを入力してください';
+                      statusColor = Colors.red;
+                    });
+                    return;
+                  }
+
+                  setState(() {
+                    isLoading = true;
+                    statusMessage = '送信処理を開始しています...';
+                    statusColor = Colors.blue;
+                  });
+
+                  try {
+                    // 別関数で実行
+                    await testSendMail(context, email);
+
+                    // 成功
+                    setState(() {
+                      statusMessage = '送信リクエストが完了しました';
+                      statusColor = Colors.green;
+                      isLoading = false;
+                    });
+
+                    // 少し待ってダイアログを閉じる
+                    Future.delayed(Duration(seconds: 2), () {
+                      if (Navigator.canPop(context)) {
+                        Navigator.of(context).pop();
+                      }
+                    });
+                  } catch (e) {
+                    // エラー処理
+                    setState(() {
+                      statusMessage = 'エラー: $e';
+                      statusColor = Colors.red;
+                      isLoading = false;
+                    });
+                  }
+                },
+                child: Text('送信', style: TextStyle(color: Colors.white)),
+              ),
+            ],
+          );
+        },
+      );
+    },
+  );
 }
 
 Future<void> initPlatformState() async {

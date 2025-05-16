@@ -6,6 +6,7 @@ import 'dart:ui' as ui;
 import 'dart:convert';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/cupertino.dart';
@@ -2716,6 +2717,9 @@ class _MapSubscriptionState extends State<MapSubscription> {
         .toList();
   }
 
+  // _checkIn メソッドを修正して Firebase Functions の sendCheckInEmail を呼び出す
+// この関数は MapSubscription クラスの _checkIn メソッド内に追加します
+
   void _checkIn(String title, String locationId) async {
     setState(() {
       _isSubmitting = true;
@@ -2723,6 +2727,13 @@ class _MapSubscriptionState extends State<MapSubscription> {
     });
 
     try {
+      //ユーザー情報を取得
+      User currentUser = FirebaseAuth.instance.currentUser!;
+      String userEmail = currentUser.email ?? '';
+
+      // デバッグログを追加
+      print('チェックイン開始: locationId=$locationId, title=$title');
+
       // 既存のチェックイン記録を追加
       await FirebaseFirestore.instance
           .collection('users')
@@ -2732,7 +2743,10 @@ class _MapSubscriptionState extends State<MapSubscription> {
         'title': title,
         'locationId': locationId,
         'timestamp': FieldValue.serverTimestamp(),
+        'userEmail': FirebaseAuth.instance.currentUser?.email,
       });
+
+      print('Firestoreにチェックインデータを保存しました');
 
       // ユーザードキュメントの参照を取得
       DocumentReference userRef =
@@ -2778,6 +2792,8 @@ class _MapSubscriptionState extends State<MapSubscription> {
         }
       });
 
+      print('Firestoreトランザクションが完了しました');
+
       // ポイント履歴を記録
       await FirebaseFirestore.instance
           .collection('users')
@@ -2790,6 +2806,39 @@ class _MapSubscriptionState extends State<MapSubscription> {
         'locationId': locationId,
         'locationTitle': title,
       });
+
+      print('ポイント履歴を記録しました');
+
+      // Firebase Functionsを呼び出してメールを送信
+      try {
+        print('sendCheckInEmail関数を呼び出し開始');
+
+        // Firebase Functionsのインスタンスを取得
+        final HttpsCallable callable = FirebaseFunctions
+            .instanceFor(region: 'asia-northeast1')
+            .httpsCallable('sendCheckInEmail');
+
+        // デバッグ: データのログ出力
+        print('送信データ: locationId=$locationId, title=$title');
+
+        // Firebase Functionsを呼び出す
+        final result = await callable.call({
+          'locationId': locationId,
+          'title': title
+        });
+
+        // レスポンスのデバッグログ
+        print('Function実行結果: ${result.data}');
+
+        if (result.data['success'] == true) {
+          print('メール送信成功: ${result.data['message']}');
+        } else {
+          print('メール送信失敗: ${result.data['message'] ?? "不明なエラー"}');
+        }
+      } catch (e) {
+        print('Firebase Functions呼び出しエラー: $e');
+        // Functions呼び出しが失敗してもチェックイン自体は成功として処理
+      }
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(

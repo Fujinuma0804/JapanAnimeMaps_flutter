@@ -108,6 +108,7 @@ dependencies:
   font_awesome_flutter: ^10.8.0
   fluttertoast: ^8.2.8
   image_gallery_saver: ^2.0.3
+  cloud_functions: ^4.7.6
 #  in_app_purchase: ^3.2.0
 ##  in_app_purchase_storekit: ^0.3.18+3
 #  in_app_purchase_ios: ^0.2.0+1

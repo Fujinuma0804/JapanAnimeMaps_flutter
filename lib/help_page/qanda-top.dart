@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:parts/help_page/qanda-template.dart';
+import 'package:parts/help_page/testSendMail.dart';
+import 'package:parts/help_page/test_send_mail_http.dart';
 
 class MenuItem {
   final String id;
@@ -211,6 +213,13 @@ class _QandATopPageState extends State<QandATopPage> {
         child: Column(
           children: [
             // 固定ヘッダー部分 - スクロールしない
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF00008b),
+              ),
+              onPressed: () => showTestEmailDialogHttp(context),
+              child: Text('テストメール送信 (HTTP版)', style: TextStyle(color: Colors.white)),
+            ),
             Container(
               color: Colors.white,
               padding: const EdgeInsets.all(16),
