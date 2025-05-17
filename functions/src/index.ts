@@ -248,7 +248,7 @@ ${locationSnapshot.exists &&
           locationSnapshot.data()?.animeName ?
     "アニメ: " + locationSnapshot.data()?.animeName :
     ""}
-チェックイン日時: ${formattedDate}
+チェックインした日時: ${formattedDate}
 
 引き続き聖地巡礼をお楽しみください。
 
