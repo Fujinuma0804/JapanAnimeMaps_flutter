@@ -110,12 +110,15 @@ export const sendCheckInEmail = functions
       let locationTitle = checkInTitle || "不明なスポット";
       let imageUrl = "";
       let locationInfo = "";
+      let animeName = ""; // アニメ名を初期化
 
       if (locationSnapshot.exists) {
         const locationData = locationSnapshot.data();
         if (locationData) {
           locationTitle = locationData.title || locationTitle;
           imageUrl = locationData.imageUrl || "";
+          // アニメ名を取得
+          animeName = locationData.animeName || "";
 
           // 長い行を分割
           locationInfo = `
@@ -131,11 +134,7 @@ export const sendCheckInEmail = functions
         `imageUrl=${imageUrl ? "あり" : "なし"}`
       );
 
-      // チェックイン日時のフォーマット
-      const checkInDate = new Date();
-      const formattedDate = checkInDate.toLocaleString("ja-JP");
-
-      // メールテンプレートの作成
+      // メールテンプレートの作成 - アニメ名の有無によって文章を変える
       const htmlTemplate = `
       <!DOCTYPE html>
       <html>
@@ -201,20 +200,22 @@ export const sendCheckInEmail = functions
         </div>
         <div class="content">
           <p>${userName} 様</p>
-          <p><strong>${locationTitle}</strong> へのチェックインが完了しました。</p>
+          <p>${animeName ?
+    `<strong>${animeName}</strong> の聖地、` :
+    ""}
+          <strong>${locationTitle}</strong> へのチェックインが完了しました。</p>
 
           ${imageUrl ?
     `<div class="image-container">
             <img src="${imageUrl}"
             alt="${locationTitle}" style="max-width: 300px;">
-            <div class="user-id">ユーザーID: $(userId)}</div>
+            <div class="user-id">ユーザーID: ${userId}</div>
           </div>
           ` :
     ""}
 
           <div class="location-info">
             ${locationInfo}
-            <p>チェックイン日時: ${formattedDate}</p>
           </div>
 
           <p>今回のチェックインでポイントを獲得しました！</p>
@@ -237,7 +238,7 @@ export const sendCheckInEmail = functions
 
 ${userName} 様
 
-${locationTitle} へのチェックインが完了しました。
+${animeName ? animeName + " の聖地、" : ""}${locationTitle} へのチェックインが完了しました。
 
 ■ スポット情報 ■
 ${locationSnapshot.exists && locationSnapshot.data() ?
@@ -248,7 +249,6 @@ ${locationSnapshot.exists &&
           locationSnapshot.data()?.animeName ?
     "アニメ: " + locationSnapshot.data()?.animeName :
     ""}
-チェックインした日時: ${formattedDate}
 
 引き続き聖地巡礼をお楽しみください。
 
