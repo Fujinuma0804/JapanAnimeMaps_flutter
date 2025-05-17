@@ -188,6 +188,11 @@ export const sendCheckInEmail = functions
             border-radius: 5px;
             border: 1px solid #eee;
           }
+          .user-id {
+            font-size: 14px;
+            color: #666;
+            margin-top: 8px;
+          }
         </style>
       </head>
       <body>
@@ -202,6 +207,7 @@ export const sendCheckInEmail = functions
     `<div class="image-container">
             <img src="${imageUrl}"
             alt="${locationTitle}" style="max-width: 300px;">
+            <div class="user-id">ユーザーID: $(userId)}</div>
           </div>
           ` :
     ""}
@@ -215,8 +221,11 @@ export const sendCheckInEmail = functions
           <p>引き続き聖地巡礼をお楽しみください。</p>
         </div>
         <div class="footer">
-          <p>※このメールは自動送信されています。返信はできません。</p>
-          <p>&copy; 2025 聖地巡礼アプリ</p>
+          <p>※このメールは自動送信されています。ご返信いただけません。</p>
+          <p>※ご連絡は
+          <a href="https://animetourism.co.jp/contact.html" target="_blank">こちら</a>
+          からお願いいたします。</p>
+          <p>&copy; 2024-2025 AnimTourism Inc. All Rights Reserved.</p>
         </div>
       </body>
       </html>
@@ -248,7 +257,7 @@ ${locationSnapshot.exists &&
 
       // メール送信
       const mailOptions = {
-        from: `"聖地巡礼アプリ" <${SMTP_EMAIL}>`,
+        from: `"JapanAnimeMaps" <${SMTP_EMAIL}>`,
         to: userEmail,
         subject: `【チェックイン完了】${locationTitle}`,
         text: textTemplate,
