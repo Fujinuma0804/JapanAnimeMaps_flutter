@@ -167,24 +167,24 @@ class _ManualEnState extends State<ManualEn> {
                 ),
               ],
             ),
-            // SettingsSection(
-            //   title: Text(_language == '日本語' ? '有料プラン' : 'Paid plan'),
-            //   tiles: <SettingsTile>[
-            //     SettingsTile.navigation(
-            //       leading: const Icon(Icons.payment_rounded),
-            //       title: Text(_language == '日本語' ? 'JAMプレミアム' : 'JAM Premium'),
-            //       value: const Text(''),
-            //       onPressed: (context) {
-            //         showModalBottomSheet(
-            //           context: context,
-            //           isScrollControlled: true,
-            //           backgroundColor: Colors.transparent,
-            //           builder: (context) => const PaymentSubscriptionScreen(),
-            //         );
-            //       },
-            //     ),
-            //   ],
-            // ),
+            SettingsSection(
+              title: Text(_language == '日本語' ? '有料プラン' : 'Paid plan'),
+              tiles: <SettingsTile>[
+                SettingsTile.navigation(
+                  leading: const Icon(Icons.payment_rounded),
+                  title: Text(_language == '日本語' ? 'JAMプレミアム' : 'JAM Premium'),
+                  value: const Text(''),
+                  onPressed: (context) {
+                    showModalBottomSheet(
+                      context: context,
+                      isScrollControlled: true,
+                      backgroundColor: Colors.transparent,
+                      builder: (context) => const PaymentSubscriptionScreen(),
+                    );
+                  },
+                ),
+              ],
+            ),
           ],
         ),
       ),

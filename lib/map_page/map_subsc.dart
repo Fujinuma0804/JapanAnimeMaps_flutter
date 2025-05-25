@@ -2818,7 +2818,7 @@ class _MapSubscriptionState extends State<MapSubscription> {
             .instanceFor(region: 'asia-northeast1')
             .httpsCallable('sendCheckInEmail');
 
-        // デバッグ: データのログ出力
+        // デバッグ: データのログ出力5
         print('送信データ: locationId=$locationId, title=$title');
 
         // Firebase Functionsを呼び出す
