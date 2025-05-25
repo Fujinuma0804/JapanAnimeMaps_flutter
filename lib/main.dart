@@ -364,6 +364,128 @@ Future<void> updateUserLoginInfo(String userId) async {
   }
 }
 
+// 安全なDateTime変換関数
+String? _safeDateTimeToString(dynamic dateTime) {
+  try {
+    if (dateTime == null) return null;
+    if (dateTime is DateTime) return dateTime.toIso8601String();
+    if (dateTime is String) return dateTime; // 既に文字列の場合
+    return dateTime.toString(); // その他の場合は文字列化
+  } catch (e) {
+    print('Date conversion error: $e');
+    return null;
+  }
+}
+
+// RevenueCatの課金状態をFirestoreに同期する関数
+Future<void> syncBillingInfoToFirestore(String userId, CustomerInfo customerInfo) async {
+  try {
+    final billingRef = FirebaseFirestore.instance
+        .collection('users')
+        .doc(userId)
+        .collection('billing')
+        .doc('subscription_status');
+
+    final now = DateTime.now();
+
+    // エンタイトルメント情報を収集
+    Map<String, dynamic> entitlementsData = {};
+    for (var entry in customerInfo.entitlements.all.entries) {
+      final entitlement = entry.value;
+      entitlementsData[entry.key] = {
+        'isActive': entitlement.isActive,
+        'willRenew': entitlement.willRenew,
+        'productIdentifier': entitlement.productIdentifier,
+        'isSandbox': entitlement.isSandbox,
+        'latestPurchaseDate': _safeDateTimeToString(entitlement.latestPurchaseDate),
+        'originalPurchaseDate': _safeDateTimeToString(entitlement.originalPurchaseDate),
+        'expirationDate': _safeDateTimeToString(entitlement.expirationDate),
+        'store': entitlement.store.toString(),
+        'periodType': entitlement.periodType.toString(),
+      };
+    }
+
+    // アクティブなサブスクリプション情報を収集
+    List<String> activeSubscriptions = customerInfo.activeSubscriptions.toList();
+
+    // 課金状態の判定
+    bool isPremium = customerInfo.entitlements.active.isNotEmpty;
+    bool hasActiveSubscription = customerInfo.activeSubscriptions.isNotEmpty;
+
+    // Map型の日時フィールドを安全に変換
+    Map<String, String?> safeExpirationDates = {};
+    Map<String, String?> safePurchaseDates = {};
+
+    try {
+      customerInfo.allExpirationDates.forEach((key, value) {
+        safeExpirationDates[key] = _safeDateTimeToString(value);
+      });
+    } catch (e) {
+      print('Error converting expiration dates: $e');
+    }
+
+    try {
+      customerInfo.allPurchaseDates.forEach((key, value) {
+        safePurchaseDates[key] = _safeDateTimeToString(value);
+      });
+    } catch (e) {
+      print('Error converting purchase dates: $e');
+    }
+
+    // Firestoreに保存するデータ
+    final billingData = {
+      'isPremium': isPremium,
+      'hasActiveSubscription': hasActiveSubscription,
+      'originalAppUserId': customerInfo.originalAppUserId,
+      'requestDate': _safeDateTimeToString(customerInfo.requestDate),
+      'firstSeen': _safeDateTimeToString(customerInfo.firstSeen),
+      'originalApplicationVersion': customerInfo.originalApplicationVersion,
+      'originalPurchaseDate': _safeDateTimeToString(customerInfo.originalPurchaseDate),
+      'managementURL': customerInfo.managementURL,
+      'activeSubscriptions': activeSubscriptions,
+      'allExpirationDates': safeExpirationDates,
+      'allPurchaseDates': safePurchaseDates,
+      'entitlements': entitlementsData,
+      'lastUpdated': now,
+      'lastUpdatedTimestamp': FieldValue.serverTimestamp(),
+    };
+
+    // Firestoreに保存
+    await billingRef.set(billingData, SetOptions(merge: true));
+
+    print('✅ Billing info synced to Firestore for user: $userId');
+    print('Premium status: $isPremium');
+    print('Active subscriptions: $activeSubscriptions');
+    print('Active entitlements: ${customerInfo.entitlements.active.keys.toList()}');
+
+  } catch (e) {
+    print('❌ Error syncing billing info to Firestore: $e');
+  }
+}
+
+// RevenueCatの課金状態をリアルタイムで監視開始
+void startBillingMonitoring(String userId) {
+  print('🔄 Starting billing monitoring for user: $userId');
+
+  // CustomerInfoの変更を監視
+  Purchases.addCustomerInfoUpdateListener((customerInfo) {
+    print('📱 CustomerInfo updated for user: $userId');
+
+    // 非同期でFirestoreに同期
+    syncBillingInfoToFirestore(userId, customerInfo).catchError((error) {
+      print('❌ Error in billing sync listener: $error');
+    });
+  });
+
+  // 初回の課金状態を即座に同期
+  Purchases.getCustomerInfo().then((customerInfo) {
+    print('📋 Initial billing sync for user: $userId');
+    return syncBillingInfoToFirestore(userId, customerInfo);
+  }).catchError((error) {
+    print('❌ Error in initial billing sync: $error');
+  });
+}
+
 class MyApp extends StatelessWidget {
   const MyApp({Key? key}) : super(key: key);
 
@@ -433,6 +555,9 @@ class _SplashScreenState extends State<SplashScreen> {
         if (user != null) {
           // ユーザーがログインしている場合はログイン情報を更新
           await updateUserLoginInfo(user.uid);
+
+          // 課金状態の監視を開始
+          startBillingMonitoring(user.uid);
 
           print('Navigating to MainScreen');
           Navigator.of(context).pushReplacement(

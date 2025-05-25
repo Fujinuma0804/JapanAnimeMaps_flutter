@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class PaymentSubscriptionScreen extends StatefulWidget {
   const PaymentSubscriptionScreen({Key? key}) : super(key: key);
@@ -24,6 +25,15 @@ class _PaymentSubscriptionScreenState extends State<PaymentSubscriptionScreen> {
   bool _isLoading = false;
   String? _errorMessage;
 
+  // 契約状態を管理する変数
+  bool _hasYearlySubscription = false;
+  bool _hasMonthlySubscription = false;
+  bool _isCheckingSubscription = true;
+
+  // 利用規約とプライバシーポリシーのURL
+  final String _termsOfServiceUrl = 'https://animetourism.co.jp/terms.html'; // 実際のURLに変更してください
+  final String _privacyPolicyUrl = 'https://animetourism.co.jp/privacy.html'; // 実際のURLに変更してください
+
   @override
   void initState() {
     super.initState();
@@ -32,6 +42,9 @@ class _PaymentSubscriptionScreenState extends State<PaymentSubscriptionScreen> {
 
   Future<void> _setupPurchases() async {
     try {
+      // まず契約状態をチェック
+      await _checkCurrentSubscription();
+
       // RevenueCatの構成情報を出力
       final offerings = await Purchases.getOfferings();
       print('=== RevenueCat Configuration Status ===');
@@ -69,19 +82,137 @@ class _PaymentSubscriptionScreenState extends State<PaymentSubscriptionScreen> {
         print('利用可能な現在のオファリングがありません');
       }
 
-      // すでに購入済みの場合、UIを更新するための処理などを追加できます
-      final customerInfo = await Purchases.getCustomerInfo();
-      print('\n顧客情報:');
-      print('ユーザーID: ${customerInfo.originalAppUserId}');
-      print('アクティブな権限: (${customerInfo.entitlements.active.keys.join(", ")})');
-      // 購入状態に応じたUI更新処理があれば追加
+      setState(() {
+        _isCheckingSubscription = false;
+      });
     } catch (e) {
       // エラーハンドリング
       print('RevenueCat setup error: $e');
+      setState(() {
+        _isCheckingSubscription = false;
+      });
     }
   }
 
+  // 現在の契約状態をチェックする関数
+  Future<void> _checkCurrentSubscription() async {
+    try {
+      final customerInfo = await Purchases.getCustomerInfo();
+      print('\n=== 現在の契約状態チェック ===');
+      print('ユーザーID: ${customerInfo.originalAppUserId}');
+      print('アクティブなサブスクリプション: ${customerInfo.activeSubscriptions}');
+      print('アクティブなエンタイトルメント: ${customerInfo.entitlements.active.keys}');
+
+      bool hasYearly = false;
+      bool hasMonthly = false;
+
+      // アクティブなサブスクリプションをチェック
+      for (String productId in customerInfo.activeSubscriptions) {
+        print('アクティブなプロダクトID: $productId');
+
+        if (productId == _yearlyProductId ||
+            productId.toLowerCase().contains('year') ||
+            productId.toLowerCase().contains('annual')) {
+          hasYearly = true;
+          print('年額プランが検出されました: $productId');
+        }
+
+        if (productId == _monthlyProductId ||
+            productId.toLowerCase().contains('month')) {
+          hasMonthly = true;
+          print('月額プランが検出されました: $productId');
+        }
+      }
+
+      // エンタイトルメントからも確認
+      for (var entry in customerInfo.entitlements.active.entries) {
+        final entitlement = entry.value;
+        final productId = entitlement.productIdentifier;
+        print('アクティブなエンタイトルメント - プロダクトID: $productId');
+
+        if (productId == _yearlyProductId ||
+            productId.toLowerCase().contains('year') ||
+            productId.toLowerCase().contains('annual')) {
+          hasYearly = true;
+          print('年額プランのエンタイトルメントが検出されました: $productId');
+        }
+
+        if (productId == _monthlyProductId ||
+            productId.toLowerCase().contains('month')) {
+          hasMonthly = true;
+          print('月額プランのエンタイトルメントが検出されました: $productId');
+        }
+      }
+
+      setState(() {
+        _hasYearlySubscription = hasYearly;
+        _hasMonthlySubscription = hasMonthly;
+
+        // 既に契約がある場合、契約していない方をデフォルト選択
+        if (hasYearly && !hasMonthly) {
+          _isYearlyPlanSelected = false; // 月額を選択状態にする（年額は契約済み）
+        } else if (hasMonthly && !hasYearly) {
+          _isYearlyPlanSelected = true; // 年額を選択状態にする（月額は契約済み）
+        }
+      });
+
+      print('年額契約状態: $_hasYearlySubscription');
+      print('月額契約状態: $_hasMonthlySubscription');
+    } catch (e) {
+      print('契約状態チェックエラー: $e');
+    }
+  }
+
+  // 契約があるかどうかをチェックする関数
+  bool get _hasAnySubscription => _hasYearlySubscription || _hasMonthlySubscription;
+
+  // 選択されたプランが契約済みかどうかをチェックする関数
+  bool get _isSelectedPlanAlreadySubscribed {
+    return (_isYearlyPlanSelected && _hasYearlySubscription) ||
+        (!_isYearlyPlanSelected && _hasMonthlySubscription);
+  }
+
   Future<void> _purchasePackage() async {
+    // 既に契約済みのプランを選択している場合は何もしない
+    if (_isSelectedPlanAlreadySubscribed) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('このプランは既にご契約いただいています'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
+    // 既に何らかの契約がある場合は警告を表示
+    if (_hasAnySubscription) {
+      final result = await showDialog<bool>(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: const Text('プラン変更の確認'),
+            content: Text(
+                '現在${_hasYearlySubscription ? "年額" : "月額"}プランをご契約中です。\n'
+                    '新しいプランに変更しますか？\n\n'
+                    '※既存のプランは自動的にキャンセルされません。Apple IDの設定から手動でキャンセルしてください。'
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                child: const Text('キャンセル'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(true),
+                child: const Text('変更する'),
+              ),
+            ],
+          );
+        },
+      );
+
+      if (result != true) return;
+    }
+
     setState(() {
       _isLoading = true;
       _errorMessage = null;
@@ -195,6 +326,9 @@ class _PaymentSubscriptionScreenState extends State<PaymentSubscriptionScreen> {
 
       // 購入成功
       if (customerInfo.entitlements.all.isNotEmpty) {
+        // 契約状態を再チェック
+        await _checkCurrentSubscription();
+
         // 購入成功時の処理
         Navigator.pop(context, true);  // 成功して画面を閉じる
       }
@@ -211,7 +345,7 @@ class _PaymentSubscriptionScreenState extends State<PaymentSubscriptionScreen> {
             message = '支払い処理中です';
             break;
           default:
-            message = '購入エラー: ${e.message}';
+            message = '購入エラー';
         }
       } else {
         message = e.toString();
@@ -227,8 +361,234 @@ class _PaymentSubscriptionScreenState extends State<PaymentSubscriptionScreen> {
     }
   }
 
+  // アプリ内ブラウザでURLを開く関数
+  Future<void> _launchInAppBrowser(String url) async {
+    try {
+      final Uri uri = Uri.parse(url);
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(
+          uri,
+          mode: LaunchMode.inAppBrowserView, // アプリ内ブラウザで開く
+          browserConfiguration: const BrowserConfiguration(
+            showTitle: true,
+          ),
+        );
+      } else {
+        // URLが開けない場合のエラーハンドリング
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('リンクを開くことができませんでした'),
+          ),
+        );
+      }
+    } catch (e) {
+      // エラーハンドリング
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('エラーが発生しました: $e'),
+        ),
+      );
+    }
+  }
+
+  // プランカードを作成するヘルパー関数
+  Widget _buildPlanCard({
+    required bool isYearly,
+    required bool isSelected,
+    required bool isSubscribed,
+    required VoidCallback onTap,
+  }) {
+    final isEnabled = !isSubscribed;
+
+    return GestureDetector(
+      onTap: isEnabled ? onTap : null,
+      child: Container(
+        decoration: BoxDecoration(
+          color: isSubscribed
+              ? Colors.grey[300]
+              : Colors.white,
+          border: Border.all(
+            color: isSubscribed
+                ? Colors.grey
+                : (isSelected ? const Color(0xFF4CAF50) : Colors.grey),
+            width: isSelected && !isSubscribed ? 2 : 1,
+          ),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // 契約中の表示またはおすすめバッジ
+            Row(
+              children: [
+                if (isSubscribed)
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.grey[600],
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: const Text(
+                      '契約中',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                      ),
+                    ),
+                  )
+                else if (isYearly)
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF4CAF50),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: const Text(
+                      'おすすめ',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  isYearly ? '年プラン' : '月プラン',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: isSubscribed ? Colors.grey[600] : Colors.black,
+                  ),
+                ),
+                Row(
+                  children: [
+                    if (isYearly && !isSubscribed)
+                      Text(
+                        '40%お得！',
+                        style: TextStyle(
+                          color: isSubscribed ? Colors.grey[600] : Colors.orange,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    const SizedBox(width: 8),
+                    Container(
+                      width: 24,
+                      height: 24,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: isSubscribed
+                              ? Colors.grey
+                              : (isSelected ? const Color(0xFF4CAF50) : Colors.grey),
+                          width: 2,
+                        ),
+                      ),
+                      child: (isSelected && !isSubscribed)
+                          ? const Center(
+                        child: Icon(
+                          Icons.check,
+                          size: 18,
+                          color: Color(0xFF4CAF50),
+                        ),
+                      )
+                          : isSubscribed
+                          ? const Center(
+                        child: Icon(
+                          Icons.check,
+                          size: 18,
+                          color: Colors.grey,
+                        ),
+                      )
+                          : null,
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            if (isYearly)
+              Row(
+                children: [
+                  Text(
+                    '¥3,600',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: isSubscribed ? Colors.grey[600] : Colors.black,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    '¥6,000',
+                    style: TextStyle(
+                      decoration: TextDecoration.lineThrough,
+                      color: Colors.grey,
+                    ),
+                  ),
+                  Text(
+                    '(税込)',
+                    style: TextStyle(
+                      color: Colors.grey,
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              )
+            else
+              Row(
+                children: [
+                  Text(
+                    '¥500 ',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: isSubscribed ? Colors.grey[600] : Colors.black,
+                    ),
+                  ),
+                  Text(
+                    '(税込)',
+                    style: TextStyle(
+                      color: Colors.grey,
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    if (_isCheckingSubscription) {
+      return Container(
+        height: MediaQuery.of(context).size.height * 0.85,
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.only(
+            topLeft: Radius.circular(20),
+            topRight: Radius.circular(20),
+          ),
+        ),
+        child: const Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+
     return Container(
       height: MediaQuery.of(context).size.height * 0.85,
       decoration: const BoxDecoration(
@@ -293,199 +653,29 @@ class _PaymentSubscriptionScreenState extends State<PaymentSubscriptionScreen> {
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
                           // Yearly plan
-                          GestureDetector(
+                          _buildPlanCard(
+                            isYearly: true,
+                            isSelected: _isYearlyPlanSelected,
+                            isSubscribed: _hasYearlySubscription,
                             onTap: () {
                               setState(() {
                                 _isYearlyPlanSelected = true;
                               });
                             },
-                            child: Container(
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                border: Border.all(
-                                  color: _isYearlyPlanSelected
-                                      ? const Color(0xFF4CAF50)
-                                      : Colors.grey,
-                                  width: _isYearlyPlanSelected ? 2 : 1,
-                                ),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              padding: const EdgeInsets.all(16),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
-                                    children: [
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 8,
-                                          vertical: 4,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color: const Color(0xFF4CAF50),
-                                          borderRadius: BorderRadius.circular(4),
-                                        ),
-                                        child: const Text(
-                                          'おすすめ',
-                                          style: TextStyle(
-                                            color: Colors.white,
-                                            fontSize: 12,
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      const Text(
-                                        '年プラン',
-                                        style: TextStyle(
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                      Row(
-                                        children: [
-                                          const Text(
-                                            '40%お得！',
-                                            style: TextStyle(
-                                              color: Colors.orange,
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                          ),
-                                          Container(
-                                            width: 24,
-                                            height: 24,
-                                            decoration: BoxDecoration(
-                                              shape: BoxShape.circle,
-                                              border: Border.all(
-                                                color: _isYearlyPlanSelected
-                                                    ? const Color(0xFF4CAF50)
-                                                    : Colors.grey,
-                                                width: 2,
-                                              ),
-                                            ),
-                                            child: _isYearlyPlanSelected
-                                                ? const Center(
-                                              child: Icon(
-                                                Icons.check,
-                                                size: 18,
-                                                color: Color(0xFF4CAF50),
-                                              ),
-                                            )
-                                                : null,
-                                          ),
-                                        ],
-                                      ),
-                                    ],
-                                  ),
-                                  Row(
-                                    children: const [
-                                      Text(
-                                        '¥3,600',
-                                        style: TextStyle(
-                                          fontSize: 20,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                      SizedBox(width: 8),
-                                      Text(
-                                        '¥6,000',
-                                        style: TextStyle(
-                                          decoration: TextDecoration.lineThrough,
-                                          color: Colors.grey,
-                                        ),
-                                      ),
-                                      Text(
-                                        '(税込)',
-                                        style: TextStyle(
-                                          color: Colors.grey,
-                                          fontSize: 12,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                            ),
                           ),
 
                           const SizedBox(height: 16),
 
                           // Monthly plan
-                          GestureDetector(
+                          _buildPlanCard(
+                            isYearly: false,
+                            isSelected: !_isYearlyPlanSelected,
+                            isSubscribed: _hasMonthlySubscription,
                             onTap: () {
                               setState(() {
                                 _isYearlyPlanSelected = false;
                               });
                             },
-                            child: Container(
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                border: Border.all(
-                                  color: !_isYearlyPlanSelected
-                                      ? const Color(0xFF4CAF50)
-                                      : Colors.grey,
-                                  width: !_isYearlyPlanSelected ? 2 : 1,
-                                ),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              padding: const EdgeInsets.all(16),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  const Text(
-                                    '月プラン',
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                  Row(
-                                    children: [
-                                      const Text(
-                                        '¥500 ',
-                                        style: TextStyle(
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                      const Text(
-                                        '(税込)',
-                                        style: TextStyle(
-                                          color: Colors.grey,
-                                          fontSize: 12,
-                                        ),
-                                      ),
-                                      Container(
-                                        width: 24,
-                                        height: 24,
-                                        decoration: BoxDecoration(
-                                          shape: BoxShape.circle,
-                                          border: Border.all(
-                                            color: !_isYearlyPlanSelected
-                                                ? const Color(0xFF4CAF50)
-                                                : Colors.grey,
-                                            width: 2,
-                                          ),
-                                        ),
-                                        child: !_isYearlyPlanSelected
-                                            ? const Center(
-                                          child: Icon(
-                                            Icons.check,
-                                            size: 18,
-                                            color: Color(0xFF4CAF50),
-                                          ),
-                                        )
-                                            : null,
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                            ),
                           ),
 
                           const SizedBox(height: 24),
@@ -503,11 +693,15 @@ class _PaymentSubscriptionScreenState extends State<PaymentSubscriptionScreen> {
 
                           const SizedBox(height: 16),
 
-                          // Subscribe button - no trial
+                          // Subscribe button
                           ElevatedButton(
-                            onPressed: _isLoading ? null : _purchasePackage,
+                            onPressed: (_isLoading || _isSelectedPlanAlreadySubscribed)
+                                ? null
+                                : _purchasePackage,
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF4CAF50),
+                              backgroundColor: _isSelectedPlanAlreadySubscribed
+                                  ? Colors.grey
+                                  : const Color(0xFF4CAF50),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(25),
                               ),
@@ -523,9 +717,11 @@ class _PaymentSubscriptionScreenState extends State<PaymentSubscriptionScreen> {
                               ),
                             )
                                 : Text(
-                              _isYearlyPlanSelected
+                              _isSelectedPlanAlreadySubscribed
+                                  ? '契約中'
+                                  : (_isYearlyPlanSelected
                                   ? '年プランで登録する'
-                                  : '月プランで登録する',
+                                  : '月プランで登録する'),
                               style: const TextStyle(
                                 color: Colors.white,
                                 fontSize: 16,
@@ -535,18 +731,18 @@ class _PaymentSubscriptionScreenState extends State<PaymentSubscriptionScreen> {
                           ),
 
                           // エラーメッセージ表示
-                          if (_errorMessage != null)
-                            Padding(
-                              padding: const EdgeInsets.only(top: 8.0),
-                              child: Text(
-                                _errorMessage!,
-                                style: const TextStyle(
-                                  color: Colors.red,
-                                  fontSize: 14,
-                                ),
-                                textAlign: TextAlign.center,
-                              ),
-                            ),
+                          // if (_errorMessage != null)
+                          //   Padding(
+                          //     padding: const EdgeInsets.only(top: 8.0),
+                          //     child: Text(
+                          //       _errorMessage!,
+                          //       style: const TextStyle(
+                          //         color: Colors.red,
+                          //         fontSize: 14,
+                          //       ),
+                          //       textAlign: TextAlign.center,
+                          //     ),
+                          //   ),
 
                           const SizedBox(height: 24),
 
@@ -569,33 +765,45 @@ class _PaymentSubscriptionScreenState extends State<PaymentSubscriptionScreen> {
                                 ),
                                 const SizedBox(height: 8),
                                 RichText(
-                                  text: const TextSpan(
-                                    style: TextStyle(
+                                  text: TextSpan(
+                                    style: const TextStyle(
                                       color: Colors.black87,
                                       fontSize: 12,
                                     ),
                                     children: [
-                                      TextSpan(
+                                      const TextSpan(
                                         text: 'JAM プレミアムにご登録いただくと、',
                                       ),
-                                      TextSpan(
-                                        text: '利用規約',
-                                        style: TextStyle(
-                                          color: Colors.green,
-                                          decoration: TextDecoration.underline,
+                                      WidgetSpan(
+                                        child: GestureDetector(
+                                          onTap: () => _launchInAppBrowser(_termsOfServiceUrl),
+                                          child: const Text(
+                                            '利用規約',
+                                            style: TextStyle(
+                                              color: Colors.green,
+                                              decoration: TextDecoration.underline,
+                                              fontSize: 12,
+                                            ),
+                                          ),
                                         ),
                                       ),
-                                      TextSpan(text: 'と'),
-                                      TextSpan(
-                                        text: 'プライバシーポリシー',
-                                        style: TextStyle(
-                                          color: Colors.green,
-                                          decoration: TextDecoration.underline,
+                                      const TextSpan(text: 'と'),
+                                      WidgetSpan(
+                                        child: GestureDetector(
+                                          onTap: () => _launchInAppBrowser(_privacyPolicyUrl),
+                                          child: const Text(
+                                            'プライバシーポリシー',
+                                            style: TextStyle(
+                                              color: Colors.green,
+                                              decoration: TextDecoration.underline,
+                                              fontSize: 12,
+                                            ),
+                                          ),
                                         ),
                                       ),
-                                      TextSpan(text: 'に同意したことになります。'),
-                                      TextSpan(text: 'JAMプレミアムは、有効期限終了前の24時間以内にAppleIDに自動課金されます。'),
-                                      TextSpan(text: '解約の場合、それまでにAppleID設定にて自動更新を停止してください。'),
+                                      const TextSpan(text: 'に同意したことになります。'),
+                                      const TextSpan(text: 'JAMプレミアムは、有効期限終了前の24時間以内にAppleIDに自動課金されます。'),
+                                      const TextSpan(text: '解約の場合、それまでにAppleID設定にて自動更新を停止してください。'),
                                     ],
                                   ),
                                 ),
