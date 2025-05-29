@@ -251,7 +251,9 @@ class _MainScreenState extends State<MainScreen> {
               //     : AnimeListTestRankingEng(),
                   : AnimeListEnNew(),
               _userLanguage == 'Japanese'
-                  ? NewtAppUI()
+              //現在リリース中。
+                  ? RankingTopPage()
+              // NewtAppUI()
               // _buildShopScreen()
                   : RankingTopPageEn(),
               _userLanguage == 'Japanese'
