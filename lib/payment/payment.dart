@@ -27,6 +27,9 @@ class _PaymentScreenState extends State<PaymentScreen> {
   BannerAd? _bannerAd;
   bool _isAdLoaded = false;
   CustomerInfo? _customerInfo;
+  String _userLanguage = 'English';
+  late User _user;
+  late Stream<DocumentSnapshot> _userStream;
 
   // RevenueCatダッシュボードの設定に合わせた識別子
   static const String _productId = 'jam_300_1m_1w0';
@@ -37,33 +40,137 @@ class _PaymentScreenState extends State<PaymentScreen> {
       ? 'ca-app-pub-xxxxxxxxxxxxxxxx/yyyyyyyyyy' // Androidの広告ユニットID
       : 'ca-app-pub-xxxxxxxxxxxxxxxx/yyyyyyyyyy'; // iOSの広告ユニットID
 
-  final Map<String, dynamic> _plan = {
-    'title': 'ベーシック',
-    'price': '¥300',
-    'period': '月額',
-    'features': [
-      {
-        'icon': Icons.block,
-        'title': '広告非表示',
-        'description': '快適な操作環境で利用できます',
-      },
-      {
-        'icon': Icons.map,
-        'title': '全ての機能を利用可能',
-        'description': 'プレミアム機能をご利用いただけます',
-      }
-    ],
-    'color': Colors.blue,
-    'entitlementId': 'basic'
+  // 多言語対応テキスト
+  Map<String, Map<String, String>> get _texts => {
+    'Japanese': {
+      'title': 'プレミアム会員になる',
+      'premiumPlan': '有料プラン',
+      'basicPlan': 'ベーシックプラン',
+      'price': '¥300',
+      'period': '月額',
+      'adFreeTitle': '広告非表示',
+      'adFreeDesc': '快適な操作環境で利用できます',
+      'allFeaturesTitle': '全ての機能を利用可能',
+      'allFeaturesDesc': 'プレミアム機能をご利用いただけます',
+      'purchase': '購入する',
+      'processing': '処理中...',
+      'restore': '以前の購入を復元する',
+      'restoring': '復元中...',
+      'active': '利用中',
+      'thankYou': 'ご購入ありがとうございます！',
+      'alreadySubscribed': '既にサブスクリプションに加入しています',
+      'purchaseFailed': '購入処理に失敗しました',
+      'purchaseCancelled': '購入がキャンセルされました',
+      'paymentPending': '決済処理が保留中です',
+      'storeProblem': 'ストアとの通信に問題が発生しました',
+      'restored': '購入情報を復元しました',
+      'noValidPurchase': '有効な購入情報が見つかりませんでした',
+      'restoreFailed': '購入情報の復元に失敗しました',
+      'initializing': 'サービスの初期化中です。しばらくお待ちください。',
+      'initError': '初期化エラー',
+      'retry': '再試行',
+    },
+    'English': {
+      'title': 'Become a Premium Member',
+      'premiumPlan': 'Premium Plan',
+      'basicPlan': 'Basic Plan',
+      'price': '¥300',
+      'period': 'Monthly',
+      'adFreeTitle': 'Ad-Free Experience',
+      'adFreeDesc': 'Enjoy a comfortable user experience without interruptions',
+      'allFeaturesTitle': 'Access All Features',
+      'allFeaturesDesc': 'Unlock all premium features',
+      'purchase': 'Purchase',
+      'processing': 'Processing...',
+      'restore': 'Restore Previous Purchases',
+      'restoring': 'Restoring...',
+      'active': 'Active',
+      'thankYou': 'Thank you for your purchase!',
+      'alreadySubscribed': 'You already have an active subscription',
+      'purchaseFailed': 'Purchase failed',
+      'purchaseCancelled': 'Purchase was cancelled',
+      'paymentPending': 'Payment is pending',
+      'storeProblem': 'Store communication error occurred',
+      'restored': 'Purchase information restored',
+      'noValidPurchase': 'No valid purchase information found',
+      'restoreFailed': 'Failed to restore purchase information',
+      'initializing': 'Service is initializing. Please wait.',
+      'initError': 'Initialization Error',
+      'retry': 'Retry',
+    },
   };
+
+  Map<String, dynamic> _getPlan() {
+    print('PaymentScreen - _getPlan() called with language: $_userLanguage');
+    final plan = {
+      'title': _getText('basicPlan'),
+      'price': _getText('price'),
+      'period': _getText('period'),
+      'features': [
+        {
+          'icon': Icons.block,
+          'title': _getText('adFreeTitle'),
+          'description': _getText('adFreeDesc'),
+        },
+        {
+          'icon': Icons.map,
+          'title': _getText('allFeaturesTitle'),
+          'description': _getText('allFeaturesDesc'),
+        }
+      ],
+      'color': Colors.blue,
+      'entitlementId': 'basic'
+    };
+    print('PaymentScreen - _getPlan() result: ${plan['title']}');
+    return plan;
+  }
+
+  String _getText(String key) {
+    final result = _texts[_userLanguage]?[key] ?? _texts['English']![key]!;
+    print('PaymentScreen - _getText($key) with language $_userLanguage = $result');
+    return result;
+  }
 
   @override
   void initState() {
     super.initState();
     _confettiController =
         ConfettiController(duration: const Duration(seconds: 5));
+    _getUser();
     _initializeServices();
     _initBannerAd();
+    _setupUserStream();
+  }
+
+  Future<void> _getUser() async {
+    _user = FirebaseAuth.instance.currentUser!;
+  }
+
+  void _setupUserStream() {
+    _userStream = FirebaseFirestore.instance
+        .collection('users')
+        .doc(_user.uid)
+        .snapshots();
+
+    _userStream.listen((DocumentSnapshot snapshot) {
+      print('PaymentScreen - Stream listener called');
+      if (snapshot.exists) {
+        final data = snapshot.data() as Map<String, dynamic>;
+        final language = data['language'] ?? 'English';
+        print('PaymentScreen - Document exists: ${snapshot.exists}');
+        print('PaymentScreen - Document data: $data');
+        print('PaymentScreen - Language from Firestore: $language');
+        print('PaymentScreen - Before setState _userLanguage: $_userLanguage');
+
+        setState(() {
+          _userLanguage = language;
+        });
+
+        print('PaymentScreen - After setState _userLanguage: $_userLanguage');
+      } else {
+        print('PaymentScreen - Document does not exist');
+      }
+    });
   }
 
   Future<void> _initializeServices() async {
@@ -116,7 +223,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
           'subscriptionUpdatedAt': FieldValue.serverTimestamp(),
           'subscriptionPlan': isSubscribed ? 'basic' : null,
           'purchaseTimestamp':
-              isSubscribed ? FieldValue.serverTimestamp() : null,
+          isSubscribed ? FieldValue.serverTimestamp() : null,
         }, SetOptions(merge: true));
       } catch (e) {
         print('Error updating Firebase subscription status: $e');
@@ -128,7 +235,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
   Future<void> _onPurchase() async {
     if (!_isInitialized) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('サービスの初期化中です。しばらくお待ちください。')),
+        SnackBar(content: Text(_getText('initializing'))),
       );
       return;
     }
@@ -141,7 +248,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
       final purchaseResult = await Purchases.purchaseProduct(_productId);
 
       final isSubscribed =
-          purchaseResult.entitlements.active.containsKey(_entitlementId);
+      purchaseResult.entitlements.active.containsKey(_entitlementId);
 
       await _updateFirebaseSubscriptionStatus(isSubscribed);
 
@@ -154,19 +261,19 @@ class _PaymentScreenState extends State<PaymentScreen> {
         _confettiController.play();
         Navigator.of(context).pop();
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('ご購入ありがとうございます！')),
+          SnackBar(content: Text(_getText('thankYou'))),
         );
       }
     } on PurchasesErrorCode catch (e) {
       print('RevenueCat error: $e');
-      String message = '購入処理に失敗しました';
+      String message = _getText('purchaseFailed');
 
       if (e == PurchasesErrorCode.purchaseCancelledError) {
-        message = '購入がキャンセルされました';
+        message = _getText('purchaseCancelled');
       } else if (e == PurchasesErrorCode.paymentPendingError) {
-        message = '決済処理が保留中です';
+        message = _getText('paymentPending');
       } else if (e == PurchasesErrorCode.storeProblemError) {
-        message = 'ストアとの通信に問題が発生しました';
+        message = _getText('storeProblem');
       }
 
       if (mounted) {
@@ -192,7 +299,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
       final customerInfo = await Purchases.restorePurchases();
 
       final isSubscribed =
-          customerInfo.entitlements.active.containsKey(_entitlementId);
+      customerInfo.entitlements.active.containsKey(_entitlementId);
 
       await _updateFirebaseSubscriptionStatus(isSubscribed);
 
@@ -205,7 +312,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
         Navigator.of(context).pop();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(isSubscribed ? '購入情報を復元しました' : '有効な購入情報が見つかりませんでした'),
+            content: Text(isSubscribed ? _getText('restored') : _getText('noValidPurchase')),
           ),
         );
       }
@@ -213,7 +320,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
       print('Error restoring purchases: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('購入情報の復元に失敗しました')),
+          SnackBar(content: Text(_getText('restoreFailed'))),
         );
       }
     } finally {
@@ -226,10 +333,12 @@ class _PaymentScreenState extends State<PaymentScreen> {
   void _showPurchaseBottomSheet() {
     if (_hasActiveSubscription) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('既にサブスクリプションに加入しています')),
+        SnackBar(content: Text(_getText('alreadySubscribed'))),
       );
       return;
     }
+
+    final plan = _getPlan();
 
     showModalBottomSheet(
       context: context,
@@ -243,61 +352,61 @@ class _PaymentScreenState extends State<PaymentScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            const Text(
-              '有料プラン',
-              style: TextStyle(
+            Text(
+              _getText('premiumPlan'),
+              style: const TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
                 color: Colors.black,
               ),
             ),
             const SizedBox(height: 16),
-            const Text(
-              'ベーシックプラン',
-              style: TextStyle(
+            Text(
+              _getText('basicPlan'),
+              style: const TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.w600,
                 color: Colors.black87,
               ),
             ),
             const SizedBox(height: 24),
-            ..._plan['features']
+            ...plan['features']
                 .map<Widget>((feature) => Padding(
-                      padding: const EdgeInsets.only(bottom: 16),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Icon(
-                            feature['icon'],
-                            size: 28,
-                            color: _plan['color'],
+              padding: const EdgeInsets.only(bottom: 16),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(
+                    feature['icon'],
+                    size: 28,
+                    color: plan['color'],
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          feature['title'],
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w600,
                           ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  feature['title'],
-                                  style: const TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  feature['description'],
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    color: Colors.grey[600],
-                                  ),
-                                ),
-                              ],
-                            ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          feature['description'],
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.grey[600],
                           ),
-                        ],
-                      ),
-                    ))
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ))
                 .toList(),
             const Spacer(),
             ElevatedButton(
@@ -311,7 +420,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                 minimumSize: const Size(double.infinity, 0),
               ),
               child: Text(
-                _isPurchasing ? '処理中...' : '購入する',
+                _isPurchasing ? _getText('processing') : _getText('purchase'),
                 style: const TextStyle(
                   fontSize: 18,
                   color: Colors.white,
@@ -327,7 +436,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                 minimumSize: const Size(double.infinity, 0),
               ),
               child: Text(
-                _isRestoring ? '復元中...' : '以前の購入を復元する',
+                _isRestoring ? _getText('restoring') : _getText('restore'),
                 style: TextStyle(
                   fontSize: 14,
                   color: Colors.grey[600],
@@ -350,143 +459,182 @@ class _PaymentScreenState extends State<PaymentScreen> {
 
   @override
   Widget build(BuildContext context) {
-    if (!_isInitialized) {
-      return const Scaffold(
-        body: Center(
-          child: CircularProgressIndicator(),
-        ),
-      );
-    }
+    return StreamBuilder<DocumentSnapshot>(
+      stream: _userStream,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Scaffold(
+            body: Center(
+              child: CircularProgressIndicator(),
+            ),
+          );
+        }
 
-    if (_initError != null) {
-      return Scaffold(
-        body: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Text('初期化エラー'),
-              Text(_initError!, style: const TextStyle(color: Colors.red)),
-              ElevatedButton(
-                onPressed: _initializeServices,
-                child: const Text('再試行'),
+        if (snapshot.hasData && snapshot.data != null) {
+          final userData = snapshot.data!.data() as Map<String, dynamic>?;
+          if (userData != null) {
+            final language = userData['language'] ?? 'English';
+            print('PaymentScreen - StreamBuilder language: $language');
+            print('PaymentScreen - StreamBuilder before update _userLanguage: $_userLanguage');
+            _userLanguage = language;
+            print('PaymentScreen - StreamBuilder after update _userLanguage: $_userLanguage');
+          }
+        }
+
+        if (!_isInitialized) {
+          return const Scaffold(
+            body: Center(
+              child: CircularProgressIndicator(),
+            ),
+          );
+        }
+
+        if (_initError != null) {
+          return Scaffold(
+            body: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(_getText('initError')),
+                  Text(_initError!, style: const TextStyle(color: Colors.red)),
+                  ElevatedButton(
+                    onPressed: _initializeServices,
+                    child: Text(_getText('retry')),
+                  ),
+                ],
               ),
-            ],
-          ),
-        ),
-      );
-    }
+            ),
+          );
+        }
 
-    return Scaffold(
-      appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, color: Color(0xFF00008b)),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
-        title: const Text(
-          'プレミアム会員になる',
-          style: TextStyle(
-            fontSize: 24,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        systemOverlayStyle: SystemUiOverlayStyle.dark,
-      ),
-      extendBodyBehindAppBar: true,
-      body: Center(
-        child: Container(
-          constraints: const BoxConstraints(maxWidth: 600),
-          child: Stack(
-            children: [
-              Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [Colors.blue[100]!, Colors.purple[100]!],
+        final plan = _getPlan();
+        print('PaymentScreen - build() method plan title: ${plan['title']}');
+        print('PaymentScreen - build() method current language: $_userLanguage');
+
+        return Scaffold(
+          appBar: AppBar(
+            leading: IconButton(
+              icon: const Icon(Icons.arrow_back_ios, color: Color(0xFF00008b)),
+              onPressed: () => Navigator.of(context).pop(),
+            ),
+            title: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  _getText('title'),
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
-                child: Column(
-                  children: [
-                    Expanded(
-                      child: SafeArea(
-                        child: ListView(
-                          padding: const EdgeInsets.all(16),
-                          children: [
-                            InkWell(
-                              onTap: _showPurchaseBottomSheet,
-                              child: Container(
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  borderRadius: BorderRadius.circular(16),
-                                  boxShadow: const [
-                                    BoxShadow(
-                                      color: Colors.black12,
-                                      blurRadius: 8,
-                                      offset: Offset(0, 4),
+                // デバッグ情報を表示
+                Text(
+                  'Debug: $_userLanguage',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: Colors.red,
+                  ),
+                ),
+              ],
+            ),
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            systemOverlayStyle: SystemUiOverlayStyle.dark,
+          ),
+          extendBodyBehindAppBar: true,
+          body: Center(
+            child: Container(
+              constraints: const BoxConstraints(maxWidth: 600),
+              child: Stack(
+                children: [
+                  Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [Colors.blue[100]!, Colors.purple[100]!],
+                      ),
+                    ),
+                    child: Column(
+                      children: [
+                        Expanded(
+                          child: SafeArea(
+                            child: ListView(
+                              padding: const EdgeInsets.all(16),
+                              children: [
+                                InkWell(
+                                  onTap: _showPurchaseBottomSheet,
+                                  child: Container(
+                                    decoration: BoxDecoration(
+                                      color: Colors.white,
+                                      borderRadius: BorderRadius.circular(16),
+                                      boxShadow: const [
+                                        BoxShadow(
+                                          color: Colors.black12,
+                                          blurRadius: 8,
+                                          offset: Offset(0, 4),
+                                        ),
+                                      ],
                                     ),
-                                  ],
-                                ),
-                                child: Stack(
-                                  children: [
-                                    Padding(
-                                      padding: const EdgeInsets.all(16),
-                                      child: Column(
-                                        crossAxisAlignment:
+                                    child: Stack(
+                                      children: [
+                                        Padding(
+                                          padding: const EdgeInsets.all(16),
+                                          child: Column(
+                                            crossAxisAlignment:
                                             CrossAxisAlignment.start,
-                                        children: [
-                                          Row(
                                             children: [
-                                              Icon(Icons.star,
-                                                  color: _plan['color']),
-                                              const SizedBox(width: 8),
-                                              Text(
-                                                _plan['title'],
-                                                style: const TextStyle(
-                                                  fontSize: 20,
-                                                  fontWeight: FontWeight.bold,
-                                                ),
+                                              Row(
+                                                children: [
+                                                  Icon(Icons.star,
+                                                      color: plan['color']),
+                                                  const SizedBox(width: 8),
+                                                  Text(
+                                                    plan['title'],
+                                                    style: const TextStyle(
+                                                      fontSize: 20,
+                                                      fontWeight: FontWeight.bold,
+                                                    ),
+                                                  ),
+                                                ],
                                               ),
-                                            ],
-                                          ),
-                                          const SizedBox(height: 8),
-                                          Row(
-                                            children: [
-                                              Text(
-                                                _customerInfo
-                                                            ?.activeSubscriptions
-                                                            .isNotEmpty ==
+                                              const SizedBox(height: 8),
+                                              Row(
+                                                children: [
+                                                  Text(
+                                                    _customerInfo
+                                                        ?.activeSubscriptions
+                                                        .isNotEmpty ==
                                                         true
-                                                    ? _customerInfo!
+                                                        ? _customerInfo!
                                                         .activeSubscriptions
                                                         .first
-                                                    : _plan['price'],
-                                                style: TextStyle(
-                                                  fontSize: 24,
-                                                  fontWeight: FontWeight.bold,
-                                                  color: _plan['color'],
-                                                ),
+                                                        : plan['price'],
+                                                    style: TextStyle(
+                                                      fontSize: 24,
+                                                      fontWeight: FontWeight.bold,
+                                                      color: plan['color'],
+                                                    ),
+                                                  ),
+                                                  Text(
+                                                    ' / ${plan['period']}',
+                                                    style: const TextStyle(
+                                                      color: Colors.grey,
+                                                    ),
+                                                  ),
+                                                ],
                                               ),
-                                              Text(
-                                                ' / ${_plan['period']}',
-                                                style: const TextStyle(
-                                                  color: Colors.grey,
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                          const SizedBox(height: 8),
-                                          ..._plan['features']
-                                              .map<Widget>(
-                                                (feature) => Padding(
+                                              const SizedBox(height: 8),
+                                              ...plan['features']
+                                                  .map<Widget>(
+                                                    (feature) => Padding(
                                                   padding: const EdgeInsets
                                                       .symmetric(vertical: 4),
                                                   child: Row(
                                                     children: [
                                                       Icon(
                                                         Icons.check_circle,
-                                                        color: _plan['color'],
+                                                        color: plan['color'],
                                                         size: 20,
                                                       ),
                                                       const SizedBox(width: 8),
@@ -495,74 +643,76 @@ class _PaymentScreenState extends State<PaymentScreen> {
                                                   ),
                                                 ),
                                               )
-                                              .toList(),
-                                        ],
-                                      ),
-                                    ),
-                                    if (_hasActiveSubscription)
-                                      Positioned(
-                                        top: 8,
-                                        right: 8,
-                                        child: Container(
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 12,
-                                            vertical: 6,
-                                          ),
-                                          decoration: BoxDecoration(
-                                            color: Colors.green,
-                                            borderRadius:
-                                                BorderRadius.circular(20),
-                                          ),
-                                          child: const Text(
-                                            '利用中',
-                                            style: TextStyle(
-                                              color: Colors.white,
-                                              fontWeight: FontWeight.bold,
-                                            ),
+                                                  .toList(),
+                                            ],
                                           ),
                                         ),
-                                      ),
-                                  ],
+                                        if (_hasActiveSubscription)
+                                          Positioned(
+                                            top: 8,
+                                            right: 8,
+                                            child: Container(
+                                              padding: const EdgeInsets.symmetric(
+                                                horizontal: 12,
+                                                vertical: 6,
+                                              ),
+                                              decoration: BoxDecoration(
+                                                color: Colors.green,
+                                                borderRadius:
+                                                BorderRadius.circular(20),
+                                              ),
+                                              child: Text(
+                                                _getText('active'),
+                                                style: const TextStyle(
+                                                  color: Colors.white,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                      ],
+                                    ),
+                                  ),
                                 ),
-                              ),
+                                const SizedBox(height: 20.0),
+                                if (_isAdLoaded && !_hasActiveSubscription)
+                                  SizedBox(
+                                    width: _bannerAd!.size.width.toDouble(),
+                                    height: _bannerAd!.size.height.toDouble(),
+                                    child: AdWidget(ad: _bannerAd!),
+                                  )
+                              ],
                             ),
-                            const SizedBox(height: 20.0),
-                            if (_isAdLoaded && !_hasActiveSubscription)
-                              SizedBox(
-                                width: _bannerAd!.size.width.toDouble(),
-                                height: _bannerAd!.size.height.toDouble(),
-                                child: AdWidget(ad: _bannerAd!),
-                              )
-                          ],
+                          ),
                         ),
+                      ],
+                    ),
+                  ),
+                  Align(
+                    alignment: Alignment.topCenter,
+                    child: ConfettiWidget(
+                      confettiController: _confettiController,
+                      blastDirection: pi / 2,
+                      maxBlastForce: 5,
+                      minBlastForce: 2,
+                      emissionFrequency: 0.05,
+                      numberOfParticles: 50,
+                      gravity: 0.1,
+                    ),
+                  ),
+                  if (_isPurchasing || _isRestoring)
+                    Container(
+                      color: Colors.black.withOpacity(0.3),
+                      child: const Center(
+                        child: CircularProgressIndicator(),
                       ),
                     ),
-                  ],
-                ),
+                ],
               ),
-              Align(
-                alignment: Alignment.topCenter,
-                child: ConfettiWidget(
-                  confettiController: _confettiController,
-                  blastDirection: pi / 2,
-                  maxBlastForce: 5,
-                  minBlastForce: 2,
-                  emissionFrequency: 0.05,
-                  numberOfParticles: 50,
-                  gravity: 0.1,
-                ),
-              ),
-              if (_isPurchasing || _isRestoring)
-                Container(
-                  color: Colors.black.withOpacity(0.3),
-                  child: const Center(
-                    child: CircularProgressIndicator(),
-                  ),
-                ),
-            ],
+            ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 }

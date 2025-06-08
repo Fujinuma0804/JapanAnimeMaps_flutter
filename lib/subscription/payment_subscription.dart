@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -19,8 +21,8 @@ class _PaymentSubscriptionScreenState extends State<PaymentSubscriptionScreen> {
 
   // パッケージ識別子（RevenueCatで使用される実際のパッケージ識別子）
   // デバッグ出力の実際のパッケージIDに合わせる
-  final String _yearlyPackageId = '\$rc_annual';  // 文字列として$を含める
-  final String _monthlyPackageId = '\$rc_monthly';  // 文字列として$を含める
+  final String _yearlyPackageId = '\$rc_annual'; // 文字列として$を含める
+  final String _monthlyPackageId = '\$rc_monthly'; // 文字列として$を含める
 
   bool _isLoading = false;
   String? _errorMessage;
@@ -30,14 +32,139 @@ class _PaymentSubscriptionScreenState extends State<PaymentSubscriptionScreen> {
   bool _hasMonthlySubscription = false;
   bool _isCheckingSubscription = true;
 
+  // 多言語対応
+  String _userLanguage = 'English';
+  late User _user;
+  late Stream<DocumentSnapshot> _userStream;
+
   // 利用規約とプライバシーポリシーのURL
-  final String _termsOfServiceUrl = 'https://animetourism.co.jp/terms.html'; // 実際のURLに変更してください
-  final String _privacyPolicyUrl = 'https://animetourism.co.jp/privacy.html'; // 実際のURLに変更してください
+  final String _termsOfServiceUrl = 'https://animetourism.co.jp/terms.html';
+  final String _privacyPolicyUrl = 'https://animetourism.co.jp/privacy.html';
+
+  // 多言語対応テキスト
+  Map<String, Map<String, String>> get _texts =>
+      {
+        'Japanese': {
+          'title': 'JAM プレミアム',
+          'cancel': 'キャンセル',
+          'premiumFeatures': '✨ プレミアムで快適体験',
+          'adFree': '広告非表示',
+          'adFreeDesc': '集中して\n検索できます',
+          'unlimited': '検索無制限',
+          'unlimitedDesc': '思う存分\n探せます',
+          'enjoyMore': 'より快適なJAM体験をお楽しみください',
+          'selectPlan': 'プランを選択してください',
+          'yearPlan': '年プラン',
+          'monthPlan': '月プラン',
+          'recommended': 'おすすめ',
+          'subscribed': '契約中',
+          'discount': '40%お得！',
+          'appStoreCancel': 'App Store からいつでも解約できます',
+          'subscribeYear': '年プランで登録する',
+          'subscribeMonth': '月プランで登録する',
+          'termsTitle': '注意事項（必ずお読みください）',
+          'termsContent': 'JAM プレミアムにご登録いただくと、',
+          'terms': '利用規約',
+          'privacy': 'プライバシーポリシー',
+          'agreeTerms': 'に同意したことになります。',
+          'autoRenewal': 'JAMプレミアムは、有効期限終了前の24時間以内にAppleIDに自動課金されます。',
+          'cancelInfo': '解約の場合、それまでにAppleID設定にて自動更新を停止してください。',
+          'alreadySubscribed': 'このプランは既にご契約いただいています',
+          'planChangeConfirm': 'プラン変更の確認',
+          'planChangeMessage': '現在{currentPlan}プランをご契約中です。\n新しいプランに変更しますか？\n\n※既存のプランは自動的にキャンセルされません。Apple IDの設定から手動でキャンセルしてください。',
+          'change': '変更する',
+          'yearly': '年額',
+          'monthly': '月額',
+          'purchaseError': '購入処理中にエラーが発生しました',
+          'purchaseCancelled': '購入がキャンセルされました',
+          'paymentPending': '支払い処理中です',
+          'noPlansAvailable': '現在、購入可能なプランが見つかりません',
+          'planNotFound': '選択したプランが見つかりません',
+          'linkError': 'リンクを開くことができませんでした',
+          'taxIncluded': '(税込)',
+        },
+        'English': {
+          'title': 'JAM Premium',
+          'cancel': 'Cancel',
+          'premiumFeatures': '✨ Premium Experience',
+          'adFree': 'Ad-Free',
+          'adFreeDesc': 'Focus on\nsearching',
+          'unlimited': 'Unlimited Search',
+          'unlimitedDesc': 'Explore to your\nheart\'s content',
+          'enjoyMore': 'Enjoy a more comfortable JAM experience',
+          'selectPlan': 'Please select a plan',
+          'yearPlan': 'Annual Plan',
+          'monthPlan': 'Monthly Plan',
+          'recommended': 'Recommended',
+          'subscribed': 'Subscribed',
+          'discount': '40% Off!',
+          'appStoreCancel': 'Cancel anytime from App Store',
+          'subscribeYear': 'Subscribe to Annual Plan',
+          'subscribeMonth': 'Subscribe to Monthly Plan',
+          'termsTitle': 'Important Notice (Please Read)',
+          'termsContent': 'By subscribing to JAM Premium, you agree to our ',
+          'terms': 'Terms of Service',
+          'privacy': 'Privacy Policy',
+          'agreeTerms': '.',
+          'autoRenewal': 'JAM Premium will be automatically charged to your Apple ID within 24 hours before the expiration date.',
+          'cancelInfo': 'To cancel, please stop auto-renewal in your Apple ID settings before then.',
+          'alreadySubscribed': 'You are already subscribed to this plan',
+          'planChangeConfirm': 'Confirm Plan Change',
+          'planChangeMessage': 'You are currently subscribed to the {currentPlan} plan.\nWould you like to change to a new plan?\n\n※Existing plans will not be automatically cancelled. Please manually cancel from your Apple ID settings.',
+          'change': 'Change',
+          'yearly': 'annual',
+          'monthly': 'monthly',
+          'purchaseError': 'An error occurred during purchase',
+          'purchaseCancelled': 'Purchase was cancelled',
+          'paymentPending': 'Payment is pending',
+          'noPlansAvailable': 'No purchasable plans are currently available',
+          'planNotFound': 'Selected plan not found',
+          'linkError': 'Could not open link',
+          'taxIncluded': '(Tax Included)',
+        },
+      };
+
+  String _getText(String key) {
+    final result = _texts[_userLanguage]?[key] ?? _texts['English']![key]!;
+    print(
+        'PaymentSubscriptionScreen - _getText($key) with language $_userLanguage = $result');
+    return result;
+  }
 
   @override
   void initState() {
     super.initState();
+    _getUser();
+    _setupUserStream();
     _setupPurchases();
+  }
+
+  Future<void> _getUser() async {
+    _user = FirebaseAuth.instance.currentUser!;
+  }
+
+  void _setupUserStream() {
+    _userStream = FirebaseFirestore.instance
+        .collection('users')
+        .doc(_user.uid)
+        .snapshots();
+
+    _userStream.listen((DocumentSnapshot snapshot) {
+      print('PaymentSubscriptionScreen - Stream listener called');
+      if (snapshot.exists) {
+        final data = snapshot.data() as Map<String, dynamic>;
+        final language = data['language'] ?? 'English';
+        print('PaymentSubscriptionScreen - Language from Firestore: $language');
+
+        setState(() {
+          _userLanguage = language;
+        });
+
+        print('PaymentSubscriptionScreen - Updated language: $_userLanguage');
+      } else {
+        print('PaymentSubscriptionScreen - Document does not exist');
+      }
+    });
   }
 
   Future<void> _setupPurchases() async {
@@ -60,7 +187,8 @@ class _PaymentSubscriptionScreenState extends State<PaymentSubscriptionScreen> {
             print('  プロダクト: ${pkg.storeProduct.identifier}');
             print('  価格: ${pkg.storeProduct.priceString}');
           } catch (e) {
-            print('- パッケージ: ${pkg.identifier} (プロダクト情報へのアクセスエラー: $e)');
+            print('- パッケージ: ${pkg
+                .identifier} (プロダクト情報へのアクセスエラー: $e)');
           }
         }
       });
@@ -75,7 +203,8 @@ class _PaymentSubscriptionScreenState extends State<PaymentSubscriptionScreen> {
             print('  プロダクト: ${pkg.storeProduct.identifier}');
             print('  価格: ${pkg.storeProduct.priceString}');
           } catch (e) {
-            print('- パッケージ: ${pkg.identifier} (プロダクト情報へのアクセスエラー: $e)');
+            print('- パッケージ: ${pkg
+                .identifier} (プロダクト情報へのアクセスエラー: $e)');
           }
         }
       } else {
@@ -100,8 +229,10 @@ class _PaymentSubscriptionScreenState extends State<PaymentSubscriptionScreen> {
       final customerInfo = await Purchases.getCustomerInfo();
       print('\n=== 現在の契約状態チェック ===');
       print('ユーザーID: ${customerInfo.originalAppUserId}');
-      print('アクティブなサブスクリプション: ${customerInfo.activeSubscriptions}');
-      print('アクティブなエンタイトルメント: ${customerInfo.entitlements.active.keys}');
+      print('アクティブなサブスクリプション: ${customerInfo
+          .activeSubscriptions}');
+      print('アクティブなエンタイトルメント: ${customerInfo.entitlements.active
+          .keys}');
 
       bool hasYearly = false;
       bool hasMonthly = false;
@@ -164,7 +295,8 @@ class _PaymentSubscriptionScreenState extends State<PaymentSubscriptionScreen> {
   }
 
   // 契約があるかどうかをチェックする関数
-  bool get _hasAnySubscription => _hasYearlySubscription || _hasMonthlySubscription;
+  bool get _hasAnySubscription =>
+      _hasYearlySubscription || _hasMonthlySubscription;
 
   // 選択されたプランが契約済みかどうかをチェックする関数
   bool get _isSelectedPlanAlreadySubscribed {
@@ -176,8 +308,8 @@ class _PaymentSubscriptionScreenState extends State<PaymentSubscriptionScreen> {
     // 既に契約済みのプランを選択している場合は何もしない
     if (_isSelectedPlanAlreadySubscribed) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('このプランは既にご契約いただいています'),
+        SnackBar(
+          content: Text(_getText('alreadySubscribed')),
           backgroundColor: Colors.orange,
         ),
       );
@@ -186,24 +318,26 @@ class _PaymentSubscriptionScreenState extends State<PaymentSubscriptionScreen> {
 
     // 既に何らかの契約がある場合は警告を表示
     if (_hasAnySubscription) {
+      final currentPlan = _hasYearlySubscription
+          ? _getText('yearly')
+          : _getText('monthly');
+      final message = _getText('planChangeMessage').replaceAll(
+          '{currentPlan}', currentPlan);
+
       final result = await showDialog<bool>(
         context: context,
         builder: (BuildContext context) {
           return AlertDialog(
-            title: const Text('プラン変更の確認'),
-            content: Text(
-                '現在${_hasYearlySubscription ? "年額" : "月額"}プランをご契約中です。\n'
-                    '新しいプランに変更しますか？\n\n'
-                    '※既存のプランは自動的にキャンセルされません。Apple IDの設定から手動でキャンセルしてください。'
-            ),
+            title: Text(_getText('planChangeConfirm')),
+            content: Text(message),
             actions: [
               TextButton(
                 onPressed: () => Navigator.of(context).pop(false),
-                child: const Text('キャンセル'),
+                child: Text(_getText('cancel')),
               ),
               TextButton(
                 onPressed: () => Navigator.of(context).pop(true),
-                child: const Text('変更する'),
+                child: Text(_getText('change')),
               ),
             ],
           );
@@ -228,16 +362,18 @@ class _PaymentSubscriptionScreenState extends State<PaymentSubscriptionScreen> {
       // 現在のオファリングがnullの場合でもpremiumオファリングを直接取得
       final offering = offerings.getOffering('premium');
       if (offering == null) {
-        throw Exception('現在、購入可能なプランが見つかりません');
+        throw Exception(_getText('noPlansAvailable'));
       }
 
       print('選択されたオファリング: ${offering.identifier}');
       print('利用可能なパッケージ:');
       for (var pkg in offering.availablePackages) {
         try {
-          print('- パッケージ: ${pkg.identifier}, プロダクト: ${pkg.storeProduct.identifier}');
+          print('- パッケージ: ${pkg.identifier}, プロダクト: ${pkg.storeProduct
+              .identifier}');
         } catch (e) {
-          print('- パッケージ: ${pkg.identifier} (プロダクト情報にアクセスできません)');
+          print('- パッケージ: ${pkg
+              .identifier} (プロダクト情報にアクセスできません)');
         }
       }
 
@@ -310,7 +446,7 @@ class _PaymentSubscriptionScreenState extends State<PaymentSubscriptionScreen> {
       }
 
       if (selectedPackage == null) {
-        throw Exception('選択したプランが見つかりません');
+        throw Exception(_getText('planNotFound'));
       }
 
       print('最終的に選択されたパッケージ: ${selectedPackage.identifier}');
@@ -330,22 +466,22 @@ class _PaymentSubscriptionScreenState extends State<PaymentSubscriptionScreen> {
         await _checkCurrentSubscription();
 
         // 購入成功時の処理
-        Navigator.pop(context, true);  // 成功して画面を閉じる
+        Navigator.pop(context, true); // 成功して画面を閉じる
       }
     } catch (e) {
-      String message = '購入処理中にエラーが発生しました';
+      String message = _getText('purchaseError');
 
       // エラーメッセージの詳細を設定
       if (e is PurchasesError) {
         switch (e.code) {
           case PurchasesErrorCode.purchaseCancelledError:
-            message = '購入がキャンセルされました';
+            message = _getText('purchaseCancelled');
             break;
           case PurchasesErrorCode.paymentPendingError:
-            message = '支払い処理中です';
+            message = _getText('paymentPending');
             break;
           default:
-            message = '購入エラー';
+            message = _getText('purchaseError');
         }
       } else {
         message = e.toString();
@@ -376,8 +512,8 @@ class _PaymentSubscriptionScreenState extends State<PaymentSubscriptionScreen> {
       } else {
         // URLが開けない場合のエラーハンドリング
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('リンクを開くことができませんでした'),
+          SnackBar(
+            content: Text(_getText('linkError')),
           ),
         );
       }
@@ -385,7 +521,7 @@ class _PaymentSubscriptionScreenState extends State<PaymentSubscriptionScreen> {
       // エラーハンドリング
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('エラーが発生しました: $e'),
+          content: Text('${_getText('linkError')}: $e'),
         ),
       );
     }
@@ -422,9 +558,9 @@ class _PaymentSubscriptionScreenState extends State<PaymentSubscriptionScreen> {
               ),
               borderRadius: BorderRadius.circular(20),
             ),
-            child: const Text(
-              '✨ プレミアムで快適体験',
-              style: TextStyle(
+            child: Text(
+              _getText('premiumFeatures'),
+              style: const TextStyle(
                 color: Colors.white,
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
@@ -442,8 +578,8 @@ class _PaymentSubscriptionScreenState extends State<PaymentSubscriptionScreen> {
                 child: _buildFeatureCard(
                   icon: Icons.block,
                   iconColor: const Color(0xFFFF6B6B),
-                  title: '広告非表示',
-                  subtitle: '集中して\n検索できます',
+                  title: _getText('adFree'),
+                  subtitle: _getText('adFreeDesc'),
                   gradient: [
                     const Color(0xFFFF6B6B).withOpacity(0.1),
                     const Color(0xFFFF8A80).withOpacity(0.05),
@@ -458,8 +594,8 @@ class _PaymentSubscriptionScreenState extends State<PaymentSubscriptionScreen> {
                 child: _buildFeatureCard(
                   icon: Icons.search,
                   iconColor: const Color(0xFF4CAF50),
-                  title: '検索無制限',
-                  subtitle: '思う存分\n探せます',
+                  title: _getText('unlimited'),
+                  subtitle: _getText('unlimitedDesc'),
                   gradient: [
                     const Color(0xFF4CAF50).withOpacity(0.1),
                     const Color(0xFF81C784).withOpacity(0.05),
@@ -487,9 +623,9 @@ class _PaymentSubscriptionScreenState extends State<PaymentSubscriptionScreen> {
                   size: 16,
                 ),
                 const SizedBox(width: 4),
-                const Text(
-                  'より快適なJAM体験をお楽しみください',
-                  style: TextStyle(
+                Text(
+                  _getText('enjoyMore'),
+                  style: const TextStyle(
                     color: Color(0xFF666666),
                     fontSize: 12,
                     fontWeight: FontWeight.w500,
@@ -619,35 +755,36 @@ class _PaymentSubscriptionScreenState extends State<PaymentSubscriptionScreen> {
                       color: Colors.grey[600],
                       borderRadius: BorderRadius.circular(4),
                     ),
-                    child: const Text(
-                      '契約中',
-                      style: TextStyle(
+                    child: Text(
+                      _getText('subscribed'),
+                      style: const TextStyle(
                         color: Colors.white,
                         fontSize: 12,
                       ),
                     ),
                   )
-                else if (isYearly)
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [Color(0xFF4CAF50), Color(0xFF66BB6A)],
+                else
+                  if (isYearly)
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
                       ),
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: const Text(
-                      'おすすめ',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFF4CAF50), Color(0xFF66BB6A)],
+                        ),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Text(
+                        _getText('recommended'),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
-                  ),
               ],
             ),
             const SizedBox(height: 8),
@@ -655,7 +792,7 @@ class _PaymentSubscriptionScreenState extends State<PaymentSubscriptionScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  isYearly ? '年プラン' : '月プラン',
+                  isYearly ? _getText('yearPlan') : _getText('monthPlan'),
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
@@ -675,7 +812,7 @@ class _PaymentSubscriptionScreenState extends State<PaymentSubscriptionScreen> {
                           borderRadius: BorderRadius.circular(4),
                         ),
                         child: Text(
-                          '40%お得！',
+                          _getText('discount'),
                           style: TextStyle(
                             color: Colors.orange[700],
                             fontWeight: FontWeight.bold,
@@ -692,7 +829,8 @@ class _PaymentSubscriptionScreenState extends State<PaymentSubscriptionScreen> {
                         border: Border.all(
                           color: isSubscribed
                               ? Colors.grey
-                              : (isSelected ? const Color(0xFF4CAF50) : Colors.grey),
+                              : (isSelected ? const Color(0xFF4CAF50) : Colors
+                              .grey),
                           width: 2,
                         ),
                       ),
@@ -731,7 +869,7 @@ class _PaymentSubscriptionScreenState extends State<PaymentSubscriptionScreen> {
                     ),
                   ),
                   const SizedBox(width: 8),
-                  Text(
+                  const Text(
                     '¥6,000',
                     style: TextStyle(
                       decoration: TextDecoration.lineThrough,
@@ -739,8 +877,8 @@ class _PaymentSubscriptionScreenState extends State<PaymentSubscriptionScreen> {
                     ),
                   ),
                   Text(
-                    '(税込)',
-                    style: TextStyle(
+                    _getText('taxIncluded'),
+                    style: const TextStyle(
                       color: Colors.grey,
                       fontSize: 12,
                     ),
@@ -759,8 +897,8 @@ class _PaymentSubscriptionScreenState extends State<PaymentSubscriptionScreen> {
                     ),
                   ),
                   Text(
-                    '(税込)',
-                    style: TextStyle(
+                    _getText('taxIncluded'),
+                    style: const TextStyle(
                       color: Colors.grey,
                       fontSize: 12,
                     ),
@@ -775,269 +913,327 @@ class _PaymentSubscriptionScreenState extends State<PaymentSubscriptionScreen> {
 
   @override
   Widget build(BuildContext context) {
-    if (_isCheckingSubscription) {
-      return Container(
-        height: MediaQuery.of(context).size.height * 0.85,
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.only(
-            topLeft: Radius.circular(20),
-            topRight: Radius.circular(20),
-          ),
-        ),
-        child: const Center(
-          child: CircularProgressIndicator(),
-        ),
-      );
-    }
+    return StreamBuilder<DocumentSnapshot>(
+      stream: _userStream,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return Container(
+            height: MediaQuery
+                .of(context)
+                .size
+                .height * 0.85,
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.only(
+                topLeft: Radius.circular(20),
+                topRight: Radius.circular(20),
+              ),
+            ),
+            child: const Center(
+              child: CircularProgressIndicator(),
+            ),
+          );
+        }
 
-    return Container(
-      height: MediaQuery.of(context).size.height * 0.85,
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(20),
-          topRight: Radius.circular(20),
-        ),
-      ),
-      child: Column(
-        children: [
-          // Header
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text(
-                    'キャンセル',
-                    style: TextStyle(
-                      color: Colors.black,
-                      fontSize: 16,
-                    ),
-                  ),
-                ),
-                const Text(
-                  'JAM プレミアム',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(width: 60), // バランス調整
-              ],
+        if (snapshot.hasData && snapshot.data != null) {
+          final userData = snapshot.data!.data() as Map<String, dynamic>?;
+          if (userData != null) {
+            _userLanguage = userData['language'] ?? 'English';
+          }
+        }
+
+        if (_isCheckingSubscription) {
+          return Container(
+            height: MediaQuery
+                .of(context)
+                .size
+                .height * 0.85,
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.only(
+                topLeft: Radius.circular(20),
+                topRight: Radius.circular(20),
+              ),
+            ),
+            child: const Center(
+              child: CircularProgressIndicator(),
+            ),
+          );
+        }
+
+        return Container(
+          height: MediaQuery
+              .of(context)
+              .size
+              .height * 0.85,
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.only(
+              topLeft: Radius.circular(20),
+              topRight: Radius.circular(20),
             ),
           ),
-
-          Expanded(
-            child: Container(
-              color: const Color(0xFFFDF6E7), // Light cream background
-              child: SingleChildScrollView(
-                child: Column(
+          child: Column(
+            children: [
+              // Header
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 16, vertical: 12),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    // Banner image
-                    Container(
-                      padding: const EdgeInsets.symmetric(vertical: 20),
-                      child: Column(
-                        children: [
-                          Image.asset(
-                            'assets/images/jam_subscription.png', // Add your banner image
-                            width: 250,
-                          ),
-                        ],
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: Text(
+                        _getText('cancel'),
+                        style: const TextStyle(
+                          color: Colors.black,
+                          fontSize: 16,
+                        ),
                       ),
                     ),
-
-                    // プレミアム機能セクション
-                    _buildPremiumFeaturesSection(),
-
-                    // Subscription options
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          // プランセクションタイトル
-                          const Text(
-                            'プランを選択してください',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFF333333),
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-
-                          const SizedBox(height: 16),
-
-                          // Yearly plan
-                          _buildPlanCard(
-                            isYearly: true,
-                            isSelected: _isYearlyPlanSelected,
-                            isSubscribed: _hasYearlySubscription,
-                            onTap: () {
-                              setState(() {
-                                _isYearlyPlanSelected = true;
-                              });
-                            },
-                          ),
-
-                          const SizedBox(height: 16),
-
-                          // Monthly plan
-                          _buildPlanCard(
-                            isYearly: false,
-                            isSelected: !_isYearlyPlanSelected,
-                            isSubscribed: _hasMonthlySubscription,
-                            onTap: () {
-                              setState(() {
-                                _isYearlyPlanSelected = false;
-                              });
-                            },
-                          ),
-
-                          const SizedBox(height: 24),
-
-                          // App Store text
-                          Center(
-                            child: Text(
-                              'App Store からいつでも解約できます',
-                              style: TextStyle(
-                                color: Colors.grey[600],
-                                fontSize: 14,
-                              ),
-                            ),
-                          ),
-
-                          const SizedBox(height: 16),
-
-                          // Subscribe button
-                          Container(
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(25),
-                              gradient: (_isLoading || _isSelectedPlanAlreadySubscribed)
-                                  ? null
-                                  : const LinearGradient(
-                                colors: [Color(0xFF4CAF50), Color(0xFF66BB6A)],
-                              ),
-                            ),
-                            child: ElevatedButton(
-                              onPressed: (_isLoading || _isSelectedPlanAlreadySubscribed)
-                                  ? null
-                                  : _purchasePackage,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: _isSelectedPlanAlreadySubscribed
-                                    ? Colors.grey
-                                    : Colors.transparent,
-                                shadowColor: Colors.transparent,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(25),
-                                ),
-                                padding: const EdgeInsets.symmetric(vertical: 16),
-                              ),
-                              child: _isLoading
-                                  ? const SizedBox(
-                                width: 20,
-                                height: 20,
-                                child: CircularProgressIndicator(
-                                  color: Colors.white,
-                                  strokeWidth: 2,
-                                ),
-                              )
-                                  : Text(
-                                _isSelectedPlanAlreadySubscribed
-                                    ? '契約中'
-                                    : (_isYearlyPlanSelected
-                                    ? '年プランで登録する'
-                                    : '月プランで登録する'),
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                          ),
-
-                          const SizedBox(height: 24),
-
-                          // Terms and conditions
-                          Container(
-                            padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              color: Colors.grey[200],
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text(
-                                  '注意事項（必ずお読みください）',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 14,
-                                  ),
-                                ),
-                                const SizedBox(height: 8),
-                                RichText(
-                                  text: TextSpan(
-                                    style: const TextStyle(
-                                      color: Colors.black87,
-                                      fontSize: 12,
-                                    ),
-                                    children: [
-                                      const TextSpan(
-                                        text: 'JAM プレミアムにご登録いただくと、',
-                                      ),
-                                      WidgetSpan(
-                                        child: GestureDetector(
-                                          onTap: () => _launchInAppBrowser(_termsOfServiceUrl),
-                                          child: const Text(
-                                            '利用規約',
-                                            style: TextStyle(
-                                              color: Colors.green,
-                                              decoration: TextDecoration.underline,
-                                              fontSize: 12,
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                      const TextSpan(text: 'と'),
-                                      WidgetSpan(
-                                        child: GestureDetector(
-                                          onTap: () => _launchInAppBrowser(_privacyPolicyUrl),
-                                          child: const Text(
-                                            'プライバシーポリシー',
-                                            style: TextStyle(
-                                              color: Colors.green,
-                                              decoration: TextDecoration.underline,
-                                              fontSize: 12,
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                      const TextSpan(text: 'に同意したことになります。'),
-                                      const TextSpan(text: 'JAMプレミアムは、有効期限終了前の24時間以内にAppleIDに自動課金されます。'),
-                                      const TextSpan(text: '解約の場合、それまでにAppleID設定にて自動更新を停止してください。'),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-
-                          const SizedBox(height: 20),
-                        ],
+                    Text(
+                      _getText('title'),
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
+                    const SizedBox(width: 60), // バランス調整
                   ],
                 ),
               ),
-            ),
+
+              Expanded(
+                child: Container(
+                  color: const Color(0xFFFDF6E7), // Light cream background
+                  child: SingleChildScrollView(
+                    child: Column(
+                      children: [
+                        // Banner image
+                        Container(
+                          padding: const EdgeInsets.symmetric(vertical: 20),
+                          child: Column(
+                            children: [
+                              Image.asset(
+                                _userLanguage == 'Japanese'
+                                    ? 'assets/images/jam_subscription.png'
+                                    : 'assets/images/jam_subscription_en.png',
+                                width: 250,
+                              ),
+                            ],
+                          ),
+                        ),
+
+                        // プレミアム機能セクション
+                        _buildPremiumFeaturesSection(),
+
+                        // Subscription options
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              // プランセクションタイトル
+                              Text(
+                                _getText('selectPlan'),
+                                style: const TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF333333),
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+
+                              const SizedBox(height: 16),
+
+                              // Yearly plan
+                              _buildPlanCard(
+                                isYearly: true,
+                                isSelected: _isYearlyPlanSelected,
+                                isSubscribed: _hasYearlySubscription,
+                                onTap: () {
+                                  setState(() {
+                                    _isYearlyPlanSelected = true;
+                                  });
+                                },
+                              ),
+
+                              const SizedBox(height: 16),
+
+                              // Monthly plan
+                              _buildPlanCard(
+                                isYearly: false,
+                                isSelected: !_isYearlyPlanSelected,
+                                isSubscribed: _hasMonthlySubscription,
+                                onTap: () {
+                                  setState(() {
+                                    _isYearlyPlanSelected = false;
+                                  });
+                                },
+                              ),
+
+                              const SizedBox(height: 24),
+
+                              // App Store text
+                              Center(
+                                child: Text(
+                                  _getText('appStoreCancel'),
+                                  style: TextStyle(
+                                    color: Colors.grey[600],
+                                    fontSize: 14,
+                                  ),
+                                ),
+                              ),
+
+                              const SizedBox(height: 16),
+
+                              // Subscribe button
+                              Container(
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(25),
+                                  gradient: (_isLoading ||
+                                      _isSelectedPlanAlreadySubscribed)
+                                      ? null
+                                      : const LinearGradient(
+                                    colors: [
+                                      Color(0xFF4CAF50),
+                                      Color(0xFF66BB6A)
+                                    ],
+                                  ),
+                                ),
+                                child: ElevatedButton(
+                                  onPressed: (_isLoading ||
+                                      _isSelectedPlanAlreadySubscribed)
+                                      ? null
+                                      : _purchasePackage,
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: _isSelectedPlanAlreadySubscribed
+                                        ? Colors.grey
+                                        : Colors.transparent,
+                                    shadowColor: Colors.transparent,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(25),
+                                    ),
+                                    padding: const EdgeInsets.symmetric(
+                                        vertical: 16),
+                                  ),
+                                  child: _isLoading
+                                      ? const SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(
+                                      color: Colors.white,
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                      : Text(
+                                    _isSelectedPlanAlreadySubscribed
+                                        ? _getText('subscribed')
+                                        : (_isYearlyPlanSelected
+                                        ? _getText('subscribeYear')
+                                        : _getText('subscribeMonth')),
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                              ),
+
+                              const SizedBox(height: 24),
+
+                              // Terms and conditions
+                              Container(
+                                padding: const EdgeInsets.all(16),
+                                decoration: BoxDecoration(
+                                  color: Colors.grey[200],
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      _getText('termsTitle'),
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 8),
+                                    RichText(
+                                      text: TextSpan(
+                                        style: const TextStyle(
+                                          color: Colors.black87,
+                                          fontSize: 12,
+                                        ),
+                                        children: [
+                                          TextSpan(
+                                            text: _getText('termsContent'),
+                                          ),
+                                          WidgetSpan(
+                                            child: GestureDetector(
+                                              onTap: () =>
+                                                  _launchInAppBrowser(
+                                                      _termsOfServiceUrl),
+                                              child: Text(
+                                                _getText('terms'),
+                                                style: const TextStyle(
+                                                  color: Colors.green,
+                                                  decoration: TextDecoration
+                                                      .underline,
+                                                  fontSize: 12,
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                          TextSpan(
+                                              text: _userLanguage == 'Japanese'
+                                                  ? 'と'
+                                                  : ' and '),
+                                          WidgetSpan(
+                                            child: GestureDetector(
+                                              onTap: () =>
+                                                  _launchInAppBrowser(
+                                                      _privacyPolicyUrl),
+                                              child: Text(
+                                                _getText('privacy'),
+                                                style: const TextStyle(
+                                                  color: Colors.green,
+                                                  decoration: TextDecoration
+                                                      .underline,
+                                                  fontSize: 12,
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                          TextSpan(
+                                              text: _getText('agreeTerms')),
+                                          TextSpan(
+                                              text: _getText('autoRenewal')),
+                                          TextSpan(
+                                              text: _getText('cancelInfo')),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+
+                              const SizedBox(height: 20),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 }

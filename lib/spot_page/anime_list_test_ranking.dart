@@ -1118,9 +1118,10 @@ class _AnimeListTestRankingState extends State<AnimeListTestRanking>
       }
 
       //テスト用
-      setState(() {
-        _showSubscriptionPrompt = true;
-      });
+      //テストをする際には、こちらのコメントアウトをはずしてください。
+      // setState(() {
+      //   _showSubscriptionPrompt = true;
+      // });
 
       print('Daily spot click count initialized: $_dailySpotClickCount');
     } catch (e) {
@@ -1129,7 +1130,7 @@ class _AnimeListTestRankingState extends State<AnimeListTestRanking>
     }
   }
 
-  //【追加】すぽっと押下回数を増加
+  //【追加】スポット押下回数を増加
   Future<void> _incrementSpotClickCount() async {
     try {
       final prefs = await SharedPreferences.getInstance();
