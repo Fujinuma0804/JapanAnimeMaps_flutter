@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/services.dart';
 import 'package:share_plus/share_plus.dart';
+import 'qa_form.dart'; // 追加：お問い合わせフォームのインポート
 
 class FAQModel {
   final String id;
@@ -311,11 +312,15 @@ class _AnimeToursimFAQPageState extends State<AnimeToursimFAQPage> {
     }
   }
 
-  // 連絡先情報を共有
-  void _shareContactInfo() {
-    Share.share(
-      'アニメツーリズムに関するお問い合わせは以下にお願いします。\n\nEmail: info@animetourism.co.jp\nウェブサイト: https://animetourism.co.jp',
-      subject: 'アニメツーリズムお問い合わせ先',
+  // お問い合わせフォームへの遷移（修正済み）
+  void _navigateToContactForm() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => QAFormPage(
+          initialGenre: selectedGenre, // 現在選択されているジャンルを渡す
+        ),
+      ),
     );
   }
 
@@ -489,7 +494,7 @@ class _AnimeToursimFAQPageState extends State<AnimeToursimFAQPage> {
             ),
           ),
 
-          // お問い合わせリンク
+          // お問い合わせリンク（修正済み）
           Padding(
             padding: const EdgeInsets.all(16.0),
             child: Column(
@@ -512,10 +517,7 @@ class _AnimeToursimFAQPageState extends State<AnimeToursimFAQPage> {
                 ),
                 const SizedBox(height: 16),
                 ElevatedButton(
-                  onPressed: () {
-                    // メールリンクの代わりに連絡先情報の共有を使用
-                    _shareContactInfo();
-                  },
+                  onPressed: _navigateToContactForm, // 修正：フォームページへの遷移
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF00A0C6),
                     foregroundColor: Colors.white,
@@ -645,7 +647,7 @@ class _AnimeToursimFAQPageState extends State<AnimeToursimFAQPage> {
   }
 }
 
-// FAQ詳細ページ
+// FAQ詳細ページ（修正済み）
 class FAQDetailPage extends StatelessWidget {
   final FAQModel faq;
 
@@ -662,11 +664,15 @@ class FAQDetailPage extends StatelessWidget {
     );
   }
 
-  // 連絡先情報を共有
-  void _shareContactInfo() {
-    Share.share(
-      'アニメツーリズムに関するお問い合わせは以下にお願いします。\n\nEmail: info@animetourism.co.jp\nウェブサイト: https://animetourism.co.jp',
-      subject: 'アニメツーリズムお問い合わせ先',
+  // お問い合わせフォームへの遷移（修正済み）
+  void _navigateToContactForm(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => QAFormPage(
+          initialGenre: faq.genre, // FAQ詳細のジャンルを渡す
+        ),
+      ),
     );
   }
 
@@ -827,8 +833,8 @@ class FAQDetailPage extends StatelessWidget {
                   Expanded(
                     child: ElevatedButton(
                       onPressed: () {
-                        // メール起動の代わりに連絡先情報を共有
-                        _shareContactInfo();
+                        // 修正：お問い合わせフォームページへの遷移
+                        _navigateToContactForm(context);
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.white,

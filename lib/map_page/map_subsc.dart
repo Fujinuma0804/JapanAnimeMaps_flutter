@@ -1906,7 +1906,7 @@ class _MapSubscriptionState extends State<MapSubscription> {
                   ),
                   decoration: InputDecoration(
                     hintText: _isSubscriptionActive
-                    ?'スポットまたはアニメ名を検索）'
+                        ?'スポットまたはアニメ名を検索）'
                         : _searchLimitReached
                         ? '本日の検索上限に達しました'
                         : 'スポットまたはアニメ名を検索 (残り$_searchesRemaining回)',
@@ -1946,8 +1946,8 @@ class _MapSubscriptionState extends State<MapSubscription> {
             if (_isSubscriptionActive)
               Container(
                 padding: EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 4
+                    horizontal: 12,
+                    vertical: 4
                 ),
                 decoration: BoxDecoration(
                   gradient: LinearGradient(

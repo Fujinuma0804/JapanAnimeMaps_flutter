@@ -391,6 +391,186 @@ class _PaymentSubscriptionScreenState extends State<PaymentSubscriptionScreen> {
     }
   }
 
+  // プレミアム機能セクションを作成する関数
+  Widget _buildPremiumFeaturesSection() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            const Color(0xFF4CAF50).withOpacity(0.1),
+            const Color(0xFF81C784).withOpacity(0.05),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: const Color(0xFF4CAF50).withOpacity(0.2),
+          width: 1,
+        ),
+      ),
+      child: Column(
+        children: [
+          // ヘッダー
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Color(0xFF4CAF50), Color(0xFF66BB6A)],
+              ),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: const Text(
+              '✨ プレミアムで快適体験',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 20),
+
+          // 機能一覧
+          Row(
+            children: [
+              // 広告非表示
+              Expanded(
+                child: _buildFeatureCard(
+                  icon: Icons.block,
+                  iconColor: const Color(0xFFFF6B6B),
+                  title: '広告非表示',
+                  subtitle: '集中して\n検索できます',
+                  gradient: [
+                    const Color(0xFFFF6B6B).withOpacity(0.1),
+                    const Color(0xFFFF8A80).withOpacity(0.05),
+                  ],
+                ),
+              ),
+
+              const SizedBox(width: 12),
+
+              // 検索無制限
+              Expanded(
+                child: _buildFeatureCard(
+                  icon: Icons.search,
+                  iconColor: const Color(0xFF4CAF50),
+                  title: '検索無制限',
+                  subtitle: '思う存分\n探せます',
+                  gradient: [
+                    const Color(0xFF4CAF50).withOpacity(0.1),
+                    const Color(0xFF81C784).withOpacity(0.05),
+                  ],
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 16),
+
+          // 補足テキスト
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.8),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.star,
+                  color: Colors.amber[600],
+                  size: 16,
+                ),
+                const SizedBox(width: 4),
+                const Text(
+                  'より快適なJAM体験をお楽しみください',
+                  style: TextStyle(
+                    color: Color(0xFF666666),
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // 機能カードを作成する関数
+  Widget _buildFeatureCard({
+    required IconData icon,
+    required Color iconColor,
+    required String title,
+    required String subtitle,
+    required List<Color> gradient,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: gradient,
+        ),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: iconColor.withOpacity(0.3),
+          width: 1,
+        ),
+      ),
+      child: Column(
+        children: [
+          // アイコン
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: iconColor.withOpacity(0.15),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              icon,
+              color: iconColor,
+              size: 20,
+            ),
+          ),
+
+          const SizedBox(height: 8),
+
+          // タイトル
+          Text(
+            title,
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+              color: iconColor.withOpacity(0.9),
+            ),
+          ),
+
+          const SizedBox(height: 4),
+
+          // サブタイトル
+          Text(
+            subtitle,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 11,
+              color: Colors.grey[600],
+              height: 1.2,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   // プランカードを作成するヘルパー関数
   Widget _buildPlanCard({
     required bool isYearly,
@@ -414,6 +594,13 @@ class _PaymentSubscriptionScreenState extends State<PaymentSubscriptionScreen> {
             width: isSelected && !isSubscribed ? 2 : 1,
           ),
           borderRadius: BorderRadius.circular(8),
+          boxShadow: isSelected && !isSubscribed ? [
+            BoxShadow(
+              color: const Color(0xFF4CAF50).withOpacity(0.2),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ] : null,
         ),
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -447,7 +634,9 @@ class _PaymentSubscriptionScreenState extends State<PaymentSubscriptionScreen> {
                       vertical: 4,
                     ),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF4CAF50),
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFF4CAF50), Color(0xFF66BB6A)],
+                      ),
                       borderRadius: BorderRadius.circular(4),
                     ),
                     child: const Text(
@@ -455,6 +644,7 @@ class _PaymentSubscriptionScreenState extends State<PaymentSubscriptionScreen> {
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 12,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
                   ),
@@ -475,11 +665,22 @@ class _PaymentSubscriptionScreenState extends State<PaymentSubscriptionScreen> {
                 Row(
                   children: [
                     if (isYearly && !isSubscribed)
-                      Text(
-                        '40%お得！',
-                        style: TextStyle(
-                          color: isSubscribed ? Colors.grey[600] : Colors.orange,
-                          fontWeight: FontWeight.bold,
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.orange[100],
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          '40%お得！',
+                          style: TextStyle(
+                            color: Colors.orange[700],
+                            fontWeight: FontWeight.bold,
+                            fontSize: 10,
+                          ),
                         ),
                       ),
                     const SizedBox(width: 8),
@@ -517,6 +718,7 @@ class _PaymentSubscriptionScreenState extends State<PaymentSubscriptionScreen> {
                 ),
               ],
             ),
+            const SizedBox(height: 4),
             if (isYearly)
               Row(
                 children: [
@@ -623,6 +825,7 @@ class _PaymentSubscriptionScreenState extends State<PaymentSubscriptionScreen> {
                     fontWeight: FontWeight.bold,
                   ),
                 ),
+                const SizedBox(width: 60), // バランス調整
               ],
             ),
           ),
@@ -646,12 +849,28 @@ class _PaymentSubscriptionScreenState extends State<PaymentSubscriptionScreen> {
                       ),
                     ),
 
+                    // プレミアム機能セクション
+                    _buildPremiumFeaturesSection(),
+
                     // Subscription options
                     Padding(
-                      padding: const EdgeInsets.all(16),
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
+                          // プランセクションタイトル
+                          const Text(
+                            'プランを選択してください',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF333333),
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+
+                          const SizedBox(height: 16),
+
                           // Yearly plan
                           _buildPlanCard(
                             isYearly: true,
@@ -694,55 +913,52 @@ class _PaymentSubscriptionScreenState extends State<PaymentSubscriptionScreen> {
                           const SizedBox(height: 16),
 
                           // Subscribe button
-                          ElevatedButton(
-                            onPressed: (_isLoading || _isSelectedPlanAlreadySubscribed)
-                                ? null
-                                : _purchasePackage,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: _isSelectedPlanAlreadySubscribed
-                                  ? Colors.grey
-                                  : const Color(0xFF4CAF50),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(25),
+                          Container(
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(25),
+                              gradient: (_isLoading || _isSelectedPlanAlreadySubscribed)
+                                  ? null
+                                  : const LinearGradient(
+                                colors: [Color(0xFF4CAF50), Color(0xFF66BB6A)],
                               ),
-                              padding: const EdgeInsets.symmetric(vertical: 16),
                             ),
-                            child: _isLoading
-                                ? const SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(
-                                color: Colors.white,
-                                strokeWidth: 2,
+                            child: ElevatedButton(
+                              onPressed: (_isLoading || _isSelectedPlanAlreadySubscribed)
+                                  ? null
+                                  : _purchasePackage,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: _isSelectedPlanAlreadySubscribed
+                                    ? Colors.grey
+                                    : Colors.transparent,
+                                shadowColor: Colors.transparent,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(25),
+                                ),
+                                padding: const EdgeInsets.symmetric(vertical: 16),
                               ),
-                            )
-                                : Text(
-                              _isSelectedPlanAlreadySubscribed
-                                  ? '契約中'
-                                  : (_isYearlyPlanSelected
-                                  ? '年プランで登録する'
-                                  : '月プランで登録する'),
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
+                              child: _isLoading
+                                  ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  color: Colors.white,
+                                  strokeWidth: 2,
+                                ),
+                              )
+                                  : Text(
+                                _isSelectedPlanAlreadySubscribed
+                                    ? '契約中'
+                                    : (_isYearlyPlanSelected
+                                    ? '年プランで登録する'
+                                    : '月プランで登録する'),
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
                             ),
                           ),
-
-                          // エラーメッセージ表示
-                          // if (_errorMessage != null)
-                          //   Padding(
-                          //     padding: const EdgeInsets.only(top: 8.0),
-                          //     child: Text(
-                          //       _errorMessage!,
-                          //       style: const TextStyle(
-                          //         color: Colors.red,
-                          //         fontSize: 14,
-                          //       ),
-                          //       textAlign: TextAlign.center,
-                          //     ),
-                          //   ),
 
                           const SizedBox(height: 24),
 
@@ -810,6 +1026,8 @@ class _PaymentSubscriptionScreenState extends State<PaymentSubscriptionScreen> {
                               ],
                             ),
                           ),
+
+                          const SizedBox(height: 20),
                         ],
                       ),
                     ),

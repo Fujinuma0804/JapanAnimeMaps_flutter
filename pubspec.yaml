@@ -159,6 +159,7 @@ dependencies:
   # その他のユーティリティ
   # ======================
   html_unescape: ^2.0.0
+  mailer: ^6.4.1
 
 dev_dependencies:
   flutter_test:

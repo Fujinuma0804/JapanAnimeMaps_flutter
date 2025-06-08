@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart'; // 追加
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:parts/firebase_options.dart';
 import 'package:parts/shop/purchase_agency.dart';
 import 'package:parts/shop/shop_product_detail.dart';
 import 'package:parts/src/bottomnavigationbar.dart';
@@ -22,8 +23,37 @@ void main() async {
   // Flutter binding初期化
   WidgetsFlutterBinding.ensureInitialized();
 
+  // グローバルエラーハンドラーを設定（最初に設定）
+  FlutterError.onError = (FlutterErrorDetails details) {
+    print('=== FLUTTER ERROR CAUGHT ===');
+    print('Error: ${details.exception}');
+    print('Library: ${details.library}');
+    print('Context: ${details.context}');
+    print('Stack trace:');
+    print('${details.stack}');
+    print('===========================');
+
+    // デバッグモードでは追加情報を表示
+    if (kDebugMode) {
+      print('Debug info: ${details.informationCollector?.call()}');
+    }
+  };
+
+  // 非同期エラーもキャッチ
+  PlatformDispatcher.instance.onError = (error, stack) {
+    print('=== PLATFORM ERROR CAUGHT ===');
+    print('Error: $error');
+    print('Stack trace:');
+    print('$stack');
+    print('=============================');
+    return true;
+  };
+
   try {
+    print('=== APP INITIALIZATION STARTED ===');
+
     // Stripeの初期化
+    print('Initializing Stripe...');
     Stripe.publishableKey = 'pk_test_51QeIPUJR2jw9gpdILTofRSwaBs9pKKXfOse9EcwQTkfYNjtYb1rNsahb5uhm6QjcwzvGOhcZ0ZZgjW09HKtblHnH00Ps1dt4ZZ';
 
     // iOSのApple Pay設定
@@ -32,31 +62,124 @@ void main() async {
     }
 
     // 日本語ロケールデータの初期化
+    print('Initializing date formatting...');
     await initializeDateFormatting('ja_JP');
 
     // Stripe設定の適用
+    print('Applying Stripe settings...');
     await Stripe.instance.applySettings();
-
-    print('Stripe initialized successfully'); // デバッグログ追加
+    print('✅ Stripe initialized successfully');
 
     // RevenueCatの初期化
+    print('Initializing RevenueCat...');
     await initPlatformState();
+    print('✅ RevenueCat initialized successfully');
 
-    // Firebase と AdMob の初期化
-    await Firebase.initializeApp();
+    // Firebase の初期化
+    print('Initializing Firebase...');
+    WidgetsFlutterBinding.ensureInitialized();
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+    print('✅ Firebase initialized successfully');
+    print('Firebase apps count: ${Firebase.apps.length}');
 
     // Firebase Functionsの明示的な初期化
-    FirebaseFunctions.instanceFor(region: 'us-central1'); // us-central1リージョンを指定
-    print('Firebase Functions initialized successfully');
+    print('Initializing Firebase Functions...');
+    FirebaseFunctions.instanceFor(region: 'us-central1');
+    FirebaseFunctions.instanceFor(region: 'asia-northeast1'); // MapSubscription用
+    print('✅ Firebase Functions initialized successfully');
 
     // AdMobの初期化
+    print('Initializing AdMob...');
     await MobileAds.instance.initialize();
+    print('✅ AdMob initialized successfully');
 
+    print('=== ALL INITIALIZATION COMPLETED ===');
     runApp(const MyApp());
-  } catch (e) {
-    print('Initialization error: $e'); // エラーログ
-    // エラーが発生してもアプリを起動
-    runApp(const MyApp());
+
+  } catch (e, stackTrace) {
+    print('=== CRITICAL INITIALIZATION ERROR ===');
+    print('Error: $e');
+    print('Error type: ${e.runtimeType}');
+    print('Stack trace:');
+    print('$stackTrace');
+    print('=====================================');
+
+    // エラー用の最小限のアプリを起動
+    runApp(ErrorApp(error: e.toString(), stackTrace: stackTrace.toString()));
+  }
+}
+
+// エラー用のアプリウィジェット
+class ErrorApp extends StatelessWidget {
+  final String error;
+  final String stackTrace;
+
+  const ErrorApp({Key? key, required this.error, required this.stackTrace}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'JapanAnimeMaps - Error',
+      home: Scaffold(
+        body: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.error_outline, color: Colors.red, size: 64),
+                SizedBox(height: 16),
+                Text(
+                  'アプリ初期化エラー',
+                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                  textAlign: TextAlign.center,
+                ),
+                SizedBox(height: 16),
+                Container(
+                  padding: EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.red.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.red.withOpacity(0.3)),
+                  ),
+                  child: Text(
+                    error,
+                    style: TextStyle(color: Colors.red[800]),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+                SizedBox(height: 16),
+                ElevatedButton(
+                  onPressed: () {
+                    // アプリを再起動
+                    main();
+                  },
+                  child: Text('再試行'),
+                ),
+                if (kDebugMode) ...[
+                  SizedBox(height: 16),
+                  ExpansionTile(
+                    title: Text('詳細なエラー情報'),
+                    children: [
+                      Container(
+                        width: double.infinity,
+                        padding: EdgeInsets.all(8),
+                        child: Text(
+                          stackTrace,
+                          style: TextStyle(fontSize: 10, fontFamily: 'monospace'),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }
 
@@ -64,7 +187,7 @@ void main() async {
 Future<void> testSendMail(BuildContext context, String email) async {
   try {
     // Firebaseの初期化状態を確認
-    print('Firebase apps: ${Firebase.apps.length}');
+    print('Testing mail send - Firebase apps: ${Firebase.apps.length}');
     if (Firebase.apps.isEmpty) {
       throw Exception('Firebaseが初期化されていません');
     }
@@ -86,26 +209,30 @@ Future<void> testSendMail(BuildContext context, String email) async {
     print('Function result: ${result.data}');
 
     // 成功メッセージ
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('$emailにテストメールを送信しました'),
-        backgroundColor: Colors.green,
-        duration: Duration(seconds: 3),
-      ),
-    );
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('$emailにテストメールを送信しました'),
+          backgroundColor: Colors.green,
+          duration: Duration(seconds: 3),
+        ),
+      );
+    }
 
     return;
   } catch (e) {
     print('テストメール送信エラー: $e');
 
     // エラーメッセージ
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('エラー: $e'),
-        backgroundColor: Colors.red,
-        duration: Duration(seconds: 5),
-      ),
-    );
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('エラー: $e'),
+          backgroundColor: Colors.red,
+          duration: Duration(seconds: 5),
+        ),
+      );
+    }
 
     return;
   }
@@ -237,20 +364,20 @@ void showTestEmailDialog(BuildContext context) {
 }
 
 Future<void> initPlatformState() async {
-  await Purchases.setLogLevel(LogLevel.debug);
-
   try {
+    await Purchases.setLogLevel(LogLevel.debug);
+
     // RevenueCatの設定
-    final configuration =
-    PurchasesConfiguration("appl_JfvzIYYEgsMeXVzavJRBnCnlKPS");
+    final configuration = PurchasesConfiguration("appl_JfvzIYYEgsMeXVzavJRBnCnlKPS");
 
     await Purchases.configure(configuration);
-    print('RevenueCat initialized successfully');
+    print('RevenueCat configured successfully');
 
     // 設定の確認
     await _validateConfiguration();
   } catch (e) {
     print('RevenueCat initialization failed: $e');
+    rethrow; // エラーを再度投げて上位でキャッチできるようにする
   }
 }
 
@@ -283,55 +410,19 @@ Future<void> _validateConfiguration() async {
     print('Active Entitlements: ${customerInfo.entitlements.active.keys}');
   } catch (e) {
     print('Configuration validation failed: $e');
-  }
-}
-
-// iOS Sandbox環境の設定
-Future<void> _configureIOSSandbox() async {
-  try {
-    // サンドボックス環境用の設定
-    print('Configuring iOS Sandbox environment');
-
-    // アプリのバージョンとビルド番号を取得
-    final packageInfo = await PackageInfo.fromPlatform();
-    print('App version: ${packageInfo.version}');
-    print('Build number: ${packageInfo.buildNumber}');
-
-    // サンドボックステスト用の情報を出力
-    print('⚠️ Running in iOS Sandbox mode');
-    print('Make sure to:');
-    print('1. Use a Sandbox tester account');
-    print('2. Sign out of regular Apple ID in Settings');
-    print('3. Clean install the app if needed');
-  } catch (e) {
-    print('Error configuring iOS Sandbox: $e');
-  }
-}
-
-// Android Test環境の設定
-Future<void> _configureAndroidTest() async {
-  try {
-    print('Configuring Android Test environment');
-
-    // アプリのバージョンとビルド番号を取得
-    final packageInfo = await PackageInfo.fromPlatform();
-    print('App version: ${packageInfo.version}');
-    print('Build number: ${packageInfo.buildNumber}');
-
-    // テスト用の情報を出力
-    print('⚠️ Running in Android Test mode');
-    print('Make sure to:');
-    print('1. Use a test account');
-    print('2. Install app from internal test track');
-    print('3. Clear Play Store cache if needed');
-  } catch (e) {
-    print('Error configuring Android Test: $e');
+    // バリデーション失敗は致命的ではないのでエラーを投げない
   }
 }
 
 // 新規追加: ユーザーのログイン情報を更新する関数
 Future<void> updateUserLoginInfo(String userId) async {
   try {
+    // Firebase初期化確認
+    if (Firebase.apps.isEmpty) {
+      print('Firebase not initialized for user login update');
+      return;
+    }
+
     // Firestoreの参照
     final userRef = FirebaseFirestore.instance.collection('users').doc(userId);
 
@@ -361,6 +452,7 @@ Future<void> updateUserLoginInfo(String userId) async {
     }
   } catch (e) {
     print('Error updating user login info: $e');
+    // ログイン情報更新の失敗は致命的ではないので処理を継続
   }
 }
 
@@ -380,6 +472,12 @@ String? _safeDateTimeToString(dynamic dateTime) {
 // RevenueCatの課金状態をFirestoreに同期する関数
 Future<void> syncBillingInfoToFirestore(String userId, CustomerInfo customerInfo) async {
   try {
+    // Firebase初期化確認
+    if (Firebase.apps.isEmpty) {
+      print('Firebase not initialized for billing sync');
+      return;
+    }
+
     final billingRef = FirebaseFirestore.instance
         .collection('users')
         .doc(userId)
@@ -460,30 +558,35 @@ Future<void> syncBillingInfoToFirestore(String userId, CustomerInfo customerInfo
 
   } catch (e) {
     print('❌ Error syncing billing info to Firestore: $e');
+    // 課金情報同期の失敗は致命的ではないので処理を継続
   }
 }
 
 // RevenueCatの課金状態をリアルタイムで監視開始
 void startBillingMonitoring(String userId) {
-  print('🔄 Starting billing monitoring for user: $userId');
+  try {
+    print('🔄 Starting billing monitoring for user: $userId');
 
-  // CustomerInfoの変更を監視
-  Purchases.addCustomerInfoUpdateListener((customerInfo) {
-    print('📱 CustomerInfo updated for user: $userId');
+    // CustomerInfoの変更を監視
+    Purchases.addCustomerInfoUpdateListener((customerInfo) {
+      print('📱 CustomerInfo updated for user: $userId');
 
-    // 非同期でFirestoreに同期
-    syncBillingInfoToFirestore(userId, customerInfo).catchError((error) {
-      print('❌ Error in billing sync listener: $error');
+      // 非同期でFirestoreに同期
+      syncBillingInfoToFirestore(userId, customerInfo).catchError((error) {
+        print('❌ Error in billing sync listener: $error');
+      });
     });
-  });
 
-  // 初回の課金状態を即座に同期
-  Purchases.getCustomerInfo().then((customerInfo) {
-    print('📋 Initial billing sync for user: $userId');
-    return syncBillingInfoToFirestore(userId, customerInfo);
-  }).catchError((error) {
-    print('❌ Error in initial billing sync: $error');
-  });
+    // 初回の課金状態を即座に同期
+    Purchases.getCustomerInfo().then((customerInfo) {
+      print('📋 Initial billing sync for user: $userId');
+      return syncBillingInfoToFirestore(userId, customerInfo);
+    }).catchError((error) {
+      print('❌ Error in initial billing sync: $error');
+    });
+  } catch (e) {
+    print('❌ Error starting billing monitoring: $e');
+  }
 }
 
 class MyApp extends StatelessWidget {
@@ -520,7 +623,6 @@ class _SplashScreenState extends State<SplashScreen> {
   String? _initError;
 
   // ローディングアニメーションウィジェットの定数
-  // アプリ全体で統一したローディングウィジェットを使用するために定数として定義
   static final loadingWidget = LoadingAnimationWidget.discreteCircle(
     color: Colors.blue,
     size: 50,
@@ -534,6 +636,8 @@ class _SplashScreenState extends State<SplashScreen> {
 
   Future<void> _initializeApp() async {
     try {
+      print('SplashScreen: Starting app initialization...');
+
       // ATTダイアログの表示
       await _requestTrackingPermission();
 
@@ -548,33 +652,14 @@ class _SplashScreenState extends State<SplashScreen> {
       await Future.delayed(const Duration(seconds: 1));
 
       if (mounted) {
-        // 直接認証状態を確認
-        final user = FirebaseAuth.instance.currentUser;
-        print('Current user: ${user?.uid ?? "No user"}');
-
-        if (user != null) {
-          // ユーザーがログインしている場合はログイン情報を更新
-          await updateUserLoginInfo(user.uid);
-
-          // 課金状態の監視を開始
-          startBillingMonitoring(user.uid);
-
-          print('Navigating to MainScreen');
-          Navigator.of(context).pushReplacement(
-            MaterialPageRoute(builder: (context) => MainScreen()),
-          );
-        } else {
-          print('Navigating to WelcomePage');
-          Navigator.of(context).pushReplacement(
-            MaterialPageRoute(builder: (context) => const WelcomePage()),
-          );
-        }
+        await _navigateToNextScreen();
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
+      print('SplashScreen initialization error: $e');
+      print('Stack trace: $stackTrace');
       setState(() {
         _initError = e.toString();
       });
-      print('Initialization error: $e');
     }
   }
 
@@ -598,14 +683,14 @@ class _SplashScreenState extends State<SplashScreen> {
       }
     } catch (e) {
       print('RevenueCat user sync failed: $e');
+      // RevenueCat同期失敗は致命的ではないので処理を継続
     }
   }
 
   Future<void> _requestTrackingPermission() async {
     if (Platform.isIOS) {
       try {
-        final status =
-        await AppTrackingTransparency.trackingAuthorizationStatus;
+        final status = await AppTrackingTransparency.trackingAuthorizationStatus;
 
         if (status == TrackingStatus.notDetermined) {
           await Future.delayed(const Duration(milliseconds: 200));
@@ -620,6 +705,7 @@ class _SplashScreenState extends State<SplashScreen> {
         }
       } catch (e) {
         print('Tracking permission request failed: $e');
+        // トラッキング許可失敗は致命的ではないので処理を継続
       }
     }
   }
@@ -627,43 +713,91 @@ class _SplashScreenState extends State<SplashScreen> {
   Future<void> _navigateToNextScreen() async {
     if (!mounted) return;
 
-    // より長い待機時間を設定して初期化が確実に完了するようにする
-    await Future.delayed(const Duration(seconds: 2));
+    try {
+      // Firebase初期化確認
+      if (Firebase.apps.isEmpty) {
+        throw Exception('Firebase not initialized');
+      }
 
-    // 直接currentUserを確認する方法に変更
-    final user = FirebaseAuth.instance.currentUser;
-    if (mounted) {
+      // 認証状態を確認
+      final user = FirebaseAuth.instance.currentUser;
+      print('Current user: ${user?.uid ?? "No user"}');
+
       if (user != null) {
         // ユーザーがログインしている場合はログイン情報を更新
         await updateUserLoginInfo(user.uid);
 
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (context) => MainScreen()),
-        );
+        // 課金状態の監視を開始
+        startBillingMonitoring(user.uid);
+
+        print('Navigating to MainScreen');
+        if (mounted) {
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (context) => MainScreen()),
+          );
+        }
       } else {
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (context) => const WelcomePage()),
-        );
+        print('Navigating to WelcomePage');
+        if (mounted) {
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (context) => const WelcomePage()),
+          );
+        }
       }
+    } catch (e, stackTrace) {
+      print('Navigation error: $e');
+      print('Stack trace: $stackTrace');
+      setState(() {
+        _initError = 'ナビゲーションエラー: $e';
+      });
     }
   }
 
   @override
   Widget build(BuildContext context) {
-
     if (_initError != null) {
       return Scaffold(
-        body: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Text('初期化エラー'),
-              Text(_initError!, style: const TextStyle(color: Colors.red)),
-              ElevatedButton(
-                onPressed: _initializeApp,
-                child: const Text('再試行'),
+        body: SafeArea(
+          child: Center(
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.error_outline, color: Colors.red, size: 64),
+                  SizedBox(height: 16),
+                  Text(
+                    '初期化エラー',
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  ),
+                  SizedBox(height: 16),
+                  Container(
+                    padding: EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.red.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.red.withOpacity(0.3)),
+                    ),
+                    child: Text(
+                      _initError!,
+                      style: TextStyle(color: Colors.red[800]),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                  SizedBox(height: 16),
+                  ElevatedButton(
+                    onPressed: () {
+                      setState(() {
+                        _initError = null;
+                        _isInitialized = false;
+                      });
+                      _initializeApp();
+                    },
+                    child: Text('再試行'),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
         ),
       );
@@ -671,21 +805,31 @@ class _SplashScreenState extends State<SplashScreen> {
 
     // 通常のスプラッシュ画面
     return Scaffold(
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            // CircularProgressIndicator() を LoadingAnimationWidget に置き換え
-            loadingWidget,
-            if (!_isInitialized) ...[
-              const SizedBox(height: 20),
-              const Text('初期化中...'),
+      body: SafeArea(
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              loadingWidget,
+              SizedBox(height: 20),
+              Text(
+                _isInitialized ? '起動中...' : '初期化中...',
+                style: TextStyle(fontSize: 16),
+              ),
               if (kDebugMode) ...[
-                const SizedBox(height: 10),
-                Text('動作モード: ${Platform.isIOS ? 'iOS Sandbox' : 'Android Test'}'),
+                SizedBox(height: 20),
+                Text(
+                  '動作モード: ${Platform.isIOS ? 'iOS Sandbox' : 'Android Test'}',
+                  style: TextStyle(fontSize: 12, color: Colors.grey),
+                ),
+                SizedBox(height: 8),
+                Text(
+                  'Firebase Apps: ${Firebase.apps.length}',
+                  style: TextStyle(fontSize: 12, color: Colors.grey),
+                ),
               ],
             ],
-          ],
+          ),
         ),
       ),
     );
