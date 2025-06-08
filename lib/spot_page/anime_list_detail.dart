@@ -844,13 +844,13 @@ https://japananimemaps.page.link/ios
                       child: Container(
                         color: Colors.transparent,
                         child: Center(
-                          child: Icon(
-                            _videoPlayerController!.value.isPlaying
-                                ? Icons.pause_circle_filled
-                                : Icons.play_circle_filled,
+                          child: _videoPlayerController!.value.isPlaying
+                              ? const SizedBox.shrink()
+                              : Icon(
+                            Icons.play_circle_filled,
                             color: Colors.white.withOpacity(0.8),
                             size: 60,
-                          ),
+                          )
                         ),
                       ),
                     ),
