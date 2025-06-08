@@ -6,8 +6,11 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
 import 'package:parts/spot_page/anime_list_detail.dart';
+import 'package:parts/spot_page/anime_list_test_ranking.dart';
 import 'package:parts/spot_page/event_more.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:video_player/video_player.dart';
+import 'package:parts/subscription/payment_subscription.dart';
 
 class RankingTopPageEn extends StatefulWidget {
   @override
@@ -39,14 +42,12 @@ class _RankingTopPageEnState extends State<RankingTopPageEn> {
   String? _expandedGenreId;
   Set<String> _expandedGenreIds = {};
 
+  bool _isSubscriptionActive = false;
+
   @override
   void initState() {
     super.initState();
-    _fetchEventData();
-    _fetchGenreData();
-    _checkActiveEvents();
-    _startFlipAnimation();
-    _initializeVideo();
+    _initializeApp();
   }
 
   @override
@@ -57,12 +58,131 @@ class _RankingTopPageEnState extends State<RankingTopPageEn> {
     super.dispose();
   }
 
+  // 【修正】初期化の順序を修正
+  Future<void> _initializeApp() async {
+    // RevenueCatを初期化
+    await SubscriptionManager.initializeWithDebug();
+
+    // サブスクリプション状態をチェック
+    await _checkSubscriptionStatusWithRetry();
+
+    // RevenueCatユーザー同期
+    await _syncRevenueCatUser();
+
+    // その他の初期化を実行
+    _fetchEventData();
+    _fetchGenreData();
+    _checkActiveEvents();
+    _startFlipAnimation();
+
+    // 【修正】サブスクリプション状態をチェックしてから動画を初期化
+    await _initializeVideoIfNeeded();
+  }
+
+  // 【修正】サブスクリプション状態に基づいて動画を初期化
+  Future<void> _initializeVideoIfNeeded() async {
+    // プレミアム会員の場合は動画を表示しない
+    if (_isSubscriptionActive) {
+      print('🚫 Skipping video initialization - Premium user');
+      return;
+    }
+
+    await _initializeVideo();
+  }
+
+  Future<void> _checkSubscriptionStatusWithRetry() async {
+    int retryCount = 0;
+    const maxRetries = 3;
+
+    while (retryCount < maxRetries) {
+      try {
+        final isActive = await SubscriptionManager.isSubscriptionActive();
+        print('🔍 Subscription check attempt ${retryCount + 1}: $isActive');
+
+        if (mounted) {
+          setState(() {
+            _isSubscriptionActive = isActive;
+          });
+        }
+
+        // Success, break out of loop
+        break;
+      } catch (e) {
+        retryCount++;
+        print('❌ Subscription check failed (attempt $retryCount): $e');
+
+        if (retryCount < maxRetries) {
+          // Exponential backoff wait
+          await Future.delayed(Duration(seconds: 2 * retryCount));
+        } else {
+          // Final attempt: check local status
+          print('🔄 Final attempt: checking local status');
+          final localStatus = await _checkLocalSubscriptionFallback();
+          if (mounted) {
+            setState(() {
+              _isSubscriptionActive = localStatus;
+            });
+          }
+        }
+      }
+    }
+
+    print('🎯 Final subscription status: $_isSubscriptionActive');
+  }
+
+  Future<bool> _checkLocalSubscriptionFallback() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      return prefs.getBool('local_subscription_active') ?? false;
+    } catch (e) {
+      print('❌ Local fallback check failed: $e');
+      return false;
+    }
+  }
+
+  // Simple subscription status check
+  Future<void> _checkSubscriptionStatus() async {
+    try {
+      final isActive = await SubscriptionManager.isSubscriptionActive();
+      if (mounted) {
+        setState(() {
+          _isSubscriptionActive = isActive;
+        });
+      }
+      print('🎯 Subscription status updated: $isActive');
+    } catch (e) {
+      print('❌ Subscription status check error: $e');
+    }
+  }
+
+  // RevenueCat user sync function
+  Future<void> _syncRevenueCatUser() async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        // Sync user ID to RevenueCat
+        await SubscriptionManager.setUserId(user.uid);
+        print('RevenueCat user synced: ${user.uid}');
+
+        // Check subscription status and sync to Firestore
+        final customerInfo = await SubscriptionManager.getCustomerInfo();
+        if (customerInfo != null) {
+          print('Customer Info: ${customerInfo.originalAppUserId}');
+          print('Active subscriptions: ${customerInfo.activeSubscriptions}');
+          print('Active entitlements: ${customerInfo.entitlements.active}');
+        }
+      }
+    } catch (e) {
+      print('RevenueCat user sync failed: $e');
+    }
+  }
+
   Future<List<Map<String, dynamic>>> _getAnimeDataForGenre(
       String genreId) async {
     try {
       // Fetch anime ranking data
       final rankingSnapshot =
-          await _database.ref().child('anime_rankings').get();
+      await _database.ref().child('anime_rankings').get();
 
       Map<String, int> rankings = {};
       if (rankingSnapshot.value != null) {
@@ -110,7 +230,7 @@ class _RankingTopPageEnState extends State<RankingTopPageEn> {
     try {
       // Fetch anime ranking data
       final rankingSnapshot =
-          await _database.ref().child('anime_rankings').get();
+      await _database.ref().child('anime_rankings').get();
 
       Map<String, int> rankings = {};
       if (rankingSnapshot.value != null) {
@@ -436,7 +556,7 @@ class _RankingTopPageEnState extends State<RankingTopPageEn> {
     if (date is String) {
       try {
         final DateTime dateTime =
-            DateTime.parse(date.replaceAll('T00:00:00.000', ''));
+        DateTime.parse(date.replaceAll('T00:00:00.000', ''));
         return '${dateTime.month}/${dateTime.day}/${dateTime.year}';
       } catch (e) {
         return '';
@@ -521,7 +641,7 @@ class _RankingTopPageEnState extends State<RankingTopPageEn> {
                       left: 8,
                       child: Container(
                         padding:
-                            EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                         decoration: BoxDecoration(
                           color: _getRankingColor(index),
                           borderRadius: BorderRadius.circular(16),
@@ -588,12 +708,34 @@ class _RankingTopPageEnState extends State<RankingTopPageEn> {
         Scaffold(
           appBar: AppBar(
             automaticallyImplyLeading: false,
-            title: Text(
-              'Genre & Event Information',
-              style: TextStyle(
-                color: Color(0xFF00008b),
-                fontWeight: FontWeight.bold,
-              ),
+            title: Row(
+              children: [
+                Text(
+                  'Genre & Event Information',
+                  style: TextStyle(
+                    color: Color(0xFF00008b),
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                // Premium subscription status indicator
+                if (_isSubscriptionActive)
+                  Container(
+                    margin: EdgeInsets.only(left: 8),
+                    padding: EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: Colors.orange,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      'Premium',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+              ],
             ),
             backgroundColor: Colors.white,
             elevation: 0,
@@ -637,7 +779,9 @@ class _RankingTopPageEnState extends State<RankingTopPageEn> {
             ),
           ),
         ),
-        if (_showVideo && _videoController != null) _buildVideoOverlay(),
+        // 【修正】サブスクリプション状態をチェックしてビデオオーバーレイを表示
+        if (_showVideo && _videoController != null && !_isSubscriptionActive)
+          _buildVideoOverlay(),
       ],
     );
   }
@@ -716,7 +860,7 @@ class _RankingTopPageEnState extends State<RankingTopPageEn> {
                                 ListView.builder(
                                   scrollDirection: Axis.horizontal,
                                   padding:
-                                      EdgeInsets.symmetric(horizontal: 16.0),
+                                  EdgeInsets.symmetric(horizontal: 16.0),
                                   itemCount: animeList.length,
                                   itemBuilder: (context, animeIndex) {
                                     final anime = animeList[animeIndex];
@@ -761,7 +905,7 @@ class _RankingTopPageEnState extends State<RankingTopPageEn> {
                                   size: 16,
                                   color: Colors.grey[400],
                                 ),
-                                SizedBox(width: 4),
+                                const SizedBox(width: 4),
                                 Text(
                                   'Swipe horizontally to see more',
                                   style: TextStyle(
@@ -791,8 +935,8 @@ class _RankingTopPageEnState extends State<RankingTopPageEn> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Padding(
-            padding: const EdgeInsets.only(left: 16, top: 8, bottom: 8),
+          const Padding(
+            padding: EdgeInsets.only(left: 16, top: 8, bottom: 8),
             child: Text(
               '■ Event Information',
               style: TextStyle(
@@ -833,7 +977,7 @@ class _RankingTopPageEnState extends State<RankingTopPageEn> {
                 eventTitle: event['title']?.toString() ?? 'Untitled Event',
                 startDate: event['startDate']?.toString() ?? '',
                 htmlContent:
-                    event['htmlContent']?.toString() ?? 'No content available',
+                event['htmlContent']?.toString() ?? 'No content available',
               ),
             ),
           );

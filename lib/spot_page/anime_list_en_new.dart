@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_database/firebase_database.dart' as rtdb;
 import 'package:firebase_database/firebase_database.dart';
 import 'package:firebase_in_app_messaging/firebase_in_app_messaging.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:parts/components/ad_mob.dart';
@@ -12,6 +13,8 @@ import 'package:parts/spot_page/customer_anime_request_en.dart';
 import 'package:parts/spot_page/liked_post_en.dart';
 import 'package:parts/spot_page/prefecture_list_en.dart';
 import 'package:parts/spot_page/user_activity_logger.dart';
+import 'package:parts/spot_page/anime_list_test_ranking.dart';
+import 'package:parts/subscription/payment_subscription.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:showcaseview/showcaseview.dart';
 
@@ -20,7 +23,7 @@ import 'anime_list_en_ranking.dart';
 import 'customer_anime_request.dart';
 import 'liked_post.dart';
 
-// AdManagerクラスの実装
+// 【修正】AdManagerクラスにサブスクリプション対応を追加
 class AdManager {
   static final Map<int, BannerAd?> _gridBannerAds = {};
   static final Map<int, bool> _isGridBannerAdReady = {};
@@ -50,7 +53,13 @@ class AdManager {
     return DateTime.now().difference(lastAttempt) >= backoff;
   }
 
+  // 【修正】サブスクリプションチェックを追加
   static Future<void> loadGridBannerAd(int index) async {
+    // サブスクリプションチェック
+    if (await SubscriptionManager.isSubscriptionActive()) {
+      return; // サブスクリプション有効時は広告を読み込まない
+    }
+
     if (_gridBannerAds[index] != null && _isGridBannerAdReady[index] == true) {
       return;
     }
@@ -96,7 +105,12 @@ class AdManager {
     }
   }
 
-  static bool isAdReadyForIndex(int index) {
+  // 【修正】サブスクリプションチェックを追加
+  static Future<bool> isAdReadyForIndex(int index) async {
+    // サブスクリプションチェック
+    if (await SubscriptionManager.isSubscriptionActive()) {
+      return false; // サブスクリプション有効時は広告を表示しない
+    }
     return _isGridBannerAdReady[index] == true && _gridBannerAds[index] != null;
   }
 
@@ -323,13 +337,18 @@ class _AnimeListEnNewState extends State<AnimeListEnNew>
   bool _isEventsExpanded = false;
   final AdMob _adMob = AdMob();
 
+  // 【追加】サブスクリプション関連変数
+  bool _isSubscriptionActive = false;
+  int _dailySpotClickCount = 0;
+  bool _showSubscriptionPrompt = false;
+  String? _todayDate;
+
   BannerAd? _bottomBannerAd;
   bool _isBottomBannerAdReady = false;
 
   late TabController _tabController;
   int _currentTabIndex = 0;
   bool _isPrefectureDataFetched = false;
-
 
   GlobalKey searchKey = GlobalKey();
   GlobalKey addKey = GlobalKey();
@@ -341,14 +360,14 @@ class _AnimeListEnNewState extends State<AnimeListEnNew>
   final FirebaseInAppMessaging fiam = FirebaseInAppMessaging.instance;
 
   final Map<String, Map<String, double>> prefectureBounds = {
-  'Hokkaido': {'minLat': 41.3, 'maxLat': 45.6, 'minLng': 139.3, 'maxLng': 148.9},
-  'Aomori': {'minLat': 40.2, 'maxLat': 41.6, 'minLng': 139.5, 'maxLng': 141.7},
-  'Iwate': {'minLat': 38.7, 'maxLat': 40.5, 'minLng': 140.6, 'maxLng': 142.1},
-  'Miyagi': {'minLat': 37.8, 'maxLat': 39.0, 'minLng': 140.3, 'maxLng': 141.7},
-  'Akita': {'minLat': 38.8, 'maxLat': 40.5, 'minLng': 139.7, 'maxLng': 141.0},
-  'Yamagata': {'minLat': 37.8, 'maxLat': 39.0, 'minLng': 139.5, 'maxLng': 140.6},
-  'Fukushima': {'minLat': 36.8, 'maxLat': 38.0, 'minLng': 139.2, 'maxLng': 141.0},
-  'Ibaraki': {'minLat': 35.8, 'maxLat': 36.9, 'minLng': 139.7, 'maxLng': 140.9},
+    'Hokkaido': {'minLat': 41.3, 'maxLat': 45.6, 'minLng': 139.3, 'maxLng': 148.9},
+    'Aomori': {'minLat': 40.2, 'maxLat': 41.6, 'minLng': 139.5, 'maxLng': 141.7},
+    'Iwate': {'minLat': 38.7, 'maxLat': 40.5, 'minLng': 140.6, 'maxLng': 142.1},
+    'Miyagi': {'minLat': 37.8, 'maxLat': 39.0, 'minLng': 140.3, 'maxLng': 141.7},
+    'Akita': {'minLat': 38.8, 'maxLat': 40.5, 'minLng': 139.7, 'maxLng': 141.0},
+    'Yamagata': {'minLat': 37.8, 'maxLat': 39.0, 'minLng': 139.5, 'maxLng': 140.6},
+    'Fukushima': {'minLat': 36.8, 'maxLat': 38.0, 'minLng': 139.2, 'maxLng': 141.0},
+    'Ibaraki': {'minLat': 35.8, 'maxLat': 36.9, 'minLng': 139.7, 'maxLng': 140.9},
     'Tochigi': {'minLat': 36.2, 'maxLat': 37.2, 'minLng': 139.3, 'maxLng': 140.3},
     'Gunma': {'minLat': 36.0, 'maxLat': 37.0, 'minLng': 138.4, 'maxLng': 139.7},
     'Saitama': {'minLat': 35.7, 'maxLat': 36.3, 'minLng': 138.8, 'maxLng': 139.9},
@@ -449,6 +468,23 @@ class _AnimeListEnNewState extends State<AnimeListEnNew>
   @override
   void initState() {
     super.initState();
+    _initializeApp();
+  }
+
+  // 【追加】アプリ初期化（RevenueCat含む）
+  Future<void> _initializeApp() async {
+    // RevenueCatを初期化
+    await SubscriptionManager.initializeWithDebug();
+
+    // サブスクリプション状態をチェック
+    await _checkSubscriptionStatusWithRetry();
+
+    // スポット押下回数の初期化
+    await _initializeDailyClickCount();
+
+    // RevenueCatユーザー同期
+    await _syncRevenueCatUser();
+
     _initializeTabController();
     databaseReference = rtdb.FirebaseDatabase.instance.ref().child('anime_rankings');
     _fetchAnimeData();
@@ -456,12 +492,200 @@ class _AnimeListEnNewState extends State<AnimeListEnNew>
     WidgetsBinding.instance.addPostFrameCallback((_) => _showTutorial());
     _listenToRankingChanges();
     _setupInAppMessaging();
-    _loadBottomBannerAd();
+
+    // サブスクリプション状態を確認してから広告をロード
+    _loadBottomBannerAdIfNeeded();
 
     _scrollController.addListener(_onScroll);
   }
 
-  void _loadBottomBannerAd() {
+  // 【追加】日次スポット押下回数の初期化
+  Future<void> _initializeDailyClickCount() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final today = DateTime.now().toString().split(' ')[0];
+      _todayDate = today;
+
+      // 保存されている日付を確認
+      final savedDate = prefs.getString('spot_click_date');
+
+      if (savedDate != today) {
+        // 日付が変わっている場合はカウントをリセット
+        _dailySpotClickCount = 0;
+        await prefs.setInt('daily_spot_click_count', 0);
+        await prefs.setString('spot_click_date', today);
+      } else {
+        _dailySpotClickCount = prefs.getInt('daily_spot_click_count') ?? 0;
+      }
+
+      print('Daily spot click count initialized: $_dailySpotClickCount');
+    } catch (e) {
+      print('Error initializing daily click count: $e');
+      _dailySpotClickCount = 0;
+    }
+  }
+
+  // 【追加】スポット押下回数を増加
+  Future<void> _incrementSpotClickCount() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      _dailySpotClickCount++;
+
+      await prefs.setInt('daily_spot_click_count', _dailySpotClickCount);
+
+      print('Spot click count: $_dailySpotClickCount');
+
+      // 10回に達した場合の処理
+      if (_dailySpotClickCount >= 10) {
+        // サブスクリプションが有効でない場合のみプロンプトを表示
+        if (!_isSubscriptionActive) {
+          setState(() {
+            _showSubscriptionPrompt = true;
+          });
+          print('Subscription prompt should be shown');
+        } else {
+          print('Subscription prompt skipped (already subscribed)');
+        }
+      }
+    } catch (e) {
+      print('Error incrementing spot click count: $e');
+    }
+  }
+
+  // 【追加】リトライ機能付きのサブスクリプション状態チェック
+  Future<void> _checkSubscriptionStatusWithRetry() async {
+    int retryCount = 0;
+    const maxRetries = 3;
+
+    while (retryCount < maxRetries) {
+      try {
+        final isActive = await SubscriptionManager.isSubscriptionActive();
+        print('🔍 Subscription check attempt ${retryCount + 1}: $isActive');
+
+        if (mounted) {
+          setState(() {
+            _isSubscriptionActive = isActive;
+          });
+        }
+
+        // 成功したら抜ける
+        break;
+      } catch (e) {
+        retryCount++;
+        print('❌ Subscription check failed (attempt $retryCount): $e');
+
+        if (retryCount < maxRetries) {
+          // 指数バックオフで待機
+          await Future.delayed(Duration(seconds: 2 * retryCount));
+        } else {
+          // 最終的に失敗した場合はローカルから確認
+          print('🔄 Final attempt: checking local status');
+          final localStatus = await _checkLocalSubscriptionFallback();
+          if (mounted) {
+            setState(() {
+              _isSubscriptionActive = localStatus;
+            });
+          }
+        }
+      }
+    }
+
+    print('🎯 Final subscription status: $_isSubscriptionActive');
+  }
+
+  // 【追加】ローカルフォールバック確認
+  Future<bool> _checkLocalSubscriptionFallback() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      return prefs.getBool('local_subscription_active') ?? false;
+    } catch (e) {
+      print('❌ Local fallback check failed: $e');
+      return false;
+    }
+  }
+
+  // 【追加】サブスクリプション状態チェック（シンプル版）
+  Future<void> _checkSubscriptionStatus() async {
+    try {
+      final isActive = await SubscriptionManager.isSubscriptionActive();
+      if (mounted) {
+        setState(() {
+          _isSubscriptionActive = isActive;
+        });
+      }
+      print('🎯 Subscription status updated: $isActive');
+    } catch (e) {
+      print('❌ Subscription status check error: $e');
+    }
+  }
+
+  // 【追加】RevenueCatユーザー同期機能
+  Future<void> _syncRevenueCatUser() async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        // RevenueCatにユーザーIDを同期
+        await SubscriptionManager.setUserId(user.uid);
+        print('RevenueCat user synced: ${user.uid}');
+
+        // 購読状態を確認してFirestoreに同期
+        final customerInfo = await SubscriptionManager.getCustomerInfo();
+        if (customerInfo != null) {
+          print('Customer Info: ${customerInfo.originalAppUserId}');
+          print('Active subscriptions: ${customerInfo.activeSubscriptions}');
+          print('Active entitlements: ${customerInfo.entitlements.active}');
+        }
+      }
+    } catch (e) {
+      print('RevenueCat user sync failed: $e');
+    }
+  }
+
+  // 【修正】広告ロード（サブスクリプション状態確認付き）
+  void _loadBottomBannerAdIfNeeded() async {
+    // サブスクリプションチェック
+    if (_isSubscriptionActive) {
+      print('🚫 Skipping ad load - subscription active');
+      return;
+    }
+
+    try {
+      _bottomBannerAd = BannerAd(
+        adUnitId: 'ca-app-pub-1580421227117187/2839937902',
+        request: AdRequest(),
+        size: AdSize.banner,
+        listener: BannerAdListener(
+          onAdLoaded: (_) {
+            print('✅ Bottom banner ad loaded');
+            if (mounted) {
+              setState(() {
+                _isBottomBannerAdReady = true;
+              });
+            }
+          },
+          onAdFailedToLoad: (ad, err) {
+            print('❌ Bottom banner ad failed to load: ${err.message}');
+            if (mounted) {
+              setState(() {
+                _isBottomBannerAdReady = false;
+              });
+            }
+            ad.dispose();
+          },
+        ),
+      );
+      await _bottomBannerAd?.load();
+    } catch (e) {
+      print('❌ Exception loading bottom banner ad: $e');
+    }
+  }
+
+  void _loadBottomBannerAd() async {
+    // サブスクリプションチェック
+    if (await SubscriptionManager.isSubscriptionActive()) {
+      return; // サブスクリプション有効時は広告を読み込まない
+    }
+
     _bottomBannerAd = BannerAd(
       adUnitId: 'ca-app-pub-1580421227117187/2839937902',
       request: AdRequest(),
@@ -511,7 +735,12 @@ class _AnimeListEnNewState extends State<AnimeListEnNew>
     }
   }
 
-  void _loadBannerAd() {
+  void _loadBannerAd() async {
+    // サブスクリプションチェック
+    if (await SubscriptionManager.isSubscriptionActive()) {
+      return; // サブスクリプション有効時は広告を読み込まない
+    }
+
     _bannerAd = BannerAd(
       adUnitId: '',
       request: AdRequest(),
@@ -829,6 +1058,9 @@ class _AnimeListEnNewState extends State<AnimeListEnNew>
       'timestamp': DateTime.now().toIso8601String(),
     });
 
+    // 【追加】スポット押下回数を増加
+    await _incrementSpotClickCount();
+
     try {
       final String today = DateTime.now().toString().split(' ')[0];
       final prefs = await SharedPreferences.getInstance();
@@ -1031,34 +1263,42 @@ class _AnimeListEnNewState extends State<AnimeListEnNew>
             ),
             itemCount: filteredAnimeData.length,
             itemBuilder: (context, index) {
-              if (index != 0 && index % 6 == 0) {
+              // 【修正】サブスクリプション有効時は広告を表示しない
+              if (!_isSubscriptionActive && index != 0 && index % 6 == 0) {
                 if (AdManager.canLoadAdForIndex(index)) {
                   Future.microtask(
                           () => AdManager.loadGridBannerAd(index));
                 }
 
-                if (AdManager.isAdReadyForIndex(index)) {
-                  final ad = AdManager.getAdForIndex(index);
-                  return Container(
-                    width: ad!.size.width.toDouble(),
-                    height: ad.size.height.toDouble(),
-                    child: AdWidget(ad: ad),
-                  );
-                } else {
-                  return Container(
-                    height: 50,
-                    child: Center(
-                        child: Text(
-                          'advertisement',
-                          style: TextStyle(
-                            color: Colors.grey,
-                          ),
-                        )),
-                  );
-                }
+                return FutureBuilder<bool>(
+                  future: AdManager.isAdReadyForIndex(index),
+                  builder: (context, snapshot) {
+                    if (snapshot.hasData && snapshot.data == true) {
+                      final ad = AdManager.getAdForIndex(index);
+                      if (ad != null) {
+                        return Container(
+                          width: ad.size.width.toDouble(),
+                          height: ad.size.height.toDouble(),
+                          child: AdWidget(ad: ad),
+                        );
+                      }
+                    }
+                    return Container(
+                      height: 50,
+                      child: Center(
+                          child: Text(
+                            'advertisement',
+                            style: TextStyle(
+                              color: Colors.grey,
+                            ),
+                          )),
+                    );
+                  },
+                );
               }
 
-              final adjustedIndex = index - (index ~/ 6);
+              // サブスクリプション有効時、または広告表示位置でない場合のアニメアイテム表示
+              final adjustedIndex = _isSubscriptionActive ? index : index - (index ~/ 6);
               if (adjustedIndex >= filteredAnimeData.length) {
                 return SizedBox();
               }
@@ -1071,8 +1311,7 @@ class _AnimeListEnNewState extends State<AnimeListEnNew>
                     context, filteredAnimeData[adjustedIndex]['nameEn']),
                 child: AnimeGridItem(
                   animeName: filteredAnimeData[adjustedIndex]['nameEn'],
-                  animeNameEn: filteredAnimeData[adjustedIndex]
-                  ['nameEn'],
+                  animeNameEn: filteredAnimeData[adjustedIndex]['nameEn'],
                   imageUrl: filteredAnimeData[adjustedIndex]['imageUrl'],
                 ),
               );
@@ -1080,6 +1319,140 @@ class _AnimeListEnNewState extends State<AnimeListEnNew>
           ),
         ),
       ],
+    );
+  }
+
+  // 【追加】サブスクリプションプロンプトオーバーレイ
+  Widget _buildSubscriptionPromptOverlay() {
+    // サブスクリプションが有効な場合は何も表示しない
+    if (_isSubscriptionActive) {
+      return SizedBox.shrink();
+    }
+
+    return Container(
+      color: Colors.black.withOpacity(0.7),
+      child: Center(
+        child: Container(
+          margin: EdgeInsets.symmetric(horizontal: 40),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Stack(
+            children: [
+              // メインコンテンツ
+              Padding(
+                padding: EdgeInsets.all(20),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // 画像部分（サンプル画像）
+                    Container(
+                      width: 200,
+                      height: 150,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(12),
+                        color: Colors.grey[200],
+                        border: Border.all(color: Colors.grey[300]!),
+                      ),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.star,
+                            size: 40,
+                            color: Color(0xFF00008b),
+                          ),
+                          SizedBox(height: 8),
+                          Text(
+                            'Premium Plan',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF00008b),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    SizedBox(height: 20),
+                    Text(
+                      'Please consider using\nJAM Premium Plan!',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black87,
+                      ),
+                    ),
+                    SizedBox(height: 12),
+                    Text(
+                      'Enjoy unlimited pilgrimage\nwith Premium Plan',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey[600],
+                      ),
+                    ),
+                    SizedBox(height: 20),
+                    // プレミアムプランボタン
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: () {
+                          showModalBottomSheet(
+                            context: context,
+                            isScrollControlled: true,
+                            backgroundColor: Colors.transparent,
+                            builder: (context) => const PaymentSubscriptionScreen(),
+                          );
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Color(0xFF00008b),
+                          foregroundColor: Colors.white,
+                          padding: EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        child: Text(
+                          'View Premium Plan',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              // 閉じるボタン（右上）
+              Positioned(
+                top: 8,
+                right: 8,
+                child: IconButton(
+                  onPressed: () {
+                    setState(() {
+                      _showSubscriptionPrompt = false;
+                    });
+                  },
+                  icon: Icon(
+                    Icons.close,
+                    color: Colors.grey[600],
+                    size: 24,
+                  ),
+                  padding: EdgeInsets.all(4),
+                  constraints: BoxConstraints(
+                    minWidth: 32,
+                    minHeight: 32,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
@@ -1131,12 +1504,34 @@ class _AnimeListEnNewState extends State<AnimeListEnNew>
             ),
             style: TextStyle(color: Colors.black),
           )
-              : Text(
-            'Pilgrimage spot',
-            style: TextStyle(
-              color: Color(0xFF00008b),
-              fontWeight: FontWeight.bold,
-            ),
+              : Row(
+            children: [
+              Text(
+                'Pilgrimage spot',
+                style: TextStyle(
+                  color: Color(0xFF00008b),
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              // 【追加】サブスクリプション状態表示
+              if (_isSubscriptionActive)
+                Container(
+                  margin: EdgeInsets.only(left: 5),
+                  padding: EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: Colors.orange,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Text(
+                    'Premium',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+            ],
           ),
           actions: [
             IconButton(
@@ -1187,30 +1582,38 @@ class _AnimeListEnNewState extends State<AnimeListEnNew>
             indicatorColor: Color(0xFF00008b),
           ),
         ),
-        body: Column(
+        body: Stack(
           children: [
-            Expanded(
-              child: TabBarView(
-                physics: NeverScrollableScrollPhysics(),
-                controller: _tabController,
-                children: [
-                  _buildAnimeList(),
-                  _currentTabIndex == 1
-                      ? PrefectureListEnPage(
-                    prefectureSpots: _prefectureSpots,
-                    searchQuery: _searchQuery,
-                    onFetchPrefectureData: _fetchPrefectureData,
-                  )
-                      : Container(),
-                ],
-              ),
+            Column(
+              children: [
+                Expanded(
+                  child: TabBarView(
+                    physics: NeverScrollableScrollPhysics(),
+                    controller: _tabController,
+                    children: [
+                      _buildAnimeList(),
+                      _currentTabIndex == 1
+                          ? PrefectureListEnPage(
+                        prefectureSpots: _prefectureSpots,
+                        searchQuery: _searchQuery,
+                        onFetchPrefectureData: _fetchPrefectureData,
+                      )
+                          : Container(),
+                    ],
+                  ),
+                ),
+                // 【修正】サブスクリプション有効時は底部広告を非表示
+                if (!_isSubscriptionActive && _isBottomBannerAdReady && _bottomBannerAd != null)
+                  Container(
+                    width: _bottomBannerAd!.size.width.toDouble(),
+                    height: _bottomBannerAd!.size.height.toDouble(),
+                    child: AdWidget(ad: _bottomBannerAd!),
+                  ),
+              ],
             ),
-            if (_isBottomBannerAdReady && _bottomBannerAd != null)
-              Container(
-                width: _bottomBannerAd!.size.width.toDouble(),
-                height: _bottomBannerAd!.size.height.toDouble(),
-                child: AdWidget(ad: _bottomBannerAd!),
-              ),
+            // 【追加】サブスクリプションプロンプトオーバーレイ
+            if (_showSubscriptionPrompt)
+              _buildSubscriptionPromptOverlay(),
           ],
         ),
       ),
