@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:io' show Platform;
 
-import 'package:chewie/chewie.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
@@ -32,7 +31,6 @@ class _AnimeDetailsPageState extends State<AnimeDetailsPage> {
   OverlayEntry? _overlayEntry;
   final GlobalKey _infoIconKey = GlobalKey();
   VideoPlayerController? _videoPlayerController;
-  ChewieController? _chewieController;
   bool _isFavorite = false;
   bool _isLoadingMoreReviews = false;
   YoutubePlayerController? _youtubeController;
@@ -368,7 +366,6 @@ class _AnimeDetailsPageState extends State<AnimeDetailsPage> {
   void dispose() {
     _removeOverlay();
     _videoPlayerController?.dispose();
-    _chewieController?.dispose();
     _youtubeController?.dispose();
     super.dispose();
   }
@@ -637,7 +634,6 @@ class SpotDetailScreen extends StatefulWidget {
 
 class _SpotDetailScreenState extends State<SpotDetailScreen> {
   VideoPlayerController? _videoPlayerController;
-  ChewieController? _chewieController;
   bool _isFavorite = false;
   bool _isVideoInitialized = false;
 
@@ -807,13 +803,6 @@ https://japananimemaps.page.link/ios
       await _videoPlayerController!.initialize();
 
       setState(() {
-        _chewieController = ChewieController(
-          videoPlayerController: _videoPlayerController!,
-          autoPlay: false,
-          looping: true,
-          placeholder: Center(child: CircularProgressIndicator()),
-          allowPlaybackSpeedChanging: false,
-        );
         _isVideoInitialized = true;
       });
     } catch (e) {
@@ -825,14 +814,11 @@ https://japananimemaps.page.link/ios
   @override
   void dispose() {
     _videoPlayerController?.dispose();
-    _chewieController?.dispose();
     super.dispose();
   }
 
   Widget _buildMainContent() {
-    if (_isVideoInitialized &&
-        _chewieController != null &&
-        _videoPlayerController != null) {
+    if (_isVideoInitialized && _videoPlayerController != null) {
       return Padding(
         padding: const EdgeInsets.all(16.0),
         child: Stack(
@@ -840,7 +826,37 @@ https://japananimemaps.page.link/ios
           children: [
             AspectRatio(
               aspectRatio: _videoPlayerController!.value.aspectRatio,
-              child: Chewie(controller: _chewieController!),
+              child: Stack(
+                children: [
+                  VideoPlayer(_videoPlayerController!),
+                  // シンプルなコントロールを追加
+                  Positioned.fill(
+                    child: GestureDetector(
+                      onTap: () {
+                        setState(() {
+                          if (_videoPlayerController!.value.isPlaying) {
+                            _videoPlayerController!.pause();
+                          } else {
+                            _videoPlayerController!.play();
+                          }
+                        });
+                      },
+                      child: Container(
+                        color: Colors.transparent,
+                        child: Center(
+                          child: Icon(
+                            _videoPlayerController!.value.isPlaying
+                                ? Icons.pause_circle_filled
+                                : Icons.play_circle_filled,
+                            color: Colors.white.withOpacity(0.8),
+                            size: 60,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
             if (!_videoPlayerController!.value.isInitialized)
               CircularProgressIndicator(),

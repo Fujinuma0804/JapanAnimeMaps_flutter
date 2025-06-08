@@ -2,7 +2,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_vibrate/flutter_vibrate.dart';
 import 'package:parts/event_tab/event_more_movie.dart';
 import 'package:parts/map_page/map_subsc.dart';
 import 'package:parts/map_page/new_map_en.dart';
@@ -132,11 +131,6 @@ class _MainScreenState extends State<MainScreen> {
   }
 
   void _onItemTapped(int index) async {
-    bool canVibrate = await Vibrate.canVibrate;
-    if (canVibrate) {
-      Vibrate.feedback(FeedbackType.selection);
-    }
-
     String tabName = '';
     switch (index) {
       case 0:
@@ -174,7 +168,7 @@ class _MainScreenState extends State<MainScreen> {
   Widget _buildShopScreen() {
     return StreamBuilder<QuerySnapshot>(
       stream:
-          FirebaseFirestore.instance.collection('shopMaintenance').snapshots(),
+      FirebaseFirestore.instance.collection('shopMaintenance').snapshots(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return Center(child: CircularProgressIndicator());
@@ -244,7 +238,7 @@ class _MainScreenState extends State<MainScreen> {
               _userLanguage == 'Japanese'
               //AnimeEventListは現在作成中。
               //     ? AnimeEventList()
-              ? AnimeListTestRanking()
+                  ? AnimeListTestRanking()
               //は現在リリース中
               // AnimeListTestRanking()
               //ver3.0.6までは翻訳機能を実装し、表示していた。読み込み速度改善のために変更した。
@@ -261,11 +255,11 @@ class _MainScreenState extends State<MainScreen> {
                   : NewMapEn(latitude: _latitude, longitude: _longitude),
               _userLanguage == 'Japanese'
                   ? (!_hasSeenWelcome
-                      ? PostWelcome1(showScaffold: false)
-                      : TimelineScreen())
+                  ? PostWelcome1(showScaffold: false)
+                  : TimelineScreen())
                   : (!_hasSeenWelcome
-                      ? PostWelcome1(showScaffold: false)
-                      : TimelineScreenEn()),
+                  ? PostWelcome1(showScaffold: false)
+                  : TimelineScreenEn()),
               _userLanguage == 'Japanese'
                   ? UserPointUpdatePage()
                   : UserPointUpdatePage(),

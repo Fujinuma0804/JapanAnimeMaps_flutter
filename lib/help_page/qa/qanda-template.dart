@@ -503,7 +503,7 @@ class _AnimeToursimFAQPageState extends State<AnimeToursimFAQPage> {
                 ),
                 const SizedBox(height: 8),
                 const Text(
-                  '上記で解決しない場合は、お気軽にお問い合わせください。通常2営業日以内にご返答いたします。',
+                  '上記で解決しない場合は、お気軽にお問い合わせください。通常3営業日以内にご返答いたします。',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 14,

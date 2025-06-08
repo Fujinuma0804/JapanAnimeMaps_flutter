@@ -1,6 +1,5 @@
 import 'dart:io' show Platform;
 
-import 'package:chewie/chewie.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -213,12 +212,12 @@ class SpotDetailScreen extends StatefulWidget {
 
 class _SpotDetailScreenState extends State<SpotDetailScreen> {
   VideoPlayerController? _videoPlayerController;
-  ChewieController? _chewieController;
   bool _isPictureInPicture = false;
   double _pipWidth = 200.0; // PiPのデフォルト幅
   Offset _pipPosition = Offset(16, 16); // PiPのデフォルト位置
   bool _isPipClosed = false; // 新しい変数を追加
   bool _isFavorite = false;
+  bool _isVideoInitialized = false; // 新しく追加
 
   Future<void> _openMapOptions(BuildContext context) async {
     final googleMapsUrl =
@@ -365,21 +364,25 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
     try {
       _videoPlayerController = VideoPlayerController.network(url);
       await _videoPlayerController!.initialize();
-      _chewieController = ChewieController(
-        videoPlayerController: _videoPlayerController!,
-        autoPlay: true,
-        looping: true,
-      );
-      setState(() {});
+      // _chewieController = ChewieController( // この部分を削除
+      //   videoPlayerController: _videoPlayerController!,
+      //   autoPlay: true,
+      //   looping: true,
+      // );
+      setState(() {
+        _isVideoInitialized = true; // 追加
+      });
     } catch (e) {
       print("Error initializing video player: $e");
+      setState(() {
+        _isVideoInitialized = false; // 追加
+      });
     }
   }
 
   @override
   void dispose() {
     _videoPlayerController?.dispose();
-    _chewieController?.dispose();
     super.dispose();
   }
 
@@ -388,17 +391,14 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
     if (widget.locationId.isEmpty) {
       return Scaffold(
         appBar: AppBar(
-          title: Text(
-            'Error',
-          ),
+          title: Text('Error'),
         ),
         body: Center(
-          child: Text(
-            'Error: Invalid location ID',
-          ),
+          child: Text('Error: Invalid location ID'),
         ),
       );
     }
+
     return Scaffold(
       appBar: AppBar(
         title: const Text(
@@ -459,12 +459,47 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
                       height: 200,
                     ),
                   ),
-                  if (_chewieController != null)
+                  // 動画表示部分を置き換え
+                  if (_isVideoInitialized && _videoPlayerController != null)
                     Padding(
                       padding: const EdgeInsets.all(16.0),
-                      child: AspectRatio(
-                        aspectRatio: _videoPlayerController!.value.aspectRatio,
-                        child: Chewie(controller: _chewieController!),
+                      child: Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          AspectRatio(
+                            aspectRatio: _videoPlayerController!.value.aspectRatio,
+                            child: Stack(
+                              children: [
+                                VideoPlayer(_videoPlayerController!),
+                                Positioned.fill(
+                                  child: GestureDetector(
+                                    onTap: () {
+                                      setState(() {
+                                        if (_videoPlayerController!.value.isPlaying) {
+                                          _videoPlayerController!.pause();
+                                        } else {
+                                          _videoPlayerController!.play();
+                                        }
+                                      });
+                                    },
+                                    child: Container(
+                                      color: Colors.transparent,
+                                      child: Center(
+                                        child: Icon(
+                                          _videoPlayerController!.value.isPlaying
+                                              ? Icons.pause_circle_filled
+                                              : Icons.play_circle_filled,
+                                          color: Colors.white.withOpacity(0.8),
+                                          size: 60,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                       ),
                     )
                   else if (widget.url.isNotEmpty)
@@ -488,62 +523,50 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
                       ),
                     )
                   else if (widget.subMedia.isNotEmpty &&
-                      (widget.subMedia.first['type'] == 'image' ||
-                          widget.subMedia.first['type'] == 'video'))
-                    Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: widget.subMedia.first['type'] == 'image'
-                          ? Image.network(
-                              widget.subMedia.first['url'],
-                              fit: BoxFit.cover,
+                        widget.subMedia.first['type'] == 'image')
+                      Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Image.network(
+                          widget.subMedia.first['url'],
+                          fit: BoxFit.cover,
+                          height: 200,
+                          width: double.infinity,
+                          errorBuilder: (context, error, stackTrace) {
+                            return Container(
                               height: 200,
                               width: double.infinity,
-                              errorBuilder: (context, error, stackTrace) {
-                                return Container(
-                                  height: 200,
-                                  width: double.infinity,
-                                  color: Colors.grey,
-                                  child: Center(
-                                    child:
-                                        Icon(Icons.error, color: Colors.white),
-                                  ),
-                                );
-                              },
-                            )
-                          : AspectRatio(
-                              aspectRatio:
-                                  _videoPlayerController!.value.aspectRatio,
-                              child: Chewie(controller: _chewieController!),
-                            ),
-                    )
-                  else
-                    SizedBox(
-                      height: 200,
-                      child: GoogleMap(
-                        initialCameraPosition: CameraPosition(
-                          target: LatLng(widget.latitude, widget.longitude),
-                          zoom: 15,
+                              color: Colors.grey,
+                              child: Center(
+                                child: Icon(Icons.error, color: Colors.white),
+                              ),
+                            );
+                          },
                         ),
-                        markers: {
-                          Marker(
-                            markerId: const MarkerId('spot_location'),
-                            position: LatLng(widget.latitude, widget.longitude),
+                      )
+                    else
+                      SizedBox(
+                        height: 200,
+                        child: GoogleMap(
+                          initialCameraPosition: CameraPosition(
+                            target: LatLng(widget.latitude, widget.longitude),
+                            zoom: 15,
                           ),
-                        },
+                          markers: {
+                            Marker(
+                              markerId: const MarkerId('spot_location'),
+                              position: LatLng(widget.latitude, widget.longitude),
+                            ),
+                          },
+                        ),
                       ),
-                    ),
-                  SizedBox(
-                    height: 10.0,
-                  ),
-                  //以下緯度と経度より郵便番号と住所を取得し表示。
-                  //Simulatorでは取得できませんでしたとなるが、実機ではならない。
+                  // 残りのコードは同じ...
+                  SizedBox(height: 10.0),
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16.0),
                     child: FutureBuilder<Map<String, String>>(
                       future: _getAddress(),
                       builder: (context, snapshot) {
-                        if (snapshot.connectionState ==
-                            ConnectionState.waiting) {
+                        if (snapshot.connectionState == ConnectionState.waiting) {
                           return CircularProgressIndicator();
                         } else if (snapshot.hasError) {
                           return Text('エラーが発生しました');
@@ -639,16 +662,15 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
                       ],
                     ),
                   ),
-                  const SizedBox(
-                    height: 20.0,
-                  ),
+                  const SizedBox(height: 20.0),
                 ],
               ),
             ),
+            // PiP部分を更新
             if (_isPictureInPicture &&
-                _chewieController != null &&
+                _isVideoInitialized &&
                 _videoPlayerController != null &&
-                !_isPipClosed) // 条件を修正
+                !_isPipClosed)
               Positioned(
                 left: _pipPosition.dx,
                 top: _pipPosition.dy,
@@ -664,7 +686,36 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
                         width: _pipWidth,
                         height: _pipWidth /
                             _videoPlayerController!.value.aspectRatio,
-                        child: Chewie(controller: _chewieController!),
+                        child: Stack(
+                          children: [
+                            VideoPlayer(_videoPlayerController!),
+                            Positioned.fill(
+                              child: GestureDetector(
+                                onTap: () {
+                                  setState(() {
+                                    if (_videoPlayerController!.value.isPlaying) {
+                                      _videoPlayerController!.pause();
+                                    } else {
+                                      _videoPlayerController!.play();
+                                    }
+                                  });
+                                },
+                                child: Container(
+                                  color: Colors.transparent,
+                                  child: Center(
+                                    child: Icon(
+                                      _videoPlayerController!.value.isPlaying
+                                          ? Icons.pause_circle_filled
+                                          : Icons.play_circle_filled,
+                                      color: Colors.white.withOpacity(0.8),
+                                      size: 30,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                       Positioned(
                         right: 0,
@@ -684,7 +735,7 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
                               onPressed: () {
                                 setState(() {
                                   _isPictureInPicture = false;
-                                  _isPipClosed = true; // PiPが閉じられたことを記録
+                                  _isPipClosed = true;
                                   _videoPlayerController?.pause();
                                 });
                               },

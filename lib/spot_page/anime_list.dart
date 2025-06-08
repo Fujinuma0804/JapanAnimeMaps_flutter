@@ -8,7 +8,7 @@ import 'package:firebase_in_app_messaging/firebase_in_app_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:parts/spot_page/check_in.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:tutorial_coach_mark/tutorial_coach_mark.dart';
+import 'package:showcaseview/showcaseview.dart';
 
 import '../login_page/sign_up.dart';
 import 'anime_list_detail.dart';
@@ -29,8 +29,6 @@ class _AnimeListPageState extends State<AnimeListPage> {
   bool _isSearching = false;
   List<Map<String, dynamic>> _allAnimeData = [];
 
-  late TutorialCoachMark tutorialCoachMark;
-  List<TargetFocus> targets = [];
 
   GlobalKey searchKey = GlobalKey();
   GlobalKey addKey = GlobalKey();
@@ -42,7 +40,6 @@ class _AnimeListPageState extends State<AnimeListPage> {
   void initState() {
     super.initState();
     _fetchAnimeData();
-    _initTargets();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _showTutorial();
       _triggerInAppMessage();
@@ -57,105 +54,23 @@ class _AnimeListPageState extends State<AnimeListPage> {
     );
   }
 
-  void _initTargets() {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      targets = [
-        TargetFocus(
-          identify: "Search Button",
-          keyTarget: searchKey,
-          contents: [
-            TargetContent(
-              align: ContentAlign.bottom,
-              child: Text(
-                "アニメを検索するにはここから！",
-                style: TextStyle(color: Colors.white),
-              ),
-            ),
-          ],
-        ),
-        TargetFocus(
-          identify: "Add Button",
-          keyTarget: addKey,
-          contents: [
-            TargetContent(
-              align: ContentAlign.bottom,
-              child: Text(
-                "新しいアニメをリクエストするにはここから！",
-                style: TextStyle(color: Colors.white),
-              ),
-            ),
-          ],
-        ),
-        TargetFocus(
-          identify: "Favorite Button",
-          keyTarget: favoriteKey,
-          contents: [
-            TargetContent(
-              align: ContentAlign.bottom,
-              child: Text(
-                "お気に入りのスポットを見るにはここから！",
-                style: TextStyle(color: Colors.white),
-              ),
-            ),
-          ],
-        ),
-        TargetFocus(
-          identify: "Check In Button",
-          keyTarget: checkInKey,
-          contents: [
-            TargetContent(
-              align: ContentAlign.bottom,
-              child: Text(
-                "チェックインしたスポットの確認はここから！",
-                style: TextStyle(color: Colors.white),
-              ),
-            ),
-          ],
-        ),
-        TargetFocus(
-          identify: "First Anime Item",
-          keyTarget: firstItemKey,
-          contents: [
-            TargetContent(
-              align: ContentAlign.bottom,
-              child: Text(
-                "アニメごとのスポットはここから！",
-                style: TextStyle(color: Colors.white),
-              ),
-            ),
-          ],
-        ),
-      ];
-    });
-  }
 
   Future<void> _showTutorial() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     bool showTutorial = prefs.getBool('showTutorial') ?? true;
 
     if (showTutorial) {
-      tutorialCoachMark = TutorialCoachMark(
-        targets: targets,
-        colorShadow: Colors.black,
-        textSkip: "スキップ",
-        paddingFocus: 10,
-        opacityShadow: 0.8,
-        onFinish: () {
-          print("チュートリアル完了");
-        },
-        onClickTarget: (target) {
-          print('${target.identify} がクリックされました');
-        },
-        onSkip: () {
-          print("チュートリアルをスキップしました");
-          return false;
-        },
-      );
-
-      tutorialCoachMark.show(context: context);
+      ShowCaseWidget.of(context).startShowCase([
+        searchKey,
+        addKey,
+        favoriteKey,
+        checkInKey,
+        firstItemKey,
+      ]);
       await prefs.setBool('showTutorial', false);
     }
   }
+
 
   Future<void> _fetchAnimeData() async {
     try {

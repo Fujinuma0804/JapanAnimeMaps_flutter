@@ -1,178 +1,186 @@
 name: parts
 description: "This is JapanAnimeMaps©️"
-# The following line prevents the package from being accidentally published to
-# pub.dev using `flutter pub publish`. This is preferred for private packages.
-publish_to: 'none' # Remove this line if you wish to publish to pub.dev
+publish_to: 'none'
 
-# The following defines the version and build number for your application.
-# A version number is three numbers separated by dots, like 1.2.43
-# followed by an optional build number separated by a +.
-# Both the version and the builder number may be overridden in flutter
-# build by specifying --build-name and --build-number, respectively.
-# In Android, build-name is used as versionName while build-number used as versionCode.
-# Read more about Android versioning at https://developer.android.com/studio/publish/versioning
-# In iOS, build-name is used as CFBundleShortVersionString while build-number is used as CFBundleVersion.
-# Read more about iOS versioning at
-# https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
-# In Windows, build-name is used as the major, minor, and patch parts
-# of the product and file versions while build-number is used as the build suffix.
 version: 3.2.0+1
 
 environment:
   sdk: '>=3.0.0 <4.0.0'
 
-# Dependencies specify other packages that your package needs in order to work.
-# To automatically upgrade your package dependencies to the latest versions
-# consider running `flutter pub upgrade --major-versions`. Alternatively,
-# dependencies can be manually updated by changing the version numbers below to
-# the latest version available on pub.dev. To see which dependencies have newer
-# versions available, run `flutter pub outdated`.
 dependencies:
   flutter:
     sdk: flutter
   flutter_localizations:
     sdk: flutter
 
+  # ======================
+  # Firebase関連パッケージ
+  # ======================
+  firebase_core: ^3.13.1
+  firebase_auth: ^5.4.5
+  firebase_analytics: ^11.4.5
+  cloud_firestore: ^5.5.5
+  firebase_storage: ^12.4.5
+  firebase_messaging: ^15.2.6
+  firebase_remote_config: ^5.3.5
+  firebase_in_app_messaging: ^0.8.1+6
+  cloud_functions: ^5.5.1
+  firebase_database: ^11.3.6
 
-  # The following adds the Cupertino Icons font to your application.
-  # Use with the CupertinoIcons class for iOS style icons.
-  cupertino_icons: ^1.0.6
+  # ======================
+  # Google関連パッケージ
+  # ======================
   google_maps_flutter: ^2.5.3
-  geolocator: ^12.0.0
-  url_launcher: ^6.3.0
+  google_sign_in: ^6.1.6
+  google_fonts: ^6.2.1
+  google_translate: ^0.0.3
+  google_mobile_ads: ^5.2.0
+
+  # ======================
+  # UI・デザイン関連
+  # ======================
+  cupertino_icons: ^1.0.6
   flutter_html: ^3.0.0-beta.2
-  firebase_core: ^2.21.0
-  cloud_firestore: ^4.17.5
-  http: ^1.2.1
-  firebase_auth: ^4.20.0
+  flutter_html_svg: ^3.0.0-beta.2
   settings_ui: ^2.0.2
   flutter_layout_grid: ^1.0.6
-  flutter_email_sender: ^6.0.3
   flutter_chat_types: ^3.6.2
   flutter_chat_ui: ^1.6.14
-  firebase_storage: ^11.7.7
+  auto_size_text: ^3.0.0
+  flutter_rating_bar: ^4.0.1
+  loading_animation_widget: ^1.3.0
+  carousel_slider: ^5.0.0
+  font_awesome_flutter: ^10.8.0
+  table_calendar: ^3.1.2
+  confetti: ^0.8.0
+
+  # ======================
+  # 位置情報・地図関連
+  # ======================
+  geolocator: ^12.0.0
+  map_launcher: ^3.3.1
+  flutter_polyline_points: ^2.1.0
+  geocoding: ^3.0.0
+
+  # ======================
+  # メディア・画像関連
+  # ======================
   image_picker: ^1.1.2
   flutter_image_compress: ^2.3.0
-  path_provider: ^2.1.3
-  webview_flutter: ^4.8.0
-  flutter_launcher_icons: ^0.13.1
-  qr_code_scanner: ^1.0.1
-  intl: ^0.19.0
-  permission_handler: ^11.3.1
-  video_player: ^2.9.1
-  translator: ^1.0.0
-  shared_preferences: ^2.3.3
-  flutter_html_svg: ^3.0.0-beta.2
-  google_sign_in: ^6.2.1
-  firebase_analytics: ^10.10.7
   cached_network_image: ^3.3.1
-  map_launcher: ^3.3.1
-  sign_in_with_apple: ^6.1.1
-  crypto: ^3.0.2
-  package_info_plus: ^8.0.1
-  flutter_vibrate: ^1.3.0
-  flutter_polyline_points: ^2.1.0
-  chewie: ^1.8.3
-  vibration: ^1.9.0
-  google_translate: ^0.0.3
-  geocoding: ^3.0.0
-  tutorial_coach_mark: ^1.2.11
-  flutter_local_notifications: ^17.2.2
-  firebase_messaging: ^14.9.4
-  auto_size_text: ^3.0.0
-  firebase_in_app_messaging: ^0.7.5+7
-  share: ^2.0.4
-  flutter_rating_bar: ^4.0.1
-  firebase_database: ^10.5.7
-  firebase_remote_config: ^4.4.7
-  share_plus: ^10.0.0
-  loading_animation_widget: ^1.3.0
-  screenshot: ^3.0.0
-  sensors_plus: ^6.0.1
-  google_mobile_ads: ^5.2.0
-  app_tracking_transparency: ^2.0.6
-  html_unescape: ^2.0.0
-  confetti: ^0.8.0
-  in_app_purchase: ^3.2.0
+  video_player: ^2.9.1
   youtube_player_iframe: ^5.1.3
   youtube_player_flutter: ^8.1.2
-  purchases_flutter: ^8.2.0
-  table_calendar: ^3.1.2
+  screenshot: ^3.0.0
+  image_gallery_saver: ^2.0.3
+
+  # ======================
+  # ネットワーク・通信関連
+  # ======================
+  http: ^1.2.1
+  url_launcher: ^6.3.1
+  webview_flutter: ^4.8.0
+
+  # ======================
+  # デバイス機能・センサー関連
+  # ======================
+  permission_handler: ^11.3.1
+  vibration: ^1.9.0
+  sensors_plus: ^6.0.1
+  qr_code_scanner: ^1.0.1
   qr_flutter: ^4.1.0
-  google_fonts: ^6.2.1
-  carousel_slider: ^5.0.0
-  flutter_stripe: ^11.4.0
+
+  # ======================
+  # ストレージ・データ関連
+  # ======================
+  shared_preferences: ^2.3.3
+  path_provider: ^2.1.3
+
+  # ======================
+  # 国際化・ローカライゼーション
+  # ======================
+  intl: ^0.19.0
+  translator: ^1.0.0
+
+  # ======================
+  # 通知・メッセージング関連
+  # ======================
+  flutter_local_notifications: ^17.2.2
+  flutter_email_sender: ^6.0.3
+  fluttertoast: ^8.2.8
+
+  # ======================
+  # 認証・セキュリティ関連
+  # ======================
+  sign_in_with_apple: ^6.1.1
+  crypto: ^3.0.2
+
+  # ======================
+  # アプリ情報・設定関連
+  # ======================
+  package_info_plus: ^8.0.1
+  flutter_launcher_icons: ^0.13.1
+
+  # ======================
+  # 共有・ソーシャル関連
+  # ======================
+  share: ^2.0.4
+  share_plus: ^10.0.0
+
+  # ======================
+  # チュートリアル・ガイド関連
+  # ======================
+  showcaseview: ^4.0.1
+
+  # ======================
+  # 課金・決済関連
+  # ======================
+  in_app_purchase: ^3.2.0
+  purchases_flutter: ^8.2.0
+  flutter_stripe: ^10.1.1
+
+  # ======================
+  # バックグラウンド・ワーカー関連
+  # ======================
   workmanager: ^0.5.2
   flutter_background_service: ^5.1.0
+
+  # ======================
+  # レビュー・フィードバック関連
+  # ======================
   in_app_review: ^2.0.10
-  font_awesome_flutter: ^10.8.0
-  fluttertoast: ^8.2.8
-  image_gallery_saver: ^2.0.3
-  cloud_functions: ^4.7.6
-#  in_app_purchase: ^3.2.0
-##  in_app_purchase_storekit: ^0.3.18+3
-#  in_app_purchase_ios: ^0.2.0+1
+
+  # ======================
+  # プライバシー・トラッキング関連
+  # ======================
+  app_tracking_transparency: ^2.0.6
+
+  # ======================
+  # その他のユーティリティ
+  # ======================
+  html_unescape: ^2.0.0
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
+  flutter_lints: ^3.0.0
 
 flutter_launcher_icons:
   android: "launcher_icon"
   ios: true
   image_path: "assets/icon/apps_icon.png"
-  min_sdk_android: 21 # android min sdk min:16, default 21
+  min_sdk_android: 21
 
+# ここに dependency_overrides を移動（flutterセクションの外）
+dependency_overrides:
+  stripe_platform_interface: ^10.0.0
+  stripe_android: ^10.0.0
+  stripe_ios: ^10.0.0
 
-  # The "flutter_lints" package below contains a set of recommended lints to
-  # encourage good coding practices. The lint set provided by the package is
-  # activated in the `analysis_options.yaml` file located at the root of your
-  # package. See that file for information about deactivating specific lint
-  # rules and activating additional ones.
-  flutter_lints: ^3.0.0
-
-
-
-# For information on the generic Dart part of this file, see the
-# following page: https://dart.dev/tools/pub/pubspec
-
-# The following section is specific to Flutter packages.
 flutter:
   generate: true
-
-  # The following line ensures that the Material Icons font is
-  # included with your application, so that you can use the icons in
-  # the material Icons class.
   uses-material-design: true
 
-  # To add assets to your application, add an assets section, like this:
   assets:
-     - assets/images/
-     - assets/icon/
-  #   - images/a_dot_ham.jpeg
-
-  # An image asset can refer to one or more resolution-specific "variants", see
-  # https://flutter.dev/assets-and-images/#resolution-aware
-
-  # For details regarding adding assets from package dependencies, see
-  # https://flutter.dev/assets-and-images/#from-packages
-
-  # To add custom fonts to your application, add a fonts section here,
-  # in this "flutter" section. Each entry in this list should have a
-  # "family" key with the font family name, and a "fonts" key with a
-  # list giving the asset and other descriptors for the font. For
-  # example:
-  # fonts:
-  #   - family: Schyler
-  #     fonts:
-  #       - asset: fonts/Schyler-Regular.ttf
-  #       - asset: fonts/Schyler-Italic.ttf
-  #         style: italic
-  #   - family: Trajan Pro
-  #     fonts:
-  #       - asset: fonts/TrajanPro.ttf
-  #       - asset: fonts/TrajanPro_Bold.ttf
-  #         weight: 700
-  #
-  # For details regarding fonts from package dependencies,
-  # see https://flutter.dev/custom-fonts/#from-packages
+    - assets/images/
+    - assets/icon/

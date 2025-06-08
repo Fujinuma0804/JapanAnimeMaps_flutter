@@ -7,8 +7,10 @@ import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:parts/spot_page/anime_list_detail.dart';
+import 'package:parts/spot_page/anime_list_test_ranking.dart';
 import 'package:parts/spot_page/event_more.dart';
 import 'package:video_player/video_player.dart';
+import 'package:parts/subscription/payment_subscription.dart';
 
 class RankingTopPage extends StatefulWidget {
   @override
@@ -45,15 +47,13 @@ class _RankingTopPageState extends State<RankingTopPage> {
   BannerAd? _bannerAd;
   bool _isAdLoaded = false;
 
+  //サブスクリプション判定【追加】
+  bool _isSubscriptionActive = false;
+
   @override
   void initState() {
     super.initState();
-    _loadAd();
-    _fetchEventData();
-    _fetchGenreData();
-    _checkActiveEvents();
-    _startFlipAnimation();
-    _initializeVideo();
+    _initializeApp();
   }
 
   @override
@@ -65,17 +65,26 @@ class _RankingTopPageState extends State<RankingTopPage> {
     super.dispose();
   }
 
-  void _loadAd() {
+  void _loadAd() async {
+    // 【追加】サブスクリプションチェック
+    if (_isSubscriptionActive) {
+      print('🚫 Skipping ad load - subscription active');
+      return;
+    }
+
     _bannerAd = BannerAd(
       size: AdSize.banner,
       adUnitId: 'ca-app-pub-1580421227117187/7476955408',
       listener: BannerAdListener(
         onAdLoaded: (ad) {
-          setState(() {
-            _isAdLoaded = true;
-          });
+          if (mounted) {
+            setState(() {
+              _isAdLoaded = true;
+            });
+          }
         },
         onAdFailedToLoad: (ad, error) {
+          print('❌ Banner ad failed to load: ${error.message}');
           ad.dispose();
         },
       ),
@@ -83,6 +92,41 @@ class _RankingTopPageState extends State<RankingTopPage> {
     );
 
     _bannerAd?.load();
+  }
+
+  Future<void> _initializeApp() async {
+    await SubscriptionManager.initializeWithDebug();
+    await _checkSubscriptionStatus();
+    // 【修正】変数名の修正
+    if (!_isSubscriptionActive) {
+      _loadAd();
+    }
+    _fetchEventData();
+    _fetchGenreData();
+    _checkActiveEvents();
+    _startFlipAnimation();
+    _initializeVideo();
+  }
+
+  // 【追加】サブスクリプション状態チェックメソッド
+  Future<void> _checkSubscriptionStatus() async {
+    try {
+      final isActive = await SubscriptionManager.isSubscriptionActive();
+      if (mounted) {
+        setState(() {
+          _isSubscriptionActive = isActive;
+        });
+      }
+      print('🎯 Subscription status: $isActive');
+    } catch (e) {
+      print('❌ Subscription status check error: $e');
+      // エラーが発生した場合はサブスクリプション無効として扱う
+      if (mounted) {
+        setState(() {
+          _isSubscriptionActive = false;
+        });
+      }
+    }
   }
 
   Future<void> _fetchAnimesByGenre(String genreId) async {
@@ -551,12 +595,34 @@ class _RankingTopPageState extends State<RankingTopPage> {
     return Scaffold(
       appBar: AppBar(
         automaticallyImplyLeading: false,
-        title: Text(
-          'ジャンル・イベント情報',
-          style: TextStyle(
-            color: Color(0xFF00008b),
-            fontWeight: FontWeight.bold,
-          ),
+        title: Row(
+          children: [
+            Text(
+              'ジャンル・イベント情報',
+              style: TextStyle(
+                color: Color(0xFF00008b),
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            // 【追加】サブスクリプション状態表示
+            if (_isSubscriptionActive)
+              Container(
+                margin: EdgeInsets.only(left: 8),
+                padding: EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: Colors.orange,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  'Premium',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+          ],
         ),
         backgroundColor: Colors.white,
         elevation: 0,
@@ -596,7 +662,8 @@ class _RankingTopPageState extends State<RankingTopPage> {
                           Center(child: CircularProgressIndicator())
                         else
                           _buildGenreList(),
-                        SizedBox(height: _isAdLoaded ? 60 : 0),
+                        // 【修正】サブスクリプション有効時は広告スペースを確保しない
+                        SizedBox(height: (!_isSubscriptionActive && _isAdLoaded) ? 60 : 0),
                       ],
                     ),
                   ),
@@ -605,7 +672,8 @@ class _RankingTopPageState extends State<RankingTopPage> {
                 ],
               ),
             ),
-            if (_isAdLoaded)
+            // 【修正】サブスクリプション有効時は広告を表示しない
+            if (!_isSubscriptionActive && _isAdLoaded && _bannerAd != null)
               Container(
                 alignment: Alignment.center,
                 width: _bannerAd!.size.width.toDouble(),

@@ -9,7 +9,7 @@ import 'package:parts/components/ad_mob.dart';
 import 'package:parts/spot_page/check_in.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:translator/translator.dart';
-import 'package:tutorial_coach_mark/tutorial_coach_mark.dart';
+import 'package:showcaseview/showcaseview.dart';
 
 import 'anime_list_detail.dart';
 import 'anime_list_en_ranking.dart';
@@ -100,8 +100,6 @@ class _AnimeListTestRankingEngState extends State<AnimeListTestRankingEng>
   int _currentTabIndex = 0;
   bool _isPrefectureDataFetched = false;
 
-  late TutorialCoachMark tutorialCoachMark;
-  List<TargetFocus> targets = [];
 
   GlobalKey searchKey = GlobalKey();
   GlobalKey addKey = GlobalKey();
@@ -365,10 +363,9 @@ class _AnimeListTestRankingEngState extends State<AnimeListTestRankingEng>
     super.initState();
     _initializeTabController();
     databaseReference =
-        rtdb.FirebaseDatabase.instance.reference().child('anime_rankings');
+        rtdb.FirebaseDatabase.instance.ref().child('anime_rankings');
     _fetchAnimeData();
     _fetchEventData();
-    _initTargets();
     WidgetsBinding.instance.addPostFrameCallback((_) => _showTutorial());
     _listenToRankingChanges();
     _setupInAppMessaging();
@@ -749,204 +746,19 @@ class _AnimeListTestRankingEngState extends State<AnimeListTestRankingEng>
     );
   }
 
-  void _initTargets() {
-    targets = [
-      TargetFocus(
-        identify: "Ranking",
-        keyTarget: rankingKey,
-        alignSkip: AlignmentGeometry.lerp(
-          Alignment.bottomRight,
-          Alignment.bottomRight,
-          0.0,
-        ),
-        contents: [
-          TargetContent(
-            align: ContentAlign.bottom,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  "Ranking Feature",
-                  style: TextStyle(
-                    color: Colors.yellow,
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                SizedBox(height: 10),
-                Text(
-                  "Shows the ranking of most visited anime locations.\nHelps you discover popular spots.",
-                  style: TextStyle(color: Colors.white, fontSize: 16),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-      TargetFocus(
-        identify: "Search Button",
-        keyTarget: searchKey,
-        contents: [
-          TargetContent(
-            align: ContentAlign.bottom,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  "Search Function",
-                  style: TextStyle(
-                    color: Colors.yellow,
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                SizedBox(height: 10),
-                Text(
-                  "Search by anime title or location.\nQuickly find the spots you're interested in.",
-                  style: TextStyle(color: Colors.white, fontSize: 16),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-      TargetFocus(
-        identify: "Add Button",
-        keyTarget: addKey,
-        contents: [
-          TargetContent(
-            align: ContentAlign.bottom,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  "Request New Location",
-                  style: TextStyle(
-                    color: Colors.yellow,
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                SizedBox(height: 10),
-                Text(
-                  "Found an anime location not listed?\nSubmit a request to add it here.",
-                  style: TextStyle(color: Colors.white, fontSize: 16),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-      TargetFocus(
-        identify: "Favorite Button",
-        keyTarget: favoriteKey,
-        contents: [
-          TargetContent(
-            align: ContentAlign.bottom,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  "Favorites Feature",
-                  style: TextStyle(
-                    color: Colors.yellow,
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                SizedBox(height: 10),
-                Text(
-                  "Save locations you're interested in.\nKeep track of places you want to visit.",
-                  style: TextStyle(color: Colors.white, fontSize: 16),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-      TargetFocus(
-        identify: "Check In Button",
-        keyTarget: checkInKey,
-        contents: [
-          TargetContent(
-            align: ContentAlign.bottom,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  "Check-in Feature",
-                  style: TextStyle(
-                    color: Colors.yellow,
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                SizedBox(height: 10),
-                Text(
-                  "Check in at locations you visit.\nRecord your memories and track your visits.",
-                  style: TextStyle(color: Colors.white, fontSize: 16),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-      TargetFocus(
-        identify: "Anime Item",
-        keyTarget: firstItemKey,
-        contents: [
-          TargetContent(
-            align: ContentAlign.bottom,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  "Anime Title",
-                  style: TextStyle(
-                    color: Colors.yellow,
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                SizedBox(height: 10),
-                Text(
-                  "Tap on an anime to see related locations.\nView details including position, photos, and access information.",
-                  style: TextStyle(color: Colors.white, fontSize: 16),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    ];
-  }
-
   Future<void> _showTutorial() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     bool showTutorial = prefs.getBool('showTutorial') ?? true;
 
     if (showTutorial) {
-      tutorialCoachMark = TutorialCoachMark(
-        targets: targets,
-        colorShadow: Colors.black87,
-        hideSkip: true,
-        paddingFocus: 10,
-        opacityShadow: 0.8,
-        onFinish: () {
-          print("Tutorial completed");
-        },
-        onClickTarget: (target) {
-          print('${target.identify} clicked');
-        },
-      );
-
-      tutorialCoachMark.show(context: context);
+      ShowCaseWidget.of(context).startShowCase([
+        rankingKey,
+        searchKey,
+        addKey,
+        favoriteKey,
+        checkInKey,
+        firstItemKey,
+      ]);
       await prefs.setBool('showTutorial', false);
     }
   }

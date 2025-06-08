@@ -14,7 +14,8 @@ import 'package:parts/spot_page/check_in.dart';
 import 'package:parts/spot_page/customer_animename_request.dart';
 import 'package:parts/spot_page/user_activity_logger.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:tutorial_coach_mark/tutorial_coach_mark.dart';
+import 'package:showcaseview/showcaseview.dart';
+
 
 import 'anime_list_detail.dart';
 import 'anime_list_en_ranking.dart';
@@ -149,9 +150,6 @@ class _AnimeEventListState extends State<AnimeEventList>
   int _currentTabIndex = 0;
   bool _isPrefectureDataFetched = false;
 
-  late TutorialCoachMark tutorialCoachMark;
-  List<TargetFocus> targets = [];
-
   // _AnimeListTestRankingStateクラス内の変数定義部分
   GlobalKey searchKey = GlobalKey();
   GlobalKey addKey = GlobalKey();
@@ -169,53 +167,288 @@ class _AnimeEventListState extends State<AnimeEventList>
   bool _isRecommendedEventsExpanded = true;
 
   final Map<String, Map<String, double>> prefectureBounds = {
-    '北海道': {'minLat': 41.3, 'maxLat': 45.6, 'minLng': 139.3, 'maxLng': 148.9},
-    '青森県': {'minLat': 40.2, 'maxLat': 41.6, 'minLng': 139.5, 'maxLng': 141.7},
-    '岩手県': {'minLat': 38.7, 'maxLat': 40.5, 'minLng': 140.6, 'maxLng': 142.1},
-    '宮城県': {'minLat': 37.8, 'maxLat': 39.0, 'minLng': 140.3, 'maxLng': 141.7},
-    '秋田県': {'minLat': 38.8, 'maxLat': 40.5, 'minLng': 139.7, 'maxLng': 141.0},
-    '山形県': {'minLat': 37.8, 'maxLat': 39.0, 'minLng': 139.5, 'maxLng': 140.6},
-    '福島県': {'minLat': 36.8, 'maxLat': 38.0, 'minLng': 139.2, 'maxLng': 141.0},
-    '茨城県': {'minLat': 35.8, 'maxLat': 36.9, 'minLng': 139.7, 'maxLng': 140.9},
-    '栃木県': {'minLat': 36.2, 'maxLat': 37.2, 'minLng': 139.3, 'maxLng': 140.3},
-    '群馬県': {'minLat': 36.0, 'maxLat': 37.0, 'minLng': 138.4, 'maxLng': 139.7},
-    '埼玉県': {'minLat': 35.7, 'maxLat': 36.3, 'minLng': 138.8, 'maxLng': 139.9},
-    '千葉県': {'minLat': 34.9, 'maxLat': 36.1, 'minLng': 139.7, 'maxLng': 140.9},
-    '東京都': {'minLat': 35.5, 'maxLat': 35.9, 'minLng': 138.9, 'maxLng': 139.9},
-    '神奈川県': {'minLat': 35.1, 'maxLat': 35.7, 'minLng': 139.0, 'maxLng': 139.8},
-    '新潟県': {'minLat': 36.8, 'maxLat': 38.6, 'minLng': 137.6, 'maxLng': 139.8},
-    '富山県': {'minLat': 36.2, 'maxLat': 36.9, 'minLng': 136.8, 'maxLng': 137.7},
-    '石川県': {'minLat': 36.0, 'maxLat': 37.6, 'minLng': 136.2, 'maxLng': 137.4},
-    '福井県': {'minLat': 35.3, 'maxLat': 36.3, 'minLng': 135.4, 'maxLng': 136.8},
-    '山梨県': {'minLat': 35.2, 'maxLat': 35.9, 'minLng': 138.2, 'maxLng': 139.1},
-    '長野県': {'minLat': 35.2, 'maxLat': 37.0, 'minLng': 137.3, 'maxLng': 138.7},
-    '岐阜県': {'minLat': 35.2, 'maxLat': 36.5, 'minLng': 136.3, 'maxLng': 137.6},
-    '静岡県': {'minLat': 34.6, 'maxLat': 35.7, 'minLng': 137.4, 'maxLng': 139.1},
-    '愛知県': {'minLat': 34.6, 'maxLat': 35.4, 'minLng': 136.7, 'maxLng': 137.8},
-    '三重県': {'minLat': 33.7, 'maxLat': 35.3, 'minLng': 135.9, 'maxLng': 136.9},
-    '滋賀県': {'minLat': 34.8, 'maxLat': 35.7, 'minLng': 135.8, 'maxLng': 136.4},
-    '京都府': {'minLat': 34.7, 'maxLat': 35.8, 'minLng': 134.8, 'maxLng': 136.0},
-    '大阪府': {'minLat': 34.2, 'maxLat': 35.0, 'minLng': 135.1, 'maxLng': 135.7},
-    '兵庫県': {'minLat': 34.2, 'maxLat': 35.7, 'minLng': 134.2, 'maxLng': 135.4},
-    '奈良県': {'minLat': 33.8, 'maxLat': 34.7, 'minLng': 135.6, 'maxLng': 136.2},
-    '和歌山県': {'minLat': 33.4, 'maxLat': 34.3, 'minLng': 135.0, 'maxLng': 136.0},
-    '鳥取県': {'minLat': 35.1, 'maxLat': 35.6, 'minLng': 133.1, 'maxLng': 134.4},
-    '島根県': {'minLat': 34.3, 'maxLat': 35.6, 'minLng': 131.6, 'maxLng': 133.4},
-    '岡山県': {'minLat': 34.3, 'maxLat': 35.4, 'minLng': 133.3, 'maxLng': 134.4},
-    '広島県': {'minLat': 34.0, 'maxLat': 35.1, 'minLng': 132.0, 'maxLng': 133.5},
-    '山口県': {'minLat': 33.8, 'maxLat': 34.8, 'minLng': 130.8, 'maxLng': 132.4},
-    '徳島県': {'minLat': 33.5, 'maxLat': 34.2, 'minLng': 133.6, 'maxLng': 134.8},
-    '香川県': {'minLat': 34.0, 'maxLat': 34.6, 'minLng': 133.5, 'maxLng': 134.4},
-    '愛媛県': {'minLat': 32.9, 'maxLat': 34.3, 'minLng': 132.0, 'maxLng': 133.7},
-    '高知県': {'minLat': 32.7, 'maxLat': 33.9, 'minLng': 132.5, 'maxLng': 134.3},
-    '福岡県': {'minLat': 33.1, 'maxLat': 34.0, 'minLng': 129.9, 'maxLng': 131.0},
-    '佐賀県': {'minLat': 32.9, 'maxLat': 33.6, 'minLng': 129.7, 'maxLng': 130.5},
-    '長崎県': {'minLat': 32.6, 'maxLat': 34.7, 'minLng': 128.6, 'maxLng': 130.4},
-    '熊本県': {'minLat': 32.1, 'maxLat': 33.2, 'minLng': 129.9, 'maxLng': 131.2},
-    '大分県': {'minLat': 32.7, 'maxLat': 33.7, 'minLng': 130.7, 'maxLng': 132.1},
-    '宮崎県': {'minLat': 31.3, 'maxLat': 32.9, 'minLng': 130.7, 'maxLng': 131.9},
-    '鹿児島県': {'minLat': 30.4, 'maxLat': 32.2, 'minLng': 129.5, 'maxLng': 131.1},
-    '沖縄県': {'minLat': 24.0, 'maxLat': 27.9, 'minLng': 122.9, 'maxLng': 131.3},
+    '北海道': {
+      'minLat': 41.3,
+      'maxLat': 45.6,
+      'minLng': 139.3,
+      'maxLng': 148.9
+    },
+    '青森県': {
+      'minLat': 40.2,
+      'maxLat': 41.6,
+      'minLng': 139.5,
+      'maxLng': 141.7
+    },
+    '岩手県': {
+      'minLat': 38.7,
+      'maxLat': 40.5,
+      'minLng': 140.6,
+      'maxLng': 142.1
+    },
+    '宮城県': {
+      'minLat': 37.8,
+      'maxLat': 39.0,
+      'minLng': 140.3,
+      'maxLng': 141.7
+    },
+    '秋田県': {
+      'minLat': 38.8,
+      'maxLat': 40.5,
+      'minLng': 139.7,
+      'maxLng': 141.0
+    },
+    '山形県': {
+      'minLat': 37.8,
+      'maxLat': 39.0,
+      'minLng': 139.5,
+      'maxLng': 140.6
+    },
+    '福島県': {
+      'minLat': 36.8,
+      'maxLat': 38.0,
+      'minLng': 139.2,
+      'maxLng': 141.0
+    },
+    '茨城県': {
+      'minLat': 35.8,
+      'maxLat': 36.9,
+      'minLng': 139.7,
+      'maxLng': 140.9
+    },
+    '栃木県': {
+      'minLat': 36.2,
+      'maxLat': 37.2,
+      'minLng': 139.3,
+      'maxLng': 140.3
+    },
+    '群馬県': {
+      'minLat': 36.0,
+      'maxLat': 37.0,
+      'minLng': 138.4,
+      'maxLng': 139.7
+    },
+    '埼玉県': {
+      'minLat': 35.7,
+      'maxLat': 36.3,
+      'minLng': 138.8,
+      'maxLng': 139.9
+    },
+    '千葉県': {
+      'minLat': 34.9,
+      'maxLat': 36.1,
+      'minLng': 139.7,
+      'maxLng': 140.9
+    },
+    '東京都': {
+      'minLat': 35.5,
+      'maxLat': 35.9,
+      'minLng': 138.9,
+      'maxLng': 139.9
+    },
+    '神奈川県': {
+      'minLat': 35.1,
+      'maxLat': 35.7,
+      'minLng': 139.0,
+      'maxLng': 139.8
+    },
+    '新潟県': {
+      'minLat': 36.8,
+      'maxLat': 38.6,
+      'minLng': 137.6,
+      'maxLng': 139.8
+    },
+    '富山県': {
+      'minLat': 36.2,
+      'maxLat': 36.9,
+      'minLng': 136.8,
+      'maxLng': 137.7
+    },
+    '石川県': {
+      'minLat': 36.0,
+      'maxLat': 37.6,
+      'minLng': 136.2,
+      'maxLng': 137.4
+    },
+    '福井県': {
+      'minLat': 35.3,
+      'maxLat': 36.3,
+      'minLng': 135.4,
+      'maxLng': 136.8
+    },
+    '山梨県': {
+      'minLat': 35.2,
+      'maxLat': 35.9,
+      'minLng': 138.2,
+      'maxLng': 139.1
+    },
+    '長野県': {
+      'minLat': 35.2,
+      'maxLat': 37.0,
+      'minLng': 137.3,
+      'maxLng': 138.7
+    },
+    '岐阜県': {
+      'minLat': 35.2,
+      'maxLat': 36.5,
+      'minLng': 136.3,
+      'maxLng': 137.6
+    },
+    '静岡県': {
+      'minLat': 34.6,
+      'maxLat': 35.7,
+      'minLng': 137.4,
+      'maxLng': 139.1
+    },
+    '愛知県': {
+      'minLat': 34.6,
+      'maxLat': 35.4,
+      'minLng': 136.7,
+      'maxLng': 137.8
+    },
+    '三重県': {
+      'minLat': 33.7,
+      'maxLat': 35.3,
+      'minLng': 135.9,
+      'maxLng': 136.9
+    },
+    '滋賀県': {
+      'minLat': 34.8,
+      'maxLat': 35.7,
+      'minLng': 135.8,
+      'maxLng': 136.4
+    },
+    '京都府': {
+      'minLat': 34.7,
+      'maxLat': 35.8,
+      'minLng': 134.8,
+      'maxLng': 136.0
+    },
+    '大阪府': {
+      'minLat': 34.2,
+      'maxLat': 35.0,
+      'minLng': 135.1,
+      'maxLng': 135.7
+    },
+    '兵庫県': {
+      'minLat': 34.2,
+      'maxLat': 35.7,
+      'minLng': 134.2,
+      'maxLng': 135.4
+    },
+    '奈良県': {
+      'minLat': 33.8,
+      'maxLat': 34.7,
+      'minLng': 135.6,
+      'maxLng': 136.2
+    },
+    '和歌山県': {
+      'minLat': 33.4,
+      'maxLat': 34.3,
+      'minLng': 135.0,
+      'maxLng': 136.0
+    },
+    '鳥取県': {
+      'minLat': 35.1,
+      'maxLat': 35.6,
+      'minLng': 133.1,
+      'maxLng': 134.4
+    },
+    '島根県': {
+      'minLat': 34.3,
+      'maxLat': 35.6,
+      'minLng': 131.6,
+      'maxLng': 133.4
+    },
+    '岡山県': {
+      'minLat': 34.3,
+      'maxLat': 35.4,
+      'minLng': 133.3,
+      'maxLng': 134.4
+    },
+    '広島県': {
+      'minLat': 34.0,
+      'maxLat': 35.1,
+      'minLng': 132.0,
+      'maxLng': 133.5
+    },
+    '山口県': {
+      'minLat': 33.8,
+      'maxLat': 34.8,
+      'minLng': 130.8,
+      'maxLng': 132.4
+    },
+    '徳島県': {
+      'minLat': 33.5,
+      'maxLat': 34.2,
+      'minLng': 133.6,
+      'maxLng': 134.8
+    },
+    '香川県': {
+      'minLat': 34.0,
+      'maxLat': 34.6,
+      'minLng': 133.5,
+      'maxLng': 134.4
+    },
+    '愛媛県': {
+      'minLat': 32.9,
+      'maxLat': 34.3,
+      'minLng': 132.0,
+      'maxLng': 133.7
+    },
+    '高知県': {
+      'minLat': 32.7,
+      'maxLat': 33.9,
+      'minLng': 132.5,
+      'maxLng': 134.3
+    },
+    '福岡県': {
+      'minLat': 33.1,
+      'maxLat': 34.0,
+      'minLng': 129.9,
+      'maxLng': 131.0
+    },
+    '佐賀県': {
+      'minLat': 32.9,
+      'maxLat': 33.6,
+      'minLng': 129.7,
+      'maxLng': 130.5
+    },
+    '長崎県': {
+      'minLat': 32.6,
+      'maxLat': 34.7,
+      'minLng': 128.6,
+      'maxLng': 130.4
+    },
+    '熊本県': {
+      'minLat': 32.1,
+      'maxLat': 33.2,
+      'minLng': 129.9,
+      'maxLng': 131.2
+    },
+    '大分県': {
+      'minLat': 32.7,
+      'maxLat': 33.7,
+      'minLng': 130.7,
+      'maxLng': 132.1
+    },
+    '宮崎県': {
+      'minLat': 31.3,
+      'maxLat': 32.9,
+      'minLng': 130.7,
+      'maxLng': 131.9
+    },
+    '鹿児島県': {
+      'minLat': 30.4,
+      'maxLat': 32.2,
+      'minLng': 129.5,
+      'maxLng': 131.1
+    },
+    '沖縄県': {
+      'minLat': 24.0,
+      'maxLat': 27.9,
+      'minLng': 122.9,
+      'maxLng': 131.3
+    },
   };
 
   final List<String> _allPrefectures = [
@@ -279,11 +512,10 @@ class _AnimeEventListState extends State<AnimeEventList>
     super.initState();
     _initializeTabController();
     databaseReference =
-        rtdb.FirebaseDatabase.instance.reference().child('anime_rankings');
+        rtdb.FirebaseDatabase.instance.ref().child('anime_rankings');
     _fetchAnimeData();
     _fetchEventData();
     _fetchRecommendedEvents(); // 追加: おすすめイベントの取得
-    _initTargets();
     WidgetsBinding.instance.addPostFrameCallback((_) => _showTutorial());
     _listenToRankingChanges();
     _setupInAppMessaging();
@@ -300,7 +532,8 @@ class _AnimeEventListState extends State<AnimeEventList>
         _showRecommendedEvents = false;
         _isRecommendedEventsExpanded = false;
       });
-    } else if (_eventScrollController.position.pixels == 0 && !_showRecommendedEvents) {
+    } else if (_eventScrollController.position.pixels == 0 &&
+        !_showRecommendedEvents) {
       setState(() {
         _showRecommendedEvents = true;
         _isRecommendedEventsExpanded = true;
@@ -340,7 +573,8 @@ class _AnimeEventListState extends State<AnimeEventList>
       // ユーザーに閲覧履歴がない場合、ランダムなアニメ名を取得
       if (preferredAnimeNames.isEmpty && _allAnimeData.isNotEmpty) {
         // シャッフルして最大5件のランダムなアニメを取得
-        final randomAnimes = List<Map<String, dynamic>>.from(_allAnimeData)..shuffle();
+        final randomAnimes = List<Map<String, dynamic>>.from(_allAnimeData)
+          ..shuffle();
         preferredAnimeNames = randomAnimes
             .take(min(5, randomAnimes.length))
             .map((anime) => anime['name'] as String)
@@ -360,8 +594,10 @@ class _AnimeEventListState extends State<AnimeEventList>
 
         for (var doc in eventSnapshot.docs) {
           final data = doc.data();
-          final String eventDescription = (data['eventInfo'] as String? ?? '').toLowerCase();
-          final String eventTitle = (data['eventName'] as String? ?? '').toLowerCase();
+          final String eventDescription = (data['eventInfo'] as String? ?? '')
+              .toLowerCase();
+          final String eventTitle = (data['eventName'] as String? ?? '')
+              .toLowerCase();
 
           // いずれかの好みのアニメがイベントで言及されているかチェック
           bool isRelated = preferredAnimeNames.any((animeName) {
@@ -377,8 +613,10 @@ class _AnimeEventListState extends State<AnimeEventList>
               'title': data['eventName'] as String? ?? '',
               'eventTopImageUrl': data['eventTopImageUrl'] as String? ?? '',
               'description': data['eventInfo'] as String? ?? '',
-              'eventStart': data['eventStart'] ?? Timestamp.fromDate(DateTime.now()),
-              'eventFinish': data['eventFinish'] ?? Timestamp.fromDate(DateTime.now().add(Duration(days: 30))),
+              'eventStart': data['eventStart'] ??
+                  Timestamp.fromDate(DateTime.now()),
+              'eventFinish': data['eventFinish'] ??
+                  Timestamp.fromDate(DateTime.now().add(Duration(days: 30))),
               'location': data['eventPlace'] as String? ?? '',
               'eventRemarks': data['eventRemarks'] as String? ?? '',
               'relatedAnime': preferredAnimeNames.firstWhere(
@@ -395,7 +633,8 @@ class _AnimeEventListState extends State<AnimeEventList>
 
         // 関連するイベントが見つからない場合、いくつかのランダムなイベントを含める
         if (recommendedEvents.isEmpty && eventSnapshot.docs.isNotEmpty) {
-          final randomEvents = List<DocumentSnapshot>.from(eventSnapshot.docs)..shuffle();
+          final randomEvents = List<DocumentSnapshot>.from(eventSnapshot.docs)
+            ..shuffle();
           recommendedEvents = randomEvents
               .take(min(3, randomEvents.length))
               .map((doc) {
@@ -405,8 +644,10 @@ class _AnimeEventListState extends State<AnimeEventList>
               'title': data['eventName'] as String? ?? '',
               'eventTopImageUrl': data['eventTopImageUrl'] as String? ?? '',
               'description': data['eventInfo'] as String? ?? '',
-              'eventStart': data['eventStart'] ?? Timestamp.fromDate(DateTime.now()),
-              'eventFinish': data['eventFinish'] ?? Timestamp.fromDate(DateTime.now().add(Duration(days: 30))),
+              'eventStart': data['eventStart'] ??
+                  Timestamp.fromDate(DateTime.now()),
+              'eventFinish': data['eventFinish'] ??
+                  Timestamp.fromDate(DateTime.now().add(Duration(days: 30))),
               'location': data['eventPlace'] as String? ?? '',
               'eventRemarks': data['eventRemarks'] as String? ?? '',
               'isRandom': true
@@ -598,204 +839,20 @@ class _AnimeEventListState extends State<AnimeEventList>
     }
   }
 
-  void _initTargets() {
-    targets = [
-      TargetFocus(
-        identify: "Ranking",
-        keyTarget: rankingKey,
-        alignSkip: AlignmentGeometry.lerp(
-          Alignment.bottomRight,
-          Alignment.bottomRight,
-          0.0,
-        ),
-        contents: [
-          TargetContent(
-            align: ContentAlign.bottom,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  "ランキング機能",
-                  style: TextStyle(
-                    color: Colors.yellow,
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                SizedBox(height: 10),
-                Text(
-                  "ユーザーが最も訪れているアニメ聖地のランキングです。\n人気のスポットを見つけるのに役立ちます。",
-                  style: TextStyle(color: Colors.white, fontSize: 16),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-      TargetFocus(
-        identify: "Search Button",
-        keyTarget: searchKey,
-        contents: [
-          TargetContent(
-            align: ContentAlign.bottom,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  "検索機能",
-                  style: TextStyle(
-                    color: Colors.yellow,
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                SizedBox(height: 10),
-                Text(
-                  "アニメのタイトルや都道府県名で検索できます。\n気になる聖地をすぐに見つけることができます。",
-                  style: TextStyle(color: Colors.white, fontSize: 16),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-      TargetFocus(
-        identify: "Add Button",
-        keyTarget: addKey,
-        contents: [
-          TargetContent(
-            align: ContentAlign.bottom,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  "新規スポットのリクエスト",
-                  style: TextStyle(
-                    color: Colors.yellow,
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                SizedBox(height: 10),
-                Text(
-                  "まだ登録されていないアニメ聖地を見つけた場合は、\nこちらから追加リクエストを送ることができます。",
-                  style: TextStyle(color: Colors.white, fontSize: 16),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-      TargetFocus(
-        identify: "Favorite Button",
-        keyTarget: favoriteKey,
-        contents: [
-          TargetContent(
-            align: ContentAlign.bottom,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  "お気に入り機能",
-                  style: TextStyle(
-                    color: Colors.yellow,
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                SizedBox(height: 10),
-                Text(
-                  "気になるスポットをお気に入りに登録できます。\n後で見返したい場所を保存しておきましょう。",
-                  style: TextStyle(color: Colors.white, fontSize: 16),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-      TargetFocus(
-        identify: "Check In Button",
-        keyTarget: checkInKey,
-        contents: [
-          TargetContent(
-            align: ContentAlign.bottom,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  "チェックイン機能",
-                  style: TextStyle(
-                    color: Colors.yellow,
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                SizedBox(height: 10),
-                Text(
-                  "実際に訪れたスポットにチェックインできます。\n思い出を記録して、訪問履歴を残しましょう。",
-                  style: TextStyle(color: Colors.white, fontSize: 16),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-      TargetFocus(
-        identify: "Anime Item",
-        keyTarget: firstItemKey,
-        contents: [
-          TargetContent(
-            align: ContentAlign.bottom,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  "アニメ作品",
-                  style: TextStyle(
-                    color: Colors.yellow,
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                SizedBox(height: 10),
-                Text(
-                  "作品をタップすると、関連する聖地スポットの\n詳細情報を見ることができます。\n位置情報や写真、アクセス方法なども確認できます。",
-                  style: TextStyle(color: Colors.white, fontSize: 16),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    ];
-  }
 
   Future<void> _showTutorial() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     bool showTutorial = prefs.getBool('showTutorial') ?? true;
 
     if (showTutorial) {
-      tutorialCoachMark = TutorialCoachMark(
-        targets: targets,
-        colorShadow: Colors.black87,
-        hideSkip: true,
-        paddingFocus: 10,
-        opacityShadow: 0.8,
-        onFinish: () {
-          print("チュートリアル完了");
-        },
-        onClickTarget: (target) {
-          print('${target.identify} がクリックされました');
-        },
-      );
-
-      tutorialCoachMark.show(context: context);
+      ShowCaseWidget.of(context).startShowCase([
+        rankingKey,
+        searchKey,
+        addKey,
+        favoriteKey,
+        checkInKey,
+        firstItemKey,
+      ]);
       await prefs.setBool('showTutorial', false);
     }
   }
@@ -833,12 +890,14 @@ class _AnimeEventListState extends State<AnimeEventList>
   Future<void> _fetchEventData() async {
     try {
       // anime_event_info コレクションからイベントデータを取得
-      final eventSnapshot = await firestore.collection('anime_event_info').get();
+      final eventSnapshot = await firestore.collection('anime_event_info')
+          .get();
       List<Map<String, dynamic>> events = [];
 
       // データが見つからない場合のチェック
       if (eventSnapshot.docs.isEmpty) {
-        print('イベントデータが見つかりませんでした。サンプルデータを使用します。');
+        print(
+            'イベントデータが見つかりませんでした。サンプルデータを使用します。');
         // サンプルデータを追加
         events = [
           {
@@ -847,7 +906,8 @@ class _AnimeEventListState extends State<AnimeEventList>
             'eventTopImageUrl': '',
             'eventInfo': 'これはサンプルイベントです。',
             'eventStart': Timestamp.fromDate(DateTime.now()),
-            'eventFinish': Timestamp.fromDate(DateTime.now().add(Duration(days: 30))),
+            'eventFinish': Timestamp.fromDate(
+                DateTime.now().add(Duration(days: 30))),
             'location': '東京都',
             'eventRemarks': 'サンプルデータです',
           }
@@ -861,9 +921,12 @@ class _AnimeEventListState extends State<AnimeEventList>
             'title': data['eventName'] as String? ?? '',
             'eventTopImageUrl': data['eventTopImageUrl'] as String? ?? '',
             'description': data['eventInfo'] as String? ?? '',
-            'eventStart': data['eventStart'] ?? Timestamp.fromDate(DateTime.now()),
-            'eventFinish': data['eventFinish'] ?? Timestamp.fromDate(DateTime.now().add(Duration(days: 30))),
-            'location': data['eventPlace'] as String? ?? '', // eventPlace フィールドを使用
+            'eventStart': data['eventStart'] ??
+                Timestamp.fromDate(DateTime.now()),
+            'eventFinish': data['eventFinish'] ??
+                Timestamp.fromDate(DateTime.now().add(Duration(days: 30))),
+            'location': data['eventPlace'] as String? ?? '',
+            // eventPlace フィールドを使用
             'eventRemarks': data['eventRemarks'] as String? ?? '',
           };
         }).toList();
@@ -890,7 +953,8 @@ class _AnimeEventListState extends State<AnimeEventList>
               'eventTopImageUrl': '',
               'description': 'イベントデータの読み込み中にエラーが発生しました。',
               'eventStart': Timestamp.fromDate(DateTime.now()),
-              'eventFinish': Timestamp.fromDate(DateTime.now().add(Duration(days: 1))),
+              'eventFinish': Timestamp.fromDate(
+                  DateTime.now().add(Duration(days: 1))),
               'location': 'エラー',
               'eventRemarks': 'エラーが発生しました',
             }
@@ -1095,7 +1159,6 @@ class _AnimeEventListState extends State<AnimeEventList>
   }
 
   Future<void> _navigateAndVote(BuildContext context, String animeName) async {
-
     // アニメ詳細表示のログを記録
     await _logger.logUserActivity('anime_view', {
       'animeName': animeName,
@@ -1132,7 +1195,8 @@ class _AnimeEventListState extends State<AnimeEventList>
             'createdAt': FieldValue.serverTimestamp(),
           });
         }
-        final viewedAnimeRef = userDocRef.collection('viewedAnimes').doc(animeId);
+        final viewedAnimeRef = userDocRef.collection('viewedAnimes').doc(
+            animeId);
         final viewedAnimeDoc = await viewedAnimeRef.get();
 
         if (viewedAnimeDoc.exists) {
@@ -1293,9 +1357,11 @@ class _AnimeEventListState extends State<AnimeEventList>
         .where((event) =>
     event['title'].toString().toLowerCase().contains(_searchQuery) ||
         (event['location'] != null &&
-            event['location'].toString().toLowerCase().contains(_searchQuery)) ||
+            event['location'].toString().toLowerCase().contains(
+                _searchQuery)) ||
         (event['description'] != null &&
-            event['description'].toString().toLowerCase().contains(_searchQuery))
+            event['description'].toString().toLowerCase().contains(
+                _searchQuery))
     )
         .toList();
 
@@ -1304,9 +1370,11 @@ class _AnimeEventListState extends State<AnimeEventList>
         .where((event) =>
     event['title'].toString().toLowerCase().contains(_searchQuery) ||
         (event['location'] != null &&
-            event['location'].toString().toLowerCase().contains(_searchQuery)) ||
+            event['location'].toString().toLowerCase().contains(
+                _searchQuery)) ||
         (event['description'] != null &&
-            event['description'].toString().toLowerCase().contains(_searchQuery))
+            event['description'].toString().toLowerCase().contains(
+                _searchQuery))
     )
         .toList();
 
@@ -1361,7 +1429,8 @@ class _AnimeEventListState extends State<AnimeEventList>
                     final String title = event['title'] ?? '';
                     final String description = event['description'] ?? '';
                     final String location = event['location'] ?? '場所未定';
-                    final String eventTopImageUrl = event['eventTopImageUrl'] ?? '';
+                    final String eventTopImageUrl = event['eventTopImageUrl'] ??
+                        '';
                     final String relatedAnime = event['relatedAnime'] ?? '';
                     final bool isRandom = event['isRandom'] ?? false;
 
@@ -1412,9 +1481,10 @@ class _AnimeEventListState extends State<AnimeEventList>
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (context) => AnimeEventDetail(
-                                  eventNumber: event['id'] ?? '',
-                                ),
+                                builder: (context) =>
+                                    AnimeEventDetail(
+                                      eventNumber: event['id'] ?? '',
+                                    ),
                               ),
                             );
                           },
@@ -1429,25 +1499,32 @@ class _AnimeEventListState extends State<AnimeEventList>
                                     height: 120,
                                     width: double.infinity,
                                     fit: BoxFit.cover,
-                                    placeholder: (context, url) => Container(
-                                      height: 120,
-                                      color: Colors.grey[300],
-                                      child: Center(child: CircularProgressIndicator(strokeWidth: 2.0)),
-                                    ),
-                                    errorWidget: (context, url, error) => Container(
-                                      height: 120,
-                                      color: Colors.grey[300],
-                                      child: Center(
-                                        child: Icon(Icons.image_not_supported, size: 30, color: Colors.grey),
-                                      ),
-                                    ),
+                                    placeholder: (context, url) =>
+                                        Container(
+                                          height: 120,
+                                          color: Colors.grey[300],
+                                          child: Center(
+                                              child: CircularProgressIndicator(
+                                                  strokeWidth: 2.0)),
+                                        ),
+                                    errorWidget: (context, url, error) =>
+                                        Container(
+                                          height: 120,
+                                          color: Colors.grey[300],
+                                          child: Center(
+                                            child: Icon(
+                                                Icons.image_not_supported,
+                                                size: 30, color: Colors.grey),
+                                          ),
+                                        ),
                                   ),
                                   // ステータスバッジ
                                   Positioned(
                                     top: 8,
                                     right: 8,
                                     child: Container(
-                                      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                      padding: EdgeInsets.symmetric(
+                                          horizontal: 8, vertical: 4),
                                       decoration: BoxDecoration(
                                         color: statusColor,
                                         borderRadius: BorderRadius.circular(12),
@@ -1468,14 +1545,18 @@ class _AnimeEventListState extends State<AnimeEventList>
                                       top: 8,
                                       left: 8,
                                       child: Container(
-                                        padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                        padding: EdgeInsets.symmetric(
+                                            horizontal: 8, vertical: 4),
                                         decoration: BoxDecoration(
-                                          color: Colors.deepOrange.withOpacity(0.8),
-                                          borderRadius: BorderRadius.circular(12),
+                                          color: Colors.deepOrange.withOpacity(
+                                              0.8),
+                                          borderRadius: BorderRadius.circular(
+                                              12),
                                         ),
                                         child: Text(
                                           relatedAnime.length > 10
-                                              ? '${relatedAnime.substring(0, 10)}...'
+                                              ? '${relatedAnime.substring(
+                                              0, 10)}...'
                                               : relatedAnime,
                                           style: TextStyle(
                                             color: Colors.white,
@@ -1492,7 +1573,8 @@ class _AnimeEventListState extends State<AnimeEventList>
                                 child: Padding(
                                   padding: EdgeInsets.all(10.0),
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment: CrossAxisAlignment
+                                        .start,
                                     children: [
                                       // タイトル
                                       Text(
@@ -1507,7 +1589,8 @@ class _AnimeEventListState extends State<AnimeEventList>
                                       ),
                                       Row(
                                         children: [
-                                          Icon(Icons.location_on, size: 12, color: Colors.grey[600]),
+                                          Icon(Icons.location_on, size: 12,
+                                              color: Colors.grey[600]),
                                           SizedBox(width: 4),
                                           Expanded(
                                             child: Text(
@@ -1575,7 +1658,8 @@ class _AnimeEventListState extends State<AnimeEventList>
               : Padding(
             padding: EdgeInsets.only(bottom: 8.0),
             child: GridView.builder(
-              controller: _eventScrollController, // スクロールコントローラーを設定
+              controller: _eventScrollController,
+              // スクロールコントローラーを設定
               padding: EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
               gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: 2,
@@ -1631,9 +1715,10 @@ class _AnimeEventListState extends State<AnimeEventList>
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => AnimeEventDetail(
-                            eventNumber: event['id'] ?? '',
-                          ),
+                          builder: (context) =>
+                              AnimeEventDetail(
+                                eventNumber: event['id'] ?? '',
+                              ),
                         ),
                       );
                     },
@@ -1647,24 +1732,31 @@ class _AnimeEventListState extends State<AnimeEventList>
                               height: 100,
                               width: double.infinity,
                               fit: BoxFit.cover,
-                              placeholder: (context, url) => Container(
-                                height: 100,
-                                color: Colors.grey[300],
-                                child: Center(child: CircularProgressIndicator(strokeWidth: 2.0)),
-                              ),
-                              errorWidget: (context, url, error) => Container(
-                                height: 100,
-                                color: Colors.grey[300],
-                                child: Center(
-                                  child: Icon(Icons.image_not_supported, size: 30, color: Colors.grey),
-                                ),
-                              ),
+                              placeholder: (context, url) =>
+                                  Container(
+                                    height: 100,
+                                    color: Colors.grey[300],
+                                    child: Center(
+                                        child: CircularProgressIndicator(
+                                            strokeWidth: 2.0)),
+                                  ),
+                              errorWidget: (context, url, error) =>
+                                  Container(
+                                    height: 100,
+                                    color: Colors.grey[300],
+                                    child: Center(
+                                      child: Icon(
+                                          Icons.image_not_supported, size: 30,
+                                          color: Colors.grey),
+                                    ),
+                                  ),
                             ),
                             Positioned(
                               top: 8,
                               right: 8,
                               child: Container(
-                                padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                padding: EdgeInsets.symmetric(
+                                    horizontal: 8, vertical: 4),
                                 decoration: BoxDecoration(
                                   color: statusColor,
                                   borderRadius: BorderRadius.circular(12),
@@ -1711,7 +1803,8 @@ class _AnimeEventListState extends State<AnimeEventList>
                                 Spacer(),
                                 Row(
                                   children: [
-                                    Icon(Icons.location_on, size: 12, color: Colors.grey[600]),
+                                    Icon(Icons.location_on, size: 12,
+                                        color: Colors.grey[600]),
                                     SizedBox(width: 4),
                                     Expanded(
                                       child: Text(
@@ -1729,12 +1822,15 @@ class _AnimeEventListState extends State<AnimeEventList>
                                 SizedBox(height: 2),
                                 Row(
                                   children: [
-                                    Icon(Icons.calendar_today, size: 12, color: Colors.grey[600]),
+                                    Icon(Icons.calendar_today, size: 12,
+                                        color: Colors.grey[600]),
                                     SizedBox(width: 4),
                                     Expanded(
                                       child: Text(
                                         startDate != null && eventFinish != null
-                                            ? '${startDate.month}/${startDate.day}〜${eventFinish.month}/${eventFinish.day}'
+                                            ? '${startDate.month}/${startDate
+                                            .day}〜${eventFinish
+                                            .month}/${eventFinish.day}'
                                             : '日程未定',
                                         style: TextStyle(
                                           fontSize: 11,
@@ -1820,8 +1916,9 @@ class _AnimeEventListState extends State<AnimeEventList>
                                   height: 150,
                                   width: 250,
                                   fit: BoxFit.cover,
-                                  placeholder: (context, url) => Center(
-                                      child: CircularProgressIndicator()),
+                                  placeholder: (context, url) =>
+                                      Center(
+                                          child: CircularProgressIndicator()),
                                   errorWidget: (context, url, error) =>
                                       Icon(Icons.error),
                                 ),
@@ -1956,192 +2053,201 @@ class _AnimeEventListState extends State<AnimeEventList>
       );
     }
 
-    return WillPopScope(
-      onWillPop: () async {
-        return await showDialog<bool>(
-          context: context,
-          builder: (context) => AlertDialog(
-            title: Text('アプリを終了しますか？'),
-            content: Text('アプリを閉じてもよろしいですか？'),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(false),
-                child: Text('キャンセル'),
-              ),
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(true),
-                child: Text('終了'),
-              ),
-            ],
-          ),
-        ) ??
-            false;
-      },
-      child: Scaffold(
-        appBar: AppBar(
-          automaticallyImplyLeading: false,
-          title: _isSearching
-              ? TextField(
-            controller: _searchController,
-            onChanged: _onSearchChanged,
-            autofocus: true,
-            decoration: InputDecoration(
-              hintText: _currentTabIndex == 0
-                  ? 'アニメで検索...'
-                  : _currentTabIndex == 1
-                  ? '都道府県で検索...'
-                  : 'イベントで検索...',
-              hintStyle: TextStyle(color: Colors.grey),
-              border: InputBorder.none,
-            ),
-            style: TextStyle(color: Colors.black),
-          )
-              : Text(
-                _currentTabIndex == 2 ? 'イベント情報' : '巡礼スポット',
-          style: TextStyle(
-    color: Color(0xFF00008b),
-    fontWeight: FontWeight.bold,
-    ),
-          ),
-          actions: [
-            IconButton(
-              key: checkInKey,
-              onPressed: () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const SpotTestScreen()),
-              ),
-              icon: const Icon(Icons.check_circle, color: Color(0xFF00008b)),
-            ),
-            IconButton(
-              key: favoriteKey,
-              onPressed: () => Navigator.push(
-                context,
-                MaterialPageRoute(
-                    builder: (context) => FavoriteLocationsPage()),
-              ),
-              icon: const Icon(Icons.favorite, color: Color(0xFF00008b)),
-            ),
-            // _AnimeListTestRankingStateクラス内のIconButtonの部分を修正
-
-            IconButton(
-              key: addKey,
-              icon: Icon(Icons.add, color: Color(0xFF00008b)),
-              onPressed: () {
-                // Cupertinoのアクションシートを表示
-                showCupertinoModalPopup(
+    return ShowCaseWidget(
+        builder: (context) =>
+            WillPopScope(
+              onWillPop: () async {
+                return await showDialog<bool>(
                   context: context,
-                  builder: (BuildContext context) => CupertinoActionSheet(
-                    title: Text(
-                      'リクエストを選択',
-                      style: TextStyle(
-                        color: Colors.black,
-                      ),
-                    ),
-                    message: Text(
-                      '新しく追加したいコンテンツを選択してください',
-                      style: TextStyle(
-                        color: Colors.black,
-                      ),
-                    ),
-                    actions: <CupertinoActionSheetAction>[
-                      CupertinoActionSheetAction(
-                        onPressed: () {
-                          Navigator.pop(context); // アクションシートを閉じる
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(builder: (context) => AnimeRequestCustomerForm()),
-                          );
-                        },
-                        child: Text(
-                          '聖地をリクエストする',
-                          style: TextStyle(
-                            color: Color(0xFF00008b),
-                            fontWeight: FontWeight.bold,
+                  builder: (context) =>
+                      AlertDialog(
+                        title: Text('アプリを終了しますか？'),
+                        content: Text('アプリを閉じてもよろしいですか？'),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.of(context).pop(false),
+                            child: Text('キャンセル'),
                           ),
-                        ),
-                      ),
-                      CupertinoActionSheetAction(
-                        onPressed: () {
-                          Navigator.pop(context); // アクションシートを閉じる
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(builder: (context) => AnimeNameRequestCustomerForm()),
-                          );
-                        },
-                        child: Text(
-                          'アニメをリクエストする',
-                          style: TextStyle(
-                            color: Color(0xFF00008b),
-                            fontWeight: FontWeight.bold,
+                          TextButton(
+                            onPressed: () => Navigator.of(context).pop(true),
+                            child: Text('終了'),
                           ),
-                        ),
+                        ],
                       ),
-                    ],
-                    cancelButton: CupertinoActionSheetAction(
-                      onPressed: () {
-                        Navigator.pop(context); // アクションシートを閉じる
-                      },
-                      child: Text(
-                        'キャンセル',
-                        style: TextStyle(
-                          color: Colors.red,
-                        ),
-                      ),
+                ) ??
+                    false;
+              },
+              child: Scaffold(
+                appBar: AppBar(
+                  automaticallyImplyLeading: false,
+                  title: _isSearching
+                      ? TextField(
+                    controller: _searchController,
+                    onChanged: _onSearchChanged,
+                    autofocus: true,
+                    decoration: InputDecoration(
+                      hintText: _currentTabIndex == 0
+                          ? 'アニメで検索...'
+                          : _currentTabIndex == 1
+                          ? '都道府県で検索...'
+                          : 'イベントで検索...',
+                      hintStyle: TextStyle(color: Colors.grey),
+                      border: InputBorder.none,
+                    ),
+                    style: TextStyle(color: Colors.black),
+                  )
+                      : Text(
+                    _currentTabIndex == 2 ? 'イベント情報' : '巡礼スポット',
+                    style: TextStyle(
+                      color: Color(0xFF00008b),
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
-                );
-              },
-            ),
-            IconButton(
-              key: searchKey,
-              icon: Icon(
-                _isSearching ? Icons.close : Icons.search,
-                color: Color(0xFF00008b),
+                  actions: [
+                    IconButton(
+                      key: checkInKey,
+                      onPressed: () =>
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (context) => const SpotTestScreen()),
+                          ),
+                      icon: const Icon(
+                          Icons.check_circle, color: Color(0xFF00008b)),
+                    ),
+                    IconButton(
+                      key: favoriteKey,
+                      onPressed: () =>
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (context) => FavoriteLocationsPage()),
+                          ),
+                      icon: const Icon(
+                          Icons.favorite, color: Color(0xFF00008b)),
+                    ),
+                    IconButton(
+                      key: addKey,
+                      icon: Icon(Icons.add, color: Color(0xFF00008b)),
+                      onPressed: () {
+                        showCupertinoModalPopup(
+                          context: context,
+                          builder: (BuildContext context) =>
+                              CupertinoActionSheet(
+                                title: Text(
+                                  'リクエストを選択',
+                                  style: TextStyle(
+                                    color: Colors.black,
+                                  ),
+                                ),
+                                message: Text(
+                                  '新しく追加したいコンテンツを選択してください',
+                                  style: TextStyle(
+                                    color: Colors.black,
+                                  ),
+                                ),
+                                actions: <CupertinoActionSheetAction>[
+                                  CupertinoActionSheetAction(
+                                    onPressed: () {
+                                      Navigator.pop(context);
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(builder: (context) =>
+                                            AnimeRequestCustomerForm()),
+                                      );
+                                    },
+                                    child: Text(
+                                      '聖地をリクエストする',
+                                      style: TextStyle(
+                                        color: Color(0xFF00008b),
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                  CupertinoActionSheetAction(
+                                    onPressed: () {
+                                      Navigator.pop(context);
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(builder: (context) =>
+                                            AnimeNameRequestCustomerForm()),
+                                      );
+                                    },
+                                    child: Text(
+                                      'アニメをリクエストする',
+                                      style: TextStyle(
+                                        color: Color(0xFF00008b),
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                                cancelButton: CupertinoActionSheetAction(
+                                  onPressed: () {
+                                    Navigator.pop(context);
+                                  },
+                                  child: Text(
+                                    'キャンセル',
+                                    style: TextStyle(
+                                      color: Colors.red,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                        );
+                      },
+                    ),
+                    IconButton(
+                      key: searchKey,
+                      icon: Icon(
+                        _isSearching ? Icons.close : Icons.search,
+                        color: Color(0xFF00008b),
+                      ),
+                      onPressed: _toggleSearch,
+                    ),
+                  ],
+                  bottom: TabBar(
+                    controller: _tabController,
+                    tabs: [
+                      Tab(text: 'アニメで探す'),
+                      Tab(text: '場所で探す'),
+                      Tab(text: 'イベントで探す'),
+                    ],
+                    labelColor: Color(0xFF00008b),
+                    unselectedLabelColor: Colors.grey,
+                    indicatorColor: Color(0xFF00008b),
+                  ),
+                ),
+                body: Column(
+                  children: [
+                    Expanded(
+                      child: TabBarView(
+                        physics: NeverScrollableScrollPhysics(),
+                        controller: _tabController,
+                        children: [
+                          _buildAnimeList(),
+                          _currentTabIndex == 1
+                              ? PrefectureListPage(
+                            prefectureSpots: _prefectureSpots,
+                            searchQuery: _searchQuery,
+                            onFetchPrefectureData: _fetchPrefectureData,
+                          )
+                              : Container(),
+                          _buildEventList(),
+                        ],
+                      ),
+                    ),
+                    if (_isBottomBannerAdReady && _bottomBannerAd != null)
+                      Container(
+                        width: _bottomBannerAd!.size.width.toDouble(),
+                        height: _bottomBannerAd!.size.height.toDouble(),
+                        child: AdWidget(ad: _bottomBannerAd!),
+                      ),
+                  ],
+                ),
               ),
-              onPressed: _toggleSearch,
             ),
-          ],
-          bottom: TabBar(
-            controller: _tabController,
-            tabs: [
-              Tab(text: 'アニメで探す'),
-              Tab(text: '場所で探す'),
-              Tab(text: 'イベントで探す'),
-            ],
-            labelColor: Color(0xFF00008b),
-            unselectedLabelColor: Colors.grey,
-            indicatorColor: Color(0xFF00008b),
-          ),
-        ),
-        body: Column(
-          children: [
-            Expanded(
-              child: TabBarView(
-                physics: NeverScrollableScrollPhysics(),
-                controller: _tabController,
-                children: [
-                  _buildAnimeList(),
-                  _currentTabIndex == 1
-                      ? PrefectureListPage(
-                    prefectureSpots: _prefectureSpots,
-                    searchQuery: _searchQuery,
-                    onFetchPrefectureData: _fetchPrefectureData,
-                  )
-                      : Container(),
-                  _buildEventList(),
-                ],
-              ),
-            ),
-            if (_isBottomBannerAdReady && _bottomBannerAd != null)
-              Container(
-                width: _bottomBannerAd!.size.width.toDouble(),
-                height: _bottomBannerAd!.size.height.toDouble(),
-                child: AdWidget(ad: _bottomBannerAd!),
-              ),
-          ],
-        ),
-      ),
-    );
+      );
   }
 }
 
@@ -2155,6 +2261,7 @@ class AnimeGridItem extends StatelessWidget {
     required this.imageUrl,
   }) : super(key: key);
 
+  @override
   @override
   Widget build(BuildContext context) {
     return Card(

@@ -8,7 +8,7 @@ import 'dart:io';
 
 class UserActivityLogger {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final DatabaseReference _rtdb = FirebaseDatabase.instance.reference();
+  final DatabaseReference _rtdb = FirebaseDatabase.instance.ref();
   final DeviceInfoPlugin _deviceInfo = DeviceInfoPlugin();
 
   // デバイス情報を取得
