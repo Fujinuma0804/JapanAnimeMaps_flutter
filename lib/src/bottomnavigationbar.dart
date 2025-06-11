@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:parts/event_tab/event_more_movie.dart';
 import 'package:parts/map_page/map_subsc.dart';
+import 'package:parts/map_page/map_subsc_en.dart';
 import 'package:parts/map_page/new_map_en.dart';
 import 'package:parts/post_page/timeline_screen.dart';
 import 'package:parts/post_page/timeline_screen_en.dart';
@@ -14,8 +15,6 @@ import 'package:parts/spot_page/anime_event_list.dart';
 import 'package:parts/event_tab/anime_event_ver.dart';
 import 'package:parts/spot_page/anime_list_en_new.dart';
 
-import '../map_page/map.dart';
-import '../map_page/map_en.dart';
 import '../point_page/point_update.dart';
 import '../post_page/post_first/post_welcome.dart';
 import '../ranking/ranking_top_en.dart';
@@ -252,7 +251,7 @@ class _MainScreenState extends State<MainScreen> {
                   : RankingTopPageEn(),
               _userLanguage == 'Japanese'
                   ? MapSubscription(latitude: _latitude, longitude: _longitude)
-                  : NewMapEn(latitude: _latitude, longitude: _longitude),
+                  : MapSubscriptionEn(latitude: _latitude, longitude: _longitude),
               _userLanguage == 'Japanese'
                   ? (!_hasSeenWelcome
                   ? PostWelcome1(showScaffold: false)

@@ -20,6 +20,7 @@ import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 import 'package:parts/map_page/background_location.dart';
 import 'package:parts/map_page/notification_service.dart';
+import 'package:parts/spot_page/anime_list_en_detail.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:video_player/video_player.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart'; // 追加
@@ -32,16 +33,16 @@ import '../spot_page/anime_list_detail.dart';
 import '../map_page/admob/admanager.dart';
 import '../spot_page/anime_list_test_ranking.dart' hide AdManager;
 
-class MapSubscription extends StatefulWidget {
-  const MapSubscription(
+class MapSubscriptionEn extends StatefulWidget {
+  const MapSubscriptionEn(
       {Key? key, required double longitude, required double latitude})
       : super(key: key);
 
   @override
-  State<MapSubscription> createState() => _MapSubscriptionState();
+  State<MapSubscriptionEn> createState() => _MapSubscriptionEnState();
 }
 
-class _MapSubscriptionState extends State<MapSubscription> {
+class _MapSubscriptionEnState extends State<MapSubscriptionEn> {
   GoogleMapController? _mapController;
   LatLng? _currentPosition;
   final Set<Marker> _markers = {};
@@ -855,7 +856,7 @@ class _MapSubscriptionState extends State<MapSubscription> {
                 Icon(Icons.check_circle, color: Colors.white),
                 SizedBox(width: 8),
                 Expanded(
-                  child: Text('検索制限がリセットされました。'),
+                  child: Text('Search limits reset.'),
                 ),
               ],
             ),
@@ -1215,8 +1216,8 @@ class _MapSubscriptionState extends State<MapSubscription> {
       // 1. タイトルで検索
       QuerySnapshot titleSnapshot = await FirebaseFirestore.instance
           .collection('locations')
-          .where('title', isGreaterThanOrEqualTo: query)
-          .where('title', isLessThanOrEqualTo: query + '\uf8ff')
+          .where('titleEn', isGreaterThanOrEqualTo: query)
+          .where('titleEn', isLessThanOrEqualTo: query + '\uf8ff')
           .limit(20)
           .get();
 
@@ -1225,8 +1226,8 @@ class _MapSubscriptionState extends State<MapSubscription> {
       // 2. アニメ名で検索
       QuerySnapshot animeSnapshot = await FirebaseFirestore.instance
           .collection('locations')
-          .where('animeName', isGreaterThanOrEqualTo: query)
-          .where('animeName', isLessThanOrEqualTo: query + '\uf8ff')
+          .where('animeNameEn', isGreaterThanOrEqualTo: query)
+          .where('animeNameEn', isLessThanOrEqualTo: query + '\uf8ff')
           .limit(20)
           .get();
 
@@ -1372,10 +1373,10 @@ class _MapSubscriptionState extends State<MapSubscription> {
   Future<bool> _checkBasicMatch(Map<String, dynamic> data, String query) async {
     String queryLower = query.toLowerCase();
 
-    String title = (data['title'] ?? '').toString().toLowerCase();
-    String animeName = (data['animeName'] ?? '').toString().toLowerCase();
+    String titleEn = (data['titleEn'] ?? '').toString().toLowerCase();
+    String animeNameEn = (data['animeNameEn'] ?? '').toString().toLowerCase();
 
-    return title.contains(queryLower) || animeName.contains(queryLower);
+    return titleEn.contains(queryLower) || animeNameEn.contains(queryLower);
   }
 
   // 地理的マッチング（緯度経度から住所を取得してマッチング）- エラーハンドリング強化版
@@ -1752,8 +1753,8 @@ class _MapSubscriptionState extends State<MapSubscription> {
 
     // 変数をここで先に初期化
     String imageUrl = data['imageUrl'] ?? '';
-    String title = data['title'] ?? '';
-    String animeName = data['animeName'] ?? '';
+    String titleEn = data['titleEn'] ?? '';
+    String animeNameEn = data['animeNameEn'] ?? '';
     String description = data['description'] ?? '';
 
     // 検索をクリア
@@ -1774,8 +1775,8 @@ class _MapSubscriptionState extends State<MapSubscription> {
         locationId,
         300,
         200,
-        title,
-        animeName,
+        titleEn,
+        animeNameEn,
         description,
       );
 
@@ -1837,8 +1838,8 @@ class _MapSubscriptionState extends State<MapSubscription> {
           _showModalBottomSheet(
             context,
             imageUrl,
-            title,
-            animeName,
+            titleEn,
+            animeNameEn,
             description,
             hasCheckedIn,
           );
@@ -1900,16 +1901,16 @@ class _MapSubscriptionState extends State<MapSubscription> {
                   controller: _searchController,
                   focusNode: _searchFocusNode,
                   style: TextStyle(
-                    fontSize: 16,
+                    fontSize: 10,
                     fontWeight: FontWeight.w500,
                     color: Colors.grey[800],
                   ),
                   decoration: InputDecoration(
                     hintText: _isSubscriptionActive
-                        ?'スポットまたはアニメ名を検索）'
+                        ?'Search for a spot or anime name'
                         : _searchLimitReached
-                        ? '本日の検索上限に達しました'
-                        : 'スポットまたはアニメ名を検索 (残り$_searchesRemaining回)',
+                        ? 'You\'ve reached your search limit for today'
+                        : 'Spot or Anime name ($_searchesRemaining times remaining)',
                     hintStyle: TextStyle(
                       color: _searchLimitReached ? Colors.red[400] : Colors.grey[500],
                       fontWeight: FontWeight.w400,
@@ -1964,7 +1965,7 @@ class _MapSubscriptionState extends State<MapSubscription> {
                     Icon(Icons.star, color: Colors.white, size: 16),
                     SizedBox(width: 4),
                     Text(
-                      'プレミアム会員 ー 検索制限なし',
+                      'Premium member ー No Limit',
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 12,
@@ -2097,7 +2098,7 @@ class _MapSubscriptionState extends State<MapSubscription> {
                         Icon(Icons.warning_outlined, color: Colors.white),
                         SizedBox(width: 8),
                         Expanded(
-                          child: Text('広告の準備ができていません。しばらくしてからもう一度お試しください。'),
+                          child: Text('Ads not ready. Please try again。'),
                         ),
                       ],
                     ),
@@ -2205,7 +2206,7 @@ class _MapSubscriptionState extends State<MapSubscription> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      _isWatchingAd ? '広告を読み込み中...' : '検索制限に達しました',
+                      _isWatchingAd ? 'Loading Ads...' : 'Search limit reached',
                       style: TextStyle(
                         color: Colors.red[700],
                         fontSize: 14,
@@ -2214,7 +2215,7 @@ class _MapSubscriptionState extends State<MapSubscription> {
                     ),
                     if (!_isWatchingAd)
                       Text(
-                        '広告を視聴して検索回数を追加するか、翌日までお待ちください。',
+                        'Watch an ad to get more searches, or wait until the next day.',
                         style: TextStyle(
                           color: Colors.red[600],
                           fontSize: 12,
@@ -2247,7 +2248,7 @@ class _MapSubscriptionState extends State<MapSubscription> {
                         size: 20,
                       ),
                       label: Text(
-                        _isAdAvailable ? '広告を視聴して検索回数を追加' : '広告を準備中...',
+                        _isAdAvailable ? 'Watch ads to get more searches' : 'Preparing for advertisement...',
                         style: TextStyle(fontSize: 13),
                       ),
                       style: ElevatedButton.styleFrom(
@@ -2470,7 +2471,7 @@ class _MapSubscriptionState extends State<MapSubscription> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  (data['title'] ?? 'No Title') + locationInfo,
+                                  (data['titleEn'] ?? 'No Title') + locationInfo,
                                   style: TextStyle(
                                     fontWeight: FontWeight.w600,
                                     fontSize: 15,
@@ -2479,18 +2480,19 @@ class _MapSubscriptionState extends State<MapSubscription> {
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                 ),
-                                if (data['animeName'] != null && data['animeName'].toString().isNotEmpty) ...[
+                                if (data['animeNameEn'] != null && data['animeNameEn'].toString().isNotEmpty) ...[
                                   SizedBox(height: 4),
                                   Row(
                                     children: [
-                                      Container(
+                                      Flexible(
+                                      child: Container(
                                         padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                         decoration: BoxDecoration(
                                           color: Color(0xFF00008b).withOpacity(0.1),
                                           borderRadius: BorderRadius.circular(8),
                                         ),
                                         child: Text(
-                                          data['animeName'],
+                                          data['animeNameEn'],
                                           style: TextStyle(
                                             color: Color(0xFF00008b),
                                             fontSize: 11,
@@ -2499,6 +2501,7 @@ class _MapSubscriptionState extends State<MapSubscription> {
                                           maxLines: 1,
                                           overflow: TextOverflow.ellipsis,
                                         ),
+                                      ),
                                       ),
                                     ],
                                   ),
@@ -2660,7 +2663,7 @@ class _MapSubscriptionState extends State<MapSubscription> {
             .get();
 
         if (doc.exists) {
-          String locationName = (doc.data() as Map<String, dynamic>)['title'] ??
+          String locationName = (doc.data() as Map<String, dynamic>)['titleEn'] ??
               '';
           bool hasCheckedIn = await _hasCheckedIn(
               _selectedMarker!.markerId.value);
@@ -2827,8 +2830,8 @@ class _MapSubscriptionState extends State<MapSubscription> {
       // No distance check - load all markers regardless of distance
       String imageUrl = data['imageUrl'];
       String locationId = doc.id;
-      String title = data['title'];
-      String animeName = data['animeName'] ?? '';
+      String titleEn = data['titleEn'];
+      String animeNameEn = data['animeNameEn'] ?? '';
       String description = data['description'] ?? '';
 
       markerFutures.add(
@@ -2838,8 +2841,8 @@ class _MapSubscriptionState extends State<MapSubscription> {
             locationId,
             300,
             200,
-            title,
-            animeName,
+            titleEn,
+            animeNameEn,
             description,
           )
       );
@@ -2871,8 +2874,8 @@ class _MapSubscriptionState extends State<MapSubscription> {
       String markerId,
       int width,
       int height,
-      String title,
-      String animeName,
+      String titleEn,
+      String animeNameEn,
       String snippet,) async {
     try {
       final Uint8List markerIcon = await _getBytesFromUrl(
@@ -2946,8 +2949,8 @@ class _MapSubscriptionState extends State<MapSubscription> {
           _showModalBottomSheet(
             context,
             imageUrl,
-            title,
-            animeName,
+            titleEn,
+            animeNameEn,
             snippet,
             hasCheckedIn,
           );
@@ -3002,7 +3005,7 @@ class _MapSubscriptionState extends State<MapSubscription> {
   }
 
   void _showModalBottomSheet(BuildContext context, String imageUrl,
-      String title, String animeName, String snippet, bool hasCheckedIn) {
+      String titleEn, String animeNameEn, String snippet, bool hasCheckedIn) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -3026,7 +3029,7 @@ class _MapSubscriptionState extends State<MapSubscription> {
                     Column(
                       children: [
                         Text(
-                          animeName,
+                          animeNameEn,
                           style: const TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.bold,
@@ -3036,7 +3039,7 @@ class _MapSubscriptionState extends State<MapSubscription> {
                         Padding(
                           padding: const EdgeInsets.all(15),
                           child: Text(
-                            title,
+                            titleEn,
                             style: const TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
@@ -3058,7 +3061,7 @@ class _MapSubscriptionState extends State<MapSubscription> {
                                 children: [
                                   Icon(Icons.check_circle, color: Colors.grey),
                                   const Text(
-                                    'チェックイン済み',
+                                    'Checked In',
                                     style: TextStyle(
                                       fontSize: 12,
                                       color: Colors.grey,
@@ -3079,7 +3082,7 @@ class _MapSubscriptionState extends State<MapSubscription> {
                                 ),
                                 onPressed: _canCheckIn
                                     ? () {
-                                  _checkIn(title,
+                                  _checkIn(titleEn,
                                       _selectedMarker!.markerId.value);
                                   Navigator.pop(context);
                                 }
@@ -3088,7 +3091,7 @@ class _MapSubscriptionState extends State<MapSubscription> {
                                   children: [
                                     Icon(Icons.place, color: Colors.white, size: 20),
                                     const Text(
-                                      'チェックイン',
+                                      'Check In',
                                       style: TextStyle(
                                         color: Colors.white,
                                         fontSize: 12,
@@ -3127,7 +3130,7 @@ class _MapSubscriptionState extends State<MapSubscription> {
                                           return {
                                             'type': item['type'] as String? ?? '',
                                             'url': item['url'] as String? ?? '',
-                                            'title': item['title'] as String? ??
+                                            'titleEn': item['titleEn'] as String? ??
                                                 '',
                                           };
                                         }).toList();
@@ -3137,9 +3140,9 @@ class _MapSubscriptionState extends State<MapSubscription> {
                                     context,
                                     MaterialPageRoute(
                                       builder: (context) =>
-                                          SpotDetailScreen(
-                                            title: data['title'] ?? '',
-                                            description: data['description'] ??
+                                          SpotDetailEnScreen(
+                                            titleEn: data['titleEn'] ?? '',
+                                            descriptionEn: data['descriptionEn'] ??
                                                 '',
                                             spot_description: data['spot_description'] ??
                                                 '',
@@ -3163,7 +3166,7 @@ class _MapSubscriptionState extends State<MapSubscription> {
                                             subMedia: subMediaList,
                                             locationId: _selectedMarker!.markerId
                                                 .value,
-                                            animeName: data['animeName'] ?? '',
+                                            animeNameEn: data['animeNameEn'] ?? '',
                                             userId: data['userId'] ?? '',
                                           ),
                                     ),
@@ -3174,7 +3177,7 @@ class _MapSubscriptionState extends State<MapSubscription> {
                                 children: [
                                   Icon(Icons.visibility, color: Colors.white, size: 20),
                                   const Text(
-                                    'スポットを見る',
+                                    'See Spot',
                                     style: TextStyle(
                                       color: Colors.white,
                                       fontSize: 12,
@@ -3203,7 +3206,7 @@ class _MapSubscriptionState extends State<MapSubscription> {
                                 children: [
                                   Icon(Icons.directions, color: Colors.white, size: 20),
                                   const Text(
-                                    'ルート案内・その他',
+                                    'Route and More',
                                     style: TextStyle(
                                       color: Colors.white,
                                       fontSize: 12,
@@ -3399,9 +3402,9 @@ class _MapSubscriptionState extends State<MapSubscription> {
 
         // 概算の時間と距離を設定
         if (timeHours >= 1) {
-          _routeDuration = '約${timeHours.floor()}時間${(timeMinutes % 60)}分';
+          _routeDuration = 'Approximately ${timeHours.floor()} hours and ${(timeMinutes % 60)} minutes';
         } else {
-          _routeDuration = '約${timeMinutes}分';
+          _routeDuration = 'About ${timeMinutes} minutes';
         }
 
         _routeDistance = distanceInMeters >= 1000
@@ -3431,7 +3434,7 @@ class _MapSubscriptionState extends State<MapSubscription> {
       // フォールバック使用を通知
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('概算ルート: $_routeDuration, $_routeDistance (直線距離)'),
+          content: Text('Approximate route: $_routeDuration, $_routeDistance (straight line distance)'),
           duration: Duration(seconds: 4),
           backgroundColor: Colors.orange.shade600,
         ),
@@ -3439,7 +3442,7 @@ class _MapSubscriptionState extends State<MapSubscription> {
 
     } catch (e) {
       print('Error in fallback route: $e');
-      _showErrorSnackbar('ルートの表示に失敗しました');
+      _showErrorSnackbar('Failed to display route');
     }
   }
 
@@ -3634,10 +3637,10 @@ class _MapSubscriptionState extends State<MapSubscription> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        _travelModeButton('DRIVE', Icons.directions_car, '車'),
-        _travelModeButton('WALK', Icons.directions_walk, '徒歩'),
-        _travelModeButton('BICYCLE', Icons.directions_bike, '自転車'),
-        _travelModeButton('TRANSIT', Icons.directions_transit, '公共交通'),
+        _travelModeButton('DRIVE', Icons.directions_car, 'Car'),
+        _travelModeButton('WALK', Icons.directions_walk, 'Walk'),
+        _travelModeButton('BICYCLE', Icons.directions_bike, 'Bicycle'),
+        _travelModeButton('TRANSIT', Icons.directions_transit, 'Public Transportation'),
       ],
     );
   }
@@ -3716,7 +3719,7 @@ class _MapSubscriptionState extends State<MapSubscription> {
                   _buildInfoItem(
                     icon: Icons.access_time_rounded,
                     value: _routeDuration!,
-                    label: '所要時間',
+                    label: 'Time required',
                     color: Colors.blue,
                   ),
                   Container(
@@ -3727,7 +3730,7 @@ class _MapSubscriptionState extends State<MapSubscription> {
                   _buildInfoItem(
                     icon: Icons.straighten_rounded,
                     value: _routeDistance!,
-                    label: '距離',
+                    label: 'Distance',
                     color: Colors.green,
                   ),
                 ],
@@ -3743,7 +3746,7 @@ class _MapSubscriptionState extends State<MapSubscription> {
                         }
                       },
                       icon: Icon(Icons.refresh_rounded, size: 18),
-                      label: Text('再計算'),
+                      label: Text('Recalculation'),
                       style: OutlinedButton.styleFrom(
                         foregroundColor: Color(0xFF00008b),
                         side: BorderSide(color: Color(0xFF00008b)),
@@ -3765,7 +3768,7 @@ class _MapSubscriptionState extends State<MapSubscription> {
                         }
                       },
                       icon: Icon(Icons.navigation_rounded, size: 18),
-                      label: Text('ナビ開始'),
+                      label: Text('Navigation'),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Color(0xFF00008b),
                         foregroundColor: Colors.white,
@@ -3878,7 +3881,7 @@ class _MapSubscriptionState extends State<MapSubscription> {
                                   _launchExternalNavigation(destination.latitude, destination.longitude);
                                 },
                               ),
-                              const Text('ナビ'),
+                              const Text('Navigation'),
                             ],
                           ),
                           Column(
@@ -3906,7 +3909,7 @@ class _MapSubscriptionState extends State<MapSubscription> {
                                                 'type': item['type'] as String? ??
                                                     '',
                                                 'url': item['url'] as String? ?? '',
-                                                'title': item['title'] as String? ??
+                                                'titleEn': item['titleEn'] as String? ??
                                                     '',
                                               };
                                             }).toList();
@@ -3916,11 +3919,11 @@ class _MapSubscriptionState extends State<MapSubscription> {
                                         context,
                                         MaterialPageRoute(
                                           builder: (context) =>
-                                              SpotDetailScreen(
+                                              SpotDetailEnScreen(
                                                 locationId:
                                                 _selectedMarker!.markerId.value,
-                                                title: data['title'] ?? '',
-                                                description: data['description'] ??
+                                                titleEn: data['titleEn'] ?? '',
+                                                descriptionEn: data['descriptionEn'] ??
                                                     '',
                                                 spot_description:
                                                 data['spot_description'] ?? '',
@@ -3939,7 +3942,7 @@ class _MapSubscriptionState extends State<MapSubscription> {
                                                     '',
                                                 url: data['url'] ?? '',
                                                 subMedia: subMediaList,
-                                                animeName: '',
+                                                animeNameEn: '',
                                                 userId: '',
                                               ),
                                         ),
@@ -3948,7 +3951,7 @@ class _MapSubscriptionState extends State<MapSubscription> {
                                   }
                                 },
                               ),
-                              const Text('詳細'),
+                              const Text('Detail'),
                             ],
                           ),
                           Column(
@@ -3969,7 +3972,7 @@ class _MapSubscriptionState extends State<MapSubscription> {
                                   );
                                 },
                               ),
-                              const Text('投稿'),
+                              const Text('Post'),
                             ],
                           ),
                           Column(
@@ -3999,7 +4002,7 @@ class _MapSubscriptionState extends State<MapSubscription> {
                                   }
                                 },
                               ),
-                              const Text('リンク'),
+                              const Text('Links'),
                             ],
                           ),
                           Column(
@@ -4017,7 +4020,7 @@ class _MapSubscriptionState extends State<MapSubscription> {
                                   _toggleFavorite(_selectedMarker!.markerId.value);
                                 },
                               ),
-                              const Text('お気に入り'),
+                              const Text('Favorite'),
                             ],
                           ),
                         ],
@@ -4038,7 +4041,7 @@ class _MapSubscriptionState extends State<MapSubscription> {
                             children: [
                               CircularProgressIndicator(),
                               SizedBox(height: 8),
-                              Text('ルート計算中...'),
+                              Text('Route calculation in progress...'),
                             ],
                           ),
                         )
@@ -4048,7 +4051,7 @@ class _MapSubscriptionState extends State<MapSubscription> {
                         Padding(
                           padding: EdgeInsets.all(16),
                           child: Text(
-                            'ルート情報を取得できませんでした。\n別の移動手段を選択するか、再試行してください。',
+                            'Could not get route information\nPlease try again',
                             textAlign: TextAlign.center,
                             style: TextStyle(color: Colors.red[700]),
                           ),
@@ -4063,7 +4066,7 @@ class _MapSubscriptionState extends State<MapSubscription> {
                           if (snapshot.connectionState == ConnectionState.waiting) {
                             return const CircularProgressIndicator();
                           } else if (snapshot.hasError) {
-                            return const Text('エラーが発生しました');
+                            return const Text('An error has occurred');
                           } else if (snapshot.hasData &&
                               snapshot.data!.isNotEmpty) {
                             return GridView.builder(
@@ -4096,7 +4099,7 @@ class _MapSubscriptionState extends State<MapSubscription> {
                               },
                             );
                           } else {
-                            return const Text('まだ投稿されていません。');
+                            return const Text('Not posted yet');
                           }
                         },
                       ),
@@ -4136,7 +4139,7 @@ class _MapSubscriptionState extends State<MapSubscription> {
           _isFavorite = false;
         });
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('お気に入りから削除しました')),
+          const SnackBar(content: Text('Removed from favorites')),
         );
       } else {
         // お気に入りに追加
@@ -4148,13 +4151,13 @@ class _MapSubscriptionState extends State<MapSubscription> {
           _isFavorite = true;
         });
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('お気に入りに追加しました')),
+          const SnackBar(content: Text('Added to favorites')),
         );
       }
     } catch (e) {
       print('Error toggling favorite: $e');
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('お気に入りの更新に失敗しました')),
+        const SnackBar(content: Text('Favorites update failed')),
       );
     }
   }
@@ -4200,12 +4203,12 @@ class _MapSubscriptionState extends State<MapSubscription> {
         });
 
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('画像をアップロードしました')),
+          const SnackBar(content: Text('I uploaded the image')),
         );
       } catch (e) {
         print('Error uploading image: $e');
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('画像のアップロードに失敗しました')),
+          const SnackBar(content: Text('Image upload failed')),
         );
       }
     }
@@ -4227,13 +4230,13 @@ class _MapSubscriptionState extends State<MapSubscription> {
         _getRouteWithAPI(_currentPosition!, destination);
       } catch (e) {
         print('Error showing route: $e');
-        _showErrorSnackbar('ルート表示中にエラーが発生しました');
+        _showErrorSnackbar('An error occurred while displaying the route');
         setState(() {
           _isLoadingRoute = false;
         });
       }
     } else {
-      _showErrorSnackbar('現在位置が取得できていません');
+      _showErrorSnackbar('Current location cannot be obtained');
       setState(() {
         _isLoadingRoute = false;
       });
@@ -4257,7 +4260,7 @@ class _MapSubscriptionState extends State<MapSubscription> {
   // _checkIn メソッドを修正して Firebase Functions の sendCheckInEmail を呼び出す
 // この関数は MapSubscription クラスの _checkIn メソッド内に追加します
 
-  void _checkIn(String title, String locationId) async {
+  void _checkIn(String titleEn, String locationId) async {
     setState(() {
       _isSubmitting = true;
       _showConfirmation = true;
@@ -4269,7 +4272,7 @@ class _MapSubscriptionState extends State<MapSubscription> {
       String userEmail = currentUser.email ?? '';
 
       // デバッグログを追加
-      print('チェックイン開始: locationId=$locationId, title=$title');
+      print('チェックイン開始: locationId=$locationId, title=$titleEn');
 
       // 既存のチェックイン記録を追加
       await FirebaseFirestore.instance
@@ -4277,7 +4280,7 @@ class _MapSubscriptionState extends State<MapSubscription> {
           .doc(_userId)
           .collection('check_ins')
           .add({
-        'title': title,
+        'titleEn': titleEn,
         'locationId': locationId,
         'timestamp': FieldValue.serverTimestamp(),
         'userEmail': FirebaseAuth.instance.currentUser?.email,
@@ -4341,7 +4344,7 @@ class _MapSubscriptionState extends State<MapSubscription> {
         'points': 1,
         'type': 'checkin',
         'locationId': locationId,
-        'locationTitle': title,
+        'locationTitle': titleEn,
       });
 
       print('ポイント履歴を記録しました');
@@ -4356,12 +4359,12 @@ class _MapSubscriptionState extends State<MapSubscription> {
             .httpsCallable('sendCheckInEmail');
 
         // デバッグ: データのログ出力5
-        print('送信データ: locationId=$locationId, title=$title');
+        print('送信データ: locationId=$locationId, title=$titleEn');
 
         // Firebase Functionsを呼び出す
         final result = await callable.call({
           'locationId': locationId,
-          'title': title
+          'titleEn': titleEn
         });
 
         // レスポンスのデバッグログ
@@ -4379,7 +4382,7 @@ class _MapSubscriptionState extends State<MapSubscription> {
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('チェックインしました！'),
+          content: Text('I checked in！'),
           duration: Duration(seconds: 2),
         ),
       );
@@ -4396,7 +4399,7 @@ class _MapSubscriptionState extends State<MapSubscription> {
       print('Error during check-in: $error');
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('チェックインに失敗しました。'),
+          content: Text('Check-in failed'),
           duration: Duration(seconds: 2),
         ),
       );
@@ -4449,7 +4452,7 @@ class _MapSubscriptionState extends State<MapSubscription> {
         await Clipboard.setData(ClipboardData(text: '$lat,$lng'));
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('座標をクリップボードにコピーしました: $lat,$lng'),
+            content: Text('Coordinates copied to clipboard: $lat,$lng'),
             duration: Duration(seconds: 3),
           ),
         );
@@ -4458,7 +4461,7 @@ class _MapSubscriptionState extends State<MapSubscription> {
       print('Error launching navigation: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('ナビゲーションの起動に失敗しました'),
+          content: Text('Navigation failed to start'),
           backgroundColor: Colors.red,
         ),
       );
@@ -4474,7 +4477,7 @@ class _MapSubscriptionState extends State<MapSubscription> {
           _isLoading
               ? const Center(child: CircularProgressIndicator())
               : _errorOccurred
-              ? const Center(child: Text('エラーが発生しました。'))
+              ? const Center(child: Text('An error has occurred'))
               : Stack(
             children: [
               GoogleMap(
@@ -4570,7 +4573,7 @@ class _MapSubscriptionState extends State<MapSubscription> {
                       color: Colors.white,
                     ),
                     label: Text(
-                      '付近を読み込む',
+                      'Load nearby',
                       style: TextStyle(
                         color: Colors.white,
                         fontWeight: FontWeight.bold,
@@ -4652,7 +4655,7 @@ class PostDetailScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text(
-          '投稿',
+          'Post',
           style: TextStyle(
             color: Color(0xFF00008b),
             fontWeight: FontWeight.bold,
@@ -4681,7 +4684,7 @@ class PostDetailScreen extends StatelessWidget {
                   Text(postData['caption']),
                   const SizedBox(height: 8),
                   Text(
-                    '投稿日時: ${(postData['timestamp'] as Timestamp).toDate().toString()}',
+                    'Post date and time: ${(postData['timestamp'] as Timestamp).toDate().toString()}',
                     style: const TextStyle(color: Colors.grey),
                   ),
                 ],

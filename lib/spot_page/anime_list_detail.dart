@@ -181,7 +181,7 @@ class _AnimeDetailsPageState extends State<AnimeDetailsPage> {
             child: CircularProgressIndicator(
               value: loadingProgress.expectedTotalBytes != null
                   ? loadingProgress.cumulativeBytesLoaded /
-                      loadingProgress.expectedTotalBytes!
+                  loadingProgress.expectedTotalBytes!
                   : null,
             ),
           ),
@@ -204,46 +204,46 @@ class _AnimeDetailsPageState extends State<AnimeDetailsPage> {
       {double? width, double? height, BoxFit fit = BoxFit.cover}) {
     return imageUrl.isNotEmpty
         ? Image.network(
-            imageUrl,
-            width: width,
-            height: height,
-            fit: fit,
-            loadingBuilder: (BuildContext context, Widget child,
-                ImageChunkEvent? loadingProgress) {
-              if (loadingProgress == null) return child;
-              return Container(
-                width: width,
-                height: height,
-                color: Colors.grey[200],
-                child: Center(
-                  child: CircularProgressIndicator(
-                    value: loadingProgress.expectedTotalBytes != null
-                        ? loadingProgress.cumulativeBytesLoaded /
-                            loadingProgress.expectedTotalBytes!
-                        : null,
-                  ),
-                ),
-              );
-            },
-            errorBuilder: (context, error, stackTrace) {
-              return Container(
-                width: width,
-                height: height,
-                color: Colors.grey[300],
-                child: Center(
-                  child: Icon(Icons.error, color: Colors.grey[600]),
-                ),
-              );
-            },
-          )
-        : Container(
-            width: width,
-            height: height,
-            color: Colors.grey[300],
-            child: Center(
-              child: Icon(Icons.image_not_supported, color: Colors.grey[600]),
+      imageUrl,
+      width: width,
+      height: height,
+      fit: fit,
+      loadingBuilder: (BuildContext context, Widget child,
+          ImageChunkEvent? loadingProgress) {
+        if (loadingProgress == null) return child;
+        return Container(
+          width: width,
+          height: height,
+          color: Colors.grey[200],
+          child: Center(
+            child: CircularProgressIndicator(
+              value: loadingProgress.expectedTotalBytes != null
+                  ? loadingProgress.cumulativeBytesLoaded /
+                  loadingProgress.expectedTotalBytes!
+                  : null,
             ),
-          );
+          ),
+        );
+      },
+      errorBuilder: (context, error, stackTrace) {
+        return Container(
+          width: width,
+          height: height,
+          color: Colors.grey[300],
+          child: Center(
+            child: Icon(Icons.error, color: Colors.grey[600]),
+          ),
+        );
+      },
+    )
+        : Container(
+      width: width,
+      height: height,
+      color: Colors.grey[300],
+      child: Center(
+        child: Icon(Icons.image_not_supported, color: Colors.grey[600]),
+      ),
+    );
   }
 
   void _showTutorialTooltip() {
@@ -264,7 +264,7 @@ class _AnimeDetailsPageState extends State<AnimeDetailsPage> {
     return OverlayEntry(
       builder: (context) {
         final RenderBox? renderBox =
-            _infoIconKey.currentContext?.findRenderObject() as RenderBox?;
+        _infoIconKey.currentContext?.findRenderObject() as RenderBox?;
         final size = renderBox?.size ?? Size.zero;
         final offset = renderBox?.localToGlobal(Offset.zero) ?? Offset.zero;
 
@@ -343,7 +343,7 @@ class _AnimeDetailsPageState extends State<AnimeDetailsPage> {
           'imageUrl': data['imageUrl'] ?? '',
           'description': data['description'] ?? '',
           'spot_description':
-              data['spot_description'] ?? '', // spot_descriptionを追加
+          data['spot_description'] ?? '', // spot_descriptionを追加
           'latitude': data['latitude'] ?? 0.0,
           'longitude': data['longitude'] ?? 0.0,
           'sourceTitle': data['sourceTitle'] ?? '',
@@ -415,7 +415,7 @@ class _AnimeDetailsPageState extends State<AnimeDetailsPage> {
           }
 
           Map<String, dynamic> animeData =
-              snapshot.data!.data() as Map<String, dynamic>;
+          snapshot.data!.data() as Map<String, dynamic>;
           String imageUrl = animeData['imageUrl'] ?? '';
           String userId = animeData['userId'] ?? '';
 
@@ -844,13 +844,13 @@ https://japananimemaps.page.link/ios
                       child: Container(
                         color: Colors.transparent,
                         child: Center(
-                          child: _videoPlayerController!.value.isPlaying
-                              ? const SizedBox.shrink()
-                              : Icon(
-                            Icons.play_circle_filled,
-                            color: Colors.white.withOpacity(0.8),
-                            size: 60,
-                          )
+                            child: _videoPlayerController!.value.isPlaying
+                                ? const SizedBox.shrink()
+                                : Icon(
+                              Icons.play_circle_filled,
+                              color: Colors.white.withOpacity(0.8),
+                              size: 60,
+                            )
                         ),
                       ),
                     ),
