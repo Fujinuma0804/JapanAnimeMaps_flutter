@@ -3241,6 +3241,7 @@ class _MapSubscriptionState extends State<MapSubscription> {
   StreamSubscription<DocumentSnapshot>? _favoriteSubscription;
 
   // Google Routes API を呼び出してルートを取得するメソッド
+// Google Routes API を呼び出してルートを取得するメソッド（修正版）
   Future<void> _getRouteWithAPI(LatLng origin, LatLng destination) async {
     if (_isLoadingRoute) return;
 
@@ -3252,7 +3253,7 @@ class _MapSubscriptionState extends State<MapSubscription> {
 
     try {
       // APIキーを設定 - 実際のAPIキーに置き換えてください
-      const String apiKey = 'AIzaSyCotKIa2a4mjj3FOeF5gy04iGUhsxHHJrY'; // TODO: 実際のAPIキーに置き換える
+      const String apiKey = 'AIzaSyCotKIa2a4mjj3FOeF5gy04iGUhsxHHJrY';
 
       // APIキーが設定されていない場合はフォールバック処理
       if (apiKey == 'AIzaSyCotKIa2a4mjj3FOeF5gy04iGUhsxHHJrY' || apiKey.isEmpty) {
@@ -3264,8 +3265,28 @@ class _MapSubscriptionState extends State<MapSubscription> {
       // Routes API エンドポイント
       final String url = 'https://routes.googleapis.com/directions/v2:computeRoutes';
 
-      // Routes API リクエストボディを構築
-      final Map<String, dynamic> requestBody = {
+      // Google Routes APIで期待される正しいトラベルモード値にマッピング
+      String apiTravelMode;
+      switch (_selectedTravelMode) {
+        case 'WALK':
+          apiTravelMode = 'WALK';
+          break;
+        case 'BICYCLE':
+          apiTravelMode = 'BICYCLE';
+          break;
+        case 'TRANSIT':
+          apiTravelMode = 'TRANSIT';
+          break;
+        case 'DRIVE':
+        default:
+          apiTravelMode = 'DRIVE';
+          break;
+      }
+
+      print('Selected travel mode: $_selectedTravelMode -> API mode: $apiTravelMode');
+
+      // Routes API リクエストボディを構築（修正版）
+      Map<String, dynamic> requestBody = {
         'origin': {
           'location': {
             'latLng': {
@@ -3282,23 +3303,42 @@ class _MapSubscriptionState extends State<MapSubscription> {
             }
           }
         },
-        'travelMode': _selectedTravelMode,
-        'routingPreference': 'TRAFFIC_AWARE',
+        'travelMode': apiTravelMode,
         'computeAlternativeRoutes': false,
-        'routeModifiers': {
-          'avoidTolls': false,
-          'avoidHighways': false,
-          'avoidFerries': false
-        },
         'languageCode': 'ja-JP',
         'units': 'METRIC'
       };
+
+      // 移動手段に応じて追加設定
+      if (apiTravelMode == 'DRIVE') {
+        requestBody['routingPreference'] = 'TRAFFIC_AWARE';
+        requestBody['routeModifiers'] = {
+          'avoidTolls': false,
+          'avoidHighways': false,
+          'avoidFerries': false
+        };
+      } else if (apiTravelMode == 'TRANSIT') {
+        // 公共交通機関の場合の設定
+        requestBody['transitPreferences'] = {
+          'allowedTravelModes': ['BUS', 'SUBWAY', 'TRAIN', 'LIGHT_RAIL'],
+          'routingPreference': 'FEWER_TRANSFERS'
+        };
+      } else if (apiTravelMode == 'WALK') {
+        // 徒歩の場合の設定
+        requestBody['routingPreference'] = 'TRAFFIC_UNAWARE';
+      } else if (apiTravelMode == 'BICYCLE') {
+        // 自転車の場合の設定
+        requestBody['routingPreference'] = 'TRAFFIC_UNAWARE';
+      }
+
+      // デバッグ用：リクエストボディをログ出力
+      print('API Request body: ${json.encode(requestBody)}');
 
       // リクエストヘッダーを設定
       final Map<String, String> headers = {
         'Content-Type': 'application/json',
         'X-Goog-Api-Key': apiKey,
-        'X-Goog-FieldMask': 'routes.duration,routes.distanceMeters,routes.polyline.encodedPolyline,routes.legs'
+        'X-Goog-FieldMask': 'routes.duration,routes.distanceMeters,routes.polyline.encodedPolyline,routes.legs,routes.travelAdvisory'
       };
 
       // API リクエストを送信
@@ -3307,20 +3347,25 @@ class _MapSubscriptionState extends State<MapSubscription> {
         headers: headers,
         body: json.encode(requestBody),
       ).timeout(
-        Duration(seconds: 15),
+        Duration(seconds: 20), // タイムアウトを延長
         onTimeout: () {
           throw TimeoutException('ルート計算がタイムアウトしました。');
         },
       );
 
+      print('API Response status: ${response.statusCode}');
+      print('API Response body: ${response.body}');
+
       if (response.statusCode == 200) {
         final Map<String, dynamic> data = json.decode(response.body);
 
         if (data.containsKey('routes') && data['routes'] is List && data['routes'].isNotEmpty) {
+          print('Routes found: ${data['routes'].length}');
           _drawRouteFromRoutesAPI(data);
           _displayRouteSummary(data);
         } else {
-          print('No routes found in the response');
+          print('No routes found in the response for travel mode: $apiTravelMode');
+          // APIでルートが見つからない場合、フォールバック処理を実行
           await _showSimpleRoute(origin, destination);
         }
       } else {
@@ -3329,7 +3374,7 @@ class _MapSubscriptionState extends State<MapSubscription> {
         await _showSimpleRoute(origin, destination);
       }
     } catch (e) {
-      print('Error fetching route: $e');
+      print('Error fetching route for mode $_selectedTravelMode: $e');
       // エラーの場合もフォールバック処理を実行
       await _showSimpleRoute(origin, destination);
     } finally {
@@ -3342,8 +3387,12 @@ class _MapSubscriptionState extends State<MapSubscription> {
   }
 
   // シンプルなルート表示のフォールバックメソッド
+// シンプルなルート表示のフォールバックメソッド（修正版）
+// シンプルなルート表示のフォールバックメソッド（修正版）
   Future<void> _showSimpleRoute(LatLng origin, LatLng destination) async {
     try {
+      print('Using fallback route calculation for mode: $_selectedTravelMode');
+
       // 直線ルートを作成
       List<LatLng> routePoints = [origin, destination];
 
@@ -3357,19 +3406,24 @@ class _MapSubscriptionState extends State<MapSubscription> {
 
       // 概算の所要時間を計算（移動手段に基づく）
       double speedKmH;
+      String modeName;
       switch (_selectedTravelMode) {
         case 'WALK':
-          speedKmH = 5.0; // 徒歩 5km/h
+          speedKmH = 4.8; // 徒歩 4.8km/h（一般的な歩行速度）
+          modeName = '徒歩';
           break;
         case 'BICYCLE':
           speedKmH = 15.0; // 自転車 15km/h
+          modeName = '自転車';
           break;
         case 'TRANSIT':
-          speedKmH = 25.0; // 公共交通機関 25km/h
+          speedKmH = 20.0; // 公共交通機関 20km/h（待ち時間含む）
+          modeName = '公共交通';
           break;
         case 'DRIVE':
         default:
-          speedKmH = 40.0; // 車 40km/h（都市部平均）
+          speedKmH = 30.0; // 車 30km/h（都市部平均、信号待ち含む）
+          modeName = '車';
           break;
       }
 
@@ -3377,16 +3431,23 @@ class _MapSubscriptionState extends State<MapSubscription> {
       double timeHours = distanceKm / speedKmH;
       int timeMinutes = (timeHours * 60).round();
 
+      // 最小時間を設定（徒歩の場合）
+      if (_selectedTravelMode == 'WALK' && timeMinutes < 1) {
+        timeMinutes = 1;
+      }
+
       // ポリラインを作成
       final PolylineId polylineId = PolylineId('simple_route');
       final Polyline polyline = Polyline(
         polylineId: polylineId,
         consumeTapEvents: true,
         color: _getTravelModeColor(_selectedTravelMode),
-        width: 4,
+        width: _selectedTravelMode == 'WALK' ? 3 : 4,
         points: routePoints,
         patterns: _selectedTravelMode == 'TRANSIT'
             ? [PatternItem.dash(15), PatternItem.gap(8)]
+            : _selectedTravelMode == 'WALK'
+            ? [PatternItem.dash(15), PatternItem.gap(5)]
             : [],
       );
 
@@ -3416,8 +3477,12 @@ class _MapSubscriptionState extends State<MapSubscription> {
       double maxLng = math.max(origin.longitude, destination.longitude);
 
       // パディングを追加
-      double latPadding = (maxLat - minLat) * 0.2;
-      double lngPadding = (maxLng - minLng) * 0.2;
+      double latPadding = (maxLat - minLat) * 0.3;
+      double lngPadding = (maxLng - minLng) * 0.3;
+
+      // 最小パディングを設定
+      if (latPadding < 0.001) latPadding = 0.001;
+      if (lngPadding < 0.001) lngPadding = 0.001;
 
       final LatLngBounds bounds = LatLngBounds(
         southwest: LatLng(minLat - latPadding, minLng - lngPadding),
@@ -3429,13 +3494,15 @@ class _MapSubscriptionState extends State<MapSubscription> {
       );
 
       // フォールバック使用を通知
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('概算ルート: $_routeDuration, $_routeDistance (直線距離)'),
-          duration: Duration(seconds: 4),
-          backgroundColor: Colors.orange.shade600,
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('$modeName（概算）: $_routeDuration, $_routeDistance'),
+            duration: Duration(seconds: 4),
+            backgroundColor: _getTravelModeColor(_selectedTravelMode).withOpacity(0.9),
+          ),
+        );
+      }
 
     } catch (e) {
       print('Error in fallback route: $e');
@@ -3526,40 +3593,110 @@ class _MapSubscriptionState extends State<MapSubscription> {
 
   // ルートの概要情報（所要時間・距離）を表示するメソッド
   void _displayRouteSummary(Map<String, dynamic> routesData) {
-    final route = routesData['routes'][0];
+    try {
+      final route = routesData['routes'][0];
+      print('Processing route summary: ${route.keys}');
 
-    // 所要時間を秒から変換
-    final int durationSeconds = int.parse(route['duration'].replaceAll('s', ''));
-    final Duration duration = Duration(seconds: durationSeconds);
+      // 所要時間を処理（より柔軟な処理）
+      String durationText = '不明';
+      if (route.containsKey('duration')) {
+        final durationStr = route['duration'].toString();
+        if (durationStr.endsWith('s')) {
+          final int durationSeconds = int.parse(durationStr.replaceAll('s', ''));
+          final Duration duration = Duration(seconds: durationSeconds);
 
-    // 距離をメートルから変換
-    final int distanceMeters = route['distanceMeters'];
-    final String distanceText = distanceMeters >= 1000
-        ? '${(distanceMeters / 1000).toStringAsFixed(1)} km'
-        : '$distanceMeters m';
+          if (duration.inHours > 0) {
+            durationText = '${duration.inHours}時間${(duration.inMinutes % 60)}分';
+          } else {
+            durationText = '${duration.inMinutes}分';
+          }
+        }
+      } else if (route.containsKey('legs') && route['legs'] is List && route['legs'].isNotEmpty) {
+        // legsから所要時間を取得する方法
+        int totalSeconds = 0;
+        for (var leg in route['legs']) {
+          if (leg.containsKey('duration')) {
+            final legDurationStr = leg['duration'].toString();
+            if (legDurationStr.endsWith('s')) {
+              totalSeconds += int.parse(legDurationStr.replaceAll('s', ''));
+            }
+          }
+        }
+        if (totalSeconds > 0) {
+          final Duration duration = Duration(seconds: totalSeconds);
+          if (duration.inHours > 0) {
+            durationText = '${duration.inHours}時間${(duration.inMinutes % 60)}分';
+          } else {
+            durationText = '${duration.inMinutes}分';
+          }
+        }
+      }
 
-    // 所要時間のフォーマット
-    String durationText;
-    if (duration.inHours > 0) {
-      durationText = '${duration.inHours}時間${(duration.inMinutes % 60)}分';
-    } else {
-      durationText = '${duration.inMinutes}分';
+      // 距離を処理（より柔軟な処理）
+      String distanceText = '不明';
+      if (route.containsKey('distanceMeters')) {
+        final int distanceMeters = route['distanceMeters'];
+        distanceText = distanceMeters >= 1000
+            ? '${(distanceMeters / 1000).toStringAsFixed(1)} km'
+            : '$distanceMeters m';
+      } else if (route.containsKey('legs') && route['legs'] is List && route['legs'].isNotEmpty) {
+        // legsから距離を取得する方法
+        int totalMeters = 0;
+        for (var leg in route['legs']) {
+          if (leg.containsKey('distanceMeters')) {
+            totalMeters += leg['distanceMeters'] as int;
+          }
+        }
+        if (totalMeters > 0) {
+          distanceText = totalMeters >= 1000
+              ? '${(totalMeters / 1000).toStringAsFixed(1)} km'
+              : '$totalMeters m';
+        }
+      }
+
+      print('Calculated duration: $durationText, distance: $distanceText');
+
+      // 状態を更新して UI に反映
+      setState(() {
+        _routeDuration = durationText;
+        _routeDistance = distanceText;
+      });
+
+      // 移動手段名を取得
+      String travelModeName;
+      switch (_selectedTravelMode) {
+        case 'WALK':
+          travelModeName = '徒歩';
+          break;
+        case 'BICYCLE':
+          travelModeName = '自転車';
+          break;
+        case 'TRANSIT':
+          travelModeName = '公共交通';
+          break;
+        case 'DRIVE':
+        default:
+          travelModeName = '車';
+          break;
+      }
+
+      // スナックバーで表示（移動手段を含む）
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('$travelModeName: 所要時間 $durationText, 距離 $distanceText'),
+            duration: Duration(seconds: 4),
+            backgroundColor: _getTravelModeColor(_selectedTravelMode),
+          ),
+        );
+      }
+    } catch (e) {
+      print('Error processing route summary: $e');
+      setState(() {
+        _routeDuration = 'エラー';
+        _routeDistance = 'エラー';
+      });
     }
-
-    // 状態を更新して UI に反映
-    setState(() {
-      _routeDuration = durationText;
-      _routeDistance = distanceText;
-    });
-
-    // スナックバーで表示
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('所要時間: $durationText, 距離: $distanceText'),
-        duration: Duration(seconds: 4),
-        backgroundColor: Colors.blue.shade700,
-      ),
-    );
   }
 
   // エンコードされたポリラインをデコードするヘルパーメソッド

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_database/firebase_database.dart' as rtdb;
@@ -720,6 +722,9 @@ class _AnimeListTestRankingState extends State<AnimeListTestRanking>
   GlobalKey firstItemKey = GlobalKey();
   GlobalKey rankingKey = GlobalKey();
 
+  bool _hasShownOpenCountPrompt = false; // 今日既にプロンプトを表示したかのフラグ
+  StreamSubscription<DocumentSnapshot>? _dailyUsageSubscription;
+
   final FirebaseInAppMessaging fiam = FirebaseInAppMessaging.instance;
 
   final Map<String, Map<String, double>> prefectureBounds = {
@@ -1078,6 +1083,9 @@ class _AnimeListTestRankingState extends State<AnimeListTestRanking>
     //【修正】初期化後にサブスクリプション状態をチェック
     await _checkSubscriptionStatusWithRetry();
 
+    //【修正】Firebase openCount監視を開始
+    await _startOpenCountMonitoring();
+
     //【追加】スポット押下回数の初期化
     await _initializeDailyClickCount();
 
@@ -1096,6 +1104,153 @@ class _AnimeListTestRankingState extends State<AnimeListTestRanking>
 
     // main.dartと同様にFirebaseAuthのユーザー情報でRevenueCatを同期
     await _syncRevenueCatUser();
+  }
+
+  Future<void> _startOpenCountMonitoring() async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) {
+        print('❌ User not logged in - cannot monitor openCount');
+        return;
+      }
+
+      // 今日の日付を取得
+      final today = DateTime.now();
+      final dateString = '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
+
+      print('🔍 Starting openCount monitoring for date: $dateString');
+
+      // Firestore daily_usage/{userId}/daily_usage/{date} のパスを監視
+      final dailyUsageRef = FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .collection('daily_usage')
+          .doc(dateString);
+
+      // リアルタイムリスナーを設定
+      _dailyUsageSubscription = dailyUsageRef.snapshots().listen(
+            (DocumentSnapshot snapshot) async {
+          if (snapshot.exists) {
+            final data = snapshot.data() as Map<String, dynamic>?;
+            final openCount = data?['openCount'] as int? ?? 0;
+
+            print('📊 OpenCount updated: $openCount');
+
+            // 10回に達した場合の処理
+            if (openCount >= 4 && !_hasShownOpenCountPrompt) {
+              await _handleOpenCountThresholdReached(openCount);
+            }
+          } else {
+            print('📄 Daily usage document does not exist yet');
+          }
+        },
+        onError: (error) {
+          print('❌ Error listening to daily usage: $error');
+        },
+      );
+
+      print('✅ OpenCount monitoring started successfully');
+    } catch (e) {
+      print('❌ Error starting openCount monitoring: $e');
+    }
+  }
+
+  // 【新規追加】openCount 10回到達時の処理
+  Future<void> _handleOpenCountThresholdReached(int openCount) async {
+    try {
+      print('🎯 OpenCount threshold reached: $openCount');
+
+      // サブスクリプションが既に有効な場合は何もしない
+      if (_isSubscriptionActive) {
+        print('🚫 Subscription already active - skipping prompt');
+        return;
+      }
+
+      // 今日既にプロンプトを表示した場合は何もしない
+      if (_hasShownOpenCountPrompt) {
+        print('🚫 Prompt already shown today - skipping');
+        return;
+      }
+
+      // SharedPreferencesで今日の表示状態を確認
+      final prefs = await SharedPreferences.getInstance();
+      final today = DateTime.now().toString().split(' ')[0];
+      final promptShownKey = 'opencount_prompt_shown_$today';
+      final alreadyShown = prefs.getBool(promptShownKey) ?? false;
+
+      if (alreadyShown) {
+        print('🚫 Prompt already shown today (from SharedPreferences)');
+        _hasShownOpenCountPrompt = true;
+        return;
+      }
+
+      // フラグを設定してプロンプト表示
+      _hasShownOpenCountPrompt = true;
+      await prefs.setBool(promptShownKey, true);
+
+      // ユーザーアクティビティログ
+      await _logger.logUserActivity('opencount_threshold_reached', {
+        'openCount': openCount,
+        'timestamp': DateTime.now().toIso8601String(),
+        'subscriptionActive': _isSubscriptionActive,
+      });
+
+      // UI更新でプロンプトを表示
+      if (mounted) {
+        setState(() {
+          _showSubscriptionPrompt = true;
+        });
+
+        print('✅ Subscription prompt displayed due to openCount: $openCount');
+
+        // 追加のハプティックフィードバック（オプション）
+        HapticFeedback.lightImpact();
+      }
+    } catch (e) {
+      print('❌ Error handling openCount threshold: $e');
+    }
+  }
+
+  // 【新規追加】今日のプロンプト表示状態をリセット（デバッグ用）
+  Future<void> _resetTodayPromptStatus() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final today = DateTime.now().toString().split(' ')[0];
+      final promptShownKey = 'opencount_prompt_shown_$today';
+
+      await prefs.remove(promptShownKey);
+      _hasShownOpenCountPrompt = false;
+
+      print('🔄 Today\'s prompt status reset');
+    } catch (e) {
+      print('❌ Error resetting prompt status: $e');
+    }
+  }
+
+  // 【新規追加】手動でopenCountをインクリメント（デバッグ用）
+  Future<void> _debugIncrementOpenCount() async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) return;
+
+      final today = DateTime.now();
+      final dateString = '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
+
+      final dailyUsageRef = FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .collection('daily_usage')
+          .doc(dateString);
+
+      await dailyUsageRef.update({
+        'openCount': FieldValue.increment(1),
+        'lastOpenedAt': FieldValue.serverTimestamp(),
+      });
+
+      print('🔧 Debug: openCount incremented');
+    } catch (e) {
+      print('❌ Error incrementing openCount: $e');
+    }
   }
 
   //【追加】日次スポット押下回数の初期化
@@ -1420,6 +1575,7 @@ class _AnimeListTestRankingState extends State<AnimeListTestRanking>
     _searchController.dispose();
     _bannerAd?.dispose();
     _bottomBannerAd?.dispose();
+    _dailyUsageSubscription?.cancel();
     AdManager.dispose();
     super.dispose();
     _adMob.dispose();
@@ -2181,7 +2337,7 @@ class _AnimeListTestRankingState extends State<AnimeListTestRanking>
                     ),
                     SizedBox(height: 20),
                     Text(
-                      'JAMプレミアムプランも\nぜひご利用下さい！',
+                      'たくさんのご利用\nありがとうございます！',
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: 16,
@@ -2191,7 +2347,7 @@ class _AnimeListTestRankingState extends State<AnimeListTestRanking>
                     ),
                     SizedBox(height: 12),
                     Text(
-                      'プレミアムプランで制限なく\n聖地巡礼をお楽しみください',
+                      'プレミアムプランで広告なしの\n快適な聖地巡礼をお楽しみください',
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: 14,
@@ -2203,13 +2359,24 @@ class _AnimeListTestRankingState extends State<AnimeListTestRanking>
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton(
-                        onPressed: () {
+                        onPressed: () async {
+                          // プロンプトを閉じる
+                          setState(() {
+                            _showSubscriptionPrompt = false;
+                          });
+
+                          // ユーザーアクティビティログ
+                          await _logger.logUserActivity('subscription_prompt_clicked', {
+                            'source': 'opencount_threshold',
+                            'timestamp': DateTime.now().toIso8601String(),
+                          });
+
+                          // サブスクリプション画面を表示
                           showModalBottomSheet(
                             context: context,
                             isScrollControlled: true,
                             backgroundColor: Colors.transparent,
-                            builder: (
-                                context) => const PaymentSubscriptionScreen(),
+                            builder: (context) => const PaymentSubscriptionScreen(),
                           );
                         },
                         style: ElevatedButton.styleFrom(
@@ -2229,6 +2396,29 @@ class _AnimeListTestRankingState extends State<AnimeListTestRanking>
                         ),
                       ),
                     ),
+                    // 【追加】後で見るボタン
+                    SizedBox(height: 8),
+                    TextButton(
+                      onPressed: () async {
+                        setState(() {
+                          _showSubscriptionPrompt = false;
+                        });
+
+                        // ユーザーアクティビティログ
+                        await _logger.logUserActivity('subscription_prompt_dismissed', {
+                          'source': 'opencount_threshold',
+                          'action': 'later',
+                          'timestamp': DateTime.now().toIso8601String(),
+                        });
+                      },
+                      child: Text(
+                        '後で見る',
+                        style: TextStyle(
+                          color: Colors.grey[600],
+                          fontSize: 14,
+                        ),
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -2237,9 +2427,16 @@ class _AnimeListTestRankingState extends State<AnimeListTestRanking>
                 top: 8,
                 right: 8,
                 child: IconButton(
-                  onPressed: () {
+                  onPressed: () async {
                     setState(() {
                       _showSubscriptionPrompt = false;
+                    });
+
+                    // ユーザーアクティビティログ
+                    await _logger.logUserActivity('subscription_prompt_dismissed', {
+                      'source': 'opencount_threshold',
+                      'action': 'close_button',
+                      'timestamp': DateTime.now().toIso8601String(),
                     });
                   },
                   icon: Icon(
@@ -2260,6 +2457,7 @@ class _AnimeListTestRankingState extends State<AnimeListTestRanking>
       ),
     );
   }
+
 
   // サブスクリプション購入処理
   Future<void> _handleSubscriptionPurchase() async {
