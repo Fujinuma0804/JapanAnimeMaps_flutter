@@ -18,6 +18,7 @@ class _ProfileEnScreenState extends State<ProfileEnScreen> {
   DocumentSnapshot<Map<String, dynamic>>? userData;
   String? avatarUrl;
   bool isLoading = false;
+  bool isEnglish = false; // 言語設定を管理
 
   @override
   void initState() {
@@ -41,6 +42,8 @@ class _ProfileEnScreenState extends State<ProfileEnScreen> {
         currentUser = user;
         userData = userDoc;
         avatarUrl = userDoc.data()?['avatarUrl'];
+        // 言語設定を取得
+        isEnglish = userDoc.data()?['language'] == 'English';
         isLoading = false;
       });
     } else {
@@ -97,6 +100,24 @@ class _ProfileEnScreenState extends State<ProfileEnScreen> {
     return now.difference(createdAt).inDays;
   }
 
+  // 多言語対応のテキストを取得するメソッド
+  String getLocalizedText(String key) {
+    final texts = {
+      'profile_title': isEnglish ? 'Profile' : 'プロフィール',
+      'usage_days': isEnglish ? 'Usage Days' : '使用日数',
+      'days_suffix': isEnglish ? ' days' : '日',
+      'checkin_count': isEnglish ? 'Check-ins' : 'チェックイン数',
+      'spots_suffix': isEnglish ? ' spots' : 'スポット',
+      'name': isEnglish ? 'Name' : '名前',
+      'id': isEnglish ? 'ID' : 'ID',
+      'email': isEnglish ? 'Email' : 'Email',
+      'birthday': isEnglish ? 'Birthday' : '誕生日',
+      'registration_date': isEnglish ? 'Registration Date' : '登録日',
+      'not_set': isEnglish ? 'Not Set' : '未設定',
+    };
+    return texts[key] ?? key;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -110,9 +131,9 @@ class _ProfileEnScreenState extends State<ProfileEnScreen> {
           ),
           onPressed: () => Navigator.of(context).pop(),
         ),
-        title: const Text(
-          ' プロフィール',
-          style: TextStyle(
+        title: Text(
+          getLocalizedText('profile_title'),
+          style: const TextStyle(
             color: Color(0xFF00008b),
             fontWeight: FontWeight.bold,
           ),
@@ -137,7 +158,7 @@ class _ProfileEnScreenState extends State<ProfileEnScreen> {
                           backgroundImage:
                           avatarUrl != null ? NetworkImage(avatarUrl!) : null,
                           child: avatarUrl == null
-                              ? Icon(Icons.person, size: 60)
+                              ? const Icon(Icons.person, size: 60)
                               : null,
                         ),
                         Positioned(
@@ -159,16 +180,16 @@ class _ProfileEnScreenState extends State<ProfileEnScreen> {
                       children: [
                         Expanded(
                           child: _buildStatisticBox(
-                            '使用日数',
-                            '${getDaysSinceCreation()}日',
+                            getLocalizedText('usage_days'),
+                            '${getDaysSinceCreation()}${getLocalizedText('days_suffix')}',
                             const Color(0xFF4299E1),
                           ),
                         ),
                         const SizedBox(width: 16),
                         Expanded(
                           child: _buildStatisticBox(
-                            'チェックイン数',
-                            '${userData?.data()?['correctCount'] ?? 0}スポット',
+                            getLocalizedText('checkin_count'),
+                            '${userData?.data()?['correctCount'] ?? 0}${getLocalizedText('spots_suffix')}',
                             const Color(0xFF48BB78),
                           ),
                         ),
@@ -191,15 +212,15 @@ class _ProfileEnScreenState extends State<ProfileEnScreen> {
                     ),
                     child: Column(
                       children: [
-                        _buildProfileItem('名前', userData?.data()?['name'] ?? '未設定'),
+                        _buildProfileItem(getLocalizedText('name'), userData?.data()?['name'] ?? getLocalizedText('not_set')),
                         _buildDivider(),
-                        _buildProfileItem('ID', userData?.data()?['id'] ?? '未設定'),
+                        _buildProfileItem(getLocalizedText('id'), userData?.data()?['id'] ?? getLocalizedText('not_set')),
                         _buildDivider(),
-                        _buildProfileItem('Email', userData?.data()?['email'] ?? '未設定'),
+                        _buildProfileItem(getLocalizedText('email'), userData?.data()?['email'] ?? getLocalizedText('not_set')),
                         _buildDivider(),
-                        _buildProfileItem('誕生日', formatDate(userData?.data()?['birthday'])),
+                        _buildProfileItem(getLocalizedText('birthday'), formatDate(userData?.data()?['birthday'])),
                         _buildDivider(),
-                        _buildProfileItem('登録日', formatDate(userData?.data()?['created_at'])),
+                        _buildProfileItem(getLocalizedText('registration_date'), formatDate(userData?.data()?['created_at'])),
                       ],
                     ),
                   ),
@@ -292,7 +313,7 @@ class _ProfileEnScreenState extends State<ProfileEnScreen> {
   }
 
   String formatDate(dynamic date) {
-    if (date == null) return 'Not Settings';
+    if (date == null) return getLocalizedText('not_set');
     if (date is Timestamp) {
       return DateFormat('yyyy.MM.dd').format(date.toDate());
     } else if (date is DateTime) {
@@ -304,6 +325,6 @@ class _ProfileEnScreenState extends State<ProfileEnScreen> {
         return date;
       }
     }
-    return 'Not Settings';
+    return getLocalizedText('not_set');
   }
 }
