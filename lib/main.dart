@@ -759,6 +759,42 @@ class MyApp extends StatelessWidget {
       },
       debugShowCheckedModeBanner: false,
       title: 'JapanAnimeMaps',
+      // theme: ThemeData(
+        // シンプルに白ベースのテーマを作成
+      //   brightness: Brightness.light,
+      //   primaryColor: const Color(0xFF4CAF50),
+      //   scaffoldBackgroundColor: Colors.white,
+      //   canvasColor: Colors.white,
+      //   cardColor: Colors.white,
+      //   dialogBackgroundColor: Colors.white,
+      //
+      //   // AppBarテーマ
+      //   appBarTheme: const AppBarTheme(
+      //     backgroundColor: Colors.white,
+      //     foregroundColor: Colors.black,
+      //     elevation: 0,
+      //     iconTheme: IconThemeData(color: Colors.black),
+      //     titleTextStyle: TextStyle(
+      //       color: Colors.black,
+      //       fontSize: 20,
+      //       fontWeight: FontWeight.w500,
+      //     ),
+      //   ),
+      //
+      //   // BottomNavigationBarテーマ
+      //   bottomNavigationBarTheme: const BottomNavigationBarThemeData(
+      //     backgroundColor: Colors.white,
+      //     selectedItemColor: Color(0xFF4CAF50),
+      //     unselectedItemColor: Colors.grey,
+      //   ),
+      //
+      //   // Material 3を無効にして従来のMaterial 2を使用
+      //   useMaterial3: false, colorScheme: ColorScheme.fromSwatch(primarySwatch: Colors.green).copyWith(background: Colors.white),
+      // ),
+      //
+      // // ダークテーマを無効にして常にライトテーマを使用
+      // themeMode: ThemeMode.light,
+
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.white),
         useMaterial3: true,
@@ -879,6 +915,16 @@ class _SplashScreenState extends State<SplashScreen> {
       if (Firebase.apps.isEmpty) {
         throw Exception('Firebase not initialized');
       }
+
+      // ========== テスト用: 強制的にWelcomePageを表示 ==========
+      // print('テストモード: WelcomePageに強制遷移');
+      // if (mounted) {
+      //   Navigator.of(context).pushReplacement(
+      //     MaterialPageRoute(builder: (context) => const WelcomePage()),
+      //   );
+      // }
+      // return;
+      // ========== ここまでがテスト用コード ==========
 
       // 認証状態を確認
       final user = FirebaseAuth.instance.currentUser;

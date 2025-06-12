@@ -4,7 +4,10 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:in_app_review/in_app_review.dart';
+import 'package:parts/login_page/welcome_page/welcome_1.dart';
 import 'package:parts/subscription/payment_subscription.dart';
+import 'package:parts/subscription/subscription_lp.dart';
+import 'package:parts/top_page/welcome_page.dart';
 import 'package:settings_ui/settings_ui.dart';
 import 'dart:io' show Platform;
 
@@ -181,6 +184,25 @@ class _ManualEnState extends State<ManualEn> {
                 ),
               ],
             ),
+            // SettingsSection(
+            //   title: Text(_language == '日本語' ? 'テスト' : 'TestMode'),
+            //   tiles: <SettingsTile>[
+            //     SettingsTile.navigation(
+            //       leading: const Icon(Icons.deselect_sharp),
+            //       title: Text(_language == '日本語' ? 'テスト' : 'TestMode'),
+            //       value: const Text(''),
+            //       onPressed: (context) {
+            //         showModalBottomSheet(
+            //           context: context,
+            //           isScrollControlled: true,
+            //           backgroundColor: Colors.transparent,
+            //           //画面のテストはこちらを変更して遷移先に指定してください。
+            //           builder: (context) => SubscriptionLP(),
+            //         );
+            //       },
+            //     ),
+            //   ],
+            // ),
           ],
         ),
       ),
