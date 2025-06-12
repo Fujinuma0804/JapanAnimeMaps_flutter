@@ -1,118 +1,94 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:vibration/vibration.dart'; // 追加
 import 'package:webview_flutter/webview_flutter.dart';
 
-class WebsiteScreen extends StatefulWidget {
-  const WebsiteScreen({Key? key}) : super(key: key);
+class OfficialSiteScreen extends StatefulWidget {
+  const OfficialSiteScreen({Key? key}) : super(key: key);
 
   @override
-  State<WebsiteScreen> createState() => _WebsiteScreenState();
+  State<OfficialSiteScreen> createState() => _OfficialSiteScreenState();
 }
 
-class _WebsiteScreenState extends State<WebsiteScreen>
-    with SingleTickerProviderStateMixin {
+class _OfficialSiteScreenState extends State<OfficialSiteScreen> {
   late final WebViewController controller;
-  bool _isLoading = true;
-  late AnimationController _animationController;
-  final List<String> _loadingText = "Loading".split('');
+  bool isLoading = true;
 
   @override
   void initState() {
     super.initState();
+
+    // WebViewControllerの初期化
     controller = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
-      ..loadRequest(Uri.parse('https://jam-info.com'));
-
-    SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle(
-      statusBarColor: Colors.transparent,
-    ));
-
-    _animationController = AnimationController(
-      vsync: this,
-      duration: Duration(seconds: 2),
-    )..forward();
-
-    // バイブレーションを追加
-    if (Vibration.hasVibrator() != null) {
-      Vibration.vibrate(duration: 500);
-    }
-
-    Future.delayed(Duration(seconds: 2), () {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
-    });
-  }
-
-  @override
-  void dispose() {
-    _animationController.dispose();
-    super.dispose();
+      ..setNavigationDelegate(
+        NavigationDelegate(
+          onProgress: (int progress) {
+            // ローディングの進捗を更新
+          },
+          onPageStarted: (String url) {
+            setState(() {
+              isLoading = true;
+            });
+          },
+          onPageFinished: (String url) {
+            setState(() {
+              isLoading = false;
+            });
+          },
+          onWebResourceError: (WebResourceError error) {
+            // エラーハンドリング
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('ページの読み込みに失敗しました'),
+              ),
+            );
+          },
+        ),
+      )
+      ..loadRequest(Uri.parse('https://animetourism.co.jp'));
   }
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      home: Scaffold(
-        body: Stack(
-          children: [
-            WebViewWidget(controller: controller),
-            if (_isLoading)
-              Container(
-                color: Colors.black,
-                child: Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: List.generate(_loadingText.length, (index) {
-                          return AnimatedBuilder(
-                            animation: _animationController,
-                            builder: (context, child) {
-                              double t = ((_animationController.value -
-                                          index / _loadingText.length) *
-                                      _loadingText.length)
-                                  .clamp(0.0, 1.0);
-                              return Transform.translate(
-                                offset: Offset(
-                                    0,
-                                    -100 *
-                                        (1 - Curves.easeOutBack.transform(t))),
-                                child: Text(
-                                  _loadingText[index],
-                                  style: TextStyle(
-                                      color: Colors.white, fontSize: 24),
-                                ),
-                              );
-                            },
-                          );
-                        }),
-                      ),
-                      SizedBox(height: 20),
-                      AnimatedBuilder(
-                        animation: _animationController,
-                        builder: (context, child) {
-                          return Container(
-                            width: 200 * _animationController.value,
-                            height: 4,
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(2),
-                            ),
-                          );
-                        },
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-          ],
+    return Scaffold(
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        title: const Text(
+          '公式サイト',
+          style: TextStyle(
+            color: Color(0xFF00008b),
+            fontWeight: FontWeight.bold,
+          ),
         ),
+        actions: [
+          // リフレッシュボタン
+          IconButton(
+            icon: const Icon(Icons.refresh, color: Color(0xFF00008b)),
+            onPressed: () {
+              controller.reload();
+            },
+          ),
+          // 外部ブラウザで開くボタン（オプション）
+          IconButton(
+            icon: const Icon(Icons.open_in_new, color: Color(0xFF00008b)),
+            onPressed: () {
+              // url_launcherを使用して外部ブラウザで開く
+              // import 'package:url_launcher/url_launcher.dart'; が必要
+              // launchUrl(Uri.parse('https://animetourism.co.jp'));
+            },
+          ),
+        ],
+      ),
+      body: Stack(
+        children: [
+          WebViewWidget(controller: controller),
+          // ローディングインジケーター
+          if (isLoading)
+            const Center(
+              child: CircularProgressIndicator(
+                color: Color(0xFF00008b),
+              ),
+            ),
+        ],
       ),
     );
   }

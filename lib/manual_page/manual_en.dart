@@ -4,16 +4,12 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:in_app_review/in_app_review.dart';
-import 'package:parts/manual_page/usage_screen.dart';
-import 'package:parts/payment/payment.dart';
 import 'package:parts/subscription/payment_subscription.dart';
 import 'package:settings_ui/settings_ui.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'dart:io' show Platform;
 
 import '../setting_page/settings_en.dart';
 import '../web_page/website.dart';
-import '../web_page/website_en.dart';
 
 class ManualEn extends StatefulWidget {
   const ManualEn({Key? key});
@@ -70,13 +66,13 @@ class _ManualEnState extends State<ManualEn> {
           backgroundColor: Colors.white,
           title: Text(
             _language == '日本語' ? 'その他' : 'Others',
-            style: TextStyle(
+            style: const TextStyle(
               color: Color(0xFF00008b),
               fontWeight: FontWeight.bold,
             ),
           ),
           leading: IconButton(
-            icon: Icon(
+            icon: const Icon(
               Icons.arrow_back_ios,
               color: Colors.black,
             ),
@@ -86,7 +82,7 @@ class _ManualEnState extends State<ManualEn> {
           ),
         ),
         body: SettingsList(
-          lightTheme: SettingsThemeData(),
+          lightTheme: const SettingsThemeData(),
           sections: [
             SettingsSection(
               title: Text(_language == '日本語' ? '設定' : 'Settings'),
@@ -98,7 +94,7 @@ class _ManualEnState extends State<ManualEn> {
                   onPressed: (context) {
                     Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (context) => SettingsEn()),
+                      MaterialPageRoute(builder: (context) => const SettingsEn()),
                     );
                   },
                 ),
@@ -143,8 +139,8 @@ class _ManualEnState extends State<ManualEn> {
                             context,
                             MaterialPageRoute(
                               builder: (context) => language == 'Japanese'
-                                  ? WebsiteScreen()
-                                  : WebsiteEnScreen(),
+                                  ? const OfficialSiteScreen()
+                                  : const OfficialSiteScreen(),
                             ),
                           );
                         }
