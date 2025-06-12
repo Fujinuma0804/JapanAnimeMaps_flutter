@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
 class OfficialSiteScreen extends StatefulWidget {
@@ -60,20 +61,11 @@ class _OfficialSiteScreenState extends State<OfficialSiteScreen> {
           ),
         ),
         actions: [
-          // リフレッシュボタン
-          IconButton(
-            icon: const Icon(Icons.refresh, color: Color(0xFF00008b)),
-            onPressed: () {
-              controller.reload();
-            },
-          ),
           // 外部ブラウザで開くボタン（オプション）
           IconButton(
             icon: const Icon(Icons.open_in_new, color: Color(0xFF00008b)),
             onPressed: () {
-              // url_launcherを使用して外部ブラウザで開く
-              // import 'package:url_launcher/url_launcher.dart'; が必要
-              // launchUrl(Uri.parse('https://animetourism.co.jp'));
+              launchUrl(Uri.parse('https://animetourism.co.jp'));
             },
           ),
         ],
