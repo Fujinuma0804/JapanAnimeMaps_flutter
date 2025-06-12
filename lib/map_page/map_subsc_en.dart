@@ -705,7 +705,7 @@ class _MapSubscriptionEnState extends State<MapSubscriptionEn> {
 
               // タイトル
               Text(
-                '検索制限に達しました',
+                'Search limit reached',
                 style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
@@ -717,7 +717,7 @@ class _MapSubscriptionEnState extends State<MapSubscriptionEn> {
 
               // 説明文
               Text(
-                '今日の検索回数（3回）を使い切りました。\n広告を視聴して検索回数を追加するか、\n明日まで待つことができます。',
+                'You have used up all your searches for today (3).\nYou can watch an ad to get more searches, \nor you can wait until tomorrow.',
                 style: TextStyle(
                   fontSize: 14,
                   color: Colors.grey[600],
@@ -750,10 +750,10 @@ class _MapSubscriptionEnState extends State<MapSubscriptionEn> {
                       ),
                       label: Text(
                         _isWatchingAd
-                            ? '広告読み込み中...'
+                            ? 'Ad loading...'
                             : _isAdAvailable
-                            ? '広告を視聴して検索回数を追加'
-                            : '広告を準備中...',
+                            ? 'Watch ads to get more searches'
+                            : 'Preparing for advertisement...',
                         style: TextStyle(fontSize: 14),
                       ),
                       style: ElevatedButton.styleFrom(
@@ -779,7 +779,7 @@ class _MapSubscriptionEnState extends State<MapSubscriptionEn> {
                         Navigator.of(context).pop(); // ダイアログを閉じる
                       },
                       child: Text(
-                        '後で試す',
+                        'Try Later',
                         style: TextStyle(fontSize: 14),
                       ),
                       style: OutlinedButton.styleFrom(
@@ -1726,7 +1726,7 @@ class _MapSubscriptionEnState extends State<MapSubscriptionEn> {
     if (!_isSubscriptionActive && _searchLimitReached) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('今日の検索上限に達しました。明日また試してください。'),
+          content: Text('You\'ve reached your search limit for today. Please try again tomorrow.'),
           duration: Duration(seconds: 3),
           backgroundColor: Colors.red,
         ),
@@ -3222,7 +3222,7 @@ class _MapSubscriptionEnState extends State<MapSubscriptionEn> {
                       const Padding(
                         padding: EdgeInsets.all(8.0),
                         child: Text(
-                          '現在位置から離れているためチェックインできません',
+                          'You can\'t check in because you\'re too far away',
                           style: TextStyle(
                             color: Colors.red,
                             fontSize: 14,
