@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/services.dart';
 import 'package:share_plus/share_plus.dart';
 import 'qa_form.dart'; // 追加：お問い合わせフォームのインポート
@@ -37,6 +38,93 @@ class FAQModel {
       lastUpdated: data['lastUpdated'] as Timestamp? ?? Timestamp.now(),
       questionId: data['questionId'] ?? '',
     );
+  }
+}
+
+// 評価結果を管理するサービスクラス
+class FAQRatingService {
+  static final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  static final FirebaseAuth _auth = FirebaseAuth.instance;
+
+  // ユーザーが既に評価済みかどうかをチェック
+  static Future<bool> hasUserRated(String questionId) async {
+    final user = _auth.currentUser;
+    if (user == null) return false;
+
+    try {
+      final doc = await _firestore
+          .collection('faq_ratings')
+          .doc('${questionId}_${user.uid}')
+          .get();
+      return doc.exists;
+    } catch (e) {
+      print('Error checking user rating: $e');
+      return false;
+    }
+  }
+
+  // 評価を保存
+  static Future<bool> saveRating(String questionId, bool isHelpful) async {
+    final user = _auth.currentUser;
+    if (user == null) {
+      print('User not authenticated');
+      return false;
+    }
+
+    try {
+      final batch = _firestore.batch();
+
+      // ユーザーの評価記録を保存
+      final ratingRef = _firestore
+          .collection('faq_ratings')
+          .doc('${questionId}_${user.uid}');
+
+      batch.set(ratingRef, {
+        'questionId': questionId,
+        'userId': user.uid,
+        'isHelpful': isHelpful,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+
+      // FAQ文書の評価カウントを更新
+      final faqRef = _firestore.collection('q-a_list').doc(questionId);
+
+      if (isHelpful) {
+        batch.update(faqRef, {
+          'helpfulCount': FieldValue.increment(1),
+        });
+      } else {
+        batch.update(faqRef, {
+          'notHelpfulCount': FieldValue.increment(1),
+        });
+      }
+
+      await batch.commit();
+      return true;
+    } catch (e) {
+      print('Error saving rating: $e');
+      return false;
+    }
+  }
+
+  // 匿名ログイン（ユーザーがログインしていない場合）
+  static Future<User?> signInAnonymously() async {
+    try {
+      final userCredential = await _auth.signInAnonymously();
+      return userCredential.user;
+    } catch (e) {
+      print('Error signing in anonymously: $e');
+      return null;
+    }
+  }
+
+  // 現在のユーザーを取得（必要に応じて匿名ログイン）
+  static Future<User?> getCurrentUser() async {
+    User? user = _auth.currentUser;
+    if (user == null) {
+      user = await signInAnonymously();
+    }
+    return user;
   }
 }
 
@@ -648,10 +736,116 @@ class _AnimeToursimFAQPageState extends State<AnimeToursimFAQPage> {
 }
 
 // FAQ詳細ページ（修正済み）
-class FAQDetailPage extends StatelessWidget {
+class FAQDetailPage extends StatefulWidget {
   final FAQModel faq;
 
   const FAQDetailPage({Key? key, required this.faq}) : super(key: key);
+
+  @override
+  State<FAQDetailPage> createState() => _FAQDetailPageState();
+}
+
+class _FAQDetailPageState extends State<FAQDetailPage> {
+  bool _hasRated = false;
+  bool _isCheckingRating = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkUserRating();
+  }
+
+  // ユーザーが既に評価済みかどうかをチェック
+  Future<void> _checkUserRating() async {
+    final hasRated = await FAQRatingService.hasUserRated(widget.faq.id);
+    setState(() {
+      _hasRated = hasRated;
+      _isCheckingRating = false;
+    });
+  }
+
+  // 評価を送信
+  Future<void> _submitRating(bool isHelpful) async {
+    // ユーザー認証を確認
+    final user = await FAQRatingService.getCurrentUser();
+    if (user == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('評価の送信に失敗しました。もう一度お試しください。'),
+            duration: Duration(seconds: 3),
+          ),
+        );
+      }
+      return;
+    }
+
+    // 評価を保存
+    final success = await FAQRatingService.saveRating(widget.faq.id, isHelpful);
+
+    if (mounted) {
+      if (success) {
+        setState(() {
+          _hasRated = true;
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(isHelpful ? 'ご意見をありがとうございます' : 'ご意見をありがとうございます。今後の改善に役立てさせていただきます。'),
+            duration: const Duration(seconds: 3),
+          ),
+        );
+
+        // 「いいえ」の場合はお問い合わせフォームへの遷移を提案
+        if (!isHelpful) {
+          Future.delayed(const Duration(seconds: 1), () {
+            if (mounted) {
+              _showContactFormDialog();
+            }
+          });
+        }
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('評価の送信に失敗しました。もう一度お試しください。'),
+            duration: Duration(seconds: 3),
+          ),
+        );
+      }
+    }
+  }
+
+  // お問い合わせフォームへの案内ダイアログ
+  void _showContactFormDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('追加のサポートが必要ですか？'),
+          content: const Text('お問い合わせフォームから詳細なご質問やご要望をお送りいただけます。'),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: const Text('いいえ'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                _navigateToContactForm();
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF00A0C6),
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('お問い合わせフォームへ'),
+            ),
+          ],
+        );
+      },
+    );
+  }
 
   // テキストをクリップボードにコピー
   Future<void> _copyToClipboard(BuildContext context, String text) async {
@@ -664,13 +858,13 @@ class FAQDetailPage extends StatelessWidget {
     );
   }
 
-  // お問い合わせフォームへの遷移（修正済み）
-  void _navigateToContactForm(BuildContext context) {
+  // お問い合わせフォームへの遷移
+  void _navigateToContactForm() {
     Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => QAFormPage(
-          initialGenre: faq.genre, // FAQ詳細のジャンルを渡す
+          initialGenre: widget.faq.genre, // FAQ詳細のジャンルを渡す
         ),
       ),
     );
@@ -702,7 +896,7 @@ class FAQDetailPage extends StatelessWidget {
         backgroundColor: Colors.white,
         elevation: 0,
         title: Text(
-          faq.title,
+          widget.faq.title,
           style: const TextStyle(
             color: Colors.black,
             fontWeight: FontWeight.bold,
@@ -720,9 +914,9 @@ class FAQDetailPage extends StatelessWidget {
             icon: const Icon(Icons.more_vert, color: Colors.black),
             onSelected: (value) {
               if (value == 'copy') {
-                _copyToClipboard(context, '${faq.question}\n\n${faq.answer}');
+                _copyToClipboard(context, '${widget.faq.question}\n\n${widget.faq.answer}');
               } else if (value == 'share') {
-                Share.share('${faq.question}\n\n${faq.answer}');
+                Share.share('${widget.faq.question}\n\n${widget.faq.answer}');
               }
             },
             itemBuilder: (context) => [
@@ -748,15 +942,15 @@ class FAQDetailPage extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
-                  color: _getGenreColor(faq.genre).withOpacity(0.1),
+                  color: _getGenreColor(widget.faq.genre).withOpacity(0.1),
                   borderRadius: BorderRadius.circular(16),
                 ),
                 child: Text(
-                  faq.genre,
+                  widget.faq.genre,
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.bold,
-                    color: _getGenreColor(faq.genre),
+                    color: _getGenreColor(widget.faq.genre),
                   ),
                 ),
               ),
@@ -764,7 +958,7 @@ class FAQDetailPage extends StatelessWidget {
 
               // 質問
               Text(
-                faq.question,
+                widget.faq.question,
                 style: const TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
@@ -775,7 +969,7 @@ class FAQDetailPage extends StatelessWidget {
 
               // 回答
               Text(
-                faq.answer,
+                widget.faq.answer,
                 style: const TextStyle(
                   fontSize: 16,
                   color: Colors.black87,
@@ -787,7 +981,7 @@ class FAQDetailPage extends StatelessWidget {
 
               // 更新日時
               Text(
-                '最終更新: ${_formatTimestamp(faq.lastUpdated)}',
+                '最終更新: ${_formatTimestamp(widget.faq.lastUpdated)}',
                 style: TextStyle(
                   fontSize: 12,
                   color: Colors.grey[600],
@@ -799,56 +993,81 @@ class FAQDetailPage extends StatelessWidget {
               // 問い合わせボタン
               const Divider(),
               const SizedBox(height: 20),
-              const Text(
-                'この回答は役に立ちましたか？',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('ご意見をありがとうございます'),
-                            duration: Duration(seconds: 2),
+
+              // 評価セクション
+              if (_isCheckingRating)
+                const Center(child: CircularProgressIndicator())
+              else if (_hasRated)
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.green.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.green.withOpacity(0.3)),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.check_circle, color: Colors.green),
+                      const SizedBox(width: 8),
+                      const Expanded(
+                        child: Text(
+                          '評価いただき、ありがとうございました',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.green,
+                            fontWeight: FontWeight.bold,
                           ),
-                        );
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF00A0C6),
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
                         ),
                       ),
-                      child: const Text('はい'),
-                    ),
+                    ],
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: () {
-                        // 修正：お問い合わせフォームページへの遷移
-                        _navigateToContactForm(context);
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.white,
-                        foregroundColor: const Color(0xFF00A0C6),
-                        side: const BorderSide(color: Color(0xFF00A0C6)),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
+                )
+              else
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'この回答は役に立ちましたか？',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
                       ),
-                      child: const Text('いいえ'),
                     ),
-                  ),
-                ],
-              ),
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: ElevatedButton(
+                            onPressed: () => _submitRating(true),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF00A0C6),
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                            ),
+                            child: const Text('はい'),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: ElevatedButton(
+                            onPressed: () => _submitRating(false),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.white,
+                              foregroundColor: const Color(0xFF00A0C6),
+                              side: const BorderSide(color: Color(0xFF00A0C6)),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                            ),
+                            child: const Text('いいえ'),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
             ],
           ),
         ),
