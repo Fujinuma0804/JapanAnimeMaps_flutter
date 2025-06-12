@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:async';
 
 import 'package:app_tracking_transparency/app_tracking_transparency.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -6,7 +7,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
-import 'package:loading_animation_widget/loading_animation_widget.dart'; // 追加
+import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:parts/firebase_options.dart';
 import 'package:parts/shop/purchase_agency.dart';
@@ -15,9 +16,9 @@ import 'package:parts/src/bottomnavigationbar.dart';
 import 'package:parts/top_page/welcome_page.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
 import 'package:flutter_stripe/flutter_stripe.dart';
-import 'package:intl/date_symbol_data_local.dart'; // 日本語ロケールデータ初期化用
-import 'package:cloud_firestore/cloud_firestore.dart'; // Firestoreを追加
-import 'package:cloud_functions/cloud_functions.dart'; // Cloud Functions追加
+import 'package:intl/date_symbol_data_local.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 
 void main() async {
   // Flutter binding初期化
@@ -414,7 +415,7 @@ Future<void> _validateConfiguration() async {
   }
 }
 
-// 新規追加: ユーザーのログイン情報を更新する関数
+// 改善されたユーザーのログイン情報を更新する関数
 Future<void> updateUserLoginInfo(String userId) async {
   try {
     // Firebase初期化確認
@@ -438,21 +439,91 @@ Future<void> updateUserLoginInfo(String userId) async {
 
       await userRef.update({
         'lastLoginAt': now, // 最終ログイン日時を更新
+        'lastOpenedAt': now, // アプリを最後に開いた日時を更新
         'loginCount': currentLoginCount + 1, // ログイン回数をインクリメント
+        'lastSyncedAt': now, // 最終同期日時
       });
-      print('User login info updated: $userId, count: ${currentLoginCount + 1}');
+      print('✅ User login info updated: $userId, count: ${currentLoginCount + 1}');
     } else {
       // ドキュメントが存在しない場合は新規作成
       await userRef.set({
         'lastLoginAt': now,
+        'lastOpenedAt': now,
         'loginCount': 1,
         'createdAt': now, // 初回作成日時
+        'lastSyncedAt': now,
       }, SetOptions(merge: true)); // 既存データとマージする
-      print('New user login record created: $userId');
+      print('✅ New user login record created: $userId');
     }
+
+    // ログイン記録後、必ず課金状況を同期
+    await _forceSyncBillingStatus(userId);
+
   } catch (e) {
-    print('Error updating user login info: $e');
+    print('❌ Error updating user login info: $e');
     // ログイン情報更新の失敗は致命的ではないので処理を継続
+  }
+}
+
+// 新規追加: 強制的な課金状況同期関数
+Future<void> _forceSyncBillingStatus(String userId) async {
+  try {
+    print('🔄 Force syncing billing status for user: $userId');
+
+    // RevenueCatから最新の課金情報を取得
+    final customerInfo = await Purchases.getCustomerInfo();
+
+    // Firestoreに同期
+    await syncBillingInfoToFirestore(userId, customerInfo);
+
+    // ユーザードキュメントにも課金状況を保存
+    await _updateUserPremiumStatus(userId, customerInfo);
+
+    print('✅ Billing status force sync completed for user: $userId');
+  } catch (e) {
+    print('❌ Error in force billing sync: $e');
+  }
+}
+
+// 新規追加: ユーザードキュメントのプレミアム状況を更新
+Future<void> _updateUserPremiumStatus(String userId, CustomerInfo customerInfo) async {
+  try {
+    final userRef = FirebaseFirestore.instance.collection('users').doc(userId);
+
+    // 課金状態の判定
+    final isPremium = customerInfo.entitlements.active.isNotEmpty;
+    final hasActiveSubscription = customerInfo.activeSubscriptions.isNotEmpty;
+    final activeSubscriptions = customerInfo.activeSubscriptions.toList();
+
+    // プレミアムプランの種類を判定
+    String? subscriptionType;
+    if (hasActiveSubscription) {
+      for (String productId in activeSubscriptions) {
+        if (productId.toLowerCase().contains('year') ||
+            productId.toLowerCase().contains('annual')) {
+          subscriptionType = 'yearly';
+          break;
+        } else if (productId.toLowerCase().contains('month')) {
+          subscriptionType = 'monthly';
+          break;
+        }
+      }
+    }
+
+    // ユーザードキュメントを更新
+    await userRef.update({
+      'isPremiumUser': isPremium,
+      'hasActiveSubscription': hasActiveSubscription,
+      'subscriptionType': subscriptionType,
+      'activeSubscriptions': activeSubscriptions,
+      'revenueCatCustomerId': customerInfo.originalAppUserId,
+      'billingLastSyncedAt': DateTime.now(),
+      'billingLastSyncedTimestamp': FieldValue.serverTimestamp(),
+    });
+
+    print('✅ User premium status updated: isPremium=$isPremium, type=$subscriptionType');
+  } catch (e) {
+    print('❌ Error updating user premium status: $e');
   }
 }
 
@@ -562,30 +633,117 @@ Future<void> syncBillingInfoToFirestore(String userId, CustomerInfo customerInfo
   }
 }
 
-// RevenueCatの課金状態をリアルタイムで監視開始
+// 改善されたRevenueCatの課金状態をリアルタイムで監視開始
 void startBillingMonitoring(String userId) {
   try {
-    print('🔄 Starting billing monitoring for user: $userId');
+    print('🔄 Starting enhanced billing monitoring for user: $userId');
 
     // CustomerInfoの変更を監視
     Purchases.addCustomerInfoUpdateListener((customerInfo) {
       print('📱 CustomerInfo updated for user: $userId');
 
-      // 非同期でFirestoreに同期
-      syncBillingInfoToFirestore(userId, customerInfo).catchError((error) {
-        print('❌ Error in billing sync listener: $error');
-      });
+      // 非同期でFirestoreに同期（エラーハンドリング強化）
+      _handleBillingInfoUpdate(userId, customerInfo);
     });
 
-    // 初回の課金状態を即座に同期
-    Purchases.getCustomerInfo().then((customerInfo) {
-      print('📋 Initial billing sync for user: $userId');
-      return syncBillingInfoToFirestore(userId, customerInfo);
-    }).catchError((error) {
-      print('❌ Error in initial billing sync: $error');
-    });
+    print('✅ Billing monitoring started successfully');
   } catch (e) {
     print('❌ Error starting billing monitoring: $e');
+  }
+}
+
+// 新規追加: 課金情報更新のハンドラー
+Future<void> _handleBillingInfoUpdate(String userId, CustomerInfo customerInfo) async {
+  try {
+    // Firestoreの課金情報を更新
+    await syncBillingInfoToFirestore(userId, customerInfo);
+
+    // ユーザードキュメントのプレミアム状況も更新
+    await _updateUserPremiumStatus(userId, customerInfo);
+
+    print('✅ Billing info update handled successfully');
+  } catch (e) {
+    print('❌ Error handling billing info update: $e');
+  }
+}
+
+// アプリ利用状況を記録する新規関数
+Future<void> recordAppUsage(String userId) async {
+  try {
+    final now = DateTime.now();
+
+    // アプリ利用履歴コレクションに記録
+    await FirebaseFirestore.instance
+        .collection('users')
+        .doc(userId)
+        .collection('usage_history')
+        .add({
+      'openedAt': now,
+      'timestamp': FieldValue.serverTimestamp(),
+      'platform': Platform.isIOS ? 'iOS' : 'Android',
+      'appVersion': await _getAppVersion(),
+    });
+
+    // 今日の利用回数を更新
+    final today = DateTime(now.year, now.month, now.day);
+    final todayDocId = '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
+
+    final dailyUsageRef = FirebaseFirestore.instance
+        .collection('users')
+        .doc(userId)
+        .collection('daily_usage')
+        .doc(todayDocId);
+
+    final dailyUsageDoc = await dailyUsageRef.get();
+
+    if (dailyUsageDoc.exists) {
+      final currentCount = dailyUsageDoc.data()?['openCount'] ?? 0;
+      await dailyUsageRef.update({
+        'openCount': currentCount + 1,
+        'lastOpenedAt': now,
+      });
+    } else {
+      await dailyUsageRef.set({
+        'date': today,
+        'openCount': 1,
+        'firstOpenedAt': now,
+        'lastOpenedAt': now,
+      });
+    }
+
+    print('✅ App usage recorded for user: $userId');
+  } catch (e) {
+    print('❌ Error recording app usage: $e');
+  }
+}
+
+// アプリバージョンを取得する関数
+Future<String> _getAppVersion() async {
+  try {
+    final packageInfo = await PackageInfo.fromPlatform();
+    return '${packageInfo.version}+${packageInfo.buildNumber}';
+  } catch (e) {
+    print('Error getting app version: $e');
+    return 'Unknown';
+  }
+}
+
+// 課金状況の定期チェック機能（オプション）
+Future<void> schedulePeriodicBillingSync(String userId) async {
+  try {
+    // 24時間ごとに課金状況をチェック
+    Timer.periodic(Duration(hours: 24), (timer) async {
+      try {
+        print('⏰ Performing scheduled billing sync for user: $userId');
+        await _forceSyncBillingStatus(userId);
+      } catch (e) {
+        print('❌ Error in scheduled billing sync: $e');
+      }
+    });
+
+    print('✅ Periodic billing sync scheduled');
+  } catch (e) {
+    print('❌ Error scheduling periodic billing sync: $e');
   }
 }
 
@@ -663,26 +821,28 @@ class _SplashScreenState extends State<SplashScreen> {
     }
   }
 
+  // 改善されたsyncRevenueCatUser関数
   Future<void> _syncRevenueCatUser() async {
     try {
       final user = FirebaseAuth.instance.currentUser;
       if (user != null) {
+        print('🔄 Starting RevenueCat user sync for: ${user.uid}');
+
         // RevenueCatにユーザーIDを同期
         await Purchases.logIn(user.uid);
-        if (kDebugMode) {
-          print('RevenueCat user synced: ${user.uid}');
-        }
+        print('✅ RevenueCat user logged in: ${user.uid}');
 
-        // 購読状態を確認
-        final customerInfo = await Purchases.getCustomerInfo();
-        if (kDebugMode) {
-          print('Customer Info: ${customerInfo.originalAppUserId}');
-          print('Active subscriptions: ${customerInfo.activeSubscriptions}');
-          print('Active entitlements: ${customerInfo.entitlements.active}');
-        }
+        // 課金状態を強制同期
+        await _forceSyncBillingStatus(user.uid);
+
+        // 課金状態の監視を開始
+        startBillingMonitoring(user.uid);
+
+      } else {
+        print('⚠️ No user logged in for RevenueCat sync');
       }
     } catch (e) {
-      print('RevenueCat user sync failed: $e');
+      print('❌ RevenueCat user sync failed: $e');
       // RevenueCat同期失敗は致命的ではないので処理を継続
     }
   }
@@ -710,6 +870,7 @@ class _SplashScreenState extends State<SplashScreen> {
     }
   }
 
+  // 改善された_navigateToNextScreen関数
   Future<void> _navigateToNextScreen() async {
     if (!mounted) return;
 
@@ -724,13 +885,23 @@ class _SplashScreenState extends State<SplashScreen> {
       print('Current user: ${user?.uid ?? "No user"}');
 
       if (user != null) {
-        // ユーザーがログインしている場合はログイン情報を更新
+        print('🔄 Processing logged-in user: ${user.uid}');
+
+        // 1. ユーザーのログイン情報を更新（課金情報同期も含む）
         await updateUserLoginInfo(user.uid);
 
-        // 課金状態の監視を開始
-        startBillingMonitoring(user.uid);
+        // 2. アプリ利用状況を記録
+        await recordAppUsage(user.uid);
 
+        // 3. RevenueCatとの同期確認
+        await _syncRevenueCatUser();
+
+        // 4. 定期的な課金状況チェックをスケジュール（オプション）
+        // await schedulePeriodicBillingSync(user.uid);
+
+        print('✅ All user data synced successfully');
         print('Navigating to MainScreen');
+
         if (mounted) {
           Navigator.of(context).pushReplacement(
             MaterialPageRoute(builder: (context) => MainScreen()),
@@ -745,7 +916,7 @@ class _SplashScreenState extends State<SplashScreen> {
         }
       }
     } catch (e, stackTrace) {
-      print('Navigation error: $e');
+      print('❌ Navigation error: $e');
       print('Stack trace: $stackTrace');
       setState(() {
         _initError = 'ナビゲーションエラー: $e';
@@ -825,6 +996,11 @@ class _SplashScreenState extends State<SplashScreen> {
                 SizedBox(height: 8),
                 Text(
                   'Firebase Apps: ${Firebase.apps.length}',
+                  style: TextStyle(fontSize: 12, color: Colors.grey),
+                ),
+                SizedBox(height: 8),
+                Text(
+                  'Auth Status: $_authStatus',
                   style: TextStyle(fontSize: 12, color: Colors.grey),
                 ),
               ],
