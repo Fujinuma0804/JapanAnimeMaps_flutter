@@ -106,7 +106,7 @@ class _ManualEnState extends State<ManualEn> {
                 SettingsTile.navigation(
                   leading: const Icon(Icons.bookmarks_sharp),
                   title: Text(_language == '日本語' ? '利用方法' : 'How to Use'),
-                  value: const Text('現在調整中…'),
+                  value: Text(_language == '日本語' ? '現在調整中…' : 'Under adjustment'),
                   onPressed: (context) {
                     // Navigator.push(context,
                     //     MaterialPageRoute(builder: (context) => UsageScreen()));
