@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:parts/help_page/help.dart';
+import 'package:parts/help_page/qa/qanda-top.dart';
+import 'package:parts/subscription/payment_subscription.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class SubscriptionLP extends StatefulWidget {
   const SubscriptionLP({Key? key}) : super(key: key);
@@ -43,7 +47,22 @@ class _SubscriptionLPState extends State<SubscriptionLP>
 
   void _onSubscribePressed() {
     HapticFeedback.mediumImpact();
+
+    // まず現在の画面のrootNavigatorを取得
+    final rootNavigator = Navigator.of(context, rootNavigator: true);
+
+    // 現在の画面を閉じる
     Navigator.pop(context);
+
+    // 即座にボトムシートを表示
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      showModalBottomSheet(
+        context: rootNavigator.context,
+        isScrollControlled: true,
+        backgroundColor: Colors.transparent,
+        builder: (context) => const PaymentSubscriptionScreen(),
+      );
+    });
   }
 
   @override
@@ -767,34 +786,88 @@ class _SubscriptionLPState extends State<SubscriptionLP>
           const SizedBox(height: 40),
 
           // フッター情報
-          const Column(
+          Column(
             children: [
               Text(
-                '© 2025 JAM Premium',
+                '© 2024-2025 AnimeTourism Inc. All rights reserved.',
                 style: TextStyle(
                   color: Colors.white70,
                   fontSize: 14,
                 ),
+                textAlign: TextAlign.center,
               ),
               SizedBox(height: 8),
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Text(
-                    '利用規約',
-                    style: TextStyle(
-                      color: Colors.white70,
-                      fontSize: 12,
-                      decoration: TextDecoration.underline,
+                  GestureDetector(
+                    onTap: () async {
+                      const url = 'https://animetourism.co.jp/terms';
+                      final Uri uri = Uri.parse(url);
+                      if (await canLaunchUrl(uri)) {
+                        await launchUrl(uri, mode: LaunchMode.inAppBrowserView);
+                      }
+                    },
+                    child: Text(
+                      '利用規約',
+                      style: TextStyle(
+                        color: Colors.white70,
+                        fontSize: 12,
+                        decoration: TextDecoration.underline,
+                      ),
                     ),
                   ),
-                  SizedBox(width: 20),
+                  SizedBox(width: 8),
                   Text(
-                    'プライバシーポリシー',
+                    '｜',
                     style: TextStyle(
                       color: Colors.white70,
                       fontSize: 12,
-                      decoration: TextDecoration.underline,
+                    ),
+                  ),
+                  SizedBox(width: 8),
+                  GestureDetector(
+                    onTap: () async {
+                      const url = 'https://animetourism.co.jp/privacy';
+                      final Uri uri = Uri.parse(url);
+                      if (await canLaunchUrl(uri)) {
+                        await launchUrl(uri, mode: LaunchMode.inAppBrowserView);
+                      }
+                    },
+                    child: Text(
+                      'プライバシーポリシー',
+                      style: TextStyle(
+                        color: Colors.white70,
+                        fontSize: 12,
+                        decoration: TextDecoration.underline,
+                      ),
+                    ),
+                  ),
+                  SizedBox(width: 8),
+                  Text(
+                    '｜',
+                    style: TextStyle(
+                      color: Colors.white70,
+                      fontSize: 12,
+                    ),
+                  ),
+                  SizedBox(width: 8),
+                  GestureDetector(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => QandATopPage(),
+                        ),
+                      );
+                    },
+                    child: Text(
+                      'よくある質問',
+                      style: TextStyle(
+                        color: Colors.white70,
+                        fontSize: 12,
+                        decoration: TextDecoration.underline,
+                      ),
                     ),
                   ),
                 ],
