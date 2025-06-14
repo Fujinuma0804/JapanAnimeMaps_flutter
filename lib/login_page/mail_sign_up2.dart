@@ -508,13 +508,13 @@ class _SecondSignUpPageState extends State<SecondSignUpPage>
           .doc(widget.userCredential.user?.uid)
           .update(userData);
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(_language == 'Japanese'
-              ? '登録が完了しました。'
-              : 'Registration completed successfully.'),
-        ),
-      );
+      // ScaffoldMessenger.of(context).showSnackBar(
+      //   SnackBar(
+      //     content: Text(_language == 'Japanese'
+      //         ? '登録が完了しました。'
+      //         : 'Registration completed successfully.'),
+      //   ),
+      // );
 
       Navigator.pushAndRemoveUntil(
         context,

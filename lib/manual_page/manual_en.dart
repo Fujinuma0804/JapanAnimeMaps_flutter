@@ -184,25 +184,25 @@ class _ManualEnState extends State<ManualEn> {
                 ),
               ],
             ),
-            SettingsSection(
-              title: Text(_language == '日本語' ? 'テスト' : 'TestMode'),
-              tiles: <SettingsTile>[
-                SettingsTile.navigation(
-                  leading: const Icon(Icons.deselect_sharp),
-                  title: Text(_language == '日本語' ? 'テスト' : 'TestMode'),
-                  value: const Text(''),
-                  onPressed: (context) {
-                    showModalBottomSheet(
-                      context: context,
-                      isScrollControlled: true,
-                      backgroundColor: Colors.transparent,
-                      //画面のテストはこちらを変更して遷移先に指定してください。
-                      builder: (context) => SubscriptionLP(),
-                    );
-                  },
-                ),
-              ],
-            ),
+            // SettingsSection(
+            //   title: Text(_language == '日本語' ? 'テスト' : 'TestMode'),
+            //   tiles: <SettingsTile>[
+            //     SettingsTile.navigation(
+            //       leading: const Icon(Icons.deselect_sharp),
+            //       title: Text(_language == '日本語' ? 'テスト' : 'TestMode'),
+            //       value: const Text(''),
+            //       onPressed: (context) {
+            //         showModalBottomSheet(
+            //           context: context,
+            //           isScrollControlled: true,
+            //           backgroundColor: Colors.transparent,
+            //           //画面のテストはこちらを変更して遷移先に指定してください。
+            //           builder: (context) => SubscriptionLP(),
+            //         );
+            //       },
+            //     ),
+            //   ],
+            // ),
           ],
         ),
       ),

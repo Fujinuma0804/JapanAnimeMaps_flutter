@@ -5,6 +5,8 @@ import 'package:parts/help_page/qa/qanda-top.dart';
 import 'package:parts/subscription/payment_subscription.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../src/bottomnavigationbar.dart'; // MainScreenのインポートを追加
+
 class SubscriptionLP extends StatefulWidget {
   const SubscriptionLP({Key? key}) : super(key: key);
 
@@ -61,8 +63,27 @@ class _SubscriptionLPState extends State<SubscriptionLP>
         isScrollControlled: true,
         backgroundColor: Colors.transparent,
         builder: (context) => const PaymentSubscriptionScreen(),
-      );
+      ).then((result) {
+        // サブスクリプション手続き完了後、MainScreenに遷移
+        if (result == true) { // サブスクリプション成功時
+          _navigateToMainScreen();
+        }
+      });
     });
+  }
+
+  // MainScreenへの遷移メソッド
+  void _navigateToMainScreen() {
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(builder: (context) => MainScreen()),
+          (route) => false, // 全ての前の画面をスタックから削除
+    );
+  }
+
+  // スキップしてMainScreenに遷移するメソッド
+  void _skipToMainScreen() {
+    HapticFeedback.lightImpact();
+    _navigateToMainScreen();
   }
 
   @override
@@ -112,6 +133,18 @@ class _SubscriptionLPState extends State<SubscriptionLP>
               padding: const EdgeInsets.fromLTRB(16, 40, 16, 16),
               child: Row(
                 children: [
+                  // スキップボタンを追加
+                  TextButton(
+                    onPressed: _skipToMainScreen,
+                    child: const Text(
+                      'スキップ',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
                   const Spacer(),
                   Container(
                     width: 40,
@@ -122,7 +155,7 @@ class _SubscriptionLPState extends State<SubscriptionLP>
                     ),
                     child: Center(
                       child: IconButton(
-                        onPressed: () => Navigator.pop(context),
+                        onPressed: _skipToMainScreen, // 閉じるボタンもMainScreenに遷移
                         icon: const Icon(
                           Icons.close,
                           color: Colors.white,
@@ -226,6 +259,31 @@ class _SubscriptionLPState extends State<SubscriptionLP>
                               ),
                             ),
                           ],
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 20),
+
+                    // 無料で続けるボタンを追加
+                    Container(
+                      width: double.infinity,
+                      height: 50,
+                      child: TextButton(
+                        onPressed: _skipToMainScreen,
+                        style: TextButton.styleFrom(
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(25),
+                            side: const BorderSide(color: Colors.white, width: 1),
+                          ),
+                        ),
+                        child: const Text(
+                          '無料で続ける',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w500,
+                          ),
                         ),
                       ),
                     ),
@@ -650,6 +708,30 @@ class _SubscriptionLPState extends State<SubscriptionLP>
               ),
             ),
           ),
+
+          const SizedBox(height: 15),
+
+          // 無料で続けるボタンを価格セクションにも追加
+          SizedBox(
+            width: double.infinity,
+            height: 45,
+            child: TextButton(
+              onPressed: _skipToMainScreen,
+              style: TextButton.styleFrom(
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(25),
+                ),
+              ),
+              child: const Text(
+                '無料で続ける',
+                style: TextStyle(
+                  color: Color(0xFF666666),
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -740,6 +822,31 @@ class _SubscriptionLPState extends State<SubscriptionLP>
                     ),
                   ),
                 ],
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 20),
+
+          // 無料で続けるボタンをCTAセクションにも追加
+          Container(
+            width: double.infinity,
+            height: 50,
+            child: TextButton(
+              onPressed: _skipToMainScreen,
+              style: TextButton.styleFrom(
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(25),
+                  side: const BorderSide(color: Colors.white70, width: 1),
+                ),
+              ),
+              child: const Text(
+                '無料で続ける',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                ),
               ),
             ),
           ),

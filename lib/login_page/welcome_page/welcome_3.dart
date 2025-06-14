@@ -4,7 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
-import '../../src/bottomnavigationbar.dart';
+import 'package:parts/subscription/subscription_lp.dart'; // SubscriptionLPのインポートを追加
 
 class Welcome3 extends StatefulWidget {
   @override
@@ -29,15 +29,16 @@ class _Welcome3State extends State<Welcome3>
       parent: _controller,
       curve: Curves.easeIn,
     )..addListener(() {
-        setState(() {});
-      });
+      setState(() {});
+    });
 
     _controller.forward();
 
     _getUserLanguage();
     Timer(Duration(seconds: 3), () {
+      // MainScreenではなくSubscriptionLPに遷移
       Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (context) => MainScreen()),
+        MaterialPageRoute(builder: (context) => SubscriptionLP()),
       );
     });
   }
