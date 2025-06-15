@@ -25,7 +25,8 @@ class QAFormThanksPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return PopScope(
+        child: Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
         backgroundColor: Colors.white,
@@ -37,6 +38,12 @@ class QAFormThanksPage extends StatelessWidget {
             fontWeight: FontWeight.bold,
             fontSize: 18,
           ),
+        ),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios, color: Colors.black),
+          onPressed: () {
+            Navigator.pop(context);
+          },
         ),
         automaticallyImplyLeading: false, // 戻るボタンを非表示
       ),
@@ -331,6 +338,7 @@ class QAFormThanksPage extends StatelessWidget {
           ),
         ),
       ),
+        ),
     );
   }
 

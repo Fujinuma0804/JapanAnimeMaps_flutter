@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:in_app_review/in_app_review.dart';
+import 'package:parts/help_page/qa/contact_form.dart';
 import 'package:parts/login_page/welcome_page/welcome_1.dart';
 import 'package:parts/subscription/payment_subscription.dart';
 import 'package:parts/subscription/subscription_lp.dart';
@@ -104,15 +105,62 @@ class _ManualEnState extends State<ManualEn> {
               ],
             ),
             SettingsSection(
-              title: Text(_language == '日本語' ? '利用方法' : 'How to Use'),
+              title: Text(_language == '日本語' ? 'お問い合わせ' : 'Contact'),
               tiles: <SettingsTile>[
                 SettingsTile.navigation(
-                  leading: const Icon(Icons.bookmarks_sharp),
-                  title: Text(_language == '日本語' ? '利用方法' : 'How to Use'),
-                  value: Text(_language == '日本語' ? '現在調整中…' : 'Under adjustment'),
+                  leading: const Icon(Icons.people_alt_outlined),
+                  title: Text(_language == '日本語' ? 'お問い合わせはこちらから' : 'Click here to contact us'),
+                  value: const Text(''),
                   onPressed: (context) {
-                    // Navigator.push(context,
-                    //     MaterialPageRoute(builder: (context) => UsageScreen()));
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const ContactFormPage()),
+                    );
+                  },
+                ),
+              ],
+            ),
+            // SettingsSection(
+            //   title: Text(_language == '日本語' ? '利用方法' : 'How to Use'),
+            //   tiles: <SettingsTile>[
+            //     SettingsTile.navigation(
+            //       leading: const Icon(Icons.bookmarks_sharp),
+            //       title: Text(_language == '日本語' ? '利用方法' : 'How to Use'),
+            //       value: Text(_language == '日本語' ? '現在調整中…' : 'Under adjustment'),
+            //       onPressed: (context) {
+            //         // Navigator.push(context,
+            //         //     MaterialPageRoute(builder: (context) => UsageScreen()));
+            //       },
+            //     ),
+            //   ],
+            // ),
+            SettingsSection(
+              title: Text(_language == '日本語' ? 'レビュー' : 'Review'),
+              tiles: <SettingsTile>[
+                SettingsTile.navigation(
+                  leading: const Icon(Icons.star_rounded),
+                  title: Text(_language == '日本語' ? 'このアプリをレビューする' : 'Review this app'),
+                  value: const Text(''),
+                  onPressed: (context) {
+                    inAppReview.openStoreListing(appStoreId: '6608967051', microsoftStoreId: '...');
+                  },
+                ),
+              ],
+            ),
+            SettingsSection(
+              title: Text(_language == '日本語' ? '有料プラン' : 'Paid plan'),
+              tiles: <SettingsTile>[
+                SettingsTile.navigation(
+                  leading: const Icon(Icons.payment_rounded),
+                  title: Text(_language == '日本語' ? 'JAMプレミアム' : 'JAM Premium'),
+                  value: const Text(''),
+                  onPressed: (context) {
+                    showModalBottomSheet(
+                      context: context,
+                      isScrollControlled: true,
+                      backgroundColor: Colors.transparent,
+                      builder: (context) => const PaymentSubscriptionScreen(),
+                    );
                   },
                 ),
               ],
@@ -149,37 +197,6 @@ class _ManualEnState extends State<ManualEn> {
                         }
                       });
                     }
-                  },
-                ),
-              ],
-            ),
-            SettingsSection(
-              title: Text(_language == '日本語' ? 'レビュー' : 'Review'),
-              tiles: <SettingsTile>[
-                SettingsTile.navigation(
-                  leading: const Icon(Icons.star_rounded),
-                  title: Text(_language == '日本語' ? 'このアプリをレビューする' : 'Review this app'),
-                  value: const Text(''),
-                  onPressed: (context) {
-                    inAppReview.openStoreListing(appStoreId: '6608967051', microsoftStoreId: '...');
-                  },
-                ),
-              ],
-            ),
-            SettingsSection(
-              title: Text(_language == '日本語' ? '有料プラン' : 'Paid plan'),
-              tiles: <SettingsTile>[
-                SettingsTile.navigation(
-                  leading: const Icon(Icons.payment_rounded),
-                  title: Text(_language == '日本語' ? 'JAMプレミアム' : 'JAM Premium'),
-                  value: const Text(''),
-                  onPressed: (context) {
-                    showModalBottomSheet(
-                      context: context,
-                      isScrollControlled: true,
-                      backgroundColor: Colors.transparent,
-                      builder: (context) => const PaymentSubscriptionScreen(),
-                    );
                   },
                 ),
               ],

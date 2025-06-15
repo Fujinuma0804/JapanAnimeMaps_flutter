@@ -1,7 +1,5 @@
-import 'dart:ui';
-
-import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/gestures.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:mailer/mailer.dart';
@@ -10,16 +8,14 @@ import 'package:url_launcher/url_launcher.dart';
 import 'dart:math';
 import 'qa_form_thanks.dart';
 
-class QAFormPage extends StatefulWidget {
-  final String? initialGenre;
-
-  const QAFormPage({Key? key, this.initialGenre}) : super(key: key);
+class ContactFormPage extends StatefulWidget {
+  const ContactFormPage({Key? key}) : super(key: key);
 
   @override
-  State<QAFormPage> createState() => _QAFormPageState();
+  State<ContactFormPage> createState() => _ContactFormPageState();
 }
 
-class _QAFormPageState extends State<QAFormPage> {
+class _ContactFormPageState extends State<ContactFormPage> {
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _contentController = TextEditingController();
@@ -31,7 +27,6 @@ class _QAFormPageState extends State<QAFormPage> {
 
   String? _userEmail;
   String? _userId;
-  String? _genre;
 
   // SMTP設定（実際の値に変更してください）
   static const String _smtpHost = 'mail19.onamae.ne.jp'; // SMTPサーバーホスト
@@ -59,23 +54,20 @@ class _QAFormPageState extends State<QAFormPage> {
         setState(() {
           _userEmail = user.email ?? '';
           _userId = user.uid;
-          _genre = widget.initialGenre ?? 'その他';
         });
       } else {
         print('⚠️ No user logged in, using guest mode');
         setState(() {
           _userEmail = 'ゲストユーザー';
           _userId = 'guest_user';
-          _genre = widget.initialGenre ?? 'その他';
         });
       }
-      print('✅ User data initialized: Email=$_userEmail, Genre=$_genre');
+      print('✅ User data initialized: Email=$_userEmail');
     } catch (e) {
       print('❌ Error initializing user data: $e');
       setState(() {
         _userEmail = 'ゲストユーザー';
         _userId = 'guest_user';
-        _genre = widget.initialGenre ?? 'その他';
       });
     }
   }
@@ -125,7 +117,6 @@ ${_nameController.text.trim()} 様
 管理番号: $managementNumber
 お名前: ${_nameController.text.trim()}
 メールアドレス: $_userEmail
-ジャンル: $_genre
 お問い合わせ内容:
 ${_contentController.text.trim()}
 ${_phoneController.text.trim().isNotEmpty ? '\nお電話番号: ${_phoneController.text.trim()}' : ''}
@@ -213,13 +204,6 @@ Website: https://animetourism.co.jp
               <p style="color: #333; margin: 0; font-size: 16px; background: #f8f9fa; padding: 10px; border-radius: 5px; word-break: break-all;">
                 $_userEmail
               </p>
-            </div>
-          </div>
-
-          <div style="margin-bottom: 25px;">
-            <p style="color: #00A0C6; font-weight: bold; margin: 0 0 8px 0; font-size: 14px;">🏷️ ジャンル</p>
-            <div style="display: inline-block; background: linear-gradient(135deg, #00A0C6, #0077B5); color: white; padding: 10px 20px; border-radius: 25px; font-size: 16px; font-weight: bold;">
-              $_genre
             </div>
           </div>
 
@@ -328,7 +312,6 @@ Website: https://animetourism.co.jp
 お名前: ${_nameController.text.trim()}
 メールアドレス: $_userEmail
 ユーザーID: $_userId
-ジャンル: $_genre
 お問い合わせ内容:
 ${_contentController.text.trim()}
 ${_phoneController.text.trim().isNotEmpty ? '\nお電話番号: ${_phoneController.text.trim()}' : ''}
@@ -394,18 +377,11 @@ ${_phoneController.text.trim().isNotEmpty ? '\nお電話番号: ${_phoneControll
               </p>
             </div>
             <div>
-              <p style="color: #1976d2; font-weight: bold; margin: 0 0 5px 0; font-size: 12px; text-transform: uppercase;">ジャンル</p>
-              <div style="display: inline-block; background: linear-gradient(135deg, #28a745, #20c997); color: white; padding: 8px 15px; border-radius: 20px; font-size: 14px; font-weight: bold;">
-                $_genre
-              </div>
+              <p style="color: #1976d2; font-weight: bold; margin: 0 0 5px 0; font-size: 12px; text-transform: uppercase;">📧 メールアドレス</p>
+              <a href="mailto:$_userEmail" style="color: #dc3545; text-decoration: none; font-size: 16px; font-weight: bold; background: #f8f9fa; padding: 8px; border-radius: 5px; display: block; word-break: break-all;">
+                $_userEmail
+              </a>
             </div>
-          </div>
-          
-          <div style="margin-bottom: 15px;">
-            <p style="color: #1976d2; font-weight: bold; margin: 0 0 5px 0; font-size: 12px; text-transform: uppercase;">📧 メールアドレス</p>
-            <a href="mailto:$_userEmail" style="color: #dc3545; text-decoration: none; font-size: 16px; font-weight: bold; background: #f8f9fa; padding: 8px; border-radius: 5px; display: block; word-break: break-all;">
-              $_userEmail
-            </a>
           </div>
 
           <div>
@@ -544,7 +520,6 @@ ${_phoneController.text.trim().isNotEmpty ? '\nお電話番号: ${_phoneControll
         'managementNumber': managementNumber,
         'userEmail': _userEmail,
         'userId': _userId,
-        'genre': _genre,
         'name': _nameController.text.trim(),
         'content': _contentController.text.trim(),
         'phone': _phoneController.text.trim().isEmpty ? null : _phoneController.text.trim(),
@@ -578,7 +553,6 @@ ${_phoneController.text.trim().isNotEmpty ? '\nお電話番号: ${_phoneControll
               inquiryData: {
                 'name': _nameController.text.trim(),
                 'email': _userEmail!,
-                'genre': _genre!,
                 'content': _contentController.text.trim(),
                 'phone': _phoneController.text.trim().isEmpty ? null : _phoneController.text.trim(),
               },
@@ -798,13 +772,6 @@ ${_phoneController.text.trim().isNotEmpty ? '\nお電話番号: ${_phoneControll
                   isRequired: true,
                 ),
 
-                // ジャンル（自動取得・変更不可）
-                _buildReadOnlyField(
-                  label: 'ジャンル',
-                  value: _genre ?? '',
-                  isRequired: true,
-                ),
-
                 // お名前
                 _buildTextFormField(
                   label: 'お名前',
@@ -844,11 +811,12 @@ ${_phoneController.text.trim().isNotEmpty ? '\nお電話番号: ${_phoneControll
                   validator: (value) {
                     if (value != null && value.trim().isNotEmpty) {
                       // 電話番号の簡易チェック
-                      final phoneRegex = RegExp(r'^[0-9\-\+\(\)\s]+');
-                          if (!phoneRegex.hasMatch(value.trim())) {
-                    return '有効な電話番号を入力してください';
+                      final phoneRegex = RegExp(r'^[0-9\-\+\(\)\s]+'
+                      );
+                      if (!phoneRegex.hasMatch(value.trim())) {
+                        return '有効な電話番号を入力してください';
+                      }
                     }
-                  }
                     return null;
                   },
                 ),
@@ -888,7 +856,7 @@ ${_phoneController.text.trim().isNotEmpty ? '\nお電話番号: ${_phoneControll
                                 ..onTap = _openPrivacyPolicy,
                             ),
                             const TextSpan(
-                              text: 'に同意します。お預かりした個人情報は、お問い合わせの回答のためにのみ使用いたします。'
+                              text: 'に同意します。お預かりした個人情報は、お問い合わせの回答のためにのみ使用いたします。',
                             ),
                           ],
                         ),
