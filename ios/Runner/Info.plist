@@ -68,8 +68,17 @@
    </array>
    <key>LSRequiresIPhoneOS</key>
    <true/>
+
+   <!-- カメラ関連の権限設定（更新） -->
    <key>NSCameraUsageDescription</key>
-   <string>QRコードの読み取りなどに使います</string>
+   <string>このアプリは写真や動画の撮影、QRコードの読み取りにカメラを使用します</string>
+   <key>NSMicrophoneUsageDescription</key>
+   <string>動画撮影時に音声を録音するために使用します</string>
+
+   <!-- フラッシュ使用権限（新規追加） -->
+   <key>NSCameraFlashUsageDescription</key>
+   <string>このアプリは撮影時にフラッシュを使用する場合があります</string>
+
    <key>BGTaskSchedulerPermittedIdentifiers</key>
    <array>
        <string>$(PRODUCT_BUNDLE_IDENTIFIER).location</string>
@@ -85,21 +94,30 @@
    </array>
    <key>NSUserNotificationUsageDescription</key>
    <string>アプリでポイント獲得時に通知を表示するために許可が必要です</string>
+
+   <!-- バックグラウンドモード（カメラ処理追加） -->
    <key>UIBackgroundModes</key>
    <array>
       <string>location</string>
       <string>fetch</string>
       <string>processing</string>
       <string>remote-notification</string>
+      <string>background-processing</string>
    </array>
+
    <key>UIRequiredDeviceCapabilities</key>
    <array>
       <string>arm64</string>
    </array>
    <key>NSLocationWhenInUseUsageDescription</key>
    <string>近くの聖地をお知らせするために位置情報へのアクセスが必要です。</string>
+
+   <!-- フォトライブラリ権限（既存のまま保持） -->
    <key>NSPhotoLibraryUsageDescription</key>
-   <string>アカウント登録や投稿機能に利用します。</string>
+   <string>JapanAnimeMapsで撮影したものをフォトライブラリに保存するために必要です。</string>
+   <key>NSPhotoLibraryAddUsageDescription</key>
+   <string>JapanAnimeMapsがメディアを端末に保存するために使用されます</string>
+
    <key>SignInWithApple</key>
    <true/>
    <key>UIApplicationSupportsIndirectInputEvents</key>
@@ -121,6 +139,8 @@
    <string>LaunchScreen</string>
    <key>UIMainStoryboardFile</key>
    <string>Main</string>
+
+   <!-- インターフェース向き設定（カメラ用に最適化） -->
    <key>UISupportedInterfaceOrientations</key>
    <array>
       <string>UIInterfaceOrientationPortrait</string>
@@ -134,16 +154,19 @@
       <string>UIInterfaceOrientationLandscapeLeft</string>
       <string>UIInterfaceOrientationLandscapeRight</string>
    </array>
+
+   <!-- ステータスバー設定（カメラUI用） -->
+   <key>UIStatusBarHidden</key>
+   <false/>
+   <key>UIViewControllerBasedStatusBarAppearance</key>
+   <false/>
+
    <key>com.apple.developer.applesignin</key>
    <array>
       <string>Default</string>
    </array>
    <key>SKPaymentTransactionObserverUsageDescription</key>
    <string>アプリ内課金の処理に必要です</string>
-   <key>NSPhotoLibraryAddUsageDescription</key>
-   <string>JAMがメディアを端末に保存するために使用されます</string>
-   <key>NSPhotoLibraryUsageDescription</key>
-   <string>JAMがメディアを端末に保存するために使用されます</string>
    <key>StoreKit</key>
    <array>
       <dict>
@@ -152,4 +175,4 @@
       </dict>
    </array>
 </dict>
-</plist>
+</plist>xs

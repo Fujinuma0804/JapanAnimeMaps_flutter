@@ -8,6 +8,7 @@ import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
@@ -384,6 +385,10 @@ class _MapSubscriptionEnState extends State<MapSubscriptionEn> {
 
   //サブスクリプション状態をチェックするメソッド【追加】
   Future<void> _checkSubscriptionStatus() async {
+    if (Firebase.apps.isEmpty) {
+      print('Error handling location update: Firebase not initialized');
+      return;
+    }
     setState(() {
       _isCheckingSubscription = true;
     });
@@ -464,6 +469,10 @@ class _MapSubscriptionEnState extends State<MapSubscriptionEn> {
 
   // 検索制限データをFirestoreからロードする新しいメソッド
   Future<void> _loadSearchLimitData() async {
+    if (Firebase.apps.isEmpty) {
+      print('Error handling location update: Firebase not initialized');
+      return;
+    }
     print('===検索制限データ読み込み開始＝＝＝');
     print('_userId: $_userId');
     // ユーザーの初期化を待つ
@@ -1109,6 +1118,12 @@ class _MapSubscriptionEnState extends State<MapSubscriptionEn> {
     return '';
   }
   Future<void> _getCurrentLocation() async {
+    //【Firebaseのデバックエラー解決のため追加】
+    if (Firebase.apps.isEmpty) {
+      print('Error handling location update : Firebase not initialized');
+      return;
+    }
+
     bool serviceEnabled;
     LocationPermission permission;
 

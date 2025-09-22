@@ -22,10 +22,6 @@ import 'package:parts/map_page/background_location.dart';
 import 'package:parts/map_page/notification_service.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:video_player/video_player.dart';
-import 'package:google_mobile_ads/google_mobile_ads.dart'; // 追加
-import 'package:shared_preferences/shared_preferences.dart'; // 【追加】
-import 'package:purchases_flutter/purchases_flutter.dart'; // 【追加】
-
 import '../PostScreen.dart';
 import '../spot_page/anime_list_detail.dart';
 // 【修正】正しいAdManagerファイルのみをインポート（もう一つの方をhide）

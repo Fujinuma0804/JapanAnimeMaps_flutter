@@ -13,6 +13,7 @@ import 'package:flutter/services.dart';
 import 'dart:io';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:parts/components/ad_mob.dart';
+import 'package:parts/event_tab/event_section.dart';
 import 'package:parts/spot_page/check_in.dart';
 import 'package:parts/spot_page/customer_animename_request.dart';
 import 'package:parts/spot_page/user_activity_logger.dart';
@@ -2704,6 +2705,7 @@ class _AnimeListTestRankingState extends State<AnimeListTestRanking>
             controller: _tabController,
             tabs: [
               Tab(text: 'アニメから探す'),
+              Tab(text: 'イベント情報',),
               Tab(text: '場所から探す'),
             ],
             labelColor: Color(0xFF00008b),
@@ -2721,6 +2723,7 @@ class _AnimeListTestRankingState extends State<AnimeListTestRanking>
                     controller: _tabController,
                     children: [
                       _buildAnimeList(),
+                      EventSection(),
                       _currentTabIndex == 1
                           ? PrefectureListPage(
                         prefectureSpots: _prefectureSpots,

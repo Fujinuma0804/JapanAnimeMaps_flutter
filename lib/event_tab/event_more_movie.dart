@@ -1139,20 +1139,6 @@ class _EventMoreMovieState extends State<EventMoreMovie> with TickerProviderStat
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         const Icon(
-                          Icons.bookmark_border,
-                          color: Colors.white,
-                          size: 28,
-                        ),
-                        const SizedBox(width: 8),
-                        const Text(
-                          '52 人が保存済み',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 12,
-                          ),
-                        ),
-                        const SizedBox(width: 24),
-                        const Icon(
                           Icons.favorite_border,
                           color: Colors.white,
                           size: 28,

@@ -2,14 +2,22 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:parts/camera/camera_top.dart';
+import 'package:parts/event_tab/anime_event_ver.dart';
+import 'package:parts/event_tab/event_section.dart';
 import 'package:parts/map_page/map_subsc.dart';
 import 'package:parts/map_page/map_subsc_en.dart';
 import 'package:parts/post_page/timeline_screen.dart';
 import 'package:parts/post_page/timeline_screen_en.dart';
+import 'package:parts/posts_photo/camera_posts.dart';
 import 'package:parts/ranking/ranking_top.dart';
+import 'package:parts/shiori/shiori_library.dart';
+import 'package:parts/shiori/shiori_make.dart';
 import 'package:parts/shop/shop_maintenance.dart';
 import 'package:parts/shop/shop_top.dart';
 import 'package:parts/spot_page/anime_list_en_new.dart';
+import 'package:parts/test/books.dart';
+import 'package:parts/test/posts_photo.dart';
 
 import '../point_page/point_update.dart';
 import '../post_page/post_first/post_welcome.dart';
@@ -238,15 +246,19 @@ class _MainScreenState extends State<MainScreen> {
               //ver3.0.6までは翻訳機能を実装し、表示していた。読み込み速度改善のために変更した。
               //     : AnimeListTestRankingEng(),
                   : AnimeListEnNew(),
-              _userLanguage == 'Japanese'
-              //現在リリース中。
-                  ? RankingTopPage()
-              // NewtAppUI()
-              // _buildShopScreen()
-                  : RankingTopPageEn(),
+              // _userLanguage == 'Japanese'
+              // //現在リリース中。
+              //     ?
+              // // RankingTopPage()
+              // ShioriMakePage()
+              // // _buildShopScreen()
+              //     : RankingTopPageEn(),
               _userLanguage == 'Japanese'
                   ? MapSubscription(latitude: _latitude, longitude: _longitude)
                   : MapSubscriptionEn(latitude: _latitude, longitude: _longitude),
+              _userLanguage == 'Japanese'
+                  ? TimelineScreenEn()//仮データ
+                  : TimelineScreenEn(),//仮データ
               _userLanguage == 'Japanese'
                   ? (!_hasSeenWelcome
                   ? PostWelcome1(showScaffold: false)
@@ -308,12 +320,12 @@ class CustomBottomNavigationBar extends StatelessWidget {
           label: language == 'Japanese' ? 'スポット' : 'Spot',
         ),
         BottomNavigationBarItem(
-          icon: Icon(Icons.calendar_today_outlined),
-          label: language == 'Japanese' ? 'イベント' : 'Event',
-        ),
-        BottomNavigationBarItem(
           icon: Icon(Icons.map),
           label: language == 'Japanese' ? '地図' : 'Map',
+        ),
+        BottomNavigationBarItem(
+          icon: Icon(Icons.add),
+          label: language == 'Japanese' ? '' : '',
         ),
         BottomNavigationBarItem(
           icon: Icon(Icons.chat_outlined),

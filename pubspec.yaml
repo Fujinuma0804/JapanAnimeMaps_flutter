@@ -160,6 +160,7 @@ dependencies:
   # ======================
   html_unescape: ^2.0.0
   mailer: ^6.4.1
+  camera: ^0.11.0+2
 
 dev_dependencies:
   flutter_test:
