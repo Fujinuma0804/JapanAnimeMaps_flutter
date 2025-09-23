@@ -17,7 +17,7 @@ class NotificationsPage extends StatefulWidget {
 class _NotificationsPageState extends State<NotificationsPage> {
   late User _user;
   late Stream<DocumentSnapshot> _userStream;
-  String _userLanguage = 'English'; // デフォルト言語を日本語に設定
+  String _userLanguage = 'English'; // デフォルト言語を英語に設定
 
   @override
   void initState() {
@@ -41,7 +41,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
         setState(() {
           _userLanguage =
               (snapshot.data() as Map<String, dynamic>)['language'] ??
-                  'English'; // デフォルトを日本語に設定
+                  'English'; // デフォルトを英語に設定
         });
       }
     });

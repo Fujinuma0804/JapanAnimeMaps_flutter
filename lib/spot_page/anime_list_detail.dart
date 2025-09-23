@@ -10,7 +10,7 @@ import 'package:geocoding/geocoding.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:parts/src/bubble.dart';
 import 'package:parts/src/bubble_border.dart';
-import 'package:share/share.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:video_player/video_player.dart';
 import 'package:youtube_player_flutter/youtube_player_flutter.dart';
@@ -181,7 +181,7 @@ class _AnimeDetailsPageState extends State<AnimeDetailsPage> {
             child: CircularProgressIndicator(
               value: loadingProgress.expectedTotalBytes != null
                   ? loadingProgress.cumulativeBytesLoaded /
-                  loadingProgress.expectedTotalBytes!
+                      loadingProgress.expectedTotalBytes!
                   : null,
             ),
           ),
@@ -204,46 +204,46 @@ class _AnimeDetailsPageState extends State<AnimeDetailsPage> {
       {double? width, double? height, BoxFit fit = BoxFit.cover}) {
     return imageUrl.isNotEmpty
         ? Image.network(
-      imageUrl,
-      width: width,
-      height: height,
-      fit: fit,
-      loadingBuilder: (BuildContext context, Widget child,
-          ImageChunkEvent? loadingProgress) {
-        if (loadingProgress == null) return child;
-        return Container(
-          width: width,
-          height: height,
-          color: Colors.grey[200],
-          child: Center(
-            child: CircularProgressIndicator(
-              value: loadingProgress.expectedTotalBytes != null
-                  ? loadingProgress.cumulativeBytesLoaded /
-                  loadingProgress.expectedTotalBytes!
-                  : null,
-            ),
-          ),
-        );
-      },
-      errorBuilder: (context, error, stackTrace) {
-        return Container(
-          width: width,
-          height: height,
-          color: Colors.grey[300],
-          child: Center(
-            child: Icon(Icons.error, color: Colors.grey[600]),
-          ),
-        );
-      },
-    )
+            imageUrl,
+            width: width,
+            height: height,
+            fit: fit,
+            loadingBuilder: (BuildContext context, Widget child,
+                ImageChunkEvent? loadingProgress) {
+              if (loadingProgress == null) return child;
+              return Container(
+                width: width,
+                height: height,
+                color: Colors.grey[200],
+                child: Center(
+                  child: CircularProgressIndicator(
+                    value: loadingProgress.expectedTotalBytes != null
+                        ? loadingProgress.cumulativeBytesLoaded /
+                            loadingProgress.expectedTotalBytes!
+                        : null,
+                  ),
+                ),
+              );
+            },
+            errorBuilder: (context, error, stackTrace) {
+              return Container(
+                width: width,
+                height: height,
+                color: Colors.grey[300],
+                child: Center(
+                  child: Icon(Icons.error, color: Colors.grey[600]),
+                ),
+              );
+            },
+          )
         : Container(
-      width: width,
-      height: height,
-      color: Colors.grey[300],
-      child: Center(
-        child: Icon(Icons.image_not_supported, color: Colors.grey[600]),
-      ),
-    );
+            width: width,
+            height: height,
+            color: Colors.grey[300],
+            child: Center(
+              child: Icon(Icons.image_not_supported, color: Colors.grey[600]),
+            ),
+          );
   }
 
   void _showTutorialTooltip() {
@@ -264,7 +264,7 @@ class _AnimeDetailsPageState extends State<AnimeDetailsPage> {
     return OverlayEntry(
       builder: (context) {
         final RenderBox? renderBox =
-        _infoIconKey.currentContext?.findRenderObject() as RenderBox?;
+            _infoIconKey.currentContext?.findRenderObject() as RenderBox?;
         final size = renderBox?.size ?? Size.zero;
         final offset = renderBox?.localToGlobal(Offset.zero) ?? Offset.zero;
 
@@ -343,7 +343,7 @@ class _AnimeDetailsPageState extends State<AnimeDetailsPage> {
           'imageUrl': data['imageUrl'] ?? '',
           'description': data['description'] ?? '',
           'spot_description':
-          data['spot_description'] ?? '', // spot_descriptionを追加
+              data['spot_description'] ?? '', // spot_descriptionを追加
           'latitude': data['latitude'] ?? 0.0,
           'longitude': data['longitude'] ?? 0.0,
           'sourceTitle': data['sourceTitle'] ?? '',
@@ -415,7 +415,7 @@ class _AnimeDetailsPageState extends State<AnimeDetailsPage> {
           }
 
           Map<String, dynamic> animeData =
-          snapshot.data!.data() as Map<String, dynamic>;
+              snapshot.data!.data() as Map<String, dynamic>;
           String imageUrl = animeData['imageUrl'] ?? '';
           String userId = animeData['userId'] ?? '';
 
@@ -447,8 +447,7 @@ class _AnimeDetailsPageState extends State<AnimeDetailsPage> {
                     }
                     if (!snapshot.hasData || snapshot.data!.isEmpty) {
                       return Center(
-                          child: Text(
-                              '${widget.animeName}の聖地が見つかりません。'));
+                          child: Text('${widget.animeName}の聖地が見つかりません。'));
                     }
 
                     final locations = snapshot.data!;
@@ -502,7 +501,6 @@ class _AnimeDetailsPageState extends State<AnimeDetailsPage> {
     if (userId.isEmpty && userEmail.isNotEmpty) {
       userId = userEmail.split('@')[0];
     }
-
 
     // spot_descriptionのデバッグ出力
     print('==== Spot Description Debug ====');
@@ -618,9 +616,9 @@ class SpotDetailScreen extends StatefulWidget {
     required this.longitude,
     required this.imageUrl,
     this.sourceTitle = '', // Provide default value
-    this.subsourceTitle = '',//this is sub source Title
+    this.subsourceTitle = '', //this is sub source Title
     this.sourceLink = '', // Provide default value
-    this.subsourceLink = '',//this is sub source link
+    this.subsourceLink = '', //this is sub source link
     this.url = '', // Provide default value
     required this.subMedia,
     required this.locationId,
@@ -639,8 +637,7 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
 
   void _shareContent() {
     final String mapsUrl =
-        "https://www.google.com/maps/search/?api=1&query=${widget
-        .latitude},${widget.longitude}";
+        "https://www.google.com/maps/search/?api=1&query=${widget.latitude},${widget.longitude}";
     final String shareText = '''
 『${widget.animeName}』の聖地
 ${widget.title}
@@ -657,8 +654,7 @@ https://japananimemaps.page.link/ios
 
   Future<void> _openMapOptions(BuildContext context) async {
     final googleMapsUrl =
-        "https://www.google.com/maps/search/?api=1&query=${widget
-        .latitude},${widget.longitude}";
+        "https://www.google.com/maps/search/?api=1&query=${widget.latitude},${widget.longitude}";
     final appleMapsUrl =
         "http://maps.apple.com/?q=${widget.latitude},${widget.longitude}";
 
@@ -712,8 +708,7 @@ https://japananimemaps.page.link/ios
         Placemark place = placemarks[0];
         String postalCode = place.postalCode ?? '';
         String address =
-            '${place.administrativeArea ?? ''} ${place.locality ?? ''} ${place
-            .street ?? ''}';
+            '${place.administrativeArea ?? ''} ${place.locality ?? ''} ${place.street ?? ''}';
 
         return {
           'postalCode': postalCode,
@@ -847,11 +842,10 @@ https://japananimemaps.page.link/ios
                             child: _videoPlayerController!.value.isPlaying
                                 ? const SizedBox.shrink()
                                 : Icon(
-                              Icons.play_circle_filled,
-                              color: Colors.white.withOpacity(0.8),
-                              size: 60,
-                            )
-                        ),
+                                    Icons.play_circle_filled,
+                                    color: Colors.white.withOpacity(0.8),
+                                    size: 60,
+                                  )),
                       ),
                     ),
                   ),
@@ -902,46 +896,46 @@ https://japananimemaps.page.link/ios
       {double? width, double? height, BoxFit fit = BoxFit.cover}) {
     return imageUrl.isNotEmpty
         ? Image.network(
-      imageUrl,
-      width: width,
-      height: height,
-      fit: fit,
-      loadingBuilder: (BuildContext context, Widget child,
-          ImageChunkEvent? loadingProgress) {
-        if (loadingProgress == null) return child;
-        return Container(
-          width: width,
-          height: height,
-          color: Colors.grey[200],
-          child: Center(
-            child: CircularProgressIndicator(
-              value: loadingProgress.expectedTotalBytes != null
-                  ? loadingProgress.cumulativeBytesLoaded /
-                  loadingProgress.expectedTotalBytes!
-                  : null,
-            ),
-          ),
-        );
-      },
-      errorBuilder: (context, error, stackTrace) {
-        return Container(
-          width: width,
-          height: height,
-          color: Colors.grey[300],
-          child: Center(
-            child: Icon(Icons.error, color: Colors.grey[600]),
-          ),
-        );
-      },
-    )
+            imageUrl,
+            width: width,
+            height: height,
+            fit: fit,
+            loadingBuilder: (BuildContext context, Widget child,
+                ImageChunkEvent? loadingProgress) {
+              if (loadingProgress == null) return child;
+              return Container(
+                width: width,
+                height: height,
+                color: Colors.grey[200],
+                child: Center(
+                  child: CircularProgressIndicator(
+                    value: loadingProgress.expectedTotalBytes != null
+                        ? loadingProgress.cumulativeBytesLoaded /
+                            loadingProgress.expectedTotalBytes!
+                        : null,
+                  ),
+                ),
+              );
+            },
+            errorBuilder: (context, error, stackTrace) {
+              return Container(
+                width: width,
+                height: height,
+                color: Colors.grey[300],
+                child: Center(
+                  child: Icon(Icons.error, color: Colors.grey[600]),
+                ),
+              );
+            },
+          )
         : Container(
-      width: width,
-      height: height,
-      color: Colors.grey[300],
-      child: Center(
-        child: Icon(Icons.image_not_supported, color: Colors.grey[600]),
-      ),
-    );
+            width: width,
+            height: height,
+            color: Colors.grey[300],
+            child: Center(
+              child: Icon(Icons.image_not_supported, color: Colors.grey[600]),
+            ),
+          );
   }
 
   @override
@@ -1221,8 +1215,7 @@ https://japananimemaps.page.link/ios
               child: Padding(
                 padding: const EdgeInsets.all(16.0),
                 child: ElevatedButton(
-                  onPressed: () =>
-                      _openMapOptions(context),
+                  onPressed: () => _openMapOptions(context),
                   child: Text(
                     'ここへ行く',
                     style: TextStyle(
@@ -1342,12 +1335,12 @@ https://japananimemaps.page.link/ios
                             margin: EdgeInsets.symmetric(vertical: 10),
                             child: url != null
                                 ? Image.network(
-                              url,
-                              errorBuilder: (context, error, stackTrace) {
-                                print("Image URL: $url");
-                                return Text('Failed to load image');
-                              },
-                            )
+                                    url,
+                                    errorBuilder: (context, error, stackTrace) {
+                                      print("Image URL: $url");
+                                      return Text('Failed to load image');
+                                    },
+                                  )
                                 : Text('No image URL provided'),
                           );
                         },
@@ -1433,6 +1426,7 @@ https://japananimemaps.page.link/ios
       ),
     );
   }
+
   Widget _buildSourceInfo2() {
     if (widget.subsourceTitle.isEmpty && widget.subsourceLink.isEmpty) {
       return SizedBox.shrink();
