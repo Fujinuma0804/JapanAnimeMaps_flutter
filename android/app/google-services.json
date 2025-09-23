@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "223327218351",
+    "project_id": "anime-97d2d",
+    "storage_bucket": "anime-97d2d.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:223327218351:android:5d81ef28af220bc7ca425a",
+        "android_client_info": {
+          "package_name": "com.example.parts"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "223327218351-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBRFBNB_lBR1gYsDN73w9ErjcAoFO1TPo4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "223327218351-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

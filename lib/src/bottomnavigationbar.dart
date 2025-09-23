@@ -162,7 +162,7 @@ class _MainScreenState extends State<MainScreen> {
   Widget _buildShopScreen() {
     return StreamBuilder<QuerySnapshot>(
       stream:
-      FirebaseFirestore.instance.collection('shopMaintenance').snapshots(),
+          FirebaseFirestore.instance.collection('shopMaintenance').snapshots(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return Center(child: CircularProgressIndicator());
@@ -197,6 +197,7 @@ class _MainScreenState extends State<MainScreen> {
 
   @override
   Widget build(BuildContext context) {
+    
     return StreamBuilder<DocumentSnapshot>(
       stream: _userStream,
       builder: (context, snapshot) {
@@ -220,51 +221,52 @@ class _MainScreenState extends State<MainScreen> {
           }
         }
         return Scaffold(
-          body: PageView(
-            controller: _pageController,
-            physics: const NeverScrollableScrollPhysics(),
-            onPageChanged: (index) {
-              setState(() {
-                _selectedIndex = index;
-              });
-            },
-            children: [
-              _userLanguage == 'Japanese'
+      body: PageView(
+        controller: _pageController,
+        physics: const NeverScrollableScrollPhysics(),
+        onPageChanged: (index) {
+          setState(() {
+            _selectedIndex = index;
+          });
+        },
+        children: [
+          _userLanguage == 'Japanese'
               //AnimeEventListは現在作成中。
               //     ? AnimeEventList()
-                  ? AnimeListTestRanking()
+              ? AnimeListTestRanking()
               //は現在リリース中
               // AnimeListTestRanking()
               //ver3.0.6までは翻訳機能を実装し、表示していた。読み込み速度改善のために変更した。
               //     : AnimeListTestRankingEng(),
-                  : AnimeListEnNew(),
-              _userLanguage == 'Japanese'
+              : AnimeListEnNew(),
+          _userLanguage == 'Japanese'
               //現在リリース中。
-                  ? RankingTopPage()
+              ? RankingTopPage()
               // NewtAppUI()
               // _buildShopScreen()
-                  : RankingTopPageEn(),
-              _userLanguage == 'Japanese'
-                  ? MapSubscription(latitude: _latitude, longitude: _longitude)
-                  : MapSubscriptionEn(latitude: _latitude, longitude: _longitude),
-              _userLanguage == 'Japanese'
-                  ? (!_hasSeenWelcome
+              : RankingTopPageEn(),
+          _userLanguage == 'Japanese'
+              ? MapSubscription(latitude: _latitude, longitude: _longitude)
+              : MapSubscriptionEn(latitude: _latitude, longitude: _longitude),
+          _userLanguage == 'Japanese'
+              ? (!_hasSeenWelcome
                   ? PostWelcome1(showScaffold: false)
                   : TimelineScreen())
-                  : (!_hasSeenWelcome
+              : (!_hasSeenWelcome
                   ? PostWelcome1(showScaffold: false)
                   : TimelineScreenEn()),
-              _userLanguage == 'Japanese'
-                  ? UserPointUpdatePage()
-                  : UserPointUpdatePage(),
-            ],
-          ),
-          bottomNavigationBar: CustomBottomNavigationBar(
-            currentIndex: _selectedIndex,
-            onTap: _onItemTapped,
-            language: _userLanguage,
-          ),
-        );
+          _userLanguage == 'Japanese'
+              ? UserPointUpdatePage()
+              : UserPointUpdatePage(),
+        ],
+      ),
+      bottomNavigationBar: CustomBottomNavigationBar(
+        currentIndex: _selectedIndex,
+        onTap: _onItemTapped,
+        language: _userLanguage,
+      ),
+    );
+
       },
     );
   }

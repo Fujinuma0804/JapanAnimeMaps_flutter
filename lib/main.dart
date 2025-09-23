@@ -55,21 +55,27 @@ void main() async {
 
     // Stripeの初期化
     print('Initializing Stripe...');
-    Stripe.publishableKey = 'pk_test_51QeIPUJR2jw9gpdILTofRSwaBs9pKKXfOse9EcwQTkfYNjtYb1rNsahb5uhm6QjcwzvGOhcZ0ZZgjW09HKtblHnH00Ps1dt4ZZ';
+    try {
+      Stripe.publishableKey =
+          'pk_test_51QeIPUJR2jw9gpdILTofRSwaBs9pKKXfOse9EcwQTkfYNjtYb1rNsahb5uhm6QjcwzvGOhcZ0ZZgjW09HKtblHnH00Ps1dt4ZZ';
 
-    // iOSのApple Pay設定
-    if (Platform.isIOS) {
-      Stripe.merchantIdentifier = 'merchant.com.sotakawakami.jam';
+      // iOSのApple Pay設定
+      if (Platform.isIOS) {
+        Stripe.merchantIdentifier = 'merchant.com.sotakawakami.jam';
+      }
+
+      // Stripe設定の適用
+      print('Applying Stripe settings...');
+      await Stripe.instance.applySettings();
+      print('✅ Stripe initialized successfully');
+    } catch (e) {
+      print('⚠️ Stripe initialization failed: $e');
+      print('Continuing without Stripe...');
     }
 
-    // 日本語ロケールデータの初期化
+    // 英語ロケールデータの初期化
     print('Initializing date formatting...');
-    await initializeDateFormatting('ja_JP');
-
-    // Stripe設定の適用
-    print('Applying Stripe settings...');
-    await Stripe.instance.applySettings();
-    print('✅ Stripe initialized successfully');
+    await initializeDateFormatting('en_US');
 
     // RevenueCatの初期化
     print('Initializing RevenueCat...');
@@ -79,16 +85,19 @@ void main() async {
     // Firebase の初期化
     print('Initializing Firebase...');
     WidgetsFlutterBinding.ensureInitialized();
+
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );
+    // await FirebaseFirestore.instance.enablePersistence();
     print('✅ Firebase initialized successfully');
     print('Firebase apps count: ${Firebase.apps.length}');
 
     // Firebase Functionsの明示的な初期化
     print('Initializing Firebase Functions...');
     FirebaseFunctions.instanceFor(region: 'us-central1');
-    FirebaseFunctions.instanceFor(region: 'asia-northeast1'); // MapSubscription用
+    FirebaseFunctions.instanceFor(
+        region: 'asia-northeast1'); // MapSubscription用
     print('✅ Firebase Functions initialized successfully');
 
     // AdMobの初期化
@@ -98,7 +107,6 @@ void main() async {
 
     print('=== ALL INITIALIZATION COMPLETED ===');
     runApp(const MyApp());
-
   } catch (e, stackTrace) {
     print('=== CRITICAL INITIALIZATION ERROR ===');
     print('Error: $e');
@@ -117,11 +125,13 @@ class ErrorApp extends StatelessWidget {
   final String error;
   final String stackTrace;
 
-  const ErrorApp({Key? key, required this.error, required this.stackTrace}) : super(key: key);
+  const ErrorApp({Key? key, required this.error, required this.stackTrace})
+      : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      debugShowCheckedModeBanner: false,
       title: 'JapanAnimeMaps - Error',
       home: Scaffold(
         body: SafeArea(
@@ -169,7 +179,8 @@ class ErrorApp extends StatelessWidget {
                         padding: EdgeInsets.all(8),
                         child: Text(
                           stackTrace,
-                          style: TextStyle(fontSize: 10, fontFamily: 'monospace'),
+                          style:
+                              TextStyle(fontSize: 10, fontFamily: 'monospace'),
                         ),
                       ),
                     ],
@@ -294,66 +305,71 @@ void showTestEmailDialog(BuildContext context) {
             ),
             actions: [
               TextButton(
-                onPressed: isLoading ? null : () {
-                  Navigator.of(context).pop();
-                },
+                onPressed: isLoading
+                    ? null
+                    : () {
+                        Navigator.of(context).pop();
+                      },
                 child: Text('キャンセル'),
               ),
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF00008b),
                 ),
-                onPressed: isLoading ? null : () async {
-                  final email = emailController.text.trim();
+                onPressed: isLoading
+                    ? null
+                    : () async {
+                        final email = emailController.text.trim();
 
-                  if (email.isEmpty) {
-                    setState(() {
-                      statusMessage = 'メールアドレスを入力してください';
-                      statusColor = Colors.red;
-                    });
-                    return;
-                  }
+                        if (email.isEmpty) {
+                          setState(() {
+                            statusMessage = 'メールアドレスを入力してください';
+                            statusColor = Colors.red;
+                          });
+                          return;
+                        }
 
-                  if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(email)) {
-                    setState(() {
-                      statusMessage = '有効なメールアドレスを入力してください';
-                      statusColor = Colors.red;
-                    });
-                    return;
-                  }
+                        if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
+                            .hasMatch(email)) {
+                          setState(() {
+                            statusMessage = '有効なメールアドレスを入力してください';
+                            statusColor = Colors.red;
+                          });
+                          return;
+                        }
 
-                  setState(() {
-                    isLoading = true;
-                    statusMessage = '送信処理を開始しています...';
-                    statusColor = Colors.blue;
-                  });
+                        setState(() {
+                          isLoading = true;
+                          statusMessage = '送信処理を開始しています...';
+                          statusColor = Colors.blue;
+                        });
 
-                  try {
-                    // 別関数で実行
-                    await testSendMail(context, email);
+                        try {
+                          // 別関数で実行
+                          await testSendMail(context, email);
 
-                    // 成功
-                    setState(() {
-                      statusMessage = '送信リクエストが完了しました';
-                      statusColor = Colors.green;
-                      isLoading = false;
-                    });
+                          // 成功
+                          setState(() {
+                            statusMessage = '送信リクエストが完了しました';
+                            statusColor = Colors.green;
+                            isLoading = false;
+                          });
 
-                    // 少し待ってダイアログを閉じる
-                    Future.delayed(Duration(seconds: 2), () {
-                      if (Navigator.canPop(context)) {
-                        Navigator.of(context).pop();
-                      }
-                    });
-                  } catch (e) {
-                    // エラー処理
-                    setState(() {
-                      statusMessage = 'エラー: $e';
-                      statusColor = Colors.red;
-                      isLoading = false;
-                    });
-                  }
-                },
+                          // 少し待ってダイアログを閉じる
+                          Future.delayed(Duration(seconds: 2), () {
+                            if (Navigator.canPop(context)) {
+                              Navigator.of(context).pop();
+                            }
+                          });
+                        } catch (e) {
+                          // エラー処理
+                          setState(() {
+                            statusMessage = 'エラー: $e';
+                            statusColor = Colors.red;
+                            isLoading = false;
+                          });
+                        }
+                      },
                 child: Text('送信', style: TextStyle(color: Colors.white)),
               ),
             ],
@@ -369,7 +385,8 @@ Future<void> initPlatformState() async {
     await Purchases.setLogLevel(LogLevel.debug);
 
     // RevenueCatの設定
-    final configuration = PurchasesConfiguration("appl_JfvzIYYEgsMeXVzavJRBnCnlKPS");
+    final configuration =
+        PurchasesConfiguration("appl_JfvzIYYEgsMeXVzavJRBnCnlKPS");
 
     await Purchases.configure(configuration);
     print('RevenueCat configured successfully');
@@ -443,7 +460,8 @@ Future<void> updateUserLoginInfo(String userId) async {
         'loginCount': currentLoginCount + 1, // ログイン回数をインクリメント
         'lastSyncedAt': now, // 最終同期日時
       });
-      print('✅ User login info updated: $userId, count: ${currentLoginCount + 1}');
+      print(
+          '✅ User login info updated: $userId, count: ${currentLoginCount + 1}');
     } else {
       // ドキュメントが存在しない場合は新規作成
       await userRef.set({
@@ -458,7 +476,6 @@ Future<void> updateUserLoginInfo(String userId) async {
 
     // ログイン記録後、必ず課金状況を同期
     await _forceSyncBillingStatus(userId);
-
   } catch (e) {
     print('❌ Error updating user login info: $e');
     // ログイン情報更新の失敗は致命的ではないので処理を継続
@@ -486,7 +503,8 @@ Future<void> _forceSyncBillingStatus(String userId) async {
 }
 
 // 新規追加: ユーザードキュメントのプレミアム状況を更新
-Future<void> _updateUserPremiumStatus(String userId, CustomerInfo customerInfo) async {
+Future<void> _updateUserPremiumStatus(
+    String userId, CustomerInfo customerInfo) async {
   try {
     final userRef = FirebaseFirestore.instance.collection('users').doc(userId);
 
@@ -521,7 +539,8 @@ Future<void> _updateUserPremiumStatus(String userId, CustomerInfo customerInfo) 
       'billingLastSyncedTimestamp': FieldValue.serverTimestamp(),
     });
 
-    print('✅ User premium status updated: isPremium=$isPremium, type=$subscriptionType');
+    print(
+        '✅ User premium status updated: isPremium=$isPremium, type=$subscriptionType');
   } catch (e) {
     print('❌ Error updating user premium status: $e');
   }
@@ -541,7 +560,8 @@ String? _safeDateTimeToString(dynamic dateTime) {
 }
 
 // RevenueCatの課金状態をFirestoreに同期する関数
-Future<void> syncBillingInfoToFirestore(String userId, CustomerInfo customerInfo) async {
+Future<void> syncBillingInfoToFirestore(
+    String userId, CustomerInfo customerInfo) async {
   try {
     // Firebase初期化確認
     if (Firebase.apps.isEmpty) {
@@ -566,8 +586,10 @@ Future<void> syncBillingInfoToFirestore(String userId, CustomerInfo customerInfo
         'willRenew': entitlement.willRenew,
         'productIdentifier': entitlement.productIdentifier,
         'isSandbox': entitlement.isSandbox,
-        'latestPurchaseDate': _safeDateTimeToString(entitlement.latestPurchaseDate),
-        'originalPurchaseDate': _safeDateTimeToString(entitlement.originalPurchaseDate),
+        'latestPurchaseDate':
+            _safeDateTimeToString(entitlement.latestPurchaseDate),
+        'originalPurchaseDate':
+            _safeDateTimeToString(entitlement.originalPurchaseDate),
         'expirationDate': _safeDateTimeToString(entitlement.expirationDate),
         'store': entitlement.store.toString(),
         'periodType': entitlement.periodType.toString(),
@@ -575,7 +597,8 @@ Future<void> syncBillingInfoToFirestore(String userId, CustomerInfo customerInfo
     }
 
     // アクティブなサブスクリプション情報を収集
-    List<String> activeSubscriptions = customerInfo.activeSubscriptions.toList();
+    List<String> activeSubscriptions =
+        customerInfo.activeSubscriptions.toList();
 
     // 課金状態の判定
     bool isPremium = customerInfo.entitlements.active.isNotEmpty;
@@ -609,7 +632,8 @@ Future<void> syncBillingInfoToFirestore(String userId, CustomerInfo customerInfo
       'requestDate': _safeDateTimeToString(customerInfo.requestDate),
       'firstSeen': _safeDateTimeToString(customerInfo.firstSeen),
       'originalApplicationVersion': customerInfo.originalApplicationVersion,
-      'originalPurchaseDate': _safeDateTimeToString(customerInfo.originalPurchaseDate),
+      'originalPurchaseDate':
+          _safeDateTimeToString(customerInfo.originalPurchaseDate),
       'managementURL': customerInfo.managementURL,
       'activeSubscriptions': activeSubscriptions,
       'allExpirationDates': safeExpirationDates,
@@ -625,8 +649,8 @@ Future<void> syncBillingInfoToFirestore(String userId, CustomerInfo customerInfo
     print('✅ Billing info synced to Firestore for user: $userId');
     print('Premium status: $isPremium');
     print('Active subscriptions: $activeSubscriptions');
-    print('Active entitlements: ${customerInfo.entitlements.active.keys.toList()}');
-
+    print(
+        'Active entitlements: ${customerInfo.entitlements.active.keys.toList()}');
   } catch (e) {
     print('❌ Error syncing billing info to Firestore: $e');
     // 課金情報同期の失敗は致命的ではないので処理を継続
@@ -653,7 +677,8 @@ void startBillingMonitoring(String userId) {
 }
 
 // 新規追加: 課金情報更新のハンドラー
-Future<void> _handleBillingInfoUpdate(String userId, CustomerInfo customerInfo) async {
+Future<void> _handleBillingInfoUpdate(
+    String userId, CustomerInfo customerInfo) async {
   try {
     // Firestoreの課金情報を更新
     await syncBillingInfoToFirestore(userId, customerInfo);
@@ -686,7 +711,8 @@ Future<void> recordAppUsage(String userId) async {
 
     // 今日の利用回数を更新
     final today = DateTime(now.year, now.month, now.day);
-    final todayDocId = '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
+    final todayDocId =
+        '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
 
     final dailyUsageRef = FirebaseFirestore.instance
         .collection('users')
@@ -760,7 +786,7 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'JapanAnimeMaps',
       // theme: ThemeData(
-        // シンプルに白ベースのテーマを作成
+      // シンプルに白ベースのテーマを作成
       //   brightness: Brightness.light,
       //   primaryColor: const Color(0xFF4CAF50),
       //   scaffoldBackgroundColor: Colors.white,
@@ -873,7 +899,6 @@ class _SplashScreenState extends State<SplashScreen> {
 
         // 課金状態の監視を開始
         startBillingMonitoring(user.uid);
-
       } else {
         print('⚠️ No user logged in for RevenueCat sync');
       }
@@ -886,12 +911,13 @@ class _SplashScreenState extends State<SplashScreen> {
   Future<void> _requestTrackingPermission() async {
     if (Platform.isIOS) {
       try {
-        final status = await AppTrackingTransparency.trackingAuthorizationStatus;
+        final status =
+            await AppTrackingTransparency.trackingAuthorizationStatus;
 
         if (status == TrackingStatus.notDetermined) {
           await Future.delayed(const Duration(milliseconds: 200));
           final TrackingStatus newStatus =
-          await AppTrackingTransparency.requestTrackingAuthorization();
+              await AppTrackingTransparency.requestTrackingAuthorization();
           setState(() {
             _authStatus = newStatus.toString();
           });

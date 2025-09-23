@@ -66,10 +66,10 @@ class HelpCenter extends StatelessWidget {
                 title: const Text('メールで問い合わせ'),
                 value: const Text(''),
                 onPressed: (context) {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => MailScreen()),
-                  );
+                  // Navigator.push(
+                  //   context,
+                  //   MaterialPageRoute(builder: (context) => MailScreen()),
+                  // );
                   // 画面遷移処理
                 },
               ),
