@@ -6,9 +6,11 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:parts/bloc/map_bloc/map_bloc.dart';
 import 'package:parts/firebase_options.dart';
 import 'package:parts/shop/purchase_agency.dart';
 import 'package:parts/shop/shop_product_detail.dart';
@@ -106,7 +108,11 @@ void main() async {
     print('✅ AdMob initialized successfully');
 
     print('=== ALL INITIALIZATION COMPLETED ===');
-    runApp(const MyApp());
+    runApp(MultiBlocProvider(providers: [
+      BlocProvider<MapBloc>(
+        create: (context) => MapBloc()..add(MapInitialized()),
+      ),
+    ], child: const MyApp()));
   } catch (e, stackTrace) {
     print('=== CRITICAL INITIALIZATION ERROR ===');
     print('Error: $e');
@@ -778,54 +784,61 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      routes: {
-        '/product_purchase_agency': (context) => ConfirmationScreen(),
-        '/product_detail': (context) => ProductDetailScreen(),
-      },
-      debugShowCheckedModeBanner: false,
-      title: 'JapanAnimeMaps',
-      // theme: ThemeData(
-      // シンプルに白ベースのテーマを作成
-      //   brightness: Brightness.light,
-      //   primaryColor: const Color(0xFF4CAF50),
-      //   scaffoldBackgroundColor: Colors.white,
-      //   canvasColor: Colors.white,
-      //   cardColor: Colors.white,
-      //   dialogBackgroundColor: Colors.white,
-      //
-      //   // AppBarテーマ
-      //   appBarTheme: const AppBarTheme(
-      //     backgroundColor: Colors.white,
-      //     foregroundColor: Colors.black,
-      //     elevation: 0,
-      //     iconTheme: IconThemeData(color: Colors.black),
-      //     titleTextStyle: TextStyle(
-      //       color: Colors.black,
-      //       fontSize: 20,
-      //       fontWeight: FontWeight.w500,
-      //     ),
-      //   ),
-      //
-      //   // BottomNavigationBarテーマ
-      //   bottomNavigationBarTheme: const BottomNavigationBarThemeData(
-      //     backgroundColor: Colors.white,
-      //     selectedItemColor: Color(0xFF4CAF50),
-      //     unselectedItemColor: Colors.grey,
-      //   ),
-      //
-      //   // Material 3を無効にして従来のMaterial 2を使用
-      //   useMaterial3: false, colorScheme: ColorScheme.fromSwatch(primarySwatch: Colors.green).copyWith(background: Colors.white),
-      // ),
-      //
-      // // ダークテーマを無効にして常にライトテーマを使用
-      // themeMode: ThemeMode.light,
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider<MapBloc>(
+          create: (context) => MapBloc()..add(MapInitialized()),
+        ),
+      ],
+      child: MaterialApp(
+        routes: {
+          '/product_purchase_agency': (context) => ConfirmationScreen(),
+          '/product_detail': (context) => ProductDetailScreen(),
+        },
+        debugShowCheckedModeBanner: false,
+        title: 'JapanAnimeMaps',
+        // theme: ThemeData(
+        // シンプルに白ベースのテーマを作成
+        //   brightness: Brightness.light,
+        //   primaryColor: const Color(0xFF4CAF50),
+        //   scaffoldBackgroundColor: Colors.white,
+        //   canvasColor: Colors.white,
+        //   cardColor: Colors.white,
+        //   dialogBackgroundColor: Colors.white,
+        //
+        //   // AppBarテーマ
+        //   appBarTheme: const AppBarTheme(
+        //     backgroundColor: Colors.white,
+        //     foregroundColor: Colors.black,
+        //     elevation: 0,
+        //     iconTheme: IconThemeData(color: Colors.black),
+        //     titleTextStyle: TextStyle(
+        //       color: Colors.black,
+        //       fontSize: 20,
+        //       fontWeight: FontWeight.w500,
+        //     ),
+        //   ),
+        //
+        //   // BottomNavigationBarテーマ
+        //   bottomNavigationBarTheme: const BottomNavigationBarThemeData(
+        //     backgroundColor: Colors.white,
+        //     selectedItemColor: Color(0xFF4CAF50),
+        //     unselectedItemColor: Colors.grey,
+        //   ),
+        //
+        //   // Material 3を無効にして従来のMaterial 2を使用
+        //   useMaterial3: false, colorScheme: ColorScheme.fromSwatch(primarySwatch: Colors.green).copyWith(background: Colors.white),
+        // ),
+        //
+        // // ダークテーマを無効にして常にライトテーマを使用
+        // themeMode: ThemeMode.light,
 
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.white),
-        useMaterial3: true,
+        theme: ThemeData(
+          colorScheme: ColorScheme.fromSeed(seedColor: Colors.white),
+          useMaterial3: true,
+        ),
+        home: const SplashScreen(),
       ),
-      home: const SplashScreen(),
     );
   }
 }

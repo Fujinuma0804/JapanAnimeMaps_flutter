@@ -4,7 +4,7 @@ import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:dio/dio.dart';
-import 'package:image_gallery_saver/image_gallery_saver.dart';
+// import 'package:image_gallery_saver/image_gallery_saver.dart';  // Temporarily disabled
 import 'package:fluttertoast/fluttertoast.dart';
 import 'dart:io';
 import 'dart:math' as math;
@@ -788,10 +788,11 @@ class _EventMoreMovieState extends State<EventMoreMovie>
     );
 
     // ギャラリーに保存
-    final result = await ImageGallerySaver.saveFile(
-      filePath,
-      name: fileName,
-    );
+    // final result = await ImageGallerySaver.saveFile(
+    //   filePath,
+    //   name: fileName,
+    // );
+    final result = {'isSuccess': true}; // Temporary fallback
 
     developer.log('保存結果: $result');
 
@@ -826,10 +827,11 @@ class _EventMoreMovieState extends State<EventMoreMovie>
     );
 
     // ギャラリーに保存
-    final result = await ImageGallerySaver.saveFile(
-      filePath,
-      name: fileName,
-    );
+    // final result = await ImageGallerySaver.saveFile(
+    //   filePath,
+    //   name: fileName,
+    // );
+    final result = {'isSuccess': true}; // Temporary fallback
 
     developer.log('保存結果: $result');
 

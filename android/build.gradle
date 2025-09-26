@@ -7,7 +7,7 @@ buildscript {
 
     dependencies {
         classpath 'com.google.gms:google-services:4.4.2'
-       classpath 'com.android.tools.build:gradle:7.3.0'
+        classpath 'com.android.tools.build:gradle:8.1.4'
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
     }
 }
@@ -16,6 +16,15 @@ allprojects {
     repositories {
         google()
         mavenCentral()
+    }
+    
+    // Force consistent versions of Google Play Core libraries
+    configurations.all {
+        resolutionStrategy {
+            force 'com.google.android.play:review:2.0.2'
+            force 'com.google.android.play:review-ktx:2.0.2'
+            force 'com.google.android.play:core-common:2.0.4'
+        }
     }
 }
 

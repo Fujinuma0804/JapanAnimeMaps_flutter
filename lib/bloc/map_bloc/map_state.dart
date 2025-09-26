@@ -1,105 +1,107 @@
-// // map_bloc_states.dart
-// part of 'map_bloc.dart';
+part of 'map_bloc.dart';
 
-// import 'package:flutter/material.dart';
-// import 'package:google_maps_flutter/google_maps_flutter.dart';
+@immutable
+abstract class MapState {
+  final bool isLoadingNearbyMarkers;
+  final bool isLoadingMoreMarkers;
 
-// @immutable
-// abstract class MapState {}
+  const MapState({this.isLoadingNearbyMarkers = false, this.isLoadingMoreMarkers = false});
+}
 
-// class MapInitial extends MapState {}
+class MapInitial extends MapState {
+  const MapInitial() : super(isLoadingNearbyMarkers: false, isLoadingMoreMarkers: false);
+}
 
-// class MapLoading extends MapState {}
+class MapLoading extends MapState {
+  const MapLoading() : super(isLoadingNearbyMarkers: true, isLoadingMoreMarkers: false);
+}
 
-// class MapLoaded extends MapState {
-//   final LatLng? currentPosition;
-//   final Set<Marker> markers;
-//   final Set<Circle> circles;
-//   final Set<Polyline> polylines;
-//   final Marker? selectedMarker;
-//   final bool canCheckIn;
-//   final bool hasCheckedIn;
-//   final bool isLoadingRoute;
-//   final String? routeDuration;
-//   final String? routeDistance;
-//   final String selectedTravelMode;
-//   final bool isFavorite;
-//   final List<DocumentSnapshot> searchResults;
-//   final bool isSearching;
-//   final int searchesRemaining;
-//   final bool searchLimitReached;
-//   final bool isSubscriptionActive;
-//   final bool isAdAvailable;
-//   final bool isWatchingAd;
+class MapLoaded extends MapState {
+  final LatLng? currentPosition;
+  final Set<Marker> markers;
+  final Set<Circle> circles;
+  final Set<Polyline> polylines;
+  final Marker? selectedMarker;
+  final bool hasCheckedIn;
+  final bool canCheckIn;
+  final bool isFavorite;
+  final List<DocumentSnapshot> searchResults;
+  final bool isSearching;
+  final String? selectedTravelMode;
+  final String? routeDuration;
+  final String? routeDistance;
+  final bool isLoadingRoute;
+  final int searchesRemaining;
+  final bool searchLimitReached;
 
-//   MapLoaded({
-//     this.currentPosition,
-//     required this.markers,
-//     required this.circles,
-//     required this.polylines,
-//     this.selectedMarker,
-//     this.canCheckIn = false,
-//     this.hasCheckedIn = false,
-//     this.isLoadingRoute = false,
-//     this.routeDuration,
-//     this.routeDistance,
-//     this.selectedTravelMode = 'DRIVE',
-//     this.isFavorite = false,
-//     this.searchResults = const [],
-//     this.isSearching = false,
-//     this.searchesRemaining = 3,
-//     this.searchLimitReached = false,
-//     this.isSubscriptionActive = false,
-//     this.isAdAvailable = false,
-//     this.isWatchingAd = false,
-//   });
+  const MapLoaded({
+    this.currentPosition,
+    this.markers = const {},
+    this.circles = const {},
+    this.polylines = const {},
+    this.selectedMarker,
+    this.hasCheckedIn = false,
+    this.canCheckIn = false,
+    this.isFavorite = false,
+    this.searchResults = const [],
+    this.isSearching = false,
+    this.selectedTravelMode,
+    this.routeDuration,
+    this.routeDistance,
+    this.isLoadingRoute = false,
+    this.searchesRemaining = 3,
+    this.searchLimitReached = false,
+    bool isLoadingNearbyMarkers = false,
+    bool isLoadingMoreMarkers = false,
+  }) : super(
+          isLoadingNearbyMarkers: isLoadingNearbyMarkers,
+          isLoadingMoreMarkers: isLoadingMoreMarkers,
+        );
 
-//   MapLoaded copyWith({
-//     LatLng? currentPosition,
-//     Set<Marker>? markers,
-//     Set<Circle>? circles,
-//     Set<Polyline>? polylines,
-//     Marker? selectedMarker,
-//     bool? canCheckIn,
-//     bool? hasCheckedIn,
-//     bool? isLoadingRoute,
-//     String? routeDuration,
-//     String? routeDistance,
-//     String? selectedTravelMode,
-//     bool? isFavorite,
-//     List<DocumentSnapshot>? searchResults,
-//     bool? isSearching,
-//     int? searchesRemaining,
-//     bool? searchLimitReached,
-//     bool? isSubscriptionActive,
-//     bool? isAdAvailable,
-//     bool? isWatchingAd,
-//   }) {
-//     return MapLoaded(
-//       currentPosition: currentPosition ?? this.currentPosition,
-//       markers: markers ?? this.markers,
-//       circles: circles ?? this.circles,
-//       polylines: polylines ?? this.polylines,
-//       selectedMarker: selectedMarker ?? this.selectedMarker,
-//       canCheckIn: canCheckIn ?? this.canCheckIn,
-//       hasCheckedIn: hasCheckedIn ?? this.hasCheckedIn,
-//       isLoadingRoute: isLoadingRoute ?? this.isLoadingRoute,
-//       routeDuration: routeDuration ?? this.routeDuration,
-//       routeDistance: routeDistance ?? this.routeDistance,
-//       selectedTravelMode: selectedTravelMode ?? this.selectedTravelMode,
-//       isFavorite: isFavorite ?? this.isFavorite,
-//       searchResults: searchResults ?? this.searchResults,
-//       isSearching: isSearching ?? this.isSearching,
-//       searchesRemaining: searchesRemaining ?? this.searchesRemaining,
-//       searchLimitReached: searchLimitReached ?? this.searchLimitReached,
-//       isSubscriptionActive: isSubscriptionActive ?? this.isSubscriptionActive,
-//       isAdAvailable: isAdAvailable ?? this.isAdAvailable,
-//       isWatchingAd: isWatchingAd ?? this.isWatchingAd,
-//     );
-//   }
-// }
+  MapLoaded copyWith({
+    LatLng? currentPosition,
+    Set<Marker>? markers,
+    Set<Circle>? circles,
+    Set<Polyline>? polylines,
+    Marker? selectedMarker,
+    bool? hasCheckedIn,
+    bool? canCheckIn,
+    bool? isFavorite,
+    List<DocumentSnapshot>? searchResults,
+    bool? isSearching,
+    String? selectedTravelMode,
+    String? routeDuration,
+    String? routeDistance,
+    bool? isLoadingRoute,
+    int? searchesRemaining,
+    bool? searchLimitReached,
+    bool? isLoadingNearbyMarkers,
+    bool? isLoadingMoreMarkers,
+  }) {
+    return MapLoaded(
+      currentPosition: currentPosition ?? this.currentPosition,
+      markers: markers ?? this.markers,
+      circles: circles ?? this.circles,
+      polylines: polylines ?? this.polylines,
+      selectedMarker: selectedMarker ?? this.selectedMarker,
+      hasCheckedIn: hasCheckedIn ?? this.hasCheckedIn,
+      canCheckIn: canCheckIn ?? this.canCheckIn,
+      isFavorite: isFavorite ?? this.isFavorite,
+      searchResults: searchResults ?? this.searchResults,
+      isSearching: isSearching ?? this.isSearching,
+      selectedTravelMode: selectedTravelMode ?? this.selectedTravelMode,
+      routeDuration: routeDuration ?? this.routeDuration,
+      routeDistance: routeDistance ?? this.routeDistance,
+      isLoadingRoute: isLoadingRoute ?? this.isLoadingRoute,
+      searchesRemaining: searchesRemaining ?? this.searchesRemaining,
+      searchLimitReached: searchLimitReached ?? this.searchLimitReached,
+      isLoadingNearbyMarkers: isLoadingNearbyMarkers ?? this.isLoadingNearbyMarkers,
+      isLoadingMoreMarkers: isLoadingMoreMarkers ?? this.isLoadingMoreMarkers,
+    );
+  }
+}
 
-// class MapError extends MapState {
-//   final String message;
-//   MapError(this.message);
-// }
+class MapError extends MapState {
+  final String message;
+  const MapError(this.message) : super(isLoadingNearbyMarkers: false, isLoadingMoreMarkers: false);
+}
