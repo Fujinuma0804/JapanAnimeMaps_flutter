@@ -2,6 +2,25 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:parts/bloc/Userinfo_bloc/Userinfo_bloc.dart';
+import 'package:parts/map_page/map_subsc.dart';
+import 'package:parts/map_page/map_subsc_en.dart';
+import 'package:parts/post_page/timeline_screen.dart';
+import 'package:parts/post_page/timeline_screen_en.dart';
+import 'package:parts/ranking/ranking_top.dart';
+import 'package:parts/shop/shop_maintenance.dart';
+import 'package:parts/shop/shop_top.dart';
+import 'package:parts/spot_page/anime_list_en_new.dart';
+
+import '../point_page/point_update.dart';
+import '../post_page/post_first/post_welcome.dart';
+import '../ranking/ranking_top_en.dart';
+import '../spot_page/anime_list_test_ranking.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_analytics/firebase_analytics.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:parts/map_page/map_subsc.dart';
 import 'package:parts/map_page/map_subsc_en.dart';
 import 'package:parts/post_page/timeline_screen.dart';
@@ -27,13 +46,7 @@ class MainScreen extends StatefulWidget {
 
 class _MainScreenState extends State<MainScreen> {
   int _selectedIndex = 0;
-  late PageController _pageController = PageController();
-  late User _user;
-  String _userLanguage = 'English';
-  late Stream<DocumentSnapshot> _userStream;
-  double _latitude = 37.7749;
-  double _longitude = -122.4194;
-  bool _hasSeenWelcome = false;
+  late PageController _pageController;
   final FirebaseAnalytics _analytics = FirebaseAnalytics.instance;
 
   @override
@@ -41,90 +54,16 @@ class _MainScreenState extends State<MainScreen> {
     super.initState();
     _selectedIndex = widget.initalIndex;
     _pageController = PageController(initialPage: widget.initalIndex);
-    _getUser();
-    _updateCorrectCount();
-    _setupUserStream();
-    _checkWelcomeStatus();
-  }
 
-  Future<void> _getUser() async {
-    _user = FirebaseAuth.instance.currentUser!;
-  }
-
-  void _setupUserStream() {
-    _userStream = FirebaseFirestore.instance
-        .collection('users')
-        .doc(_user.uid)
-        .snapshots();
-
-    _userStream.listen((DocumentSnapshot snapshot) {
-      if (snapshot.exists) {
-        setState(() {
-          _userLanguage =
-              (snapshot.data() as Map<String, dynamic>)['language'] ??
-                  'English';
-          print('User language: $_userLanguage');
-        });
-      }
-    });
-  }
-
-  Future<void> _checkWelcomeStatus() async {
-    final userDoc = await FirebaseFirestore.instance
-        .collection('users')
-        .doc(_user.uid)
-        .get();
-
-    if (userDoc.exists) {
-      setState(() {
-        _hasSeenWelcome =
-            (userDoc.data() as Map<String, dynamic>)['hasSeenWelcome'] ?? false;
-      });
-    }
-  }
-
-  Future<void> _updateCorrectCount() async {
-    try {
-      int correctCount = 0;
-      QuerySnapshot snapshot = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(_user.uid)
-          .collection('check_ins')
-          .get();
-
-      for (var doc in snapshot.docs) {
-        var data = doc.data() as Map<String, dynamic>;
-        if (data['isCorrect'] == true) {
-          correctCount++;
-        }
-      }
-
-      DocumentSnapshot userDoc = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(_user.uid)
-          .get();
-
-      if (userDoc.exists) {
-        await FirebaseFirestore.instance
-            .collection('users')
-            .doc(_user.uid)
-            .update({'correctCount': correctCount});
-      } else {
-        await FirebaseFirestore.instance
-            .collection('users')
-            .doc(_user.uid)
-            .set({
-          'correctCount': correctCount,
-          'hasSeenWelcome': false,
-          'language': _userLanguage,
-        });
-      }
-    } catch (e) {
-      print('Error updating correct count: $e');
-    }
+    // Initialize user data through BLoC
+    context.read<UserBloc>().add(InitializeUser());
   }
 
   void _onItemTapped(int index) async {
+    final state = context.read<UserBloc>().state;
+
+    if (state is! UserDataLoaded) return;
+
     String tabName = '';
     switch (index) {
       case 0:
@@ -148,8 +87,8 @@ class _MainScreenState extends State<MainScreen> {
       name: 'bottom_nav_tap',
       parameters: {
         'tab_name': tabName,
-        'user_language': _userLanguage,
-        'user_id': _user.uid,
+        'user_language': state.language,
+        'user_id': state.user.uid,
       },
     );
 
@@ -165,7 +104,7 @@ class _MainScreenState extends State<MainScreen> {
           FirebaseFirestore.instance.collection('shopMaintenance').snapshots(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return Center(child: CircularProgressIndicator());
+          return const Center(child: CircularProgressIndicator());
         }
 
         if (snapshot.hasError) {
@@ -197,74 +136,79 @@ class _MainScreenState extends State<MainScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return StreamBuilder<DocumentSnapshot>(
-      stream: _userStream,
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
+    return BlocBuilder<UserBloc, UserState>(
+      builder: (context, state) {
+        // Handle loading state
+        if (state is UserLoading || state is UserInitial) {
           return Scaffold(
             body: Center(child: CircularProgressIndicator()),
           );
         }
 
-        if (snapshot.hasError) {
+        // Handle error state
+        if (state is UserError) {
           return Scaffold(
-            body: Center(child: Text('Error: ${snapshot.error}')),
+            body: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text('Error: ${state.message}'),
+                  SizedBox(height: 16),
+                  ElevatedButton(
+                    onPressed: () {
+                      context.read<UserBloc>().add(InitializeUser());
+                    },
+                    child: Text('Retry'),
+                  ),
+                ],
+              ),
+            ),
           );
         }
 
-        if (snapshot.hasData && snapshot.data != null) {
-          final userData = snapshot.data!.data() as Map<String, dynamic>?;
-          if (userData != null) {
-            _userLanguage = userData['language'] ?? 'English';
-            _hasSeenWelcome = userData['hasSeenWelcome'] ?? false;
-          }
+        // Handle loaded state
+        if (state is UserDataLoaded) {
+          return Scaffold(
+            body: PageView(
+              controller: _pageController,
+              physics: const NeverScrollableScrollPhysics(),
+              onPageChanged: (index) {
+                setState(() {
+                  _selectedIndex = index;
+                });
+              },
+              children: [
+                state.language == 'Japanese'
+                    ? AnimeListTestRanking()
+                    : AnimeListEnNew(),
+                state.language == 'Japanese'
+                    ? RankingTopPage()
+                    : RankingTopPageEn(),
+                state.language == 'Japanese'
+                    ? MapSubscription(latitude: 37.7749, longitude: -122.4194)
+                    : MapSubscriptionEn(
+                        latitude: 37.7749, longitude: -122.4194),
+                state.language == 'Japanese'
+                    ? (!state.hasSeenWelcome
+                        ? PostWelcome1(showScaffold: false)
+                        : TimelineScreen())
+                    : (!state.hasSeenWelcome
+                        ? PostWelcome1(showScaffold: false)
+                        : TimelineScreenEn()),
+                UserPointUpdatePage(), // Same for both languages
+              ],
+            ),
+            bottomNavigationBar: CustomBottomNavigationBar(
+              currentIndex: _selectedIndex,
+              onTap: _onItemTapped,
+              language: state.language,
+            ),
+          );
         }
+
+        // Fallback for unknown state
         return Scaffold(
-          body: PageView(
-            controller: _pageController,
-            physics: const NeverScrollableScrollPhysics(),
-            onPageChanged: (index) {
-              setState(() {
-                _selectedIndex = index;
-              });
-            },
-            children: [
-              _userLanguage == 'Japanese'
-                  //AnimeEventListは現在作成中。
-                  //     ? AnimeEventList()
-                  ? AnimeListTestRanking()
-                  //は現在リリース中
-                  // AnimeListTestRanking()
-                  //ver3.0.6までは翻訳機能を実装し、表示していた。読み込み速度改善のために変更した。
-                  //     : AnimeListTestRankingEng(),
-                  : AnimeListEnNew(),
-              _userLanguage == 'Japanese'
-                  //現在リリース中。
-                  ? RankingTopPage()
-                  // NewtAppUI()
-                  // _buildShopScreen()
-                  : RankingTopPageEn(),
-              _userLanguage == 'Japanese'
-                  ? MapSubscription(latitude: _latitude, longitude: _longitude)
-                  : MapSubscriptionEn(
-                      latitude: _latitude, longitude: _longitude),
-              _userLanguage == 'Japanese'
-                  ? (!_hasSeenWelcome
-                      ? PostWelcome1(showScaffold: false)
-                      : TimelineScreen())
-                  : (!_hasSeenWelcome
-                      ? PostWelcome1(showScaffold: false)
-                      : TimelineScreenEn()),
-              _userLanguage == 'Japanese'
-                  ? UserPointUpdatePage()
-                  : UserPointUpdatePage(),
-            ],
-          ),
-          bottomNavigationBar: CustomBottomNavigationBar(
-            currentIndex: _selectedIndex,
-            onTap: _onItemTapped,
-            language: _userLanguage,
-          ),
+          body: Center(child: Text('Unknown state')),
         );
       },
     );

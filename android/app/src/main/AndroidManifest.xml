@@ -12,7 +12,9 @@
     <application
         android:label="JapanAnimeMaps"
         android:name="${applicationName}"
-        android:icon="@mipmap/launcher_icon">
+        android:icon="@mipmap/launcher_icon"
+        android:allowBackup="true"
+        android:dataExtractionRules="@xml/data_extraction_rules">
         <activity
             android:name=".MainActivity"
             android:exported="true"
@@ -42,8 +44,8 @@
             android:value="2" />
           
             <meta-data
-            android:name="com.google.android.geo.API_KEY"
-            android:value="AIzaSyAynBJfaFqCPhOSNEeMLsz9DWKUDjCaIZ4" />
+            android:name="com.google.android.geo.API_KEY" 
+            android:value="" />
             <meta-data
             android:name="com.google.android.gms.ads.APPLICATION_ID"
             android:value="ca-app-pub-4250006707527458~6147555038"/>

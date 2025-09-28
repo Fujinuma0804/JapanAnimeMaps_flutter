@@ -1,7 +1,9 @@
+// import 'dart:io';
+// import 'dart:async';
+
 import 'dart:io';
 import 'dart:async';
 
-import 'package:app_tracking_transparency/app_tracking_transparency.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
@@ -10,7 +12,11 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:parts/bloc/Userinfo_bloc/Userinfo_bloc.dart';
+import 'package:parts/bloc/appintilize_bloc/appintilize_bloc.dart';
 import 'package:parts/bloc/map_bloc/map_bloc.dart';
+import 'package:parts/bloc/spotbloc/spot_event.dart';
+import 'package:parts/bloc/spotbloc/spotbloc.dart';
 import 'package:parts/firebase_options.dart';
 import 'package:parts/shop/purchase_agency.dart';
 import 'package:parts/shop/shop_product_detail.dart';
@@ -111,6 +117,12 @@ void main() async {
     runApp(MultiBlocProvider(providers: [
       BlocProvider<MapBloc>(
         create: (context) => MapBloc()..add(MapInitialized()),
+      ),
+      BlocProvider<UserBloc>(
+        create: (context) => UserBloc(),
+      ),
+      BlocProvider<SpotBloc>(
+        create: (context) => SpotBloc()..add(SpotFetchInitial()),
       ),
     ], child: const MyApp()));
   } catch (e, stackTrace) {
@@ -789,6 +801,16 @@ class MyApp extends StatelessWidget {
         BlocProvider<MapBloc>(
           create: (context) => MapBloc()..add(MapInitialized()),
         ),
+        BlocProvider<UserBloc>(
+          create: (context) => UserBloc()..add(InitializeUser()),
+        ),
+        BlocProvider<AppInitializationBloc>(
+          create: (context) =>
+              AppInitializationBloc()..add(StartInitialization()),
+        ),
+        BlocProvider<SpotBloc>(
+          create: (context) => SpotBloc()..add(SpotFetchInitial()),
+        ),
       ],
       child: MaterialApp(
         routes: {
@@ -852,7 +874,6 @@ class SplashScreen extends StatefulWidget {
 
 class _SplashScreenState extends State<SplashScreen> {
   String _authStatus = 'Unknown';
-  bool _isInitialized = false;
   String? _initError;
 
   // ローディングアニメーションウィジェットの定数
@@ -864,145 +885,24 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    _initializeApp();
+    // AppInitializationBloc will handle initialization automatically
   }
 
-  Future<void> _initializeApp() async {
+  Future<void> _navigateBasedOnAuth(BuildContext context, User? user) async {
     try {
-      print('SplashScreen: Starting app initialization...');
-
-      // ATTダイアログの表示
-      await _requestTrackingPermission();
-
-      // RevenueCatとFirebaseの同期
-      await _syncRevenueCatUser();
-
-      setState(() {
-        _isInitialized = true;
-      });
-
-      // 少し待機して確実に初期化を完了させる
-      await Future.delayed(const Duration(seconds: 1));
-
-      if (mounted) {
-        await _navigateToNextScreen();
-      }
-    } catch (e, stackTrace) {
-      print('SplashScreen initialization error: $e');
-      print('Stack trace: $stackTrace');
-      setState(() {
-        _initError = e.toString();
-      });
-    }
-  }
-
-  // 改善されたsyncRevenueCatUser関数
-  Future<void> _syncRevenueCatUser() async {
-    try {
-      final user = FirebaseAuth.instance.currentUser;
       if (user != null) {
-        print('🔄 Starting RevenueCat user sync for: ${user.uid}');
-
-        // RevenueCatにユーザーIDを同期
-        await Purchases.logIn(user.uid);
-        print('✅ RevenueCat user logged in: ${user.uid}');
-
-        // 課金状態を強制同期
-        await _forceSyncBillingStatus(user.uid);
-
-        // 課金状態の監視を開始
-        startBillingMonitoring(user.uid);
+        // User is logged in, navigate to main screen
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (context) => MainScreen()),
+        );
       } else {
-        print('⚠️ No user logged in for RevenueCat sync');
+        // User is not logged in, navigate to welcome screen
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (context) => WelcomePage()),
+        );
       }
     } catch (e) {
-      print('❌ RevenueCat user sync failed: $e');
-      // RevenueCat同期失敗は致命的ではないので処理を継続
-    }
-  }
-
-  Future<void> _requestTrackingPermission() async {
-    if (Platform.isIOS) {
-      try {
-        final status =
-            await AppTrackingTransparency.trackingAuthorizationStatus;
-
-        if (status == TrackingStatus.notDetermined) {
-          await Future.delayed(const Duration(milliseconds: 200));
-          final TrackingStatus newStatus =
-              await AppTrackingTransparency.requestTrackingAuthorization();
-          setState(() {
-            _authStatus = newStatus.toString();
-          });
-          if (kDebugMode) {
-            print('Tracking authorization status: $newStatus');
-          }
-        }
-      } catch (e) {
-        print('Tracking permission request failed: $e');
-        // トラッキング許可失敗は致命的ではないので処理を継続
-      }
-    }
-  }
-
-  // 改善された_navigateToNextScreen関数
-  Future<void> _navigateToNextScreen() async {
-    if (!mounted) return;
-
-    try {
-      // Firebase初期化確認
-      if (Firebase.apps.isEmpty) {
-        throw Exception('Firebase not initialized');
-      }
-
-      // ========== テスト用: 強制的にWelcomePageを表示 ==========
-      // print('テストモード: WelcomePageに強制遷移');
-      // if (mounted) {
-      //   Navigator.of(context).pushReplacement(
-      //     MaterialPageRoute(builder: (context) => const WelcomePage()),
-      //   );
-      // }
-      // return;
-      // ========== ここまでがテスト用コード ==========
-
-      // 認証状態を確認
-      final user = FirebaseAuth.instance.currentUser;
-      print('Current user: ${user?.uid ?? "No user"}');
-
-      if (user != null) {
-        print('🔄 Processing logged-in user: ${user.uid}');
-
-        // 1. ユーザーのログイン情報を更新（課金情報同期も含む）
-        await updateUserLoginInfo(user.uid);
-
-        // 2. アプリ利用状況を記録
-        await recordAppUsage(user.uid);
-
-        // 3. RevenueCatとの同期確認
-        await _syncRevenueCatUser();
-
-        // 4. 定期的な課金状況チェックをスケジュール（オプション）
-        // await schedulePeriodicBillingSync(user.uid);
-
-        print('✅ All user data synced successfully');
-        print('Navigating to MainScreen');
-
-        if (mounted) {
-          Navigator.of(context).pushReplacement(
-            MaterialPageRoute(builder: (context) => MainScreen()),
-          );
-        }
-      } else {
-        print('Navigating to WelcomePage');
-        if (mounted) {
-          Navigator.of(context).pushReplacement(
-            MaterialPageRoute(builder: (context) => const WelcomePage()),
-          );
-        }
-      }
-    } catch (e, stackTrace) {
-      print('❌ Navigation error: $e');
-      print('Stack trace: $stackTrace');
+      print('Navigation error: $e');
       setState(() {
         _initError = 'ナビゲーションエラー: $e';
       });
@@ -1011,88 +911,113 @@ class _SplashScreenState extends State<SplashScreen> {
 
   @override
   Widget build(BuildContext context) {
-    if (_initError != null) {
-      return Scaffold(
-        body: SafeArea(
-          child: Center(
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
+    return BlocConsumer<AppInitializationBloc, AppInitializationState>(
+      listener: (context, state) {
+        if (state is InitializationSuccess) {
+          // Navigate to appropriate screen based on auth status
+          _navigateBasedOnAuth(context, state.user);
+        } else if (state is InitializationError) {
+          setState(() {
+            _initError = state.error;
+          });
+        }
+      },
+      builder: (context, state) {
+        if (state is InitializationError || _initError != null) {
+          return Scaffold(
+            body: SafeArea(
+              child: Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.error_outline, color: Colors.red, size: 64),
+                      SizedBox(height: 16),
+                      Text(
+                        '初期化エラー',
+                        style: TextStyle(
+                            fontSize: 20, fontWeight: FontWeight.bold),
+                      ),
+                      SizedBox(height: 16),
+                      Container(
+                        padding: EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.red.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(8),
+                          border:
+                              Border.all(color: Colors.red.withOpacity(0.3)),
+                        ),
+                        child: Text(
+                          state is InitializationError
+                              ? state.error
+                              : _initError!,
+                          style: TextStyle(color: Colors.red[800]),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                      SizedBox(height: 16),
+                      ElevatedButton(
+                        onPressed: () {
+                          setState(() {
+                            _initError = null;
+                          });
+                          context
+                              .read<AppInitializationBloc>()
+                              .add(StartInitialization());
+                        },
+                        child: Text('再試行'),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          );
+        }
+
+        // Show loading state
+        String statusText = '初期化中...';
+        if (state is InitializationLoading) {
+          statusText = state.currentStep;
+        }
+
+        return Scaffold(
+          body: SafeArea(
+            child: Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.error_outline, color: Colors.red, size: 64),
-                  SizedBox(height: 16),
+                  loadingWidget,
+                  SizedBox(height: 20),
                   Text(
-                    '初期化エラー',
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                    statusText,
+                    style: TextStyle(fontSize: 16),
+                    textAlign: TextAlign.center,
                   ),
-                  SizedBox(height: 16),
-                  Container(
-                    padding: EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Colors.red.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.red.withOpacity(0.3)),
+                  if (kDebugMode) ...[
+                    SizedBox(height: 20),
+                    Text(
+                      '動作モード: ${Platform.isIOS ? 'iOS Sandbox' : 'Android Test'}',
+                      style: TextStyle(fontSize: 12, color: Colors.grey),
                     ),
-                    child: Text(
-                      _initError!,
-                      style: TextStyle(color: Colors.red[800]),
-                      textAlign: TextAlign.center,
+                    SizedBox(height: 8),
+                    Text(
+                      'Firebase Apps: ${Firebase.apps.length}',
+                      style: TextStyle(fontSize: 12, color: Colors.grey),
                     ),
-                  ),
-                  SizedBox(height: 16),
-                  ElevatedButton(
-                    onPressed: () {
-                      setState(() {
-                        _initError = null;
-                        _isInitialized = false;
-                      });
-                      _initializeApp();
-                    },
-                    child: Text('再試行'),
-                  ),
+                    SizedBox(height: 8),
+                    Text(
+                      'Auth Status: $_authStatus',
+                      style: TextStyle(fontSize: 12, color: Colors.grey),
+                    ),
+                  ],
                 ],
               ),
             ),
           ),
-        ),
-      );
-    }
-
-    // 通常のスプラッシュ画面
-    return Scaffold(
-      body: SafeArea(
-        child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              loadingWidget,
-              SizedBox(height: 20),
-              Text(
-                _isInitialized ? '起動中...' : '初期化中...',
-                style: TextStyle(fontSize: 16),
-              ),
-              if (kDebugMode) ...[
-                SizedBox(height: 20),
-                Text(
-                  '動作モード: ${Platform.isIOS ? 'iOS Sandbox' : 'Android Test'}',
-                  style: TextStyle(fontSize: 12, color: Colors.grey),
-                ),
-                SizedBox(height: 8),
-                Text(
-                  'Firebase Apps: ${Firebase.apps.length}',
-                  style: TextStyle(fontSize: 12, color: Colors.grey),
-                ),
-                SizedBox(height: 8),
-                Text(
-                  'Auth Status: $_authStatus',
-                  style: TextStyle(fontSize: 12, color: Colors.grey),
-                ),
-              ],
-            ],
-          ),
-        ),
-      ),
+        );
+      },
     );
   }
 }
