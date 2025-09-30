@@ -5,7 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 class UsageScreen extends StatefulWidget {
-  const UsageScreen({Key? key}) : super(key: key);
+  const UsageScreen({super.key});
 
   @override
   State<UsageScreen> createState() => _UsageScreenState();
@@ -58,7 +58,7 @@ class _UsageScreenState extends State<UsageScreen> {
         backgroundColor: Colors.white,
         title: Text(
           _language == '日本語' ? '使い方' : 'Usage',
-          style: TextStyle(
+          style: const TextStyle(
             color: Color(0xFF00008b),
             fontWeight: FontWeight.bold,
           ),

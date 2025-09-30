@@ -63,7 +63,7 @@ class _AnimeNameRequestCustomerFormState extends State<AnimeNameRequestCustomerF
       // onDidReceiveLocalNotification: (id, title, body, payload) async {
       //   // iOS 10未満の場合のコールバック（現在はほぼ使用されない）
       // },
-    );
+);
 
     // 初期化設定
     final InitializationSettings initializationSettings = InitializationSettings(

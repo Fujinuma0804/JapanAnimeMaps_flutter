@@ -2,9 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:permission_handler/permission_handler.dart';
 import 'package:dio/dio.dart';
-import 'package:image_gallery_saver/image_gallery_saver.dart';
+// import 'package:image_gallery_saver/image_gallery_saver.dart';  // Temporarily disabled
 import 'package:fluttertoast/fluttertoast.dart';
 import 'dart:io';
 import 'dart:math' as math;
@@ -72,14 +71,14 @@ class EventMoreMovie extends StatefulWidget {
   final String eventId;
 
   const EventMoreMovie({
-    Key? key,
+    super.key,
     required this.eventName,
     required this.mediaUrl,
     required this.mediaType,
     this.eventMoreInfo,
     this.eventInfo,
     required this.eventId,
-  }) : super(key: key);
+  });
 
   @override
   State<EventMoreMovie> createState() => _EventMoreMovieState();
@@ -91,7 +90,7 @@ class _EventMoreMovieState extends State<EventMoreMovie>
   VideoPlayerController? _videoController;
   bool _isVideoInitialized = false;
   bool _hasVideoError = false;
-  bool _showFullText = false; // この変数を利用して「続きを読む」の状態を管理
+// この変数を利用して「続きを読む」の状態を管理
   bool _isPlaying = true;
   bool _danmakuCompleted = false;
 
@@ -104,7 +103,7 @@ class _EventMoreMovieState extends State<EventMoreMovie>
     return true;
   }
 
-  TextEditingController _commentController = TextEditingController();
+  final TextEditingController _commentController = TextEditingController();
 
   final ScrollController _commentsScrollController = ScrollController();
 
@@ -500,7 +499,7 @@ class _EventMoreMovieState extends State<EventMoreMovie>
       List<DanmakuCommentModel> newComments = [];
 
       // 左側に配置するため、固定の水平位置を使用
-      final double fixedHorizontalPosition = 0.25; // 画面左側の固定位置（25%位置）
+      const double fixedHorizontalPosition = 0.25; // 画面左側の固定位置（25%位置）
 
       for (int i = 0; i < comments.length; i++) {
         final commentData = comments[i].data();
@@ -508,7 +507,7 @@ class _EventMoreMovieState extends State<EventMoreMovie>
         final displayName = commentData['displayName'] ?? '匿名';
 
         // コメント間隔を狭くするため、初期オフセットを小さくする
-        final double initialOffsetPercent = 0.08 * i; // 間隔を小さく調整（0.08間隔）
+// 間隔を小さく調整（0.08間隔）
 
         newComments.add(DanmakuCommentModel(
           content: content,
@@ -621,7 +620,7 @@ class _EventMoreMovieState extends State<EventMoreMovie>
               ),
               const SizedBox(height: 8),
               // 絵文字選択エリア - ランダムな絵文字を表示
-              Container(
+              SizedBox(
                 height: 50,
                 child: SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
@@ -661,17 +660,13 @@ class _EventMoreMovieState extends State<EventMoreMovie>
       animation: _danmakuController,
       builder: (context, child) {
         final double screenHeight = MediaQuery.of(context).size.height;
-        final double commentHeight = 30; // おおよそのコメント高さ
+        const double commentHeight = 30; // おおよそのコメント高さ
 
         // 画面上部のフェードアウト開始位置（上から30%の位置）
         final double fadeOutStartY = screenHeight * 0.3;
 
         final widgets = _danmakuComments.asMap().entries.map((entry) {
-          final int index = entry.key;
           final comment = entry.value;
-
-          // 各コメントに初期オフセットを追加して異なる高さから開始（間隔を狭く）
-          final double initialOffset = index * 0.08; // 間隔を小さく
 
           // アニメーションの進行度は0-1の範囲
           double rawPosition = _danmakuController.value;
@@ -681,7 +676,7 @@ class _EventMoreMovieState extends State<EventMoreMovie>
 
           // 垂直方向の位置計算（下から上へ移動）
           final double startY = screenHeight; // 画面下端から開始
-          final double endY = commentHeight; // 上端近くまで移動
+          const double endY = commentHeight; // 上端近くまで移動
 
           // 現在のY位置を計算（下から上に移動）
           final double currentY = startY - (startY - endY) * verticalProgress;
@@ -762,84 +757,6 @@ class _EventMoreMovieState extends State<EventMoreMovie>
       });
     }
   }
-
-  // 動画のダウンロードと保存
-  Future<void> _downloadAndSaveVideo() async {
-    final url = widget.mediaUrl!;
-    // ファイル名を生成
-    final fileName =
-        'JapanAnimeMaps_video_${DateTime.now().millisecondsSinceEpoch}.mp4';
-
-    // 一時ディレクトリのパスを取得
-    final directory = await getTemporaryDirectory();
-    final filePath = '${directory.path}/$fileName';
-
-    // Dioを使ってファイルをダウンロード
-    final dio = Dio();
-    await dio.download(
-      url,
-      filePath,
-      onReceiveProgress: (received, total) {
-        if (total != -1) {
-          final progress = (received / total * 100).toStringAsFixed(0);
-          developer.log('ダウンロード進捗: $progress%');
-        }
-      },
-    );
-
-    // ギャラリーに保存
-    final result = await ImageGallerySaver.saveFile(
-      filePath,
-      name: fileName,
-    );
-
-    developer.log('保存結果: $result');
-
-    // 一時ファイルの削除
-    final file = File(filePath);
-    if (await file.exists()) {
-      await file.delete();
-    }
-  }
-
-  // 画像のダウンロードと保存
-  Future<void> _downloadAndSaveImage() async {
-    final url = widget.mediaUrl!;
-    final fileName =
-        'JapanAnimeMaps_image_${DateTime.now().millisecondsSinceEpoch}.jpg';
-
-    // 一時ディレクトリのパスを取得
-    final directory = await getTemporaryDirectory();
-    final filePath = '${directory.path}/$fileName';
-
-    // Dioを使ってファイルをダウンロード
-    final dio = Dio();
-    await dio.download(
-      url,
-      filePath,
-      onReceiveProgress: (received, total) {
-        if (total != -1) {
-          final progress = (received / total * 100).toStringAsFixed(0);
-          developer.log('ダウンロード進捗: $progress%');
-        }
-      },
-    );
-
-    // ギャラリーに保存
-    final result = await ImageGallerySaver.saveFile(
-      filePath,
-      name: fileName,
-    );
-
-    developer.log('保存結果: $result');
-
-    // 一時ファイルの削除
-    final file = File(filePath);
-    if (await file.exists()) {
-      await file.delete();
-    }
-  }
-
   // トーストメッセージを表示
   void _showToast(String message) {
     Fluttertoast.showToast(

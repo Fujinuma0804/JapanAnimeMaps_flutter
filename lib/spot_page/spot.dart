@@ -1,245 +1,12 @@
-// import 'package:cached_network_image/cached_network_image.dart';
-// import 'package:cloud_firestore/cloud_firestore.dart';
-// import 'package:flutter/material.dart';
-
-// class Spot {
-//   final String imagePath;
-//   final String title;
-//   final String text;
-
-//   Spot(this.imagePath, this.title, this.text);
-
-//   // FirestoreドキュメントからSpotオブジェクトを生成
-//   factory Spot.fromDocument(DocumentSnapshot doc) {
-//     return Spot(
-//       doc['imagePath'],
-//       doc['title'],
-//       doc['text'],
-//     );
-//   }
-
-//   // SpotオブジェクトをFirestoreドキュメントに変換
-//   Map<String, dynamic> toDocument() {
-//     return {
-//       'imagePath': imagePath,
-//       'title': title,
-//       'text': text,
-//     };
-//   }
-// }
-
-// class SpotScreen extends StatelessWidget {
-//   const SpotScreen({Key? key}) : super(key: key);
-
-//   Stream<List<Spot>> fetchSpotsStream() {
-//     final spotsRef = FirebaseFirestore.instance
-//         .collection('spots')
-//         .withConverter<Spot>(
-//           // Convert Firestore snapshots → Spot
-//           fromFirestore: (snapshot, _) => Spot.fromDocument(snapshot),
-//           // Convert Spot → Firestore docs
-//           toFirestore: (spot, _) =>
-//               spot.toDocument(), // ✅ Use your defined method
-//         )
-//         .limit(10); // Fetch first 50 docs only
-
-//     return spotsRef.snapshots().map(
-//           (snapshot) => snapshot.docs.map((doc) => doc.data()).toList(),
-//         );
-//   }
-
-//   @override
-//   Widget build(BuildContext context) {
-//     return Scaffold(
-//         appBar: AppBar(
-//           title: const Icon(
-//             Icons.check_circle,
-//             color: Color(0xFF00008b),
-//           ),
-//         ),
-//         body: StreamBuilder<List<Spot>>(
-//           stream: fetchSpotsStream(), // ✅ Use stream here
-//           builder: (context, snapshot) {
-//             if (snapshot.connectionState == ConnectionState.waiting) {
-//               return const Center(child: CircularProgressIndicator());
-//             } else if (snapshot.hasError) {
-//               return Center(child: Text('Error: ${snapshot.error}'));
-//             } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-//               return const Center(child: Text('No spots available'));
-//             } else {
-//               final spots = snapshot.data!;
-//               return Padding(
-//                 padding: const EdgeInsets.all(8.0),
-//                 child: Column(
-//                   crossAxisAlignment: CrossAxisAlignment.start,
-//                   children: [
-//                     const Text(
-//                       '■ チェクイン済みのスポット一覧',
-//                       style: TextStyle(
-//                         color: Color(0xFF00008b),
-//                         fontWeight: FontWeight.bold,
-//                         fontSize: 16,
-//                       ),
-//                     ),
-//                     const SizedBox(height: 8),
-//                     Expanded(
-//                       child: GridView.builder(
-//                         gridDelegate:
-//                             const SliverGridDelegateWithFixedCrossAxisCount(
-//                           crossAxisCount: 2,
-//                           crossAxisSpacing: 8,
-//                           mainAxisSpacing: 8,
-//                           childAspectRatio: 16 / 9,
-//                         ),
-//                         itemCount: spots.length,
-//                         itemBuilder: (context, index) {
-//                           final spot = spots[index];
-//                           return GestureDetector(
-//                             onTap: () {
-//                               Navigator.push(
-//                                 context,
-//                                 MaterialPageRoute(
-//                                   builder: (context) =>
-//                                       SpotDetailScreen(spot: spot),
-//                                 ),
-//                               );
-//                             },
-//                             child: Card(
-//                               clipBehavior: Clip.antiAlias,
-//                               child: Stack(
-//                                 children: [
-//                                   CachedNetworkImage(
-//                                     imageUrl: spot.imagePath,
-//                                     fit: BoxFit.cover,
-//                                     width: double.infinity,
-//                                     height: double.infinity,
-//                                     placeholder: (context, url) => const Center(
-//                                       child: CircularProgressIndicator(
-//                                           strokeWidth: 2),
-//                                     ),
-//                                     errorWidget: (context, url, error) =>
-//                                         const Icon(Icons.error),
-//                                   ),
-//                                   Container(
-//                                     alignment: Alignment.bottomCenter,
-//                                     padding: const EdgeInsets.all(8),
-//                                     child: Text(
-//                                       spot.title,
-//                                       style: const TextStyle(
-//                                         color: Colors.white,
-//                                         fontSize: 12,
-//                                         fontWeight: FontWeight.bold,
-//                                       ),
-//                                       textAlign: TextAlign.center,
-//                                     ),
-//                                   ),
-//                                 ],
-//                               ),
-//                             ),
-//                           );
-//                         },
-//                       ),
-//                     ),
-//                   ],
-//                 ),
-//               );
-//             }
-//           },
-//         ));
-//   }
-// }
-
-// class SpotDetailScreen extends StatelessWidget {
-//   final Spot spot;
-
-//   const SpotDetailScreen({Key? key, required this.spot}) : super(key: key);
-
-//   @override
-//   Widget build(BuildContext context) {
-//     return Scaffold(
-//       appBar: AppBar(
-//         title: Text(spot.title),
-//       ),
-//       body: Padding(
-//         padding: const EdgeInsets.all(16.0),
-//         child: Column(
-//           crossAxisAlignment: CrossAxisAlignment.start,
-//           children: [
-//             Image.network(spot.imagePath),
-//             const SizedBox(height: 16),
-//             Text(
-//               spot.title,
-//               style: const TextStyle(
-//                 fontSize: 24,
-//                 fontWeight: FontWeight.bold,
-//               ),
-//             ),
-//             const SizedBox(height: 8),
-//             Text(
-//               spot.text,
-//               style: const TextStyle(fontSize: 16),
-//             ),
-//           ],
-//         ),
-//       ),
-//     );
-//   }
-// }
-
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:parts/Dataprovider/model/spot_model.dart';
+import 'package:parts/bloc/spotbloc/spot_event.dart';
+import 'package:parts/bloc/spotbloc/spot_state.dart';
+import 'package:parts/bloc/spotbloc/spotbloc.dart';
 
-/// ✅ Spot Model
-class Spot {
-  final String imagePath;
-  final String title;
-  final String text;
-
-  Spot(this.imagePath, this.title, this.text);
-
-  // Firestore → Spot
-  factory Spot.fromDocument(DocumentSnapshot doc) {
-    return Spot(
-      doc['imagePath'],
-      doc['title'],
-      doc['text'],
-    );
-  }
-
-  // Spot → Firestore
-  Map<String, dynamic> toDocument() {
-    return {
-      'imagePath': imagePath,
-      'title': title,
-      'text': text,
-    };
-  }
-}
-
-/// ✅ Firestore Service with Pagination
-class SpotService {
-  final spotsRef =
-      FirebaseFirestore.instance.collection('spots').withConverter<Spot>(
-            fromFirestore: (snapshot, _) => Spot.fromDocument(snapshot),
-            toFirestore: (spot, _) => spot.toDocument(),
-          );
-
-  // fetch first page
-  Future<QuerySnapshot<Spot>> fetchFirstSpots({int limit = 50}) {
-    return spotsRef.limit(limit).get();
-  }
-
-  // fetch next page
-  Future<QuerySnapshot<Spot>> fetchNextSpots({
-    required DocumentSnapshot<Spot> lastDoc,
-    int limit = 50,
-  }) {
-    return spotsRef.startAfterDocument(lastDoc).limit(limit).get();
-  }
-}
-
-/// ✅ Spot Screen with Infinite Scroll
 class SpotScreen extends StatefulWidget {
   const SpotScreen({Key? key}) : super(key: key);
 
@@ -248,151 +15,162 @@ class SpotScreen extends StatefulWidget {
 }
 
 class _SpotScreenState extends State<SpotScreen> {
-  final SpotService _spotService = SpotService();
-  List<Spot> _spots = [];
-  DocumentSnapshot<Spot>? _lastDoc;
-  bool _isLoading = false;
-  bool _hasMore = true;
   final ScrollController _scrollController = ScrollController();
 
   @override
   void initState() {
     super.initState();
-    _loadInitialSpots();
-
-    // add listener for infinite scroll
-    _scrollController.addListener(() {
-      if (_scrollController.position.pixels >=
-              _scrollController.position.maxScrollExtent - 100 &&
-          !_isLoading &&
-          _hasMore) {
-        _loadMoreSpots();
-      }
-    });
+    _scrollController.addListener(_onScroll);
   }
 
-  Future<void> _loadInitialSpots() async {
-    setState(() => _isLoading = true);
-    final snapshot = await _spotService.fetchFirstSpots(limit: 50);
-    setState(() {
-      _spots = snapshot.docs.map((doc) => doc.data()).toList();
-      _lastDoc = snapshot.docs.isNotEmpty ? snapshot.docs.last : null;
-      _isLoading = false;
-      _hasMore = snapshot.docs.length == 50; // if less than 50, no more
-    });
+  void _onScroll() {
+    if (_scrollController.position.pixels >=
+            _scrollController.position.maxScrollExtent - 100 &&
+        _scrollController.position.outOfRange == false) {
+      context.read<SpotBloc>().add(SpotFetchMore());
+    }
   }
 
-  Future<void> _loadMoreSpots() async {
-    if (_lastDoc == null) return;
-
-    setState(() => _isLoading = true);
-    final snapshot =
-        await _spotService.fetchNextSpots(lastDoc: _lastDoc!, limit: 50);
-    setState(() {
-      _spots.addAll(snapshot.docs.map((doc) => doc.data()).toList());
-      _lastDoc = snapshot.docs.isNotEmpty ? snapshot.docs.last : _lastDoc;
-      _isLoading = false;
-      _hasMore = snapshot.docs.length == 50;
-    });
+  @override
+  void dispose() {
+    _scrollController
+      ..removeListener(_onScroll)
+      ..dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Icon(
-          Icons.check_circle,
-          color: Color(0xFF00008b),
+    return BlocProvider(
+      create: (context) => SpotBloc()..add(SpotFetchInitial()),
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Icon(
+            Icons.check_circle,
+            color: Color(0xFF00008b),
+          ),
         ),
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(8.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              '■ チェクイン済みのスポット一覧',
-              style: TextStyle(
-                color: Color(0xFF00008b),
-                fontWeight: FontWeight.bold,
-                fontSize: 16,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Expanded(
-              child: GridView.builder(
-                controller: _scrollController,
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
-                  crossAxisSpacing: 8,
-                  mainAxisSpacing: 8,
-                  childAspectRatio: 16 / 9,
+        body: Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                '■ チェクイン済みのスポット一覧',
+                style: TextStyle(
+                  color: Color(0xFF00008b),
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
                 ),
-                itemCount: _spots.length,
-                itemBuilder: (context, index) {
-                  final spot = _spots[index];
-                  return GestureDetector(
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => SpotDetailScreen(spot: spot),
-                        ),
-                      );
-                    },
-                    child: Card(
-                      clipBehavior: Clip.antiAlias,
-                      child: Stack(
-                        children: [
-                          CachedNetworkImage(
-                            imageUrl: spot.imagePath,
-                            fit: BoxFit.cover,
-                            width: double.infinity,
-                            height: double.infinity,
-                            placeholder: (context, url) => Container(
-                              width: double.infinity,
-                              height: double.infinity,
-                              color: Colors.grey[200],
-                              child: const Center(
-                                child: Icon(
-                                  Icons.image,
-                                  size: 50,
-                                  color: Colors.grey,
-                                ),
-                              ),
-                            ),
-                            errorWidget: (context, url, error) =>
-                                const Icon(Icons.error),
-                          ),
-                          Container(
-                            alignment: Alignment.bottomCenter,
-                            padding: const EdgeInsets.all(8),
-                            color: Colors.black45,
-                            child: Text(
-                              spot.title,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold,
-                              ),
-                              textAlign: TextAlign.center,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
-                },
               ),
-            ),
-          ],
+              const SizedBox(height: 8),
+              Expanded(
+                child: BlocBuilder<SpotBloc, SpotState>(
+                  builder: (context, state) {
+                    if (state is SpotInitial || state is SpotLoading) {
+                      return const Center();
+                    }
+
+                    if (state is SpotError) {
+                      return Center(child: Text(state.message));
+                    }
+
+                    if (state is SpotLoaded) {
+                      return _buildSpotGrid(state);
+                    }
+
+                    return const Center(child: Text('Unknown state'));
+                  },
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
+
+  Widget _buildSpotGrid(SpotLoaded state) {
+    if (state.spots.isEmpty) {
+      return const Center(
+        child: Text(
+          'チェックイン済みのスポットがありません',
+          style: TextStyle(fontSize: 16, color: Colors.grey),
+        ),
+      );
+    }
+
+    return GridView.builder(
+      controller: _scrollController,
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        crossAxisSpacing: 8,
+        mainAxisSpacing: 8,
+        childAspectRatio: 16 / 9,
+      ),
+      itemCount: state.spots.length + (state.hasMore ? 1 : 0),
+      itemBuilder: (context, index) {
+        if (index >= state.spots.length) {
+          return const Center();
+        }
+
+        final spot = state.spots[index];
+        return GestureDetector(
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => SpotDetailScreen(spot: spot),
+              ),
+            );
+          },
+          child: Card(
+            clipBehavior: Clip.antiAlias,
+            child: Stack(
+              children: [
+                CachedNetworkImage(
+                  imageUrl: spot.imagePath,
+                  fit: BoxFit.cover,
+                  width: double.infinity,
+                  height: double.infinity,
+                  placeholder: (context, url) => Container(
+                    width: double.infinity,
+                    height: double.infinity,
+                    color: Colors.grey[200],
+                    child: const Center(
+                      child: Icon(
+                        Icons.image,
+                        size: 50,
+                        color: Colors.grey,
+                      ),
+                    ),
+                  ),
+                  errorWidget: (context, url, error) => const Icon(Icons.error),
+                ),
+                Container(
+                  alignment: Alignment.bottomCenter,
+                  padding: const EdgeInsets.all(8),
+                  color: Colors.black45,
+                  child: Text(
+                    spot.title,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
 }
 
-/// ✅ Spot Detail Screen
+// spot_detail_screen.dart
 class SpotDetailScreen extends StatelessWidget {
   final Spot spot;
 
@@ -400,30 +178,104 @@ class SpotDetailScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
+    final isPortrait =
+        MediaQuery.of(context).orientation == Orientation.portrait;
+
     return Scaffold(
       appBar: AppBar(
-        title: Text(spot.title),
+        title: Text(
+          spot.title,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+        ),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Image.network(spot.imagePath),
-            const SizedBox(height: 16),
-            Text(
-              spot.title,
-              style: const TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
+      body: SafeArea(
+        child: SingleChildScrollView(
+          physics: const BouncingScrollPhysics(),
+          padding: EdgeInsets.symmetric(
+            horizontal: screenWidth * 0.04,
+            vertical: screenHeight * 0.02,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Responsive Image
+              Container(
+                width: double.infinity,
+                height: isPortrait ? screenHeight * 0.3 : screenHeight * 0.5,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.1),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: Image.network(
+                    spot.imagePath,
+                    fit: BoxFit.cover,
+                    loadingBuilder: (context, child, loadingProgress) {
+                      if (loadingProgress == null) return child;
+                      return Container(
+                        color: Colors.grey[200],
+                        child: Center(
+                          child: CircularProgressIndicator(
+                              // value: loadingProgress.expectedTotalBytes != null
+                              //     ? loadingProgress.cumulativeBytesLoaded /
+                              //         loadingProgress.expectedTotalBytes!
+                              //     : null,
+                              ),
+                        ),
+                      );
+                    },
+                    errorBuilder: (context, error, stackTrace) => Container(
+                      color: Colors.grey[200],
+                      child: const Icon(
+                        Icons.image_not_supported_outlined,
+                        size: 50,
+                        color: Colors.grey,
+                      ),
+                    ),
+                  ),
+                ),
               ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              spot.text,
-              style: const TextStyle(fontSize: 16),
-            ),
-          ],
+
+              SizedBox(height: screenHeight * 0.03),
+
+              // Title with responsive font size
+              Text(
+                spot.title,
+                style: TextStyle(
+                  fontSize: screenWidth < 600 ? 24 : 28,
+                  fontWeight: FontWeight.bold,
+                  height: 1.2,
+                ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+
+              SizedBox(height: screenHeight * 0.02),
+
+              // Description text with responsive font size
+              Text(
+                spot.text,
+                style: TextStyle(
+                  fontSize: screenWidth < 600 ? 16 : 18,
+                  height: 1.6,
+                ),
+                textAlign: TextAlign.justify,
+              ),
+
+              // Add some bottom padding for better scrolling
+              SizedBox(height: screenHeight * 0.05),
+            ],
+          ),
         ),
       ),
     );

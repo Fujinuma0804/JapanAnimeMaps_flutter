@@ -1,12 +1,20 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.example.parts">
     <!-- Stripe permissions -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+      <!-- Permissions options for the `location` group -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+
+
     
     <application
-        android:label="parts"
+        android:label="JapanAnimeMaps"
         android:name="${applicationName}"
-        android:icon="@mipmap/launcher_icon">
+        android:icon="@mipmap/launcher_icon"
+        android:allowBackup="true"
+        android:dataExtractionRules="@xml/data_extraction_rules">
         <activity
             android:name=".MainActivity"
             android:exported="true"
@@ -34,6 +42,10 @@
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
+          
+            <meta-data
+            android:name="com.google.android.geo.API_KEY" 
+            android:value="AIzaSyARCuIWeU_K9FUbEOTSBWjHky5KSV-NBeQ" />
             <meta-data
             android:name="com.google.android.gms.ads.APPLICATION_ID"
             android:value="ca-app-pub-4250006707527458~6147555038"/>

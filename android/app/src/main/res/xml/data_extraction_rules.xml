@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<data-extraction-rules>
+    <cloud-backup>
+        <!-- Firebase In-App Messaging cache -->
+        <include domain="file" path="fiam_impressions_store_file"/>
+    </cloud-backup>
+    <device-transfer>
+        <!-- Firebase In-App Messaging cache -->
+        <include domain="file" path="fiam_impressions_store_file"/>
+    </device-transfer>
+</data-extraction-rules>
