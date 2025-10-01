@@ -175,6 +175,7 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
       final authCredential = oAuthProvider.credential(
         idToken: credential.identityToken,
         rawNonce: rawNonce,
+        accessToken: credential.authorizationCode
       );
 
       UserCredential userCredential =
