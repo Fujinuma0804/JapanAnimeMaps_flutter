@@ -5,6 +5,8 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:parts/login_page/login_page.dart';
+import 'package:parts/login_page/mail_sign_up1.dart';
 import 'package:parts/login_page/sign_up.dart';
 import 'package:parts/src/bottomnavigationbar.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -218,7 +220,7 @@ class _WelcomePageState extends State<WelcomePage> {
     Navigator.of(context).pushReplacement(
       PageRouteBuilder(
         pageBuilder: (context, animation, secondaryAnimation) =>
-            const SignUpPage(),
+            const LoginPage(),
         transitionsBuilder: (context, animation, secondaryAnimation, child) {
           return child;
         },

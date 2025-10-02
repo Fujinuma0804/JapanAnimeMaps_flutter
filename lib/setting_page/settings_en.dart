@@ -25,7 +25,7 @@ class SettingsEn extends StatefulWidget {
 }
 
 class _SettingsEnState extends State<SettingsEn> {
-  String _language = 'English';
+  String _language = '日本語';
   final FirebaseAuth _auth = FirebaseAuth.instance;
   late StreamSubscription<DocumentSnapshot> _languageSubscription;
 
@@ -45,7 +45,7 @@ class _SettingsEnState extends State<SettingsEn> {
   Future<void> _loadLanguagePreference() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     setState(() {
-      _language = prefs.getString('language') ?? 'English';
+      _language = prefs.getString('language') ?? '日本語';
     });
   }
 
@@ -100,7 +100,7 @@ class _SettingsEnState extends State<SettingsEn> {
               ),
               CupertinoDialogAction(
                 child: Text(
-                  'English',
+                    'English',
                   style: TextStyle(
                     color: Color(0xFF00008b),
                   ),
@@ -349,12 +349,11 @@ class _SettingsEnState extends State<SettingsEn> {
                   title: Text(_language == '日本語' ? 'ヘルプセンター' : 'Help Center'),
                   value: const Text(''),
                   onPressed: (context) {
-                    Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (context) =>
-                                // HelpCenter
-                                QandATopPage()));
+                    Navigator.push(context,
+                        MaterialPageRoute(builder: (context) =>
+                            // HelpCenter
+                        QandATopPage
+                              ()));
                   },
                 ),
                 SettingsTile.navigation(

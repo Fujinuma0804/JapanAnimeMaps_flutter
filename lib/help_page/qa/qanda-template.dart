@@ -131,7 +131,7 @@ class FAQRatingService {
 class AnimeToursimFAQPage extends StatefulWidget {
   final String? initialGenre; // 初期表示するジャンル（nullの場合は全て表示）
 
-  const AnimeToursimFAQPage({super.key, this.initialGenre});
+  const AnimeToursimFAQPage({Key? key, this.initialGenre}) : super(key: key);
 
   @override
   State<AnimeToursimFAQPage> createState() => _AnimeToursimFAQPageState();
@@ -739,7 +739,7 @@ class _AnimeToursimFAQPageState extends State<AnimeToursimFAQPage> {
 class FAQDetailPage extends StatefulWidget {
   final FAQModel faq;
 
-  const FAQDetailPage({super.key, required this.faq});
+  const FAQDetailPage({Key? key, required this.faq}) : super(key: key);
 
   @override
   State<FAQDetailPage> createState() => _FAQDetailPageState();
@@ -1005,11 +1005,11 @@ class _FAQDetailPageState extends State<FAQDetailPage> {
                     borderRadius: BorderRadius.circular(8),
                     border: Border.all(color: Colors.green.withOpacity(0.3)),
                   ),
-                  child: const Row(
+                  child: Row(
                     children: [
                       Icon(Icons.check_circle, color: Colors.green),
-                      SizedBox(width: 8),
-                      Expanded(
+                      const SizedBox(width: 8),
+                      const Expanded(
                         child: Text(
                           '評価いただき、ありがとうございました',
                           style: TextStyle(

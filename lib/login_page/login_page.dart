@@ -23,9 +23,7 @@ class LoginPage extends StatefulWidget {
 
 class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
   final FirebaseAuth _auth = FirebaseAuth.instance;
-  final GoogleSignIn _googleSignIn = GoogleSignIn(
-    scopes: ['email', 'profile'],
-  );
+  final GoogleSignIn _googleSignIn = GoogleSignIn();
   bool _isLoading = false;
   late AnimationController _controller;
   late Animation<Offset> _slideAnimation;
@@ -90,7 +88,6 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
     super.dispose();
   }
 
-  // ...existing code...
   Future<void> _signInWithGoogle() async {
     setState(() {
       _isLoading = true;
@@ -144,28 +141,10 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
           ),
         );
       }
-    } catch (e, stack) {
+    } catch (e) {
       print('Error signing in with Google: $e');
-      print('Error type: ${e.runtimeType}');
-      print('Stack trace: $stack');
-
-      String errorMessage = 'サインインに失敗しました。もう一度お試しください。';
-
-      if (e.toString().contains('sign_in_failed')) {
-        if (e.toString().contains('10')) {
-          errorMessage = 'Google Sign-Inの設定に問題があります。SHA-1フィンガープリントを確認してください。';
-        } else if (e.toString().contains('7')) {
-          errorMessage = 'ネットワーク接続を確認してください。';
-        } else if (e.toString().contains('12500')) {
-          errorMessage = 'Google Play Servicesが利用できません。';
-        }
-      }
-
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(errorMessage),
-          duration: Duration(seconds: 5),
-        ),
+        SnackBar(content: Text('サインインに失敗しました。もう一度お試しください。')),
       );
     } finally {
       setState(() {
@@ -174,7 +153,6 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
     }
   }
 
-// ...existing code...
   Future<void> _signInWithApple() async {
     setState(() {
       _isLoading = true;
