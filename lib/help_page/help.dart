@@ -9,7 +9,7 @@ import '../loading_code/loading_code_top.dart';
 import 'mail_sender.dart';
 
 class HelpCenter extends StatelessWidget {
-  const HelpCenter({Key? key}) : super(key: key);
+  const HelpCenter({super.key});
 
   Future<void> _launchURL() async {
     const url = 'https://page.line.me/446sszel';
@@ -51,7 +51,7 @@ class HelpCenter extends StatelessWidget {
                 onPressed: (context) {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) => QA()),
+                    MaterialPageRoute(builder: (context) => const QA()),
                   );
                   // 画面遷移処理
                 },
@@ -66,10 +66,10 @@ class HelpCenter extends StatelessWidget {
                 title: const Text('メールで問い合わせ'),
                 value: const Text(''),
                 onPressed: (context) {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => MailScreen()),
-                  );
+                  // Navigator.push(
+                  //   context,
+                  //   MaterialPageRoute(builder: (context) => MailScreen()),
+                  // );
                   // 画面遷移処理
                 },
               ),
@@ -147,7 +147,7 @@ class HelpCenter extends StatelessWidget {
                 onPressed: (context) {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) => LoadingCodeTop()),
+                    MaterialPageRoute(builder: (context) => const LoadingCodeTop()),
                   );
                   // 画面遷移処理
                 },

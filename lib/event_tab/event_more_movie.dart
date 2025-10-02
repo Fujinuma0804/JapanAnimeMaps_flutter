@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:image_gallery_saver_plus/image_gallery_saver_plus.dart';
 import 'package:video_player/video_player.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:permission_handler/permission_handler.dart';
 import 'package:dio/dio.dart';
+// import 'package:image_gallery_saver/image_gallery_saver.dart';  // Temporarily disabled
 import 'package:fluttertoast/fluttertoast.dart';
 import 'dart:io';
 import 'dart:math' as math;
@@ -72,24 +71,26 @@ class EventMoreMovie extends StatefulWidget {
   final String eventId;
 
   const EventMoreMovie({
-    Key? key,
+    super.key,
     required this.eventName,
     required this.mediaUrl,
     required this.mediaType,
     this.eventMoreInfo,
     this.eventInfo,
     required this.eventId,
-  }) : super(key: key);
+  });
 
   @override
   State<EventMoreMovie> createState() => _EventMoreMovieState();
 }
-class _EventMoreMovieState extends State<EventMoreMovie> with TickerProviderStateMixin {
+
+class _EventMoreMovieState extends State<EventMoreMovie>
+    with TickerProviderStateMixin {
   bool isFollowing = false;
   VideoPlayerController? _videoController;
   bool _isVideoInitialized = false;
   bool _hasVideoError = false;
-  bool _showFullText = false; // この変数を利用して「続きを読む」の状態を管理
+// この変数を利用して「続きを読む」の状態を管理
   bool _isPlaying = true;
   bool _danmakuCompleted = false;
 
@@ -102,7 +103,7 @@ class _EventMoreMovieState extends State<EventMoreMovie> with TickerProviderStat
     return true;
   }
 
-  TextEditingController _commentController = TextEditingController();
+  final TextEditingController _commentController = TextEditingController();
 
   final ScrollController _commentsScrollController = ScrollController();
 
@@ -147,6 +148,7 @@ class _EventMoreMovieState extends State<EventMoreMovie> with TickerProviderStat
     // 最初のランダム絵文字を生成
     _generateRandomEmojis();
   }
+
   // コメント一覧を表示するボトムシートを修正
   void _showCommentsBottomSheet() {
     showModalBottomSheet(
@@ -193,7 +195,8 @@ class _EventMoreMovieState extends State<EventMoreMovie> with TickerProviderStat
                 Container(
                   width: double.infinity,
                   padding: const EdgeInsets.all(16),
-                  margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  margin:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   decoration: BoxDecoration(
                     color: Colors.grey[850],
                     borderRadius: BorderRadius.circular(12),
@@ -223,7 +226,8 @@ class _EventMoreMovieState extends State<EventMoreMovie> with TickerProviderStat
 
                 // コメント入力フォーム
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   child: Row(
                     children: [
                       CircleAvatar(
@@ -238,14 +242,16 @@ class _EventMoreMovieState extends State<EventMoreMovie> with TickerProviderStat
                           style: const TextStyle(color: Colors.white),
                           decoration: InputDecoration(
                             hintText: 'コメントを入力...',
-                            hintStyle: TextStyle(color: Colors.white.withOpacity(0.6)),
+                            hintStyle:
+                                TextStyle(color: Colors.white.withOpacity(0.6)),
                             filled: true,
                             fillColor: Colors.grey[800],
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(20),
                               borderSide: BorderSide.none,
                             ),
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                            contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 16, vertical: 10),
                           ),
                         ),
                       ),
@@ -254,7 +260,8 @@ class _EventMoreMovieState extends State<EventMoreMovie> with TickerProviderStat
                         radius: 20,
                         backgroundColor: Colors.blue,
                         child: IconButton(
-                          icon: const Icon(Icons.send, color: Colors.white, size: 18),
+                          icon: const Icon(Icons.send,
+                              color: Colors.white, size: 18),
                           onPressed: () {
                             if (_commentController.text.isNotEmpty) {
                               _submitComment(_commentController.text);
@@ -292,7 +299,8 @@ class _EventMoreMovieState extends State<EventMoreMovie> with TickerProviderStat
                         return Center(
                           child: Text(
                             'エラーが発生しました',
-                            style: TextStyle(color: Colors.white.withOpacity(0.7)),
+                            style:
+                                TextStyle(color: Colors.white.withOpacity(0.7)),
                           ),
                         );
                       }
@@ -303,7 +311,8 @@ class _EventMoreMovieState extends State<EventMoreMovie> with TickerProviderStat
                         return Center(
                           child: Text(
                             'コメントはまだありません',
-                            style: TextStyle(color: Colors.white.withOpacity(0.7)),
+                            style:
+                                TextStyle(color: Colors.white.withOpacity(0.7)),
                           ),
                         );
                       }
@@ -313,7 +322,8 @@ class _EventMoreMovieState extends State<EventMoreMovie> with TickerProviderStat
                         itemCount: comments.length,
                         padding: const EdgeInsets.symmetric(horizontal: 16),
                         itemBuilder: (context, index) {
-                          final comment = CommentModel.fromFirestore(comments[index]);
+                          final comment =
+                              CommentModel.fromFirestore(comments[index]);
 
                           // 時間を整形
                           String timeAgo = _getTimeAgo(comment.timestamp);
@@ -332,11 +342,13 @@ class _EventMoreMovieState extends State<EventMoreMovie> with TickerProviderStat
                                       : null,
                                   child: comment.userPhotoUrl == null
                                       ? Text(
-                                    comment.displayName.isNotEmpty
-                                        ? comment.displayName[0].toUpperCase()
-                                        : '?',
-                                    style: const TextStyle(color: Colors.white),
-                                  )
+                                          comment.displayName.isNotEmpty
+                                              ? comment.displayName[0]
+                                                  .toUpperCase()
+                                              : '?',
+                                          style: const TextStyle(
+                                              color: Colors.white),
+                                        )
                                       : null,
                                 ),
                                 const SizedBox(width: 12),
@@ -344,7 +356,8 @@ class _EventMoreMovieState extends State<EventMoreMovie> with TickerProviderStat
                                 // コメント内容
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Row(
                                         children: [
@@ -360,7 +373,8 @@ class _EventMoreMovieState extends State<EventMoreMovie> with TickerProviderStat
                                           Text(
                                             timeAgo,
                                             style: TextStyle(
-                                              color: Colors.white.withOpacity(0.6),
+                                              color:
+                                                  Colors.white.withOpacity(0.6),
                                               fontSize: 12,
                                             ),
                                           ),
@@ -379,28 +393,32 @@ class _EventMoreMovieState extends State<EventMoreMovie> with TickerProviderStat
                                         children: [
                                           Icon(
                                             Icons.favorite_border,
-                                            color: Colors.white.withOpacity(0.6),
+                                            color:
+                                                Colors.white.withOpacity(0.6),
                                             size: 16,
                                           ),
                                           const SizedBox(width: 4),
                                           Text(
                                             'いいね',
                                             style: TextStyle(
-                                              color: Colors.white.withOpacity(0.6),
+                                              color:
+                                                  Colors.white.withOpacity(0.6),
                                               fontSize: 12,
                                             ),
                                           ),
                                           const SizedBox(width: 16),
                                           Icon(
                                             Icons.reply,
-                                            color: Colors.white.withOpacity(0.6),
+                                            color:
+                                                Colors.white.withOpacity(0.6),
                                             size: 16,
                                           ),
                                           const SizedBox(width: 4),
                                           Text(
                                             '返信',
                                             style: TextStyle(
-                                              color: Colors.white.withOpacity(0.6),
+                                              color:
+                                                  Colors.white.withOpacity(0.6),
                                               fontSize: 12,
                                             ),
                                           ),
@@ -424,6 +442,7 @@ class _EventMoreMovieState extends State<EventMoreMovie> with TickerProviderStat
       ),
     );
   }
+
   // 時間の経過を「〜分前」「〜時間前」などの形式で返す関数を追加
   String _getTimeAgo(DateTime dateTime) {
     final now = DateTime.now();
@@ -480,7 +499,7 @@ class _EventMoreMovieState extends State<EventMoreMovie> with TickerProviderStat
       List<DanmakuCommentModel> newComments = [];
 
       // 左側に配置するため、固定の水平位置を使用
-      final double fixedHorizontalPosition = 0.25; // 画面左側の固定位置（25%位置）
+      const double fixedHorizontalPosition = 0.25; // 画面左側の固定位置（25%位置）
 
       for (int i = 0; i < comments.length; i++) {
         final commentData = comments[i].data();
@@ -488,7 +507,7 @@ class _EventMoreMovieState extends State<EventMoreMovie> with TickerProviderStat
         final displayName = commentData['displayName'] ?? '匿名';
 
         // コメント間隔を狭くするため、初期オフセットを小さくする
-        final double initialOffsetPercent = 0.08 * i; // 間隔を小さく調整（0.08間隔）
+// 間隔を小さく調整（0.08間隔）
 
         newComments.add(DanmakuCommentModel(
           content: content,
@@ -545,6 +564,7 @@ class _EventMoreMovieState extends State<EventMoreMovie> with TickerProviderStat
       _showToast('コメントの送信に失敗しました');
     }
   }
+
   // コメント入力用ボトムシートを表示
   void _showCommentBottomSheet() {
     // ボトムシートを表示する前に新しいランダム絵文字を生成
@@ -554,89 +574,85 @@ class _EventMoreMovieState extends State<EventMoreMovie> with TickerProviderStat
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) =>
-          Padding(
-            padding: EdgeInsets.only(
-              bottom: MediaQuery
-                  .of(context)
-                  .viewInsets
-                  .bottom,
-            ),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              decoration: const BoxDecoration(
-                color: Colors.black87,
-                borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
+      builder: (context) => Padding(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(context).viewInsets.bottom,
+        ),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          decoration: const BoxDecoration(
+            color: Colors.black87,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
                 children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: TextField(
-                          controller: _commentController,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 16,
-                          ),
-                          decoration: const InputDecoration(
-                            border: InputBorder.none,
-                            hintText: 'コメントを入力...',
-                            hintStyle: TextStyle(
-                              color: Colors.white70,
-                              fontSize: 16,
-                            ),
-                          ),
-                          autofocus: true,
+                  Expanded(
+                    child: TextField(
+                      controller: _commentController,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                      ),
+                      decoration: const InputDecoration(
+                        border: InputBorder.none,
+                        hintText: 'コメントを入力...',
+                        hintStyle: TextStyle(
+                          color: Colors.white70,
+                          fontSize: 16,
                         ),
                       ),
-                      IconButton(
-                        icon: const Icon(Icons.send, color: Colors.white70),
-                        onPressed: () {
-                          if (_commentController.text.isNotEmpty) {
-                            _submitComment(_commentController.text);
-                          }
-                          Navigator.pop(context);
-                        },
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  // 絵文字選択エリア - ランダムな絵文字を表示
-                  Container(
-                    height: 50,
-                    child: SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      child: Row(
-                        children: _displayEmojis.map((emoji) {
-                          return Padding(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 8.0),
-                            child: GestureDetector(
-                              onTap: () {
-                                _commentController.text += emoji;
-                              },
-                              child: Text(
-                                emoji,
-                                style: const TextStyle(fontSize: 24),
-                              ),
-                            ),
-                          );
-                        }).toList(),
-                      ),
+                      autofocus: true,
                     ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.send, color: Colors.white70),
+                    onPressed: () {
+                      if (_commentController.text.isNotEmpty) {
+                        _submitComment(_commentController.text);
+                      }
+                      Navigator.pop(context);
+                    },
                   ),
                 ],
               ),
-            ),
+              const SizedBox(height: 8),
+              // 絵文字選択エリア - ランダムな絵文字を表示
+              SizedBox(
+                height: 50,
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: _displayEmojis.map((emoji) {
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                        child: GestureDetector(
+                          onTap: () {
+                            _commentController.text += emoji;
+                          },
+                          child: Text(
+                            emoji,
+                            style: const TextStyle(fontSize: 24),
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ),
+              ),
+            ],
           ),
+        ),
+      ),
     );
   }
 
   Widget _buildDanmakuComments() {
     // 弾幕が表示終了した場合、または動画が一時停止中の場合は弾幕を表示しない
-    if (_danmakuCompleted || (widget.mediaType == 'video' && !_isPlaying && _isVideoInitialized)) {
+    if (_danmakuCompleted ||
+        (widget.mediaType == 'video' && !_isPlaying && _isVideoInitialized)) {
       return const SizedBox.shrink(); // 何も表示しない
     }
 
@@ -644,17 +660,13 @@ class _EventMoreMovieState extends State<EventMoreMovie> with TickerProviderStat
       animation: _danmakuController,
       builder: (context, child) {
         final double screenHeight = MediaQuery.of(context).size.height;
-        final double commentHeight = 30; // おおよそのコメント高さ
+        const double commentHeight = 30; // おおよそのコメント高さ
 
         // 画面上部のフェードアウト開始位置（上から30%の位置）
         final double fadeOutStartY = screenHeight * 0.3;
 
         final widgets = _danmakuComments.asMap().entries.map((entry) {
-          final int index = entry.key;
           final comment = entry.value;
-
-          // 各コメントに初期オフセットを追加して異なる高さから開始（間隔を狭く）
-          final double initialOffset = index * 0.08; // 間隔を小さく
 
           // アニメーションの進行度は0-1の範囲
           double rawPosition = _danmakuController.value;
@@ -664,7 +676,7 @@ class _EventMoreMovieState extends State<EventMoreMovie> with TickerProviderStat
 
           // 垂直方向の位置計算（下から上へ移動）
           final double startY = screenHeight; // 画面下端から開始
-          final double endY = commentHeight; // 上端近くまで移動
+          const double endY = commentHeight; // 上端近くまで移動
 
           // 現在のY位置を計算（下から上に移動）
           final double currentY = startY - (startY - endY) * verticalProgress;
@@ -689,19 +701,21 @@ class _EventMoreMovieState extends State<EventMoreMovie> with TickerProviderStat
           }
 
           return Positioned(
-            left: MediaQuery.of(context).size.width * comment.horizontalPosition,
+            left:
+                MediaQuery.of(context).size.width * comment.horizontalPosition,
             top: currentY,
             child: Opacity(
               opacity: opacity,
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                 decoration: BoxDecoration(
                   color: Colors.black.withOpacity(0.5),
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(color: Colors.white30, width: 0.5),
                 ),
                 child: Text(
-                  displayText,  // 修正したテキストを表示
+                  displayText, // 修正したテキストを表示
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 18,
@@ -717,6 +731,7 @@ class _EventMoreMovieState extends State<EventMoreMovie> with TickerProviderStat
       },
     );
   }
+
   // 動画の再生/一時停止を切り替えるメソッド
   void _togglePlayPause() {
     if (_videoController != null && _isVideoInitialized) {
@@ -742,85 +757,6 @@ class _EventMoreMovieState extends State<EventMoreMovie> with TickerProviderStat
       });
     }
   }
-  // 動画のダウンロードと保存
-  Future<void> _downloadAndSaveVideo() async {
-    final url = widget.mediaUrl!;
-    // ファイル名を生成
-    final fileName = 'JapanAnimeMaps_video_${DateTime
-        .now()
-        .millisecondsSinceEpoch}.mp4';
-
-    // 一時ディレクトリのパスを取得
-    final directory = await getTemporaryDirectory();
-    final filePath = '${directory.path}/$fileName';
-
-    // Dioを使ってファイルをダウンロード
-    final dio = Dio();
-    await dio.download(
-      url,
-      filePath,
-      onReceiveProgress: (received, total) {
-        if (total != -1) {
-          final progress = (received / total * 100).toStringAsFixed(0);
-          developer.log('ダウンロード進捗: $progress%');
-        }
-      },
-    );
-
-    // ギャラリーに保存
-    final result = await ImageGallerySaverPlus.saveFile(
-      filePath,
-      name: fileName,
-    );
-
-    developer.log('保存結果: $result');
-
-    // 一時ファイルの削除
-    final file = File(filePath);
-    if (await file.exists()) {
-      await file.delete();
-    }
-  }
-
-  // 画像のダウンロードと保存
-  Future<void> _downloadAndSaveImage() async {
-    final url = widget.mediaUrl!;
-    final fileName = 'JapanAnimeMaps_image_${DateTime
-        .now()
-        .millisecondsSinceEpoch}.jpg';
-
-    // 一時ディレクトリのパスを取得
-    final directory = await getTemporaryDirectory();
-    final filePath = '${directory.path}/$fileName';
-
-    // Dioを使ってファイルをダウンロード
-    final dio = Dio();
-    await dio.download(
-      url,
-      filePath,
-      onReceiveProgress: (received, total) {
-        if (total != -1) {
-          final progress = (received / total * 100).toStringAsFixed(0);
-          developer.log('ダウンロード進捗: $progress%');
-        }
-      },
-    );
-
-    // ギャラリーに保存
-    final result = await ImageGallerySaverPlus.saveFile(
-      filePath,
-      name: fileName,
-    );
-
-    developer.log('保存結果: $result');
-
-    // 一時ファイルの削除
-    final file = File(filePath);
-    if (await file.exists()) {
-      await file.delete();
-    }
-  }
-
   // トーストメッセージを表示
   void _showToast(String message) {
     Fluttertoast.showToast(
@@ -839,26 +775,21 @@ class _EventMoreMovieState extends State<EventMoreMovie> with TickerProviderStat
       final url = widget.mediaUrl!;
       developer.log('動画詳細画面: 動画初期化開始: $url');
 
-      _videoController = VideoPlayerController.network(
-          url,
+      _videoController = VideoPlayerController.network(url,
           videoPlayerOptions: VideoPlayerOptions(mixWithOthers: true),
-          httpHeaders: {'Cache-Control': 'no-cache'}
-      );
+          httpHeaders: {'Cache-Control': 'no-cache'});
 
       // 初期化を試みる
-      await _videoController!.initialize().timeout(
-          const Duration(seconds: 15),
+      await _videoController!.initialize().timeout(const Duration(seconds: 15),
           onTimeout: () {
-            developer.log('動画詳細画面: 初期化タイムアウト');
-            throw Exception('初期化タイムアウト');
-          }
-      );
+        developer.log('動画詳細画面: 初期化タイムアウト');
+        throw Exception('初期化タイムアウト');
+      });
 
       // 初期化成功
       if (_videoController!.value.isInitialized) {
         developer.log(
-            '動画詳細画面: 初期化成功: 長さ=${_videoController!.value.duration
-                .inSeconds}秒');
+            '動画詳細画面: 初期化成功: 長さ=${_videoController!.value.duration.inSeconds}秒');
 
         // ミュートで再生
         _videoController!.setVolume(1.0);
@@ -895,331 +826,348 @@ class _EventMoreMovieState extends State<EventMoreMovie> with TickerProviderStat
     _commentsScrollController.dispose();
     super.dispose();
   }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       resizeToAvoidBottomInset: false, // キーボードが表示されても画面をリサイズしない
       body: Stack(
         children: [
-        // 背景動画/画像
-        Container(
-        width: double.infinity,
-        height: double.infinity,
-        decoration: const BoxDecoration(
-          color: Colors.black,
-        ),
-        child: _buildMediaContent(),
-      ),
-
-      // 弾幕コメント表示オーバーレイ
-      _buildDanmakuComments(),
-
-      // コンテンツオーバーレイ
-      Column(
-          children: [
-      // トップアプリバー
-      SafeArea(
-      child: Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8.0),
-      child: Row(
-        children: [
-          IconButton(
-            icon: const Icon(
-                Icons.arrow_back_ios, color: Colors.white),
-            onPressed: () => Navigator.pop(context),
-          ),
-          Expanded(
-            child: Container(
-              height: 40,
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.2),
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Row(
-                children: [
-                  const SizedBox(width: 12),
-                  const Icon(Icons.search, color: Colors.white),
-                  const SizedBox(width: 8),
-                  Text(
-                    'もっと検索する',
-                    style: TextStyle(
-                      color: Colors.white.withOpacity(0.8),
-                      fontSize: 16,
-                    ),
-                  ),
-                ],
-              ),
+          // 背景動画/画像
+          Container(
+            width: double.infinity,
+            height: double.infinity,
+            decoration: const BoxDecoration(
+              color: Colors.black,
             ),
+            child: _buildMediaContent(),
           ),
-          TextButton(
-            onPressed: () {},
-            child: const Text(
-              '検索',
-              style: TextStyle(color: Colors.white, fontSize: 16),
-            ),
-          ),
-          IconButton(
-            icon: const Icon(Icons.more_horiz, color: Colors.white),
-            onPressed: () {}, // シェアボトムシートを表示するメソッドを呼び出す
-          ),
-        ],
-      ),
-    ),
-    ),
 
-    // ビデオコンテンツ
-    Expanded(
-    child: Center(
-    child: Column(
-    mainAxisAlignment: MainAxisAlignment.center,
-    children: [
-    if (widget.mediaType == 'video' && _hasVideoError)
-    GestureDetector(
-    onTap: () {
-    if (mounted) {
-    setState(() {
-    _hasVideoError = false;
-    _isVideoInitialized = false;
-    _videoController?.dispose();
-    _videoController = null;
-    _initializeVideo();
-    });
-    }
-    },
-    child: Container(
-    width: 70,
-    height: 70,
-    decoration: BoxDecoration(
-    color: Colors.white,
-    shape: BoxShape.circle,
-    boxShadow: [
-    BoxShadow(
-    color: Colors.black.withOpacity(0.3),
-    blurRadius: 10,
-    offset: const Offset(0, 3),
-    ),
-    ],
-    ),
-    child: const Icon(
-    Icons.play_arrow,
-    size: 50,
-    color: Colors.black54,
-    ),
-    ),
-    ),
-    ],
-    ),
-    ),
-    ),
-            // 下部ユーザー情報・アクションエリア
-            Container(
-              color: Colors.black.withOpacity(0.5),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // プロフィール行、Firebase から取得した eventInfo を表示
-                  const SizedBox(height: 8),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                    child: Text(
-                      widget.eventInfo ?? "エラー",
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
+          // 弾幕コメント表示オーバーレイ
+          _buildDanmakuComments(),
+
+          // コンテンツオーバーレイ
+          Column(
+            children: [
+              // トップアプリバー
+              SafeArea(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                  child: Row(
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.arrow_back_ios,
+                            color: Colors.white),
+                        onPressed: () => Navigator.pop(context),
                       ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-
-                  // eventMoreInfo を表示し、「続きを読む」ボタンを追加
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          widget.eventMoreInfo ?? "説明がありません",
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 12,
+                      Expanded(
+                        child: Container(
+                          height: 40,
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(20),
                           ),
-                          maxLines: 3,
-                          overflow: TextOverflow.ellipsis,
+                          child: Row(
+                            children: [
+                              const SizedBox(width: 12),
+                              const Icon(Icons.search, color: Colors.white),
+                              const SizedBox(width: 8),
+                              Text(
+                                'もっと検索する',
+                                style: TextStyle(
+                                  color: Colors.white.withOpacity(0.8),
+                                  fontSize: 16,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
-                        const SizedBox(height: 4),
+                      ),
+                      TextButton(
+                        onPressed: () {},
+                        child: const Text(
+                          '検索',
+                          style: TextStyle(color: Colors.white, fontSize: 16),
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.more_horiz, color: Colors.white),
+                        onPressed: () {}, // シェアボトムシートを表示するメソッドを呼び出す
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+              // ビデオコンテンツ
+              Expanded(
+                child: Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      if (widget.mediaType == 'video' && _hasVideoError)
                         GestureDetector(
-                          onTap: _showCommentsBottomSheet, // コメント一覧ボトムシートを表示
-                          child: const Text(
-                            "続きを読む",
-                            style: TextStyle(
-                              color: Colors.blue,
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold,
+                          onTap: () {
+                            if (mounted) {
+                              setState(() {
+                                _hasVideoError = false;
+                                _isVideoInitialized = false;
+                                _videoController?.dispose();
+                                _videoController = null;
+                                _initializeVideo();
+                              });
+                            }
+                          },
+                          child: Container(
+                            width: 70,
+                            height: 70,
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              shape: BoxShape.circle,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.3),
+                                  blurRadius: 10,
+                                  offset: const Offset(0, 3),
+                                ),
+                              ],
+                            ),
+                            child: const Icon(
+                              Icons.play_arrow,
+                              size: 50,
+                              color: Colors.black54,
                             ),
                           ),
                         ),
-                      ],
-                    ),
+                    ],
                   ),
-
-                  // コメント入力欄（固定の入力欄）
-                  GestureDetector(
-                    onTap: () {
-                      // コメント入力用のボトムシートを表示
-                      _showCommentBottomSheet();
-                    },
-                    child: Container(
-                      height: 50,
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      decoration: BoxDecoration(
-                        color: Colors.black38,
-                        borderRadius: BorderRadius.circular(25),
+                ),
+              ),
+              // 下部ユーザー情報・アクションエリア
+              Container(
+                color: Colors.black.withOpacity(0.5),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // プロフィール行、Firebase から取得した eventInfo を表示
+                    const SizedBox(height: 8),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                      child: Text(
+                        widget.eventInfo ?? "エラー",
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
-                      margin: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 8),
-                      child: Row(
+                    ),
+                    const SizedBox(height: 10),
+
+                    // eventMoreInfo を表示し、「続きを読む」ボタンを追加
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
-                            '感想を伝えてみよう',
-                            style: TextStyle(
-                              color: Colors.white70,
-                              fontSize: 16,
+                          Text(
+                            widget.eventMoreInfo ?? "説明がありません",
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
                             ),
+                            maxLines: 3,
+                            overflow: TextOverflow.ellipsis,
                           ),
-                          const Spacer(),
-                          // 固定された表示用の絵文字を3つランダムに選んで表示し、タップで直接入力できるようにする
+                          const SizedBox(height: 4),
                           GestureDetector(
-                            onTap: () {
-                              // 絵文字をタップしたときにボトムシートを表示し、テキストに絵文字を追加
-                              _commentController.text = _displayEmojis.isNotEmpty ? _displayEmojis[0] : '🍋';
-                              _showCommentBottomSheet();
-                            },
-                            child: Text(
-                              _displayEmojis.isNotEmpty ? _displayEmojis[0] : '🍋',
-                              style: const TextStyle(fontSize: 20),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          GestureDetector(
-                            onTap: () {
-                              // 絵文字をタップしたときにボトムシートを表示し、テキストに絵文字を追加
-                              _commentController.text = _displayEmojis.length > 1 ? _displayEmojis[1] : '😚';
-                              _showCommentBottomSheet();
-                            },
-                            child: Text(
-                              _displayEmojis.length > 1 ? _displayEmojis[1] : '😚',
-                              style: const TextStyle(fontSize: 20),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          GestureDetector(
-                            onTap: () {
-                              // 絵文字をタップしたときにボトムシートを表示し、テキストに絵文字を追加
-                              _commentController.text = _displayEmojis.length > 2 ? _displayEmojis[2] : '😂';
-                              _showCommentBottomSheet();
-                            },
-                            child: Text(
-                              _displayEmojis.length > 2 ? _displayEmojis[2] : '😂',
-                              style: const TextStyle(fontSize: 20),
+                            onTap: _showCommentsBottomSheet, // コメント一覧ボトムシートを表示
+                            child: const Text(
+                              "続きを読む",
+                              style: TextStyle(
+                                color: Colors.blue,
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                           ),
                         ],
                       ),
                     ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 12,
+
+                    // コメント入力欄（固定の入力欄）
+                    GestureDetector(
+                      onTap: () {
+                        // コメント入力用のボトムシートを表示
+                        _showCommentBottomSheet();
+                      },
+                      child: Container(
+                        height: 50,
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        decoration: BoxDecoration(
+                          color: Colors.black38,
+                          borderRadius: BorderRadius.circular(25),
+                        ),
+                        margin: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 8),
+                        child: Row(
+                          children: [
+                            const Text(
+                              '感想を伝えてみよう',
+                              style: TextStyle(
+                                color: Colors.white70,
+                                fontSize: 16,
+                              ),
+                            ),
+                            const Spacer(),
+                            // 固定された表示用の絵文字を3つランダムに選んで表示し、タップで直接入力できるようにする
+                            GestureDetector(
+                              onTap: () {
+                                // 絵文字をタップしたときにボトムシートを表示し、テキストに絵文字を追加
+                                _commentController.text =
+                                    _displayEmojis.isNotEmpty
+                                        ? _displayEmojis[0]
+                                        : '🍋';
+                                _showCommentBottomSheet();
+                              },
+                              child: Text(
+                                _displayEmojis.isNotEmpty
+                                    ? _displayEmojis[0]
+                                    : '🍋',
+                                style: const TextStyle(fontSize: 20),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            GestureDetector(
+                              onTap: () {
+                                // 絵文字をタップしたときにボトムシートを表示し、テキストに絵文字を追加
+                                _commentController.text =
+                                    _displayEmojis.length > 1
+                                        ? _displayEmojis[1]
+                                        : '😚';
+                                _showCommentBottomSheet();
+                              },
+                              child: Text(
+                                _displayEmojis.length > 1
+                                    ? _displayEmojis[1]
+                                    : '😚',
+                                style: const TextStyle(fontSize: 20),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            GestureDetector(
+                              onTap: () {
+                                // 絵文字をタップしたときにボトムシートを表示し、テキストに絵文字を追加
+                                _commentController.text =
+                                    _displayEmojis.length > 2
+                                        ? _displayEmojis[2]
+                                        : '😂';
+                                _showCommentBottomSheet();
+                              },
+                              child: Text(
+                                _displayEmojis.length > 2
+                                    ? _displayEmojis[2]
+                                    : '😂',
+                                style: const TextStyle(fontSize: 20),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(
-                          Icons.bookmark_border,
-                          color: Colors.white,
-                          size: 28,
-                        ),
-                        const SizedBox(width: 8),
-                        const Text(
-                          '52 人が保存済み',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 12,
-                          ),
-                        ),
-                        const SizedBox(width: 24),
-                        const Icon(
-                          Icons.favorite_border,
-                          color: Colors.white,
-                          size: 28,
-                        ),
-                        const SizedBox(width: 8),
-                        const Text(
-                          '127',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 12,
-                          ),
-                        ),
-                        const SizedBox(width: 24),
-                        GestureDetector(
-                          onTap: _showCommentsBottomSheet,
-                          child: const Icon(
-                            Icons.chat_bubble_outline,
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(
+                            Icons.bookmark_border,
                             color: Colors.white,
                             size: 28,
                           ),
-                        ),
-                        const SizedBox(width: 8),
-                        StreamBuilder<QuerySnapshot>(
-                          stream: _firestore
-                              .collection('anime_event_info')
-                              .doc(widget.eventId)
-                              .collection('comment')
-                              .snapshots(),
-                          builder: (context, snapshot) {
-                            final commentCount = snapshot.data?.docs.length ??
-                                0;
-                            return Text(
-                              '$commentCount',
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 12,
-                              ),
-                            );
-                          },
-                        ),
-                      ],
-                    ),
-                  ),
-                  Align(
-                    alignment: Alignment.center,
-                    child: Container(
-                      height: 5,
-                      width: 130,
-                      margin: const EdgeInsets.only(
-                        bottom: 8,
-                        top: 4,
+                          const SizedBox(width: 8),
+                          const Text(
+                            '52 人が保存済み',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                            ),
+                          ),
+                          const SizedBox(width: 24),
+                          const Icon(
+                            Icons.favorite_border,
+                            color: Colors.white,
+                            size: 28,
+                          ),
+                          const SizedBox(width: 8),
+                          const Text(
+                            '127',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                            ),
+                          ),
+                          const SizedBox(width: 24),
+                          GestureDetector(
+                            onTap: _showCommentsBottomSheet,
+                            child: const Icon(
+                              Icons.chat_bubble_outline,
+                              color: Colors.white,
+                              size: 28,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          StreamBuilder<QuerySnapshot>(
+                            stream: _firestore
+                                .collection('anime_event_info')
+                                .doc(widget.eventId)
+                                .collection('comment')
+                                .snapshots(),
+                            builder: (context, snapshot) {
+                              final commentCount =
+                                  snapshot.data?.docs.length ?? 0;
+                              return Text(
+                                '$commentCount',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 12,
+                                ),
+                              );
+                            },
+                          ),
+                        ],
                       ),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(5),
+                    ),
+                    Align(
+                      alignment: Alignment.center,
+                      child: Container(
+                        height: 5,
+                        width: 130,
+                        margin: const EdgeInsets.only(
+                          bottom: 8,
+                          top: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(5),
+                        ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-          ],
-      ),
+            ],
+          ),
         ],
       ),
     );
   }
+
   // メディアコンテンツを表示するウィジェット
   Widget _buildMediaContent() {
     // メディアタイプが動画で、URLがある場合
@@ -1300,38 +1248,38 @@ class _EventMoreMovieState extends State<EventMoreMovie> with TickerProviderStat
     else {
       return widget.mediaUrl != null
           ? Image.network(
-        widget.mediaUrl!,
-        fit: BoxFit.cover,
-        errorBuilder: (context, error, stackTrace) =>
-            Container(
-              color: Colors.black,
-              child: const Center(
-                child: Icon(Icons.broken_image, color: Colors.white, size: 50),
+              widget.mediaUrl!,
+              fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) => Container(
+                color: Colors.black,
+                child: const Center(
+                  child:
+                      Icon(Icons.broken_image, color: Colors.white, size: 50),
+                ),
               ),
-            ),
-      )
+            )
           : Container(
-        color: Colors.black,
-        child: Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                widget.mediaType == 'video'
-                    ? Icons.videocam_off
-                    : Icons.image_not_supported,
-                color: Colors.white70,
-                size: 50,
+              color: Colors.black,
+              child: Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      widget.mediaType == 'video'
+                          ? Icons.videocam_off
+                          : Icons.image_not_supported,
+                      color: Colors.white70,
+                      size: 50,
+                    ),
+                    const SizedBox(height: 16),
+                    const Text(
+                      "メディアが利用できません",
+                      style: TextStyle(color: Colors.white70, fontSize: 16),
+                    ),
+                  ],
+                ),
               ),
-              const SizedBox(height: 16),
-              const Text(
-                "メディアが利用できません",
-                style: TextStyle(color: Colors.white70, fontSize: 16),
-              ),
-            ],
-          ),
-        ),
-      );
+            );
     }
   }
 }
