@@ -340,7 +340,8 @@ class _NewMapEnState extends State<NewMapEn> {
 
     if (permission == LocationPermission.deniedForever) {
       _showLocationPermissionDialog(
-        message: 'Location is turned off. Turn on location in the Settings application.',
+        message:
+            'Location is turned off. Turn on location in the Settings application.',
         actionText: 'Open settings',
       );
       setState(() {
@@ -465,8 +466,10 @@ class _NewMapEnState extends State<NewMapEn> {
             .get();
 
         if (doc.exists) {
-          String locationName = (doc.data() as Map<String, dynamic>)['titleEn'] ?? '';
-          bool hasCheckedIn = await _hasCheckedIn(_selectedMarker!.markerId.value);
+          String locationName =
+              (doc.data() as Map<String, dynamic>)['titleEn'] ?? '';
+          bool hasCheckedIn =
+              await _hasCheckedIn(_selectedMarker!.markerId.value);
 
           await NotificationService.showCheckInAvailableNotification(
             locationName,
@@ -481,7 +484,7 @@ class _NewMapEnState extends State<NewMapEn> {
 
   Future<void> _loadMarkersFromFirestore() async {
     CollectionReference markers =
-    FirebaseFirestore.instance.collection('locations');
+        FirebaseFirestore.instance.collection('locations');
 
     QuerySnapshot snapshot = await markers.get();
     for (var doc in snapshot.docs) {
@@ -527,17 +530,17 @@ class _NewMapEnState extends State<NewMapEn> {
   // ... [previous code remains the same until _createMarkerWithImage method]
 
   Future<Marker> _createMarkerWithImage(
-      LatLng position,
-      String imageUrl,
-      String markerId,
-      int width,
-      int height,
-      String titleEn,
-      String animeNameEn,
-      String snippet,
-      ) async {
+    LatLng position,
+    String imageUrl,
+    String markerId,
+    int width,
+    int height,
+    String titleEn,
+    String animeNameEn,
+    String snippet,
+  ) async {
     final Uint8List markerIcon =
-    await _getBytesFromUrl(imageUrl, width, height);
+        await _getBytesFromUrl(imageUrl, width, height);
 
     final ui.PictureRecorder pictureRecorder = ui.PictureRecorder();
     final Canvas canvas = Canvas(pictureRecorder);
@@ -573,7 +576,7 @@ class _NewMapEnState extends State<NewMapEn> {
     );
 
     final img =
-    await pictureRecorder.endRecording().toImage(width + 40, height + 60);
+        await pictureRecorder.endRecording().toImage(width + 40, height + 60);
     final data = await img.toByteData(format: ui.ImageByteFormat.png);
 
     return Marker(
@@ -639,13 +642,14 @@ class _NewMapEnState extends State<NewMapEn> {
 
 // ... [previous code remains the same until _showModalBottomSheet method]
 
-  void _showModalBottomSheet(BuildContext context,
-      String imageUrl,
-      String titleEn,
-      String animeNameEn,
-      String snippet,
-      bool hasCheckedIn,
-      ) {
+  void _showModalBottomSheet(
+    BuildContext context,
+    String imageUrl,
+    String titleEn,
+    String animeNameEn,
+    String snippet,
+    bool hasCheckedIn,
+  ) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -714,10 +718,10 @@ class _NewMapEnState extends State<NewMapEn> {
                               ),
                               onPressed: _canCheckIn
                                   ? () {
-                                _checkIn(titleEn,
-                                    _selectedMarker!.markerId.value);
-                                Navigator.pop(context);
-                              }
+                                      _checkIn(titleEn,
+                                          _selectedMarker!.markerId.value);
+                                      Navigator.pop(context);
+                                    }
                                   : null,
                               child: const Text(
                                 'check-in',
@@ -734,18 +738,22 @@ class _NewMapEnState extends State<NewMapEn> {
                             ),
                             onPressed: () async {
                               // 選択されたマーカーのデータを取得
-                              DocumentSnapshot snapshot = await FirebaseFirestore.instance
-                                  .collection('locations')
-                                  .doc(_selectedMarker!.markerId.value)
-                                  .get();
+                              DocumentSnapshot snapshot =
+                                  await FirebaseFirestore.instance
+                                      .collection('locations')
+                                      .doc(_selectedMarker!.markerId.value)
+                                      .get();
 
                               if (snapshot.exists) {
-                                Map<String, dynamic> data = snapshot.data() as Map<String, dynamic>;
+                                Map<String, dynamic> data =
+                                    snapshot.data() as Map<String, dynamic>;
 
                                 // subMediaの処理
                                 List<Map<String, dynamic>> subMediaList = [];
-                                if (data['subMedia'] != null && data['subMedia'] is List) {
-                                  subMediaList = (data['subMedia'] as List).map((item) {
+                                if (data['subMedia'] != null &&
+                                    data['subMedia'] is List) {
+                                  subMediaList =
+                                      (data['subMedia'] as List).map((item) {
                                     return {
                                       'type': item['type'] as String? ?? '',
                                       'url': item['url'] as String? ?? '',
@@ -756,11 +764,16 @@ class _NewMapEnState extends State<NewMapEn> {
 
                                 // 明示的に変数を定義
                                 String userId = data['userId'] ?? _userId;
-                                String descriptionEn = data['descriptionEn'] ?? '';
-                                String spot_description = data['spot_description'] ?? '';
-                                String subsourceLink = data['subsourceLink'] ?? '';
-                                String subsourceTitle = data['subsourceTitle'] ?? '';
-                                String locationAnimeNameEn = data['animeNameEn'] ?? '';
+                                String descriptionEn =
+                                    data['descriptionEn'] ?? '';
+                                String spot_description =
+                                    data['spot_description'] ?? '';
+                                String subsourceLink =
+                                    data['subsourceLink'] ?? '';
+                                String subsourceTitle =
+                                    data['subsourceTitle'] ?? '';
+                                String locationAnimeNameEn =
+                                    data['animeNameEn'] ?? '';
 
                                 Navigator.push(
                                   context,
@@ -775,7 +788,8 @@ class _NewMapEnState extends State<NewMapEn> {
                                           ? (data['latitude'] as num).toDouble()
                                           : 0.0,
                                       longitude: data['longitude'] != null
-                                          ? (data['longitude'] as num).toDouble()
+                                          ? (data['longitude'] as num)
+                                              .toDouble()
                                           : 0.0,
                                       sourceLink: data['sourceLink'] ?? '',
                                       subsourceLink: subsourceLink,
@@ -783,7 +797,8 @@ class _NewMapEnState extends State<NewMapEn> {
                                       subsourceTitle: subsourceTitle,
                                       url: data['url'] ?? '',
                                       subMedia: subMediaList,
-                                      locationId: _selectedMarker!.markerId.value,
+                                      locationId:
+                                          _selectedMarker!.markerId.value,
                                       animeNameEn: locationAnimeNameEn,
                                     ),
                                   ),
@@ -1188,11 +1203,11 @@ class _NewMapEnState extends State<NewMapEn> {
 
       // ユーザードキュメントの参照を取得
       DocumentReference userRef =
-      FirebaseFirestore.instance.collection('users').doc(_userId);
+          FirebaseFirestore.instance.collection('users').doc(_userId);
 
       // ロケーションの参照を取得
       DocumentReference locationRef =
-      FirebaseFirestore.instance.collection('locations').doc(locationId);
+          FirebaseFirestore.instance.collection('locations').doc(locationId);
 
       // トランザクションで複数の更新を実行
       await FirebaseFirestore.instance.runTransaction((transaction) async {
@@ -1204,7 +1219,7 @@ class _NewMapEnState extends State<NewMapEn> {
         if (locationSnapshot.exists) {
           // チェックインカウントを更新
           int currentCount = (locationSnapshot.data()
-          as Map<String, dynamic>)['checkinCount'] ??
+                  as Map<String, dynamic>)['checkinCount'] ??
               0;
           transaction.update(locationRef, {'checkinCount': currentCount + 1});
         }
@@ -1212,7 +1227,7 @@ class _NewMapEnState extends State<NewMapEn> {
         if (userSnapshot.exists) {
           // 現在のポイントとcorrectCountを取得
           Map<String, dynamic> userData =
-          userSnapshot.data() as Map<String, dynamic>;
+              userSnapshot.data() as Map<String, dynamic>;
           int currentPoints = userData['points'] ?? 0;
           int currentCorrectCount = userData['correctCount'] ?? 0;
 
@@ -1329,11 +1344,7 @@ class _NewMapEnState extends State<NewMapEn> {
       resizeToAvoidBottomInset: true,
       body: Stack(
         children: [
-          _isLoading
-              ? const Center(child: CircularProgressIndicator())
-              : _errorOccurred
-              ? const Center(child: Text('An error has occurred.'))
-              : Stack(
+          Stack(
             children: [
               GoogleMap(
                 initialCameraPosition: const CameraPosition(

@@ -77,7 +77,7 @@ class AdManager {
 
     _gridBannerAds[index] = BannerAd(
       adUnitId: 'ca-app-pub-1580421227117187/3454220382',
-      request: AdRequest(),
+      request: const AdRequest(),
       size: AdSize.banner,
       listener: BannerAdListener(
         onAdLoaded: (_) {
@@ -179,7 +179,7 @@ class PrefectureListPage2 extends StatelessWidget {
     'Okinawa': '沖縄県',
   };
 
-  PrefectureListPage2({
+  PrefectureListPage2({super.key, 
     required this.prefectureSpots,
     required this.searchQuery,
     required this.onFetchPrefectureData,
@@ -198,8 +198,8 @@ class PrefectureListPage2 extends StatelessWidget {
         .toList();
 
     return GridView.builder(
-      padding: EdgeInsets.all(8.0),
-      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+      padding: const EdgeInsets.all(8.0),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
         childAspectRatio: 1.3,
         crossAxisSpacing: 10,
@@ -232,28 +232,28 @@ class PrefectureListPage2 extends StatelessWidget {
                     _getPrefectureImagePath(prefecture),
                     fit: BoxFit.cover,
                     errorBuilder: (context, error, stackTrace) {
-                      return Center(
+                      return const Center(
                         child: Icon(Icons.image_not_supported, size: 40),
                       );
                     },
                   ),
                 ),
                 Container(
-                  padding: EdgeInsets.all(8),
+                  padding: const EdgeInsets.all(8),
                   color: Colors.white,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
                         prefecture,
-                        style: TextStyle(
+                        style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
                       Text(
                         '${spots.length} spots',
-                        style: TextStyle(
+                        style: const TextStyle(
                           fontSize: 12,
                           color: Colors.grey,
                         ),
@@ -274,7 +274,7 @@ class PrefectureDetailPage extends StatelessWidget {
   final String prefecture;
   final List<Map<String, dynamic>> spots;
 
-  PrefectureDetailPage({
+  PrefectureDetailPage({super.key, 
     required this.prefecture,
     required this.spots,
   });
@@ -290,15 +290,15 @@ class PrefectureDetailPage extends StatelessWidget {
         itemBuilder: (context, index) {
           final spot = spots[index];
           return Card(
-            margin: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             child: ListTile(
               leading: CachedNetworkImage(
                 imageUrl: spot['imageUrl'] ?? '',
                 width: 60,
                 height: 60,
                 fit: BoxFit.cover,
-                placeholder: (context, url) => CircularProgressIndicator(),
-                errorWidget: (context, url, error) => Icon(Icons.error),
+                placeholder: (context, url) => const CircularProgressIndicator(),
+                errorWidget: (context, url, error) => const Icon(Icons.error),
               ),
               title: Text(spot['nameEn'] ?? ''),
               subtitle: Text(spot['animeEn'] ?? ''),
@@ -314,8 +314,10 @@ class PrefectureDetailPage extends StatelessWidget {
 }
 
 class AnimeListEnNew extends StatefulWidget {
+  const AnimeListEnNew({super.key});
+
   @override
-  _AnimeListEnNewState createState() => _AnimeListEnNewState();
+  State<AnimeListEnNew> createState() => _AnimeListEnNewState();
 }
 
 class _AnimeListEnNewState extends State<AnimeListEnNew>
@@ -652,7 +654,7 @@ class _AnimeListEnNewState extends State<AnimeListEnNew>
     try {
       _bottomBannerAd = BannerAd(
         adUnitId: 'ca-app-pub-1580421227117187/2839937902',
-        request: AdRequest(),
+        request: const AdRequest(),
         size: AdSize.banner,
         listener: BannerAdListener(
           onAdLoaded: (_) {
@@ -688,7 +690,7 @@ class _AnimeListEnNewState extends State<AnimeListEnNew>
 
     _bottomBannerAd = BannerAd(
       adUnitId: 'ca-app-pub-1580421227117187/2839937902',
-      request: AdRequest(),
+      request: const AdRequest(),
       size: AdSize.banner,
       listener: BannerAdListener(
         onAdLoaded: (_) {
@@ -743,7 +745,7 @@ class _AnimeListEnNewState extends State<AnimeListEnNew>
 
     _bannerAd = BannerAd(
       adUnitId: '',
-      request: AdRequest(),
+      request: const AdRequest(),
       size: AdSize.banner,
       listener: BannerAdListener(
         onAdLoaded: (_) {
@@ -1150,7 +1152,7 @@ class _AnimeListEnNewState extends State<AnimeListEnNew>
           title: Text(
             key: rankingKey,
             '■ Ranking (Top 10)',
-            style: TextStyle(
+            style: const TextStyle(
               color: Color(0xFF00008b),
               fontWeight: FontWeight.bold,
               fontSize: 16,
@@ -1167,7 +1169,7 @@ class _AnimeListEnNewState extends State<AnimeListEnNew>
             SizedBox(
               height: 200,
               child: ListView.builder(
-                padding: EdgeInsets.symmetric(horizontal: 16.0),
+                padding: const EdgeInsets.symmetric(horizontal: 16.0),
                 scrollDirection: Axis.horizontal,
                 itemCount: _topRankedAnime.length,
                 itemBuilder: (context, index) {
@@ -1176,7 +1178,7 @@ class _AnimeListEnNewState extends State<AnimeListEnNew>
                     onTap: () => _navigateAndVote2(context, anime['nameEn']),
                     child: Container(
                       width: 160,
-                      margin: EdgeInsets.only(right: 16),
+                      margin: const EdgeInsets.only(right: 16),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -1189,17 +1191,17 @@ class _AnimeListEnNewState extends State<AnimeListEnNew>
                                   height: 150,
                                   width: 250,
                                   fit: BoxFit.cover,
-                                  placeholder: (context, url) => Center(
+                                  placeholder: (context, url) => const Center(
                                       child: CircularProgressIndicator()),
                                   errorWidget: (context, url, error) =>
-                                      Icon(Icons.error),
+                                      const Icon(Icons.error),
                                 ),
                               ),
                               Positioned(
                                 top: 8,
                                 left: 8,
                                 child: Container(
-                                  padding: EdgeInsets.symmetric(
+                                  padding: const EdgeInsets.symmetric(
                                       horizontal: 8, vertical: 4),
                                   decoration: BoxDecoration(
                                     color: Colors.black.withOpacity(0.7),
@@ -1207,7 +1209,7 @@ class _AnimeListEnNewState extends State<AnimeListEnNew>
                                   ),
                                   child: Text(
                                     '${index + 1}',
-                                    style: TextStyle(
+                                    style: const TextStyle(
                                       color: Colors.white,
                                       fontWeight: FontWeight.bold,
                                       fontSize: 14,
@@ -1217,12 +1219,12 @@ class _AnimeListEnNewState extends State<AnimeListEnNew>
                               ),
                             ],
                           ),
-                          SizedBox(height: 8),
+                          const SizedBox(height: 8),
                           Text(
                             anime['nameEn'],
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
-                            style: TextStyle(fontWeight: FontWeight.bold),
+                            style: const TextStyle(fontWeight: FontWeight.bold),
                           ),
                         ],
                       ),
@@ -1234,7 +1236,7 @@ class _AnimeListEnNewState extends State<AnimeListEnNew>
           ]
               : [],
         ),
-        Padding(
+        const Padding(
           padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
           child: Text(
             '■ Anime list',
@@ -1247,15 +1249,15 @@ class _AnimeListEnNewState extends State<AnimeListEnNew>
         ),
         Expanded(
           child: _allAnimeData.isEmpty
-              ? Center(child: CircularProgressIndicator())
+              ? const Center(child: CircularProgressIndicator())
               : filteredAnimeData.isEmpty
-              ? Center(
+              ? const Center(
             child: Text('nothing found..'),
           )
               : GridView.builder(
             controller: _scrollController,
-            padding: EdgeInsets.only(bottom: 16.0),
-            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            padding: const EdgeInsets.only(bottom: 16.0),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 2,
               childAspectRatio: 1.3,
               mainAxisSpacing: 1.0,
@@ -1285,7 +1287,7 @@ class _AnimeListEnNewState extends State<AnimeListEnNew>
                     }
                     return Container(
                       height: 50,
-                      child: Center(
+                      child: const Center(
                           child: Text(
                             'advertisement',
                             style: TextStyle(
@@ -1300,7 +1302,7 @@ class _AnimeListEnNewState extends State<AnimeListEnNew>
               // サブスクリプション有効時、または広告表示位置でない場合のアニメアイテム表示
               final adjustedIndex = _isSubscriptionActive ? index : index - (index ~/ 6);
               if (adjustedIndex >= filteredAnimeData.length) {
-                return SizedBox();
+                return const SizedBox();
               }
 
               final key = adjustedIndex == 0 ? firstItemKey : null;
@@ -1326,14 +1328,14 @@ class _AnimeListEnNewState extends State<AnimeListEnNew>
   Widget _buildSubscriptionPromptOverlay() {
     // サブスクリプションが有効な場合は何も表示しない
     if (_isSubscriptionActive) {
-      return SizedBox.shrink();
+      return const SizedBox.shrink();
     }
 
     return Container(
       color: Colors.black.withOpacity(0.7),
       child: Center(
         child: Container(
-          margin: EdgeInsets.symmetric(horizontal: 40),
+          margin: const EdgeInsets.symmetric(horizontal: 40),
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(16),
@@ -1342,7 +1344,7 @@ class _AnimeListEnNewState extends State<AnimeListEnNew>
             children: [
               // メインコンテンツ
               Padding(
-                padding: EdgeInsets.all(20),
+                padding: const EdgeInsets.all(20),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -1355,7 +1357,7 @@ class _AnimeListEnNewState extends State<AnimeListEnNew>
                         color: Colors.grey[200],
                         border: Border.all(color: Colors.grey[300]!),
                       ),
-                      child: Column(
+                      child: const Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Icon(
@@ -1375,8 +1377,8 @@ class _AnimeListEnNewState extends State<AnimeListEnNew>
                         ],
                       ),
                     ),
-                    SizedBox(height: 20),
-                    Text(
+                    const SizedBox(height: 20),
+                    const Text(
                       'Please consider using\nJAM Premium Plan!',
                       textAlign: TextAlign.center,
                       style: TextStyle(
@@ -1385,7 +1387,7 @@ class _AnimeListEnNewState extends State<AnimeListEnNew>
                         color: Colors.black87,
                       ),
                     ),
-                    SizedBox(height: 12),
+                    const SizedBox(height: 12),
                     Text(
                       'Enjoy unlimited pilgrimage\nwith Premium Plan',
                       textAlign: TextAlign.center,
@@ -1394,7 +1396,7 @@ class _AnimeListEnNewState extends State<AnimeListEnNew>
                         color: Colors.grey[600],
                       ),
                     ),
-                    SizedBox(height: 20),
+                    const SizedBox(height: 20),
                     // プレミアムプランボタン
                     SizedBox(
                       width: double.infinity,
@@ -1408,14 +1410,14 @@ class _AnimeListEnNewState extends State<AnimeListEnNew>
                           );
                         },
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Color(0xFF00008b),
+                          backgroundColor: const Color(0xFF00008b),
                           foregroundColor: Colors.white,
-                          padding: EdgeInsets.symmetric(vertical: 14),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(8),
                           ),
                         ),
-                        child: Text(
+                        child: const Text(
                           'View Premium Plan',
                           style: TextStyle(
                             fontSize: 16,
@@ -1442,8 +1444,8 @@ class _AnimeListEnNewState extends State<AnimeListEnNew>
                     color: Colors.grey[600],
                     size: 24,
                   ),
-                  padding: EdgeInsets.all(4),
-                  constraints: BoxConstraints(
+                  padding: const EdgeInsets.all(4),
+                  constraints: const BoxConstraints(
                     minWidth: 32,
                     minHeight: 32,
                   ),
@@ -1459,7 +1461,7 @@ class _AnimeListEnNewState extends State<AnimeListEnNew>
   @override
   Widget build(BuildContext context) {
     if (!_isEventsLoaded) {
-      return Scaffold(
+      return const Scaffold(
         body: Center(child: CircularProgressIndicator()),
       );
     }
@@ -1469,16 +1471,16 @@ class _AnimeListEnNewState extends State<AnimeListEnNew>
         return await showDialog<bool>(
           context: context,
           builder: (context) => AlertDialog(
-            title: Text('Do you want to close the app?'),
-            content: Text('Are you sure you want to close the app?'),
+            title: const Text('Do you want to close the app?'),
+            content: const Text('Are you sure you want to close the app?'),
             actions: [
               TextButton(
                 onPressed: () => Navigator.of(context).pop(false),
-                child: Text('cancel'),
+                child: const Text('cancel'),
               ),
               TextButton(
                 onPressed: () => Navigator.of(context).pop(true),
-                child: Text('close'),
+                child: const Text('close'),
               ),
             ],
           ),
@@ -1499,14 +1501,14 @@ class _AnimeListEnNewState extends State<AnimeListEnNew>
                   : _currentTabIndex == 1
                   ? 'Search by prefecture...'
                   : 'Search by event...',
-              hintStyle: TextStyle(color: Colors.grey),
+              hintStyle: const TextStyle(color: Colors.grey),
               border: InputBorder.none,
             ),
-            style: TextStyle(color: Colors.black),
+            style: const TextStyle(color: Colors.black),
           )
               : Row(
             children: [
-              Text(
+              const Text(
                 'Pilgrimage spot',
                 style: TextStyle(
                   color: Color(0xFF00008b),
@@ -1516,13 +1518,13 @@ class _AnimeListEnNewState extends State<AnimeListEnNew>
               // 【追加】サブスクリプション状態表示
               if (_isSubscriptionActive)
                 Container(
-                  margin: EdgeInsets.only(left: 5),
-                  padding: EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                  margin: const EdgeInsets.only(left: 5),
+                  padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
                   decoration: BoxDecoration(
                     color: Colors.orange,
                     borderRadius: BorderRadius.circular(10),
                   ),
-                  child: Text(
+                  child: const Text(
                     'Premium',
                     style: TextStyle(
                       color: Colors.white,
@@ -1553,7 +1555,7 @@ class _AnimeListEnNewState extends State<AnimeListEnNew>
             ),
             IconButton(
               key: addKey,
-              icon: Icon(Icons.add, color: Color(0xFF00008b)),
+              icon: const Icon(Icons.add, color: Color(0xFF00008b)),
               onPressed: () {
                 Navigator.push(
                   context,
@@ -1566,7 +1568,7 @@ class _AnimeListEnNewState extends State<AnimeListEnNew>
               key: searchKey,
               icon: Icon(
                 _isSearching ? Icons.close : Icons.search,
-                color: Color(0xFF00008b),
+                color: const Color(0xFF00008b),
               ),
               onPressed: _toggleSearch,
             ),
@@ -1574,12 +1576,12 @@ class _AnimeListEnNewState extends State<AnimeListEnNew>
           bottom: TabBar(
             controller: _tabController,
             tabs: [
-              Tab(text: 'Search by anime'),
-              Tab(text: 'Search by location'),
+              const Tab(text: 'Search by anime'),
+              const Tab(text: 'Search by location'),
             ],
-            labelColor: Color(0xFF00008b),
+            labelColor: const Color(0xFF00008b),
             unselectedLabelColor: Colors.grey,
-            indicatorColor: Color(0xFF00008b),
+            indicatorColor: const Color(0xFF00008b),
           ),
         ),
         body: Stack(
@@ -1588,7 +1590,7 @@ class _AnimeListEnNewState extends State<AnimeListEnNew>
               children: [
                 Expanded(
                   child: TabBarView(
-                    physics: NeverScrollableScrollPhysics(),
+                    physics: const NeverScrollableScrollPhysics(),
                     controller: _tabController,
                     children: [
                       _buildAnimeList(),
@@ -1644,17 +1646,17 @@ class AnimeGridItem extends StatelessWidget {
             child: CachedNetworkImage(
               imageUrl: imageUrl,
               fit: BoxFit.cover,
-              placeholder: (context, url) => Center(
+              placeholder: (context, url) => const Center(
                 child: CircularProgressIndicator(),
               ),
-              errorWidget: (context, url, error) => Icon(Icons.error),
+              errorWidget: (context, url, error) => const Icon(Icons.error),
             ),
           ),
           Padding(
             padding: const EdgeInsets.all(8.0),
             child: Text(
               animeNameEn,
-              style: TextStyle(
+              style: const TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.bold,
               ),

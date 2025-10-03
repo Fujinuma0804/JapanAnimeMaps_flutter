@@ -8,7 +8,7 @@ import 'dart:developer' as developer;
 import 'event_more_movie.dart';
 
 class EventSection extends StatelessWidget {
-  const EventSection({Key? key}) : super(key: key);
+  const EventSection({super.key});
 
   static final loadingWidget = LoadingAnimationWidget.discreteCircle(
     color: Colors.blue,
@@ -44,7 +44,7 @@ class EventSection extends StatelessWidget {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
+                  const Text(
                     '注目のイベント',
                     style: TextStyle(
                       fontSize: 18,
@@ -53,10 +53,10 @@ class EventSection extends StatelessWidget {
                   ),
                   TextButton(
                     onPressed: () {},
-                    child: Text(
+                    child: const Text(
                       'もっと見る',
                       style: TextStyle(
-                        color: const Color(0xFF00bfff),
+                        color: Color(0xFF00bfff),
                       ),
                     ),
                   ),
@@ -172,13 +172,13 @@ class VideoCard extends StatefulWidget {
   final VoidCallback onTap;  // タップ時のコールバック追加
 
   const VideoCard({
-    Key? key,
+    super.key,
     required this.eventName,
     this.mediaUrl,
     required this.mediaType,
     required this.index,
     required this.onTap,  // 必須パラメータに変更
-  }) : super(key: key);
+  });
 
   @override
   State<VideoCard> createState() => _VideoCardState();

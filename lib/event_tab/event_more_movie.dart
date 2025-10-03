@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:image_gallery_saver_plus/image_gallery_saver_plus.dart';
 import 'package:video_player/video_player.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:dio/dio.dart';
-import 'package:image_gallery_saver/image_gallery_saver.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'dart:io';
 import 'dart:math' as math;
@@ -768,7 +768,7 @@ class _EventMoreMovieState extends State<EventMoreMovie> with TickerProviderStat
     );
 
     // ギャラリーに保存
-    final result = await ImageGallerySaver.saveFile(
+    final result = await ImageGallerySaverPlus.saveFile(
       filePath,
       name: fileName,
     );
@@ -807,7 +807,7 @@ class _EventMoreMovieState extends State<EventMoreMovie> with TickerProviderStat
     );
 
     // ギャラリーに保存
-    final result = await ImageGallerySaver.saveFile(
+    final result = await ImageGallerySaverPlus.saveFile(
       filePath,
       name: fileName,
     );

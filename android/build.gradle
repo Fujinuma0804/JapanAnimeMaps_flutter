@@ -1,14 +1,39 @@
+buildscript {
+    ext.kotlin_version = '2.0.20'
+    repositories {
+        google()
+        mavenCentral()
+    }
+
+    dependencies {
+        classpath 'com.google.gms:google-services:4.4.2'
+        classpath 'com.android.tools.build:gradle:8.1.4'
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
+    }
+}
+
 allprojects {
     repositories {
         google()
         mavenCentral()
     }
+    
+    // Force consistent versions of Google Play Core libraries
+    configurations.all {
+        resolutionStrategy {
+            force 'com.google.android.play:review:2.0.2'
+            force 'com.google.android.play:review-ktx:2.0.2'
+            force 'com.google.android.play:core-common:2.0.4'
+        }
+    }
 }
 
-rootProject.buildDir = "../build"
+rootProject.buildDir = '../build'
 subprojects {
     project.buildDir = "${rootProject.buildDir}/${project.name}"
-    project.evaluationDependsOn(":app")
+}
+subprojects {
+    project.evaluationDependsOn(':app')
 }
 
 tasks.register("clean", Delete) {

@@ -70,9 +70,9 @@ dependencies:
   cached_network_image: ^3.3.1
   video_player: ^2.9.1
   youtube_player_iframe: ^5.1.3
-  youtube_player_flutter: ^8.1.2
+  youtube_player_flutter: ^9.1.2
   screenshot: ^3.0.0
-  image_gallery_saver: ^2.0.3
+  # image_gallery_saver: ^1.7.1  # Temporarily disabled due to build issues
 
   # ======================
   # ネットワーク・通信関連
@@ -80,14 +80,16 @@ dependencies:
   http: ^1.2.1
   url_launcher: ^6.3.1
   webview_flutter: ^4.8.0
+  flutter_inappwebview: ^6.1.5
 
   # ======================
   # デバイス機能・センサー関連
   # ======================
+  device_info_plus: ^11.2.2
   permission_handler: ^11.3.1
-  vibration: ^1.9.0
+  vibration: ^3.1.4
   sensors_plus: ^6.0.1
-  qr_code_scanner: ^1.0.1
+  qr_code_scanner: ^1.0.0
   qr_flutter: ^4.1.0
 
   # ======================
@@ -99,15 +101,15 @@ dependencies:
   # ======================
   # 国際化・ローカライゼーション
   # ======================
-  intl: ^0.19.0
+  intl: ^0.20.2
   translator: ^1.0.0
 
   # ======================
   # 通知・メッセージング関連
   # ======================
-  flutter_local_notifications: ^17.2.2
-  flutter_email_sender: ^6.0.3
-  fluttertoast: ^8.2.8
+  flutter_local_notifications: ^19.4.2
+  # flutter_email_sender: ^8.0.0  # Temporarily disabled due to compatibility issues
+  # fluttertoast: ^8.2.14  # Temporarily disabled due to compatibility issues
 
   # ======================
   # 認証・セキュリティ関連
@@ -124,7 +126,6 @@ dependencies:
   # ======================
   # 共有・ソーシャル関連
   # ======================
-  share: ^2.0.4
   share_plus: ^10.0.0
 
   # ======================
@@ -142,7 +143,7 @@ dependencies:
   # ======================
   # バックグラウンド・ワーカー関連
   # ======================
-  workmanager: ^0.5.2
+  # workmanager: ^0.5.2  # Temporarily disabled due to Flutter embedding API compatibility issues
   flutter_background_service: ^5.1.0
 
   # ======================
@@ -160,6 +161,13 @@ dependencies:
   # ======================
   html_unescape: ^2.0.0
   mailer: ^6.4.1
+  shimmer: ^3.0.0
+
+  # ======================
+  # State Management
+  # ======================
+  bloc: ^8.1.4
+  flutter_bloc: ^8.1.4
 
 dev_dependencies:
   flutter_test:
@@ -177,6 +185,8 @@ dependency_overrides:
   stripe_platform_interface: ^10.0.0
   stripe_android: ^10.0.0
   stripe_ios: ^10.0.0
+  # flutter_email_sender: ^8.0.0
+  fluttertoast: ^8.2.14
 
 flutter:
   generate: true

@@ -1,14 +1,22 @@
+// import 'dart:io';
+// import 'dart:async';
+
 import 'dart:io';
 import 'dart:async';
 
-import 'package:app_tracking_transparency/app_tracking_transparency.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:parts/bloc/Userinfo_bloc/Userinfo_bloc.dart';
+import 'package:parts/bloc/appintilize_bloc/appintilize_bloc.dart';
+import 'package:parts/bloc/map_bloc/map_bloc.dart';
+import 'package:parts/bloc/spotbloc/spot_event.dart';
+import 'package:parts/bloc/spotbloc/spotbloc.dart';
 import 'package:parts/firebase_options.dart';
 import 'package:parts/shop/purchase_agency.dart';
 import 'package:parts/shop/shop_product_detail.dart';
@@ -55,21 +63,27 @@ void main() async {
 
     // Stripeの初期化
     print('Initializing Stripe...');
-    Stripe.publishableKey = 'pk_test_51QeIPUJR2jw9gpdILTofRSwaBs9pKKXfOse9EcwQTkfYNjtYb1rNsahb5uhm6QjcwzvGOhcZ0ZZgjW09HKtblHnH00Ps1dt4ZZ';
+    try {
+      Stripe.publishableKey =
+          'pk_test_51QeIPUJR2jw9gpdILTofRSwaBs9pKKXfOse9EcwQTkfYNjtYb1rNsahb5uhm6QjcwzvGOhcZ0ZZgjW09HKtblHnH00Ps1dt4ZZ';
 
-    // iOSのApple Pay設定
-    if (Platform.isIOS) {
-      Stripe.merchantIdentifier = 'merchant.com.sotakawakami.jam';
+      // iOSのApple Pay設定
+      if (Platform.isIOS) {
+        Stripe.merchantIdentifier = 'merchant.com.sotakawakami.jam';
+      }
+
+      // Stripe設定の適用
+      print('Applying Stripe settings...');
+      await Stripe.instance.applySettings();
+      print('✅ Stripe initialized successfully');
+    } catch (e) {
+      print('⚠️ Stripe initialization failed: $e');
+      print('Continuing without Stripe...');
     }
 
-    // 日本語ロケールデータの初期化
+    // 英語ロケールデータの初期化
     print('Initializing date formatting...');
-    await initializeDateFormatting('ja_JP');
-
-    // Stripe設定の適用
-    print('Applying Stripe settings...');
-    await Stripe.instance.applySettings();
-    print('✅ Stripe initialized successfully');
+    await initializeDateFormatting('en_US');
 
     // RevenueCatの初期化
     print('Initializing RevenueCat...');
@@ -79,16 +93,19 @@ void main() async {
     // Firebase の初期化
     print('Initializing Firebase...');
     WidgetsFlutterBinding.ensureInitialized();
+
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );
+    // await FirebaseFirestore.instance.enablePersistence();
     print('✅ Firebase initialized successfully');
     print('Firebase apps count: ${Firebase.apps.length}');
 
     // Firebase Functionsの明示的な初期化
     print('Initializing Firebase Functions...');
     FirebaseFunctions.instanceFor(region: 'us-central1');
-    FirebaseFunctions.instanceFor(region: 'asia-northeast1'); // MapSubscription用
+    FirebaseFunctions.instanceFor(
+        region: 'asia-northeast1'); // MapSubscription用
     print('✅ Firebase Functions initialized successfully');
 
     // AdMobの初期化
@@ -97,8 +114,17 @@ void main() async {
     print('✅ AdMob initialized successfully');
 
     print('=== ALL INITIALIZATION COMPLETED ===');
-    runApp(const MyApp());
-
+    runApp(MultiBlocProvider(providers: [
+      BlocProvider<MapBloc>(
+        create: (context) => MapBloc()..add(MapInitialized()),
+      ),
+      BlocProvider<UserBloc>(
+        create: (context) => UserBloc(),
+      ),
+      BlocProvider<SpotBloc>(
+        create: (context) => SpotBloc()..add(SpotFetchInitial()),
+      ),
+    ], child: const MyApp()));
   } catch (e, stackTrace) {
     print('=== CRITICAL INITIALIZATION ERROR ===');
     print('Error: $e');
@@ -117,11 +143,13 @@ class ErrorApp extends StatelessWidget {
   final String error;
   final String stackTrace;
 
-  const ErrorApp({Key? key, required this.error, required this.stackTrace}) : super(key: key);
+  const ErrorApp({Key? key, required this.error, required this.stackTrace})
+      : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      debugShowCheckedModeBanner: false,
       title: 'JapanAnimeMaps - Error',
       home: Scaffold(
         body: SafeArea(
@@ -169,7 +197,8 @@ class ErrorApp extends StatelessWidget {
                         padding: EdgeInsets.all(8),
                         child: Text(
                           stackTrace,
-                          style: TextStyle(fontSize: 10, fontFamily: 'monospace'),
+                          style:
+                              TextStyle(fontSize: 10, fontFamily: 'monospace'),
                         ),
                       ),
                     ],
@@ -294,66 +323,71 @@ void showTestEmailDialog(BuildContext context) {
             ),
             actions: [
               TextButton(
-                onPressed: isLoading ? null : () {
-                  Navigator.of(context).pop();
-                },
+                onPressed: isLoading
+                    ? null
+                    : () {
+                        Navigator.of(context).pop();
+                      },
                 child: Text('キャンセル'),
               ),
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF00008b),
                 ),
-                onPressed: isLoading ? null : () async {
-                  final email = emailController.text.trim();
+                onPressed: isLoading
+                    ? null
+                    : () async {
+                        final email = emailController.text.trim();
 
-                  if (email.isEmpty) {
-                    setState(() {
-                      statusMessage = 'メールアドレスを入力してください';
-                      statusColor = Colors.red;
-                    });
-                    return;
-                  }
+                        if (email.isEmpty) {
+                          setState(() {
+                            statusMessage = 'メールアドレスを入力してください';
+                            statusColor = Colors.red;
+                          });
+                          return;
+                        }
 
-                  if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(email)) {
-                    setState(() {
-                      statusMessage = '有効なメールアドレスを入力してください';
-                      statusColor = Colors.red;
-                    });
-                    return;
-                  }
+                        if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
+                            .hasMatch(email)) {
+                          setState(() {
+                            statusMessage = '有効なメールアドレスを入力してください';
+                            statusColor = Colors.red;
+                          });
+                          return;
+                        }
 
-                  setState(() {
-                    isLoading = true;
-                    statusMessage = '送信処理を開始しています...';
-                    statusColor = Colors.blue;
-                  });
+                        setState(() {
+                          isLoading = true;
+                          statusMessage = '送信処理を開始しています...';
+                          statusColor = Colors.blue;
+                        });
 
-                  try {
-                    // 別関数で実行
-                    await testSendMail(context, email);
+                        try {
+                          // 別関数で実行
+                          await testSendMail(context, email);
 
-                    // 成功
-                    setState(() {
-                      statusMessage = '送信リクエストが完了しました';
-                      statusColor = Colors.green;
-                      isLoading = false;
-                    });
+                          // 成功
+                          setState(() {
+                            statusMessage = '送信リクエストが完了しました';
+                            statusColor = Colors.green;
+                            isLoading = false;
+                          });
 
-                    // 少し待ってダイアログを閉じる
-                    Future.delayed(Duration(seconds: 2), () {
-                      if (Navigator.canPop(context)) {
-                        Navigator.of(context).pop();
-                      }
-                    });
-                  } catch (e) {
-                    // エラー処理
-                    setState(() {
-                      statusMessage = 'エラー: $e';
-                      statusColor = Colors.red;
-                      isLoading = false;
-                    });
-                  }
-                },
+                          // 少し待ってダイアログを閉じる
+                          Future.delayed(Duration(seconds: 2), () {
+                            if (Navigator.canPop(context)) {
+                              Navigator.of(context).pop();
+                            }
+                          });
+                        } catch (e) {
+                          // エラー処理
+                          setState(() {
+                            statusMessage = 'エラー: $e';
+                            statusColor = Colors.red;
+                            isLoading = false;
+                          });
+                        }
+                      },
                 child: Text('送信', style: TextStyle(color: Colors.white)),
               ),
             ],
@@ -369,7 +403,8 @@ Future<void> initPlatformState() async {
     await Purchases.setLogLevel(LogLevel.debug);
 
     // RevenueCatの設定
-    final configuration = PurchasesConfiguration("appl_JfvzIYYEgsMeXVzavJRBnCnlKPS");
+    final configuration =
+        PurchasesConfiguration("appl_JfvzIYYEgsMeXVzavJRBnCnlKPS");
 
     await Purchases.configure(configuration);
     print('RevenueCat configured successfully');
@@ -443,7 +478,8 @@ Future<void> updateUserLoginInfo(String userId) async {
         'loginCount': currentLoginCount + 1, // ログイン回数をインクリメント
         'lastSyncedAt': now, // 最終同期日時
       });
-      print('✅ User login info updated: $userId, count: ${currentLoginCount + 1}');
+      print(
+          '✅ User login info updated: $userId, count: ${currentLoginCount + 1}');
     } else {
       // ドキュメントが存在しない場合は新規作成
       await userRef.set({
@@ -458,7 +494,6 @@ Future<void> updateUserLoginInfo(String userId) async {
 
     // ログイン記録後、必ず課金状況を同期
     await _forceSyncBillingStatus(userId);
-
   } catch (e) {
     print('❌ Error updating user login info: $e');
     // ログイン情報更新の失敗は致命的ではないので処理を継続
@@ -486,7 +521,8 @@ Future<void> _forceSyncBillingStatus(String userId) async {
 }
 
 // 新規追加: ユーザードキュメントのプレミアム状況を更新
-Future<void> _updateUserPremiumStatus(String userId, CustomerInfo customerInfo) async {
+Future<void> _updateUserPremiumStatus(
+    String userId, CustomerInfo customerInfo) async {
   try {
     final userRef = FirebaseFirestore.instance.collection('users').doc(userId);
 
@@ -521,7 +557,8 @@ Future<void> _updateUserPremiumStatus(String userId, CustomerInfo customerInfo) 
       'billingLastSyncedTimestamp': FieldValue.serverTimestamp(),
     });
 
-    print('✅ User premium status updated: isPremium=$isPremium, type=$subscriptionType');
+    print(
+        '✅ User premium status updated: isPremium=$isPremium, type=$subscriptionType');
   } catch (e) {
     print('❌ Error updating user premium status: $e');
   }
@@ -541,7 +578,8 @@ String? _safeDateTimeToString(dynamic dateTime) {
 }
 
 // RevenueCatの課金状態をFirestoreに同期する関数
-Future<void> syncBillingInfoToFirestore(String userId, CustomerInfo customerInfo) async {
+Future<void> syncBillingInfoToFirestore(
+    String userId, CustomerInfo customerInfo) async {
   try {
     // Firebase初期化確認
     if (Firebase.apps.isEmpty) {
@@ -566,8 +604,10 @@ Future<void> syncBillingInfoToFirestore(String userId, CustomerInfo customerInfo
         'willRenew': entitlement.willRenew,
         'productIdentifier': entitlement.productIdentifier,
         'isSandbox': entitlement.isSandbox,
-        'latestPurchaseDate': _safeDateTimeToString(entitlement.latestPurchaseDate),
-        'originalPurchaseDate': _safeDateTimeToString(entitlement.originalPurchaseDate),
+        'latestPurchaseDate':
+            _safeDateTimeToString(entitlement.latestPurchaseDate),
+        'originalPurchaseDate':
+            _safeDateTimeToString(entitlement.originalPurchaseDate),
         'expirationDate': _safeDateTimeToString(entitlement.expirationDate),
         'store': entitlement.store.toString(),
         'periodType': entitlement.periodType.toString(),
@@ -575,7 +615,8 @@ Future<void> syncBillingInfoToFirestore(String userId, CustomerInfo customerInfo
     }
 
     // アクティブなサブスクリプション情報を収集
-    List<String> activeSubscriptions = customerInfo.activeSubscriptions.toList();
+    List<String> activeSubscriptions =
+        customerInfo.activeSubscriptions.toList();
 
     // 課金状態の判定
     bool isPremium = customerInfo.entitlements.active.isNotEmpty;
@@ -609,7 +650,8 @@ Future<void> syncBillingInfoToFirestore(String userId, CustomerInfo customerInfo
       'requestDate': _safeDateTimeToString(customerInfo.requestDate),
       'firstSeen': _safeDateTimeToString(customerInfo.firstSeen),
       'originalApplicationVersion': customerInfo.originalApplicationVersion,
-      'originalPurchaseDate': _safeDateTimeToString(customerInfo.originalPurchaseDate),
+      'originalPurchaseDate':
+          _safeDateTimeToString(customerInfo.originalPurchaseDate),
       'managementURL': customerInfo.managementURL,
       'activeSubscriptions': activeSubscriptions,
       'allExpirationDates': safeExpirationDates,
@@ -625,8 +667,8 @@ Future<void> syncBillingInfoToFirestore(String userId, CustomerInfo customerInfo
     print('✅ Billing info synced to Firestore for user: $userId');
     print('Premium status: $isPremium');
     print('Active subscriptions: $activeSubscriptions');
-    print('Active entitlements: ${customerInfo.entitlements.active.keys.toList()}');
-
+    print(
+        'Active entitlements: ${customerInfo.entitlements.active.keys.toList()}');
   } catch (e) {
     print('❌ Error syncing billing info to Firestore: $e');
     // 課金情報同期の失敗は致命的ではないので処理を継続
@@ -653,7 +695,8 @@ void startBillingMonitoring(String userId) {
 }
 
 // 新規追加: 課金情報更新のハンドラー
-Future<void> _handleBillingInfoUpdate(String userId, CustomerInfo customerInfo) async {
+Future<void> _handleBillingInfoUpdate(
+    String userId, CustomerInfo customerInfo) async {
   try {
     // Firestoreの課金情報を更新
     await syncBillingInfoToFirestore(userId, customerInfo);
@@ -686,7 +729,8 @@ Future<void> recordAppUsage(String userId) async {
 
     // 今日の利用回数を更新
     final today = DateTime(now.year, now.month, now.day);
-    final todayDocId = '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
+    final todayDocId =
+        '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
 
     final dailyUsageRef = FirebaseFirestore.instance
         .collection('users')
@@ -752,54 +796,71 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      routes: {
-        '/product_purchase_agency': (context) => ConfirmationScreen(),
-        '/product_detail': (context) => ProductDetailScreen(),
-      },
-      debugShowCheckedModeBanner: false,
-      title: 'JapanAnimeMaps',
-      // theme: ThemeData(
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider<MapBloc>(
+          create: (context) => MapBloc()..add(MapInitialized()),
+        ),
+        BlocProvider<UserBloc>(
+          create: (context) => UserBloc()..add(InitializeUser()),
+        ),
+        BlocProvider<AppInitializationBloc>(
+          create: (context) =>
+              AppInitializationBloc()..add(StartInitialization()),
+        ),
+        BlocProvider<SpotBloc>(
+          create: (context) => SpotBloc()..add(SpotFetchInitial()),
+        ),
+      ],
+      child: MaterialApp(
+        routes: {
+          '/product_purchase_agency': (context) => ConfirmationScreen(),
+          '/product_detail': (context) => ProductDetailScreen(),
+        },
+        debugShowCheckedModeBanner: false,
+        title: 'JapanAnimeMaps',
+        // theme: ThemeData(
         // シンプルに白ベースのテーマを作成
-      //   brightness: Brightness.light,
-      //   primaryColor: const Color(0xFF4CAF50),
-      //   scaffoldBackgroundColor: Colors.white,
-      //   canvasColor: Colors.white,
-      //   cardColor: Colors.white,
-      //   dialogBackgroundColor: Colors.white,
-      //
-      //   // AppBarテーマ
-      //   appBarTheme: const AppBarTheme(
-      //     backgroundColor: Colors.white,
-      //     foregroundColor: Colors.black,
-      //     elevation: 0,
-      //     iconTheme: IconThemeData(color: Colors.black),
-      //     titleTextStyle: TextStyle(
-      //       color: Colors.black,
-      //       fontSize: 20,
-      //       fontWeight: FontWeight.w500,
-      //     ),
-      //   ),
-      //
-      //   // BottomNavigationBarテーマ
-      //   bottomNavigationBarTheme: const BottomNavigationBarThemeData(
-      //     backgroundColor: Colors.white,
-      //     selectedItemColor: Color(0xFF4CAF50),
-      //     unselectedItemColor: Colors.grey,
-      //   ),
-      //
-      //   // Material 3を無効にして従来のMaterial 2を使用
-      //   useMaterial3: false, colorScheme: ColorScheme.fromSwatch(primarySwatch: Colors.green).copyWith(background: Colors.white),
-      // ),
-      //
-      // // ダークテーマを無効にして常にライトテーマを使用
-      // themeMode: ThemeMode.light,
+        //   brightness: Brightness.light,
+        //   primaryColor: const Color(0xFF4CAF50),
+        //   scaffoldBackgroundColor: Colors.white,
+        //   canvasColor: Colors.white,
+        //   cardColor: Colors.white,
+        //   dialogBackgroundColor: Colors.white,
+        //
+        //   // AppBarテーマ
+        //   appBarTheme: const AppBarTheme(
+        //     backgroundColor: Colors.white,
+        //     foregroundColor: Colors.black,
+        //     elevation: 0,
+        //     iconTheme: IconThemeData(color: Colors.black),
+        //     titleTextStyle: TextStyle(
+        //       color: Colors.black,
+        //       fontSize: 20,
+        //       fontWeight: FontWeight.w500,
+        //     ),
+        //   ),
+        //
+        //   // BottomNavigationBarテーマ
+        //   bottomNavigationBarTheme: const BottomNavigationBarThemeData(
+        //     backgroundColor: Colors.white,
+        //     selectedItemColor: Color(0xFF4CAF50),
+        //     unselectedItemColor: Colors.grey,
+        //   ),
+        //
+        //   // Material 3を無効にして従来のMaterial 2を使用
+        //   useMaterial3: false, colorScheme: ColorScheme.fromSwatch(primarySwatch: Colors.green).copyWith(background: Colors.white),
+        // ),
+        //
+        // // ダークテーマを無効にして常にライトテーマを使用
+        // themeMode: ThemeMode.light,
 
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.white),
-        useMaterial3: true,
+        theme: ThemeData(
+          colorScheme: ColorScheme.fromSeed(seedColor: Colors.white),
+          useMaterial3: true,
+        ),
+        home: const SplashScreen(),
       ),
-      home: const SplashScreen(),
     );
   }
 }
@@ -813,7 +874,6 @@ class SplashScreen extends StatefulWidget {
 
 class _SplashScreenState extends State<SplashScreen> {
   String _authStatus = 'Unknown';
-  bool _isInitialized = false;
   String? _initError;
 
   // ローディングアニメーションウィジェットの定数
@@ -825,145 +885,24 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    _initializeApp();
+    // AppInitializationBloc will handle initialization automatically
   }
 
-  Future<void> _initializeApp() async {
+  Future<void> _navigateBasedOnAuth(BuildContext context, User? user) async {
     try {
-      print('SplashScreen: Starting app initialization...');
-
-      // ATTダイアログの表示
-      await _requestTrackingPermission();
-
-      // RevenueCatとFirebaseの同期
-      await _syncRevenueCatUser();
-
-      setState(() {
-        _isInitialized = true;
-      });
-
-      // 少し待機して確実に初期化を完了させる
-      await Future.delayed(const Duration(seconds: 1));
-
-      if (mounted) {
-        await _navigateToNextScreen();
-      }
-    } catch (e, stackTrace) {
-      print('SplashScreen initialization error: $e');
-      print('Stack trace: $stackTrace');
-      setState(() {
-        _initError = e.toString();
-      });
-    }
-  }
-
-  // 改善されたsyncRevenueCatUser関数
-  Future<void> _syncRevenueCatUser() async {
-    try {
-      final user = FirebaseAuth.instance.currentUser;
       if (user != null) {
-        print('🔄 Starting RevenueCat user sync for: ${user.uid}');
-
-        // RevenueCatにユーザーIDを同期
-        await Purchases.logIn(user.uid);
-        print('✅ RevenueCat user logged in: ${user.uid}');
-
-        // 課金状態を強制同期
-        await _forceSyncBillingStatus(user.uid);
-
-        // 課金状態の監視を開始
-        startBillingMonitoring(user.uid);
-
+        // User is logged in, navigate to main screen
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (context) => MainScreen()),
+        );
       } else {
-        print('⚠️ No user logged in for RevenueCat sync');
+        // User is not logged in, navigate to welcome screen
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (context) => WelcomePage()),
+        );
       }
     } catch (e) {
-      print('❌ RevenueCat user sync failed: $e');
-      // RevenueCat同期失敗は致命的ではないので処理を継続
-    }
-  }
-
-  Future<void> _requestTrackingPermission() async {
-    if (Platform.isIOS) {
-      try {
-        final status = await AppTrackingTransparency.trackingAuthorizationStatus;
-
-        if (status == TrackingStatus.notDetermined) {
-          await Future.delayed(const Duration(milliseconds: 200));
-          final TrackingStatus newStatus =
-          await AppTrackingTransparency.requestTrackingAuthorization();
-          setState(() {
-            _authStatus = newStatus.toString();
-          });
-          if (kDebugMode) {
-            print('Tracking authorization status: $newStatus');
-          }
-        }
-      } catch (e) {
-        print('Tracking permission request failed: $e');
-        // トラッキング許可失敗は致命的ではないので処理を継続
-      }
-    }
-  }
-
-  // 改善された_navigateToNextScreen関数
-  Future<void> _navigateToNextScreen() async {
-    if (!mounted) return;
-
-    try {
-      // Firebase初期化確認
-      if (Firebase.apps.isEmpty) {
-        throw Exception('Firebase not initialized');
-      }
-
-      // ========== テスト用: 強制的にWelcomePageを表示 ==========
-      // print('テストモード: WelcomePageに強制遷移');
-      // if (mounted) {
-      //   Navigator.of(context).pushReplacement(
-      //     MaterialPageRoute(builder: (context) => const WelcomePage()),
-      //   );
-      // }
-      // return;
-      // ========== ここまでがテスト用コード ==========
-
-      // 認証状態を確認
-      final user = FirebaseAuth.instance.currentUser;
-      print('Current user: ${user?.uid ?? "No user"}');
-
-      if (user != null) {
-        print('🔄 Processing logged-in user: ${user.uid}');
-
-        // 1. ユーザーのログイン情報を更新（課金情報同期も含む）
-        await updateUserLoginInfo(user.uid);
-
-        // 2. アプリ利用状況を記録
-        await recordAppUsage(user.uid);
-
-        // 3. RevenueCatとの同期確認
-        await _syncRevenueCatUser();
-
-        // 4. 定期的な課金状況チェックをスケジュール（オプション）
-        // await schedulePeriodicBillingSync(user.uid);
-
-        print('✅ All user data synced successfully');
-        print('Navigating to MainScreen');
-
-        if (mounted) {
-          Navigator.of(context).pushReplacement(
-            MaterialPageRoute(builder: (context) => MainScreen()),
-          );
-        }
-      } else {
-        print('Navigating to WelcomePage');
-        if (mounted) {
-          Navigator.of(context).pushReplacement(
-            MaterialPageRoute(builder: (context) => const WelcomePage()),
-          );
-        }
-      }
-    } catch (e, stackTrace) {
-      print('❌ Navigation error: $e');
-      print('Stack trace: $stackTrace');
+      print('Navigation error: $e');
       setState(() {
         _initError = 'ナビゲーションエラー: $e';
       });
@@ -972,88 +911,113 @@ class _SplashScreenState extends State<SplashScreen> {
 
   @override
   Widget build(BuildContext context) {
-    if (_initError != null) {
-      return Scaffold(
-        body: SafeArea(
-          child: Center(
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
+    return BlocConsumer<AppInitializationBloc, AppInitializationState>(
+      listener: (context, state) {
+        if (state is InitializationSuccess) {
+          // Navigate to appropriate screen based on auth status
+          _navigateBasedOnAuth(context, state.user);
+        } else if (state is InitializationError) {
+          setState(() {
+            _initError = state.error;
+          });
+        }
+      },
+      builder: (context, state) {
+        if (state is InitializationError || _initError != null) {
+          return Scaffold(
+            body: SafeArea(
+              child: Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.error_outline, color: Colors.red, size: 64),
+                      SizedBox(height: 16),
+                      Text(
+                        '初期化エラー',
+                        style: TextStyle(
+                            fontSize: 20, fontWeight: FontWeight.bold),
+                      ),
+                      SizedBox(height: 16),
+                      Container(
+                        padding: EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.red.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(8),
+                          border:
+                              Border.all(color: Colors.red.withOpacity(0.3)),
+                        ),
+                        child: Text(
+                          state is InitializationError
+                              ? state.error
+                              : _initError!,
+                          style: TextStyle(color: Colors.red[800]),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                      SizedBox(height: 16),
+                      ElevatedButton(
+                        onPressed: () {
+                          setState(() {
+                            _initError = null;
+                          });
+                          context
+                              .read<AppInitializationBloc>()
+                              .add(StartInitialization());
+                        },
+                        child: Text('再試行'),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          );
+        }
+
+        // Show loading state
+        String statusText = '初期化中...';
+        if (state is InitializationLoading) {
+          statusText = state.currentStep;
+        }
+
+        return Scaffold(
+          body: SafeArea(
+            child: Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.error_outline, color: Colors.red, size: 64),
-                  SizedBox(height: 16),
+                  loadingWidget,
+                  SizedBox(height: 20),
                   Text(
-                    '初期化エラー',
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                    statusText,
+                    style: TextStyle(fontSize: 16),
+                    textAlign: TextAlign.center,
                   ),
-                  SizedBox(height: 16),
-                  Container(
-                    padding: EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Colors.red.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.red.withOpacity(0.3)),
+                  if (kDebugMode) ...[
+                    SizedBox(height: 20),
+                    Text(
+                      '動作モード: ${Platform.isIOS ? 'iOS Sandbox' : 'Android Test'}',
+                      style: TextStyle(fontSize: 12, color: Colors.grey),
                     ),
-                    child: Text(
-                      _initError!,
-                      style: TextStyle(color: Colors.red[800]),
-                      textAlign: TextAlign.center,
+                    SizedBox(height: 8),
+                    Text(
+                      'Firebase Apps: ${Firebase.apps.length}',
+                      style: TextStyle(fontSize: 12, color: Colors.grey),
                     ),
-                  ),
-                  SizedBox(height: 16),
-                  ElevatedButton(
-                    onPressed: () {
-                      setState(() {
-                        _initError = null;
-                        _isInitialized = false;
-                      });
-                      _initializeApp();
-                    },
-                    child: Text('再試行'),
-                  ),
+                    SizedBox(height: 8),
+                    Text(
+                      'Auth Status: $_authStatus',
+                      style: TextStyle(fontSize: 12, color: Colors.grey),
+                    ),
+                  ],
                 ],
               ),
             ),
           ),
-        ),
-      );
-    }
-
-    // 通常のスプラッシュ画面
-    return Scaffold(
-      body: SafeArea(
-        child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              loadingWidget,
-              SizedBox(height: 20),
-              Text(
-                _isInitialized ? '起動中...' : '初期化中...',
-                style: TextStyle(fontSize: 16),
-              ),
-              if (kDebugMode) ...[
-                SizedBox(height: 20),
-                Text(
-                  '動作モード: ${Platform.isIOS ? 'iOS Sandbox' : 'Android Test'}',
-                  style: TextStyle(fontSize: 12, color: Colors.grey),
-                ),
-                SizedBox(height: 8),
-                Text(
-                  'Firebase Apps: ${Firebase.apps.length}',
-                  style: TextStyle(fontSize: 12, color: Colors.grey),
-                ),
-                SizedBox(height: 8),
-                Text(
-                  'Auth Status: $_authStatus',
-                  style: TextStyle(fontSize: 12, color: Colors.grey),
-                ),
-              ],
-            ],
-          ),
-        ),
-      ),
+        );
+      },
     );
   }
 }

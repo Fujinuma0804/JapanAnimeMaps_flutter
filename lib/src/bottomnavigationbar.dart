@@ -19,10 +19,10 @@ import '../spot_page/anime_list_test_ranking.dart';
 class MainScreen extends StatefulWidget {
   final int initalIndex;
 
-  const MainScreen({Key? key, this.initalIndex = 0}) : super(key: key);
+  const MainScreen({super.key, this.initalIndex = 0});
 
   @override
-  _MainScreenState createState() => _MainScreenState();
+  State<MainScreen> createState() => _MainScreenState();
 }
 
 class _MainScreenState extends State<MainScreen> {
@@ -31,8 +31,8 @@ class _MainScreenState extends State<MainScreen> {
   late User _user;
   String _userLanguage = 'English';
   late Stream<DocumentSnapshot> _userStream;
-  double _latitude = 37.7749;
-  double _longitude = -122.4194;
+  final double _latitude = 37.7749;
+  final double _longitude = -122.4194;
   bool _hasSeenWelcome = false;
   final FirebaseAnalytics _analytics = FirebaseAnalytics.instance;
 
@@ -165,7 +165,7 @@ class _MainScreenState extends State<MainScreen> {
       FirebaseFirestore.instance.collection('shopMaintenance').snapshots(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return Center(child: CircularProgressIndicator());
+          return const Center(child: CircularProgressIndicator());
         }
 
         if (snapshot.hasError) {
@@ -186,7 +186,7 @@ class _MainScreenState extends State<MainScreen> {
           final endTime = (data['endTime'] as Timestamp).toDate();
 
           if (now.isAfter(startTime) && now.isBefore(endTime)) {
-            return MaintenanceScreen();
+            return const MaintenanceScreen();
           }
         }
 
@@ -201,7 +201,7 @@ class _MainScreenState extends State<MainScreen> {
       stream: _userStream,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return Scaffold(
+          return const Scaffold(
             body: Center(child: CircularProgressIndicator()),
           );
         }
@@ -237,7 +237,8 @@ class _MainScreenState extends State<MainScreen> {
               // AnimeListTestRanking()
               //ver3.0.6までは翻訳機能を実装し、表示していた。読み込み速度改善のために変更した。
               //     : AnimeListTestRankingEng(),
-                  : AnimeListEnNew(),
+                  // : const AnimeListEnNew(),
+                  : _buildShopScreen(),
               _userLanguage == 'Japanese'
               //現在リリース中。
                   ? RankingTopPage()
@@ -249,14 +250,14 @@ class _MainScreenState extends State<MainScreen> {
                   : MapSubscriptionEn(latitude: _latitude, longitude: _longitude),
               _userLanguage == 'Japanese'
                   ? (!_hasSeenWelcome
-                  ? PostWelcome1(showScaffold: false)
-                  : TimelineScreen())
+                  ? const PostWelcome1(showScaffold: false)
+                  : const TimelineScreen())
                   : (!_hasSeenWelcome
-                  ? PostWelcome1(showScaffold: false)
-                  : TimelineScreenEn()),
+                  ? const PostWelcome1(showScaffold: false)
+                  : const TimelineScreenEn()),
               _userLanguage == 'Japanese'
-                  ? UserPointUpdatePage()
-                  : UserPointUpdatePage(),
+                  ? const UserPointUpdatePage()
+                  : const UserPointUpdatePage(),
             ],
           ),
           bottomNavigationBar: CustomBottomNavigationBar(
@@ -282,11 +283,11 @@ class CustomBottomNavigationBar extends StatelessWidget {
   final String language;
 
   const CustomBottomNavigationBar({
-    Key? key,
+    super.key,
     required this.currentIndex,
     required this.onTap,
     required this.language,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -304,23 +305,23 @@ class CustomBottomNavigationBar extends StatelessWidget {
       onTap: onTap,
       items: [
         BottomNavigationBarItem(
-          icon: Icon(Icons.place),
+          icon: const Icon(Icons.place),
           label: language == 'Japanese' ? 'スポット' : 'Spot',
         ),
         BottomNavigationBarItem(
-          icon: Icon(Icons.calendar_today_outlined),
+          icon: const Icon(Icons.calendar_today_outlined),
           label: language == 'Japanese' ? 'イベント' : 'Event',
         ),
         BottomNavigationBarItem(
-          icon: Icon(Icons.map),
+          icon: const Icon(Icons.map),
           label: language == 'Japanese' ? '地図' : 'Map',
         ),
         BottomNavigationBarItem(
-          icon: Icon(Icons.chat_outlined),
+          icon: const Icon(Icons.chat_outlined),
           label: language == 'Japanese' ? 'コミュニティ' : 'Community',
         ),
         BottomNavigationBarItem(
-          icon: Icon(Icons.score_outlined),
+          icon: const Icon(Icons.score_outlined),
           label: language == 'Japanese' ? 'ランキング' : 'Ranking',
         ),
       ],

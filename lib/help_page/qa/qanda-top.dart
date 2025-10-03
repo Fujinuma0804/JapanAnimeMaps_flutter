@@ -22,7 +22,7 @@ class MenuItem {
 }
 
 class QandATopPage extends StatefulWidget {
-  QandATopPage({Key? key}) : super(key: key);
+  const QandATopPage({super.key});
 
   @override
   State<QandATopPage> createState() => _QandATopPageState();
@@ -308,7 +308,7 @@ class _QandATopPageState extends State<QandATopPage> {
                 ? Stack(
               alignment: Alignment.center,
               children: [
-                Icon(
+                const Icon(
                   Icons.card_membership,
                   color: Colors.white,
                 ),
