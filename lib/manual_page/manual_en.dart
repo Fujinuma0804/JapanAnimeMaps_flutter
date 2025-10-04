@@ -8,10 +8,7 @@ import 'package:parts/help_page/qa/contact_form.dart';
 import 'package:parts/login_page/welcome_page/welcome_1.dart';
 import 'package:parts/shiori/shiori_make.dart';
 import 'package:parts/subscription/payment_subscription.dart';
-import 'package:parts/subscription/subscription_lp.dart';
-import 'package:parts/top_page/welcome_page.dart';
 import 'package:settings_ui/settings_ui.dart';
-import 'dart:io' show Platform;
 
 import '../setting_page/settings_en.dart';
 import '../web_page/website.dart';

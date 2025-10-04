@@ -311,7 +311,7 @@ class VideoCard extends StatefulWidget {
   final VoidCallback onTap;
 
   const VideoCard({
-    Key? key,
+    super.key,
     required this.eventName,
     this.mediaUrl,
     required this.mediaType,

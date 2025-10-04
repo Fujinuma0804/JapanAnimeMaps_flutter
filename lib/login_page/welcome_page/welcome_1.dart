@@ -10,9 +10,9 @@ class Welcome1 extends StatefulWidget {
 }
 
 class _Welcome1State extends State<Welcome1> {
-  String _welcomeTitle = 'Welcome to JAM'; // Default to English text
+  String _welcomeTitle = 'JapanAnimeMapsへようこそ'; // Default to Japanese text
   String _welcomeDescription =
-      'Make your pilgrimage more enjoyable with the JAM app.\nEarn points and interact with users who like the same anime.';
+      'JAMアプリで聖地巡礼をより楽しく。\nポイントも貯まって、同じアニメが好きなユーザと交流しよう。';
 
   @override
   void initState() {
@@ -30,7 +30,7 @@ class _Welcome1State extends State<Welcome1> {
 
       if (userDoc.exists) {
         String language =
-            (userDoc.data() as Map<String, dynamic>)['language'] ?? 'English';
+            (userDoc.data() as Map<String, dynamic>)['language'] ?? 'Japanese';
         setState(() {
           _welcomeTitle =
               language == 'Japanese' ? 'JapanAnimeMapsへようこそ' : 'Welcome to JAM';

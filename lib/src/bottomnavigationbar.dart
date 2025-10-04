@@ -22,15 +22,21 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 class MainScreen extends StatefulWidget {
   final int initalIndex;
 
-  const MainScreen({Key? key, this.initalIndex = 0}) : super(key: key);
+  const MainScreen({super.key, this.initalIndex = 0});
 
   @override
-  _MainScreenState createState() => _MainScreenState();
+  State<MainScreen> createState() => _MainScreenState();
 }
 
 class _MainScreenState extends State<MainScreen> {
   int _selectedIndex = 0;
-  late PageController _pageController;
+  late PageController _pageController = PageController();
+  late User _user;
+  String _userLanguage = 'English';
+  late Stream<DocumentSnapshot> _userStream;
+  final double _latitude = 37.7749;
+  final double _longitude = -122.4194;
+  bool _hasSeenWelcome = false;
   final FirebaseAnalytics _analytics = FirebaseAnalytics.instance;
   int _refreshKey = 0; // Key to force refresh of pages
 
@@ -51,10 +57,6 @@ class _MainScreenState extends State<MainScreen> {
   }
 
   void _onItemTapped(int index) async {
-    final state = context.read<UserBloc>().state;
-
-    if (state is! UserDataLoaded) return;
-
     String tabName = '';
     switch (index) {
       case 0:
@@ -78,8 +80,8 @@ class _MainScreenState extends State<MainScreen> {
       name: 'bottom_nav_tap',
       parameters: {
         'tab_name': tabName,
-        'user_language': state.language,
-        'user_id': state.user.uid,
+        'user_language': _userLanguage,
+        'user_id': _user.uid,
       },
     );
 
@@ -100,25 +102,18 @@ class _MainScreenState extends State<MainScreen> {
           );
         }
 
-        // Handle error state
-        if (state is UserError) {
+        if (snapshot.hasError) {
           return Scaffold(
-            body: Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text('Error: ${state.message}'),
-                  SizedBox(height: 16),
-                  ElevatedButton(
-                    onPressed: () {
-                      context.read<UserBloc>().add(InitializeUser());
-                    },
-                    child: Text('Retry'),
-                  ),
-                ],
-              ),
-            ),
+            body: Center(child: Text('Error: ${snapshot.error}')),
           );
+        }
+
+        if (snapshot.hasData && snapshot.data != null) {
+          final userData = snapshot.data!.data() as Map<String, dynamic>?;
+          if (userData != null) {
+            _userLanguage = userData['language'] ?? 'English';
+            _hasSeenWelcome = userData['hasSeenWelcome'] ?? false;
+          }
         }
 
         // Handle loaded state
@@ -188,11 +183,11 @@ class CustomBottomNavigationBar extends StatelessWidget {
   final String language;
 
   const CustomBottomNavigationBar({
-    Key? key,
+    super.key,
     required this.currentIndex,
     required this.onTap,
     required this.language,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -210,7 +205,7 @@ class CustomBottomNavigationBar extends StatelessWidget {
       onTap: onTap,
       items: [
         BottomNavigationBarItem(
-          icon: Icon(Icons.place),
+          icon: const Icon(Icons.place),
           label: language == 'Japanese' ? 'スポット' : 'Spot',
         ),
 
@@ -231,7 +226,7 @@ class CustomBottomNavigationBar extends StatelessWidget {
           label: language == 'Japanese' ? 'コミュニティ' : 'Community',
         ),
         BottomNavigationBarItem(
-          icon: Icon(Icons.score_outlined),
+          icon: const Icon(Icons.score_outlined),
           label: language == 'Japanese' ? 'ランキング' : 'Ranking',
         ),
       ],
