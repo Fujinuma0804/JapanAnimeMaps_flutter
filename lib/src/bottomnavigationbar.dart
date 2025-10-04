@@ -10,6 +10,8 @@ import 'package:parts/post_page/timeline_screen_en.dart';
 import 'package:parts/shop/shop_maintenance.dart';
 import 'package:parts/shop/shop_top.dart';
 import 'package:parts/spot_page/anime_list_en_new.dart';
+import 'package:parts/test/books.dart';
+import 'package:parts/test/posts_photo.dart';
 
 import '../point_page/point_update.dart';
 import '../post_page/post_first/post_welcome.dart';

@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:in_app_review/in_app_review.dart';
 import 'package:parts/help_page/qa/contact_form.dart';
 import 'package:parts/login_page/welcome_page/welcome_1.dart';
+import 'package:parts/shiori/shiori_make.dart';
 import 'package:parts/subscription/payment_subscription.dart';
 import 'package:parts/subscription/subscription_lp.dart';
 import 'package:parts/top_page/welcome_page.dart';
@@ -214,7 +215,7 @@ class _ManualEnState extends State<ManualEn> {
             //           isScrollControlled: true,
             //           backgroundColor: Colors.transparent,
             //           //画面のテストはこちらを変更して遷移先に指定してください。
-            //           builder: (context) => SubscriptionLP(),
+            //           builder: (context) => ShioriMakePage(),
             //         );
             //       },
             //     ),

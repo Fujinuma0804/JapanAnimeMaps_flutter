@@ -6,6 +6,7 @@ import 'dart:async';
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart'; // FCM追加
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -28,6 +29,20 @@ import 'package:flutter_stripe/flutter_stripe.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
+
+// FCM バックグラウンドメッセージハンドラー（トップレベル関数として定義）
+@pragma('vm:entry-point')
+Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  await Firebase.initializeApp();
+  if (kDebugMode) {
+    print('=== FCM Background Message ===');
+    print('Message ID: ${message.messageId}');
+    print('Title: ${message.notification?.title}');
+    print('Body: ${message.notification?.body}');
+    print('Data: ${message.data}');
+    print('=============================');
+  }
+}
 
 void main() async {
   // Flutter binding初期化
@@ -102,6 +117,13 @@ void main() async {
     print('✅ Firebase initialized successfully');
     print('Firebase apps count: ${Firebase.apps.length}');
 
+    // FCM の初期化（デバッグモードのみ）
+    if (kDebugMode) {
+      print('Initializing FCM (Debug Mode)...');
+      await _initializeFCM();
+      print('✅ FCM initialized successfully');
+    }
+
     // Firebase Functionsの明示的な初期化
     print('Initializing Firebase Functions...');
     FirebaseFunctions.instanceFor(region: 'us-central1');
@@ -139,6 +161,181 @@ void main() async {
 
     // エラー用の最小限のアプリを起動
     runApp(ErrorApp(error: e.toString(), stackTrace: stackTrace.toString()));
+  }
+}
+
+// FCM初期化関数（デバッグモードのみ）
+Future<void> _initializeFCM() async {
+  try {
+    final FirebaseMessaging firebaseMessaging = FirebaseMessaging.instance;
+
+    // バックグラウンドメッセージハンドラーを設定
+    FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+
+    // 通知権限をリクエスト
+    NotificationSettings settings = await firebaseMessaging.requestPermission(
+      alert: true,
+      badge: true,
+      sound: true,
+    );
+
+    if (kDebugMode) {
+      print('FCM Permission Status: ${settings.authorizationStatus}');
+    }
+
+    if (settings.authorizationStatus == AuthorizationStatus.authorized ||
+        settings.authorizationStatus == AuthorizationStatus.provisional) {
+
+      // FCMトークンを取得して表示
+      String? token = await firebaseMessaging.getToken();
+      if (kDebugMode && token != null) {
+        print('=== FCM TOKEN (Debug Only) ===');
+        print(token);
+        print('==============================');
+
+        // トークンをFirestoreに保存（デバッグ用）
+        await _saveFCMTokenToFirestore(token);
+      }
+
+      // フォアグラウンドでメッセージを受信
+      FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+        if (kDebugMode) {
+          print('=== FCM Foreground Message ===');
+          print('Title: ${message.notification?.title}');
+          print('Body: ${message.notification?.body}');
+          print('Data: ${message.data}');
+          print('==============================');
+        }
+      });
+
+      // 通知をタップしてアプリが開かれた時の処理
+      FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
+        if (kDebugMode) {
+          print('=== FCM App Opened from Notification ===');
+          print('Title: ${message.notification?.title}');
+          print('Body: ${message.notification?.body}');
+          print('Data: ${message.data}');
+          print('=======================================');
+        }
+      });
+
+      // アプリが終了状態から通知で開かれた場合の初期メッセージを確認
+      RemoteMessage? initialMessage = await firebaseMessaging.getInitialMessage();
+      if (initialMessage != null && kDebugMode) {
+        print('=== FCM Initial Message ===');
+        print('Title: ${initialMessage.notification?.title}');
+        print('Body: ${initialMessage.notification?.body}');
+        print('Data: ${initialMessage.data}');
+        print('===========================');
+      }
+
+      // トークンの更新を監視
+      firebaseMessaging.onTokenRefresh.listen((String token) {
+        if (kDebugMode) {
+          print('=== FCM Token Refreshed (Debug Only) ===');
+          print(token);
+          print('=======================================');
+        }
+        // 新しいトークンをFirestoreに保存
+        _saveFCMTokenToFirestore(token);
+      });
+
+      // iOS固有の設定
+      if (Platform.isIOS) {
+        await firebaseMessaging.setForegroundNotificationPresentationOptions(
+          alert: true,
+          badge: true,
+          sound: true,
+        );
+      }
+    }
+  } catch (e) {
+    if (kDebugMode) {
+      print('FCM Initialization Error: $e');
+    }
+  }
+}
+
+// FCMトークンをFirestoreに保存（デバッグ用）
+Future<void> _saveFCMTokenToFirestore(String token) async {
+  try {
+    if (!kDebugMode) return; // デバッグモードのみ
+
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .collection('debug_info')
+          .doc('fcm_token')
+          .set({
+        'token': token,
+        'updatedAt': FieldValue.serverTimestamp(),
+        'platform': Platform.isIOS ? 'iOS' : 'Android',
+        'debugMode': true,
+      }, SetOptions(merge: true));
+
+      if (kDebugMode) {
+        print('FCM Token saved to Firestore for user: ${user.uid}');
+      }
+    }
+  } catch (e) {
+    if (kDebugMode) {
+      print('Error saving FCM token to Firestore: $e');
+    }
+  }
+}
+
+// FCMトークンを表示する関数（デバッグ用）
+Future<void> showFCMToken(BuildContext context) async {
+  if (!kDebugMode) return;
+
+  try {
+    String? token = await FirebaseMessaging.instance.getToken();
+
+    if (context.mounted) {
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Text('FCM Token (Debug)'),
+          content: Container(
+            width: 300,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Firebase Console でのテスト送信に使用してください:',
+                  style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                ),
+                SizedBox(height: 10),
+                Container(
+                  padding: EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.grey[100],
+                    borderRadius: BorderRadius.circular(4),
+                    border: Border.all(color: Colors.grey[300]!),
+                  ),
+                  child: SelectableText(
+                    token ?? 'Token not available',
+                    style: TextStyle(fontSize: 10, fontFamily: 'monospace'),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text('閉じる'),
+            ),
+          ],
+        ),
+      );
+    }
+  } catch (e) {
+    if (kDebugMode) {
+      print('Error showing FCM token: $e');
+    }
   }
 }
 
