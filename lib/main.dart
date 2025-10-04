@@ -12,6 +12,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:parts/bloc/Customer_requestformbloc/Customer_requestformbloc.dart';
 import 'package:parts/bloc/Userinfo_bloc/Userinfo_bloc.dart';
 import 'package:parts/bloc/appintilize_bloc/appintilize_bloc.dart';
 import 'package:parts/bloc/map_bloc/map_bloc.dart';
@@ -123,6 +124,9 @@ void main() async {
       ),
       BlocProvider<SpotBloc>(
         create: (context) => SpotBloc()..add(SpotFetchInitial()),
+      ),
+      BlocProvider<AnimeRequestBloc>(
+        create: (context) => AnimeRequestBloc()..add(CheckUserStatusEvent()),
       ),
     ], child: const MyApp()));
   } catch (e, stackTrace) {
@@ -800,6 +804,9 @@ class MyApp extends StatelessWidget {
       providers: [
         BlocProvider<MapBloc>(
           create: (context) => MapBloc()..add(MapInitialized()),
+        ),
+        BlocProvider<AnimeRequestBloc>(
+          create: (context) => AnimeRequestBloc()..add(CheckUserStatusEvent()),
         ),
         BlocProvider<UserBloc>(
           create: (context) => UserBloc()..add(InitializeUser()),

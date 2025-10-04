@@ -28,14 +28,16 @@ import 'liked_post.dart';
 
 // RevenueCatを使用したサブスクリプション管理クラス
 class SubscriptionManager {
-  static const String _premiumEntitlementId = 'premium'; // RevenueCatで設定したEntitlement ID
+  static const String _premiumEntitlementId =
+      'premium'; // RevenueCatで設定したEntitlement ID
   static const String _subscriptionProductId = 'premium_monthly'; // プロダクトID
   static bool _isInitialized = false;
 
   // main.dartから取得した実際のAPI Key
   static const String _revenueCatApiKeyIOS = 'appl_JfvzIYYEgsMeXVzavJRBnCnlKPS';
   // Androidの場合は別途設定が必要（main.dartにはAndroid用のキーが記載されていないため）
-  static const String _revenueCatApiKeyAndroid = 'goog_xxxxxxxxxxxxxxx'; // Android用API Keyを設定してください
+  static const String _revenueCatApiKeyAndroid =
+      'goog_xxxxxxxxxxxxxxx'; // Android用API Keyを設定してください
 
   // RevenueCatの初期化
   static Future<void> initialize() async {
@@ -68,7 +70,8 @@ class SubscriptionManager {
       print('❌Error initializing RevenueCat: $e');
       _isInitialized = false;
       // API Keyエラーの場合は具体的なメッセージを出力
-      if (e.toString().contains('Invalid API Key') || e.toString().contains('credentials')) {
+      if (e.toString().contains('Invalid API Key') ||
+          e.toString().contains('credentials')) {
         print('⚠️ RevenueCat API Key error. Please check:');
         print('1. API Key is correct');
         print('2. Project settings in RevenueCat console');
@@ -138,19 +141,22 @@ class SubscriptionManager {
       final entitlement = customerInfo.entitlements.all[_premiumEntitlementId];
       if (entitlement != null && entitlement.isActive) {
         isPremium = true;
-        print('✅Premium active via entitlement: ${entitlement.productIdentifier}');
+        print(
+            '✅Premium active via entitlement: ${entitlement.productIdentifier}');
       }
 
       //2.　アクティブサブスクリプションによる判定
       if (!isPremium && customerInfo.activeSubscriptions.isNotEmpty) {
         isPremium = true;
-        print('✅Premium active via entitlements: ${customerInfo.entitlements.active.keys}');
+        print(
+            '✅Premium active via entitlements: ${customerInfo.entitlements.active.keys}');
       }
 
       //3.　エンタイトルメント全体での判定
       if (!isPremium && customerInfo.entitlements.active.isNotEmpty) {
         isPremium = true;
-        print('✅Premium active via entitlements: ${customerInfo.entitlements.active.keys}');
+        print(
+            '✅Premium active via entitlements: ${customerInfo.entitlements.active.keys}');
       }
 
       print('🔍 Final subscription status: $isPremium');
@@ -184,7 +190,8 @@ class SubscriptionManager {
   }
 
   // main.dartのsyncBillingInfoToFirestore機能を統合
-  static Future<void> _syncBillingInfoToFirestore(String userId, CustomerInfo customerInfo) async {
+  static Future<void> _syncBillingInfoToFirestore(
+      String userId, CustomerInfo customerInfo) async {
     try {
       final billingRef = FirebaseFirestore.instance
           .collection('users')
@@ -203,8 +210,10 @@ class SubscriptionManager {
           'willRenew': entitlement.willRenew,
           'productIdentifier': entitlement.productIdentifier,
           'isSandbox': entitlement.isSandbox,
-          'latestPurchaseDate': _safeDateTimeToString(entitlement.latestPurchaseDate),
-          'originalPurchaseDate': _safeDateTimeToString(entitlement.originalPurchaseDate),
+          'latestPurchaseDate':
+              _safeDateTimeToString(entitlement.latestPurchaseDate),
+          'originalPurchaseDate':
+              _safeDateTimeToString(entitlement.originalPurchaseDate),
           'expirationDate': _safeDateTimeToString(entitlement.expirationDate),
           'store': entitlement.store.toString(),
           'periodType': entitlement.periodType.toString(),
@@ -212,7 +221,8 @@ class SubscriptionManager {
       }
 
       // アクティブなサブスクリプション情報を収集
-      List<String> activeSubscriptions = customerInfo.activeSubscriptions.toList();
+      List<String> activeSubscriptions =
+          customerInfo.activeSubscriptions.toList();
 
       //課金状態の判定ロジックを統一
       bool isPremium = false;
@@ -243,7 +253,8 @@ class SubscriptionManager {
         'requestDate': _safeDateTimeToString(customerInfo.requestDate),
         'firstSeen': _safeDateTimeToString(customerInfo.firstSeen),
         'originalApplicationVersion': customerInfo.originalApplicationVersion,
-        'originalPurchaseDate': _safeDateTimeToString(customerInfo.originalPurchaseDate),
+        'originalPurchaseDate':
+            _safeDateTimeToString(customerInfo.originalPurchaseDate),
         'managementURL': customerInfo.managementURL,
         'activeSubscriptions': activeSubscriptions,
         'entitlements': entitlementsData,
@@ -251,8 +262,11 @@ class SubscriptionManager {
         'lastUpdatedTimestamp': FieldValue.serverTimestamp(),
         //【追加】デバック情報
         'debugInfo': {
-          'entitlementExists': customerInfo.entitlements.all.containsKey(_premiumEntitlementId),
-          'entitlementActive': customerInfo.entitlements.all[_premiumEntitlementId]?.isActive ?? false,
+          'entitlementExists':
+              customerInfo.entitlements.all.containsKey(_premiumEntitlementId),
+          'entitlementActive':
+              customerInfo.entitlements.all[_premiumEntitlementId]?.isActive ??
+                  false,
           'activeEntitlementCount': customerInfo.activeSubscriptions.length,
           'activeSubscriptionCount': customerInfo.activeSubscriptions.length,
         }
@@ -263,7 +277,8 @@ class SubscriptionManager {
 
       print('✅ Billing info synced to Firestore for user: $userId');
       print('💰Premium status: $isPremium');
-      print('🔍 Debug - Entitlement active: ${customerInfo.entitlements.all[_premiumEntitlementId]?.isActive}');
+      print(
+          '🔍 Debug - Entitlement active: ${customerInfo.entitlements.all[_premiumEntitlementId]?.isActive}');
       print('🔍 Debug - Active subscriptions: $hasActiveSubscription');
     } catch (e) {
       print('❌ Error syncing billing info to Firestore: $e');
@@ -291,7 +306,8 @@ class SubscriptionManager {
       print('Active subscriptions: ${customerInfo.activeSubscriptions}');
 
       if (customerInfo.entitlements.all.containsKey(_premiumEntitlementId)) {
-        final entitlement = customerInfo.entitlements.all[_premiumEntitlementId]!;
+        final entitlement =
+            customerInfo.entitlements.all[_premiumEntitlementId]!;
         print('Premium entitlement found:');
         print('  - Active: ${entitlement.isActive}');
         print('  - Product: ${entitlement.productIdentifier}');
@@ -303,7 +319,6 @@ class SubscriptionManager {
       }
 
       print('=====================================\n');
-
     } catch (e) {
       print('❌ Debug error: $e');
     }
@@ -326,7 +341,8 @@ class SubscriptionManager {
   static Future<bool> _checkLocalSubscriptionStatus() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final bool isSubscribed = prefs.getBool('local_subscription_active') ?? false;
+      final bool isSubscribed =
+          prefs.getBool('local_subscription_active') ?? false;
       final String? expiryString = prefs.getString('local_subscription_expiry');
 
       if (!isSubscribed || expiryString == null) return false;
@@ -356,7 +372,8 @@ class SubscriptionManager {
       if (isActive) {
         // 1ヶ月後の有効期限を設定（実際のアプリでは正確な有効期限を使用）
         final expiry = DateTime.now().add(Duration(days: 30));
-        await prefs.setString('local_subscription_expiry', expiry.toIso8601String());
+        await prefs.setString(
+            'local_subscription_expiry', expiry.toIso8601String());
       } else {
         await _clearLocalSubscriptionStatus();
       }
@@ -384,15 +401,19 @@ class SubscriptionManager {
       }
 
       if (!_isInitialized) {
-        throw Exception('RevenueCat initialization failed. Cannot proceed with purchase.');
+        throw Exception(
+            'RevenueCat initialization failed. Cannot proceed with purchase.');
       }
 
       final Offerings offerings = await Purchases.getOfferings();
       final Package? package = offerings.current?.monthly;
 
       if (package != null) {
-        final CustomerInfo customerInfo = await Purchases.purchasePackage(package);
-        final bool isPremium = customerInfo.entitlements.all[_premiumEntitlementId]?.isActive ?? false;
+        final CustomerInfo customerInfo =
+            await Purchases.purchasePackage(package);
+        final bool isPremium =
+            customerInfo.entitlements.all[_premiumEntitlementId]?.isActive ??
+                false;
 
         // ローカルストレージにも保存
         await _saveLocalSubscriptionStatus(isPremium);
@@ -417,7 +438,8 @@ class SubscriptionManager {
         } else if (e.code == 'payment_pending') {
           print('Payment is pending');
         } else if (e.toString().contains('Invalid API Key')) {
-          print('API Key error during purchase. Please check RevenueCat configuration.');
+          print(
+              'API Key error during purchase. Please check RevenueCat configuration.');
         } else {
           print('Purchase error: ${e.message}');
         }
@@ -436,11 +458,14 @@ class SubscriptionManager {
       }
 
       if (!_isInitialized) {
-        throw Exception('RevenueCat initialization failed. Cannot proceed with restore.');
+        throw Exception(
+            'RevenueCat initialization failed. Cannot proceed with restore.');
       }
 
       final CustomerInfo customerInfo = await Purchases.restorePurchases();
-      final bool isPremium = customerInfo.entitlements.all[_premiumEntitlementId]?.isActive ?? false;
+      final bool isPremium =
+          customerInfo.entitlements.all[_premiumEntitlementId]?.isActive ??
+              false;
 
       // ローカルストレージにも保存
       await _saveLocalSubscriptionStatus(isPremium);
@@ -457,7 +482,8 @@ class SubscriptionManager {
       print('Error restoring subscription: $e');
 
       if (e.toString().contains('Invalid API Key')) {
-        print('API Key error during restore. Please check RevenueCat configuration.');
+        print(
+            'API Key error during restore. Please check RevenueCat configuration.');
       }
 
       return false;
@@ -487,7 +513,8 @@ class SubscriptionManager {
     try {
       // まずローカルストレージから確認
       final prefs = await SharedPreferences.getInstance();
-      final String? localExpiryString = prefs.getString('local_subscription_expiry');
+      final String? localExpiryString =
+          prefs.getString('local_subscription_expiry');
 
       if (localExpiryString != null) {
         final DateTime localExpiry = DateTime.parse(localExpiryString);
@@ -498,7 +525,8 @@ class SubscriptionManager {
 
       // RevenueCatから取得を試行
       final CustomerInfo? customerInfo = await getCustomerInfo();
-      final EntitlementInfo? entitlement = customerInfo?.entitlements.all[_premiumEntitlementId];
+      final EntitlementInfo? entitlement =
+          customerInfo?.entitlements.all[_premiumEntitlementId];
 
       if (entitlement == null || !entitlement.isActive) {
         return null;
@@ -570,7 +598,8 @@ class SubscriptionManager {
 
   // テスト用: ローカルサブスクリプションを手動で有効化（開発・テスト時のみ使用）
   static Future<void> enableTestSubscription() async {
-    print('⚠️ Test subscription enabled. This should only be used for development/testing.');
+    print(
+        '⚠️ Test subscription enabled. This should only be used for development/testing.');
     await _saveLocalSubscriptionStatus(true);
   }
 
@@ -728,288 +757,53 @@ class _AnimeListTestRankingState extends State<AnimeListTestRanking>
   final FirebaseInAppMessaging fiam = FirebaseInAppMessaging.instance;
 
   final Map<String, Map<String, double>> prefectureBounds = {
-    '北海道': {
-      'minLat': 41.3,
-      'maxLat': 45.6,
-      'minLng': 139.3,
-      'maxLng': 148.9
-    },
-    '青森県': {
-      'minLat': 40.2,
-      'maxLat': 41.6,
-      'minLng': 139.5,
-      'maxLng': 141.7
-    },
-    '岩手県': {
-      'minLat': 38.7,
-      'maxLat': 40.5,
-      'minLng': 140.6,
-      'maxLng': 142.1
-    },
-    '宮城県': {
-      'minLat': 37.8,
-      'maxLat': 39.0,
-      'minLng': 140.3,
-      'maxLng': 141.7
-    },
-    '秋田県': {
-      'minLat': 38.8,
-      'maxLat': 40.5,
-      'minLng': 139.7,
-      'maxLng': 141.0
-    },
-    '山形県': {
-      'minLat': 37.8,
-      'maxLat': 39.0,
-      'minLng': 139.5,
-      'maxLng': 140.6
-    },
-    '福島県': {
-      'minLat': 36.8,
-      'maxLat': 38.0,
-      'minLng': 139.2,
-      'maxLng': 141.0
-    },
-    '茨城県': {
-      'minLat': 35.8,
-      'maxLat': 36.9,
-      'minLng': 139.7,
-      'maxLng': 140.9
-    },
-    '栃木県': {
-      'minLat': 36.2,
-      'maxLat': 37.2,
-      'minLng': 139.3,
-      'maxLng': 140.3
-    },
-    '群馬県': {
-      'minLat': 36.0,
-      'maxLat': 37.0,
-      'minLng': 138.4,
-      'maxLng': 139.7
-    },
-    '埼玉県': {
-      'minLat': 35.7,
-      'maxLat': 36.3,
-      'minLng': 138.8,
-      'maxLng': 139.9
-    },
-    '千葉県': {
-      'minLat': 34.9,
-      'maxLat': 36.1,
-      'minLng': 139.7,
-      'maxLng': 140.9
-    },
-    '東京都': {
-      'minLat': 35.5,
-      'maxLat': 35.9,
-      'minLng': 138.9,
-      'maxLng': 139.9
-    },
-    '神奈川県': {
-      'minLat': 35.1,
-      'maxLat': 35.7,
-      'minLng': 139.0,
-      'maxLng': 139.8
-    },
-    '新潟県': {
-      'minLat': 36.8,
-      'maxLat': 38.6,
-      'minLng': 137.6,
-      'maxLng': 139.8
-    },
-    '富山県': {
-      'minLat': 36.2,
-      'maxLat': 36.9,
-      'minLng': 136.8,
-      'maxLng': 137.7
-    },
-    '石川県': {
-      'minLat': 36.0,
-      'maxLat': 37.6,
-      'minLng': 136.2,
-      'maxLng': 137.4
-    },
-    '福井県': {
-      'minLat': 35.3,
-      'maxLat': 36.3,
-      'minLng': 135.4,
-      'maxLng': 136.8
-    },
-    '山梨県': {
-      'minLat': 35.2,
-      'maxLat': 35.9,
-      'minLng': 138.2,
-      'maxLng': 139.1
-    },
-    '長野県': {
-      'minLat': 35.2,
-      'maxLat': 37.0,
-      'minLng': 137.3,
-      'maxLng': 138.7
-    },
-    '岐阜県': {
-      'minLat': 35.2,
-      'maxLat': 36.5,
-      'minLng': 136.3,
-      'maxLng': 137.6
-    },
-    '静岡県': {
-      'minLat': 34.6,
-      'maxLat': 35.7,
-      'minLng': 137.4,
-      'maxLng': 139.1
-    },
-    '愛知県': {
-      'minLat': 34.6,
-      'maxLat': 35.4,
-      'minLng': 136.7,
-      'maxLng': 137.8
-    },
-    '三重県': {
-      'minLat': 33.7,
-      'maxLat': 35.3,
-      'minLng': 135.9,
-      'maxLng': 136.9
-    },
-    '滋賀県': {
-      'minLat': 34.8,
-      'maxLat': 35.7,
-      'minLng': 135.8,
-      'maxLng': 136.4
-    },
-    '京都府': {
-      'minLat': 34.7,
-      'maxLat': 35.8,
-      'minLng': 134.8,
-      'maxLng': 136.0
-    },
-    '大阪府': {
-      'minLat': 34.2,
-      'maxLat': 35.0,
-      'minLng': 135.1,
-      'maxLng': 135.7
-    },
-    '兵庫県': {
-      'minLat': 34.2,
-      'maxLat': 35.7,
-      'minLng': 134.2,
-      'maxLng': 135.4
-    },
-    '奈良県': {
-      'minLat': 33.8,
-      'maxLat': 34.7,
-      'minLng': 135.6,
-      'maxLng': 136.2
-    },
-    '和歌山県': {
-      'minLat': 33.4,
-      'maxLat': 34.3,
-      'minLng': 135.0,
-      'maxLng': 136.0
-    },
-    '鳥取県': {
-      'minLat': 35.1,
-      'maxLat': 35.6,
-      'minLng': 133.1,
-      'maxLng': 134.4
-    },
-    '島根県': {
-      'minLat': 34.3,
-      'maxLat': 35.6,
-      'minLng': 131.6,
-      'maxLng': 133.4
-    },
-    '岡山県': {
-      'minLat': 34.3,
-      'maxLat': 35.4,
-      'minLng': 133.3,
-      'maxLng': 134.4
-    },
-    '広島県': {
-      'minLat': 34.0,
-      'maxLat': 35.1,
-      'minLng': 132.0,
-      'maxLng': 133.5
-    },
-    '山口県': {
-      'minLat': 33.8,
-      'maxLat': 34.8,
-      'minLng': 130.8,
-      'maxLng': 132.4
-    },
-    '徳島県': {
-      'minLat': 33.5,
-      'maxLat': 34.2,
-      'minLng': 133.6,
-      'maxLng': 134.8
-    },
-    '香川県': {
-      'minLat': 34.0,
-      'maxLat': 34.6,
-      'minLng': 133.5,
-      'maxLng': 134.4
-    },
-    '愛媛県': {
-      'minLat': 32.9,
-      'maxLat': 34.3,
-      'minLng': 132.0,
-      'maxLng': 133.7
-    },
-    '高知県': {
-      'minLat': 32.7,
-      'maxLat': 33.9,
-      'minLng': 132.5,
-      'maxLng': 134.3
-    },
-    '福岡県': {
-      'minLat': 33.1,
-      'maxLat': 34.0,
-      'minLng': 129.9,
-      'maxLng': 131.0
-    },
-    '佐賀県': {
-      'minLat': 32.9,
-      'maxLat': 33.6,
-      'minLng': 129.7,
-      'maxLng': 130.5
-    },
-    '長崎県': {
-      'minLat': 32.6,
-      'maxLat': 34.7,
-      'minLng': 128.6,
-      'maxLng': 130.4
-    },
-    '熊本県': {
-      'minLat': 32.1,
-      'maxLat': 33.2,
-      'minLng': 129.9,
-      'maxLng': 131.2
-    },
-    '大分県': {
-      'minLat': 32.7,
-      'maxLat': 33.7,
-      'minLng': 130.7,
-      'maxLng': 132.1
-    },
-    '宮崎県': {
-      'minLat': 31.3,
-      'maxLat': 32.9,
-      'minLng': 130.7,
-      'maxLng': 131.9
-    },
-    '鹿児島県': {
-      'minLat': 30.4,
-      'maxLat': 32.2,
-      'minLng': 129.5,
-      'maxLng': 131.1
-    },
-    '沖縄県': {
-      'minLat': 24.0,
-      'maxLat': 27.9,
-      'minLng': 122.9,
-      'maxLng': 131.3
-    },
+    '北海道': {'minLat': 41.3, 'maxLat': 45.6, 'minLng': 139.3, 'maxLng': 148.9},
+    '青森県': {'minLat': 40.2, 'maxLat': 41.6, 'minLng': 139.5, 'maxLng': 141.7},
+    '岩手県': {'minLat': 38.7, 'maxLat': 40.5, 'minLng': 140.6, 'maxLng': 142.1},
+    '宮城県': {'minLat': 37.8, 'maxLat': 39.0, 'minLng': 140.3, 'maxLng': 141.7},
+    '秋田県': {'minLat': 38.8, 'maxLat': 40.5, 'minLng': 139.7, 'maxLng': 141.0},
+    '山形県': {'minLat': 37.8, 'maxLat': 39.0, 'minLng': 139.5, 'maxLng': 140.6},
+    '福島県': {'minLat': 36.8, 'maxLat': 38.0, 'minLng': 139.2, 'maxLng': 141.0},
+    '茨城県': {'minLat': 35.8, 'maxLat': 36.9, 'minLng': 139.7, 'maxLng': 140.9},
+    '栃木県': {'minLat': 36.2, 'maxLat': 37.2, 'minLng': 139.3, 'maxLng': 140.3},
+    '群馬県': {'minLat': 36.0, 'maxLat': 37.0, 'minLng': 138.4, 'maxLng': 139.7},
+    '埼玉県': {'minLat': 35.7, 'maxLat': 36.3, 'minLng': 138.8, 'maxLng': 139.9},
+    '千葉県': {'minLat': 34.9, 'maxLat': 36.1, 'minLng': 139.7, 'maxLng': 140.9},
+    '東京都': {'minLat': 35.5, 'maxLat': 35.9, 'minLng': 138.9, 'maxLng': 139.9},
+    '神奈川県': {'minLat': 35.1, 'maxLat': 35.7, 'minLng': 139.0, 'maxLng': 139.8},
+    '新潟県': {'minLat': 36.8, 'maxLat': 38.6, 'minLng': 137.6, 'maxLng': 139.8},
+    '富山県': {'minLat': 36.2, 'maxLat': 36.9, 'minLng': 136.8, 'maxLng': 137.7},
+    '石川県': {'minLat': 36.0, 'maxLat': 37.6, 'minLng': 136.2, 'maxLng': 137.4},
+    '福井県': {'minLat': 35.3, 'maxLat': 36.3, 'minLng': 135.4, 'maxLng': 136.8},
+    '山梨県': {'minLat': 35.2, 'maxLat': 35.9, 'minLng': 138.2, 'maxLng': 139.1},
+    '長野県': {'minLat': 35.2, 'maxLat': 37.0, 'minLng': 137.3, 'maxLng': 138.7},
+    '岐阜県': {'minLat': 35.2, 'maxLat': 36.5, 'minLng': 136.3, 'maxLng': 137.6},
+    '静岡県': {'minLat': 34.6, 'maxLat': 35.7, 'minLng': 137.4, 'maxLng': 139.1},
+    '愛知県': {'minLat': 34.6, 'maxLat': 35.4, 'minLng': 136.7, 'maxLng': 137.8},
+    '三重県': {'minLat': 33.7, 'maxLat': 35.3, 'minLng': 135.9, 'maxLng': 136.9},
+    '滋賀県': {'minLat': 34.8, 'maxLat': 35.7, 'minLng': 135.8, 'maxLng': 136.4},
+    '京都府': {'minLat': 34.7, 'maxLat': 35.8, 'minLng': 134.8, 'maxLng': 136.0},
+    '大阪府': {'minLat': 34.2, 'maxLat': 35.0, 'minLng': 135.1, 'maxLng': 135.7},
+    '兵庫県': {'minLat': 34.2, 'maxLat': 35.7, 'minLng': 134.2, 'maxLng': 135.4},
+    '奈良県': {'minLat': 33.8, 'maxLat': 34.7, 'minLng': 135.6, 'maxLng': 136.2},
+    '和歌山県': {'minLat': 33.4, 'maxLat': 34.3, 'minLng': 135.0, 'maxLng': 136.0},
+    '鳥取県': {'minLat': 35.1, 'maxLat': 35.6, 'minLng': 133.1, 'maxLng': 134.4},
+    '島根県': {'minLat': 34.3, 'maxLat': 35.6, 'minLng': 131.6, 'maxLng': 133.4},
+    '岡山県': {'minLat': 34.3, 'maxLat': 35.4, 'minLng': 133.3, 'maxLng': 134.4},
+    '広島県': {'minLat': 34.0, 'maxLat': 35.1, 'minLng': 132.0, 'maxLng': 133.5},
+    '山口県': {'minLat': 33.8, 'maxLat': 34.8, 'minLng': 130.8, 'maxLng': 132.4},
+    '徳島県': {'minLat': 33.5, 'maxLat': 34.2, 'minLng': 133.6, 'maxLng': 134.8},
+    '香川県': {'minLat': 34.0, 'maxLat': 34.6, 'minLng': 133.5, 'maxLng': 134.4},
+    '愛媛県': {'minLat': 32.9, 'maxLat': 34.3, 'minLng': 132.0, 'maxLng': 133.7},
+    '高知県': {'minLat': 32.7, 'maxLat': 33.9, 'minLng': 132.5, 'maxLng': 134.3},
+    '福岡県': {'minLat': 33.1, 'maxLat': 34.0, 'minLng': 129.9, 'maxLng': 131.0},
+    '佐賀県': {'minLat': 32.9, 'maxLat': 33.6, 'minLng': 129.7, 'maxLng': 130.5},
+    '長崎県': {'minLat': 32.6, 'maxLat': 34.7, 'minLng': 128.6, 'maxLng': 130.4},
+    '熊本県': {'minLat': 32.1, 'maxLat': 33.2, 'minLng': 129.9, 'maxLng': 131.2},
+    '大分県': {'minLat': 32.7, 'maxLat': 33.7, 'minLng': 130.7, 'maxLng': 132.1},
+    '宮崎県': {'minLat': 31.3, 'maxLat': 32.9, 'minLng': 130.7, 'maxLng': 131.9},
+    '鹿児島県': {'minLat': 30.4, 'maxLat': 32.2, 'minLng': 129.5, 'maxLng': 131.1},
+    '沖縄県': {'minLat': 24.0, 'maxLat': 27.9, 'minLng': 122.9, 'maxLng': 131.3},
   };
 
   final List<String> _allPrefectures = [
@@ -1116,7 +910,8 @@ class _AnimeListTestRankingState extends State<AnimeListTestRanking>
 
       // 今日の日付を取得
       final today = DateTime.now();
-      final dateString = '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
+      final dateString =
+          '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
 
       print('🔍 Starting openCount monitoring for date: $dateString');
 
@@ -1129,7 +924,7 @@ class _AnimeListTestRankingState extends State<AnimeListTestRanking>
 
       // リアルタイムリスナーを設定
       _dailyUsageSubscription = dailyUsageRef.snapshots().listen(
-            (DocumentSnapshot snapshot) async {
+        (DocumentSnapshot snapshot) async {
           if (snapshot.exists) {
             final data = snapshot.data() as Map<String, dynamic>?;
             final openCount = data?['openCount'] as int? ?? 0;
@@ -1234,7 +1029,8 @@ class _AnimeListTestRankingState extends State<AnimeListTestRanking>
       if (user == null) return;
 
       final today = DateTime.now();
-      final dateString = '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
+      final dateString =
+          '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
 
       final dailyUsageRef = FirebaseFirestore.instance
           .collection('users')
@@ -1312,7 +1108,6 @@ class _AnimeListTestRankingState extends State<AnimeListTestRanking>
     }
   }
 
-
   // 【修正】リトライ機能付きのサブスクリプション状態チェック
   Future<void> _checkSubscriptionStatusWithRetry() async {
     int retryCount = 0;
@@ -1389,6 +1184,11 @@ class _AnimeListTestRankingState extends State<AnimeListTestRanking>
     }
 
     try {
+      // Dispose existing ad before creating new one
+      _bottomBannerAd?.dispose();
+      _bottomBannerAd = null;
+      _isBottomBannerAdReady = false;
+
       _bottomBannerAd = BannerAd(
         adUnitId: 'ca-app-pub-1580421227117187/2839937902',
         request: AdRequest(),
@@ -1410,15 +1210,17 @@ class _AnimeListTestRankingState extends State<AnimeListTestRanking>
               });
             }
             ad.dispose();
+            _bottomBannerAd = null;
           },
         ),
       );
       await _bottomBannerAd?.load();
     } catch (e) {
       print('❌ Exception loading bottom banner ad: $e');
+      _bottomBannerAd?.dispose();
+      _bottomBannerAd = null;
     }
   }
-
 
   // main.dartから移植したRevenueCatユーザー同期機能
   Future<void> _syncRevenueCatUser() async {
@@ -1448,6 +1250,11 @@ class _AnimeListTestRankingState extends State<AnimeListTestRanking>
       return; // サブスクリプション有効時は広告を読み込まない
     }
 
+    // Dispose existing ad before creating new one
+    _bottomBannerAd?.dispose();
+    _bottomBannerAd = null;
+    _isBottomBannerAdReady = false;
+
     _bottomBannerAd = BannerAd(
       adUnitId: 'ca-app-pub-1580421227117187/2839937902',
       request: AdRequest(),
@@ -1464,6 +1271,7 @@ class _AnimeListTestRankingState extends State<AnimeListTestRanking>
             _isBottomBannerAdReady = false;
           });
           ad.dispose();
+          _bottomBannerAd = null;
         },
       ),
     );
@@ -1485,7 +1293,7 @@ class _AnimeListTestRankingState extends State<AnimeListTestRanking>
       final eventSnapshot = await firestore.collection('events').get();
       final activeEvents = eventSnapshot.docs
           .where((doc) => doc.data()['isEnabled'] == true)
-          .map((doc) => doc.data()['title'] as String)
+          .map((doc) => doc.data()['title'] as String? ?? '')
           .toList();
 
       setState(() {
@@ -1533,7 +1341,7 @@ class _AnimeListTestRankingState extends State<AnimeListTestRanking>
     databaseReference.onValue.listen((event) {
       if (event.snapshot.value != null) {
         Map<dynamic, dynamic> rankings =
-        event.snapshot.value as Map<dynamic, dynamic>;
+            event.snapshot.value as Map<dynamic, dynamic>;
         _updateRankings(rankings);
       }
     });
@@ -1542,16 +1350,16 @@ class _AnimeListTestRankingState extends State<AnimeListTestRanking>
   void _updateRankings(Map<dynamic, dynamic> rankings) {
     List<MapEntry<String, int>> sortedRankings = rankings.entries
         .map((entry) =>
-        MapEntry(entry.key.toString(), (entry.value as num).toInt()))
+            MapEntry(entry.key.toString(), (entry.value as num).toInt()))
         .toList()
       ..sort((a, b) => b.value.compareTo(a.value));
 
     setState(() {
       _topRankedAnime = sortedRankings.take(10).map((entry) {
         return _allAnimeData.firstWhere(
-              (anime) => anime['name'] == entry.key,
+          (anime) => anime['name'] == entry.key,
           orElse: () =>
-          {'name': entry.key, 'imageUrl': '', 'count': entry.value},
+              {'name': entry.key, 'imageUrl': '', 'count': entry.value},
         );
       }).toList();
 
@@ -1650,7 +1458,7 @@ class _AnimeListTestRankingState extends State<AnimeListTestRanking>
       DatabaseEvent event = await databaseReference.once();
       if (event.snapshot.value != null) {
         Map<dynamic, dynamic> rankings =
-        event.snapshot.value as Map<dynamic, dynamic>;
+            event.snapshot.value as Map<dynamic, dynamic>;
         _updateRankings(rankings);
       }
 
@@ -1668,7 +1476,7 @@ class _AnimeListTestRankingState extends State<AnimeListTestRanking>
           .map((doc) {
         final data = doc.data();
         return {
-          'title': data['title'] as String,
+          'title': data['title'] as String? ?? '',
           'imageUrl': data['imageUrl'] as String? ?? '',
           'description': data['description'] as String? ?? '',
           'startDate': data['startDate'],
@@ -1800,26 +1608,26 @@ class _AnimeListTestRankingState extends State<AnimeListTestRanking>
 
     try {
       QuerySnapshot spotSnapshot =
-      await firestore.collection('locations').get();
+          await firestore.collection('locations').get();
       print("Fetched ${spotSnapshot.docs.length} documents in total");
 
       for (String prefecture in _allPrefectures) {
         List<Map<String, dynamic>> prefSpots = spotSnapshot.docs
             .map((doc) {
-          var data = doc.data() as Map<String, dynamic>;
-          return {
-            'name': data['sourceTitle'] ?? '',
-            'imageUrl': data['imageUrl'] ?? '',
-            'anime': data['anime'] ?? '',
-            'latitude': (data['latitude'] is num)
-                ? (data['latitude'] as num).toDouble()
-                : 0.0,
-            'longitude': (data['longitude'] is num)
-                ? (data['longitude'] as num).toDouble()
-                : 0.0,
-            'locationID': doc.id,
-          };
-        })
+              var data = doc.data() as Map<String, dynamic>;
+              return {
+                'name': data['sourceTitle'] ?? '',
+                'imageUrl': data['imageUrl'] ?? '',
+                'anime': data['anime'] ?? '',
+                'latitude': (data['latitude'] is num)
+                    ? (data['latitude'] as num).toDouble()
+                    : 0.0,
+                'longitude': (data['longitude'] is num)
+                    ? (data['longitude'] as num).toDouble()
+                    : 0.0,
+                'locationID': doc.id,
+              };
+            })
             .where((spot) => _isInPrefecture(spot, prefecture))
             .toList();
 
@@ -1903,7 +1711,7 @@ class _AnimeListTestRankingState extends State<AnimeListTestRanking>
         if (votedAnimeToday.length < 1) {
           rtdb.DatabaseReference animeRef = databaseReference.child(animeName);
           rtdb.TransactionResult result =
-          await animeRef.runTransaction((Object? currentValue) {
+              await animeRef.runTransaction((Object? currentValue) {
             if (currentValue == null) {
               return rtdb.Transaction.success(1);
             }
@@ -1969,13 +1777,13 @@ class _AnimeListTestRankingState extends State<AnimeListTestRanking>
   Widget _buildAnimeList() {
     List<Map<String, dynamic>> filteredAnimeData = _sortedAnimeData
         .where((anime) =>
-    anime['name'].toLowerCase().contains(_searchQuery) ||
-        _allPrefectures.any((prefecture) =>
-        prefecture.toLowerCase().contains(_searchQuery) &&
-            (_prefectureSpots[prefecture]?.any((spot) =>
-            spot['anime'].toLowerCase() ==
-                anime['name'].toLowerCase()) ??
-                false)))
+            anime['name'].toLowerCase().contains(_searchQuery) ||
+            _allPrefectures.any((prefecture) =>
+                prefecture.toLowerCase().contains(_searchQuery) &&
+                (_prefectureSpots[prefecture]?.any((spot) =>
+                        spot['anime'].toLowerCase() ==
+                        anime['name'].toLowerCase()) ??
+                    false)))
         .toList();
 
     return Column(
@@ -1999,76 +1807,75 @@ class _AnimeListTestRankingState extends State<AnimeListTestRanking>
           },
           children: _showRanking
               ? [
-            SizedBox(
-              height: 200,
-              child: ListView.builder(
-                padding: EdgeInsets.symmetric(horizontal: 16.0),
-                scrollDirection: Axis.horizontal,
-                itemCount: _topRankedAnime.length,
-                itemBuilder: (context, index) {
-                  final anime = _topRankedAnime[index];
-                  return GestureDetector(
-                    onTap: () => _navigateAndVote(context, anime['name']),
-                    child: Container(
-                      width: 160,
-                      margin: EdgeInsets.only(right: 16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Stack(
-                            children: [
-                              ClipRRect(
-                                borderRadius: BorderRadius.circular(8),
-                                child: CachedNetworkImage(
-                                  imageUrl: anime['imageUrl'],
-                                  height: 150,
-                                  width: 250,
-                                  fit: BoxFit.cover,
-                                  placeholder: (context, url) =>
-                                      Center(
-                                          child: CircularProgressIndicator()),
-                                  errorWidget: (context, url, error) =>
-                                      Icon(Icons.error),
-                                ),
-                              ),
-                              Positioned(
-                                top: 8,
-                                left: 8,
-                                child: Container(
-                                  padding: EdgeInsets.symmetric(
-                                      horizontal: 8, vertical: 4),
-                                  decoration: BoxDecoration(
-                                    color: Colors.black.withOpacity(0.7),
-                                    borderRadius:
-                                    BorderRadius.circular(12),
-                                  ),
-                                  child: Text(
-                                    '${index + 1}',
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 14,
+                  SizedBox(
+                    height: 200,
+                    child: ListView.builder(
+                      padding: EdgeInsets.symmetric(horizontal: 16.0),
+                      scrollDirection: Axis.horizontal,
+                      itemCount: _topRankedAnime.length,
+                      itemBuilder: (context, index) {
+                        final anime = _topRankedAnime[index];
+                        return GestureDetector(
+                          onTap: () => _navigateAndVote(context, anime['name']),
+                          child: Container(
+                            width: 160,
+                            margin: EdgeInsets.only(right: 16),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Stack(
+                                  children: [
+                                    ClipRRect(
+                                      borderRadius: BorderRadius.circular(8),
+                                      child: CachedNetworkImage(
+                                        imageUrl: anime['imageUrl'],
+                                        height: 150,
+                                        width: 250,
+                                        fit: BoxFit.cover,
+                                        placeholder: (context, url) => Center(
+                                            child: CircularProgressIndicator()),
+                                        errorWidget: (context, url, error) =>
+                                            Icon(Icons.error),
+                                      ),
                                     ),
-                                  ),
+                                    Positioned(
+                                      top: 8,
+                                      left: 8,
+                                      child: Container(
+                                        padding: EdgeInsets.symmetric(
+                                            horizontal: 8, vertical: 4),
+                                        decoration: BoxDecoration(
+                                          color: Colors.black.withOpacity(0.7),
+                                          borderRadius:
+                                              BorderRadius.circular(12),
+                                        ),
+                                        child: Text(
+                                          '${index + 1}',
+                                          style: TextStyle(
+                                            color: Colors.white,
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 14,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
                                 ),
-                              ),
-                            ],
+                                SizedBox(height: 8),
+                                Text(
+                                  anime['name'],
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(fontWeight: FontWeight.bold),
+                                ),
+                              ],
+                            ),
                           ),
-                          SizedBox(height: 8),
-                          Text(
-                            anime['name'],
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(fontWeight: FontWeight.bold),
-                          ),
-                        ],
-                      ),
+                        );
+                      },
                     ),
-                  );
-                },
-              ),
-            ),
-          ]
+                  ),
+                ]
               : [],
         ),
         Padding(
@@ -2086,77 +1893,80 @@ class _AnimeListTestRankingState extends State<AnimeListTestRanking>
           child: _allAnimeData.isEmpty
               ? Center(child: CircularProgressIndicator())
               : filteredAnimeData.isEmpty
-              ? Center(
-            child: Text('何も見つかりませんでした。。'),
-          )
-              : GridView.builder(
-            controller: _scrollController,
-            padding: EdgeInsets.only(bottom: 16.0),
-            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
-              childAspectRatio: 1.3,
-              mainAxisSpacing: 1.0,
-              crossAxisSpacing: 3.0,
-            ),
-            itemCount: filteredAnimeData.length,
-            itemBuilder: (context, index) {
-              // サブスクリプション有効時は広告を表示しない
-              if (!_isSubscriptionActive && index != 0 && index % 6 == 0) {
-                if (AdManager.canLoadAdForIndex(index)) {
-                  Future.microtask(
-                          () => AdManager.loadGridBannerAd(index));
-                }
+                  ? Center(
+                      child: Text('何も見つかりませんでした。。'),
+                    )
+                  : GridView.builder(
+                      controller: _scrollController,
+                      padding: EdgeInsets.only(bottom: 16.0),
+                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 2,
+                        childAspectRatio: 1.3,
+                        mainAxisSpacing: 1.0,
+                        crossAxisSpacing: 3.0,
+                      ),
+                      itemCount: filteredAnimeData.length,
+                      itemBuilder: (context, index) {
+                        // サブスクリプション有効時は広告を表示しない
+                        if (!_isSubscriptionActive &&
+                            index != 0 &&
+                            index % 6 == 0) {
+                          if (AdManager.canLoadAdForIndex(index)) {
+                            Future.microtask(
+                                () => AdManager.loadGridBannerAd(index));
+                          }
 
-                return FutureBuilder<bool>(
-                  future: AdManager.isAdReadyForIndex(index),
-                  builder: (context, snapshot) {
-                    if (snapshot.hasData && snapshot.data == true) {
-                      final ad = AdManager.getAdForIndex(index);
-                      if (ad != null) {
-                        return Container(
-                          width: ad.size.width.toDouble(),
-                          height: ad.size.height.toDouble(),
-                          child: AdWidget(ad: ad),
+                          return FutureBuilder<bool>(
+                            future: AdManager.isAdReadyForIndex(index),
+                            builder: (context, snapshot) {
+                              if (snapshot.hasData && snapshot.data == true) {
+                                final ad = AdManager.getAdForIndex(index);
+                                if (ad != null) {
+                                  return Container(
+                                    width: ad.size.width.toDouble(),
+                                    height: ad.size.height.toDouble(),
+                                    child: AdWidget(ad: ad),
+                                  );
+                                }
+                              }
+                              return Container(
+                                height: 50,
+                                child: Center(
+                                    child: Text(
+                                  '広告',
+                                  style: TextStyle(
+                                    color: Colors.grey,
+                                  ),
+                                )),
+                              );
+                            },
+                          );
+                        }
+
+                        // サブスクリプション有効時、または広告表示位置でない場合のアニメアイテム表示
+                        final adjustedIndex = _isSubscriptionActive
+                            ? index
+                            : index - (index ~/ 6);
+                        if (adjustedIndex >= filteredAnimeData.length) {
+                          return SizedBox();
+                        }
+
+                        final animeName =
+                            filteredAnimeData[adjustedIndex]['name'];
+                        final imageUrl =
+                            filteredAnimeData[adjustedIndex]['imageUrl'];
+                        final key = adjustedIndex == 0 ? firstItemKey : null;
+
+                        return GestureDetector(
+                          key: key,
+                          onTap: () => _navigateAndVote(context, animeName),
+                          child: AnimeGridItem(
+                            animeName: animeName,
+                            imageUrl: imageUrl,
+                          ),
                         );
-                      }
-                    }
-                    return Container(
-                      height: 50,
-                      child: Center(
-                          child: Text(
-                            '広告',
-                            style: TextStyle(
-                              color: Colors.grey,
-                            ),
-                          )),
-                    );
-                  },
-                );
-              }
-
-              // サブスクリプション有効時、または広告表示位置でない場合のアニメアイテム表示
-              final adjustedIndex = _isSubscriptionActive ? index : index -
-                  (index ~/ 6);
-              if (adjustedIndex >= filteredAnimeData.length) {
-                return SizedBox();
-              }
-
-              final animeName =
-              filteredAnimeData[adjustedIndex]['name'];
-              final imageUrl =
-              filteredAnimeData[adjustedIndex]['imageUrl'];
-              final key = adjustedIndex == 0 ? firstItemKey : null;
-
-              return GestureDetector(
-                key: key,
-                onTap: () => _navigateAndVote(context, animeName),
-                child: AnimeGridItem(
-                  animeName: animeName,
-                  imageUrl: imageUrl,
-                ),
-              );
-            },
-          ),
+                      },
+                    ),
         ),
       ],
     );
@@ -2232,10 +2042,9 @@ class _AnimeListTestRankingState extends State<AnimeListTestRanking>
       showDialog(
         context: context,
         barrierDismissible: false,
-        builder: (context) =>
-            Center(
-              child: CircularProgressIndicator(),
-            ),
+        builder: (context) => Center(
+          child: CircularProgressIndicator(),
+        ),
       );
 
       final bool success = await SubscriptionManager.restoreSubscription();
@@ -2366,7 +2175,8 @@ class _AnimeListTestRankingState extends State<AnimeListTestRanking>
                           });
 
                           // ユーザーアクティビティログ
-                          await _logger.logUserActivity('subscription_prompt_clicked', {
+                          await _logger
+                              .logUserActivity('subscription_prompt_clicked', {
                             'source': 'opencount_threshold',
                             'timestamp': DateTime.now().toIso8601String(),
                           });
@@ -2376,7 +2186,8 @@ class _AnimeListTestRankingState extends State<AnimeListTestRanking>
                             context: context,
                             isScrollControlled: true,
                             backgroundColor: Colors.transparent,
-                            builder: (context) => const PaymentSubscriptionScreen(),
+                            builder: (context) =>
+                                const PaymentSubscriptionScreen(),
                           );
                         },
                         style: ElevatedButton.styleFrom(
@@ -2405,7 +2216,8 @@ class _AnimeListTestRankingState extends State<AnimeListTestRanking>
                         });
 
                         // ユーザーアクティビティログ
-                        await _logger.logUserActivity('subscription_prompt_dismissed', {
+                        await _logger
+                            .logUserActivity('subscription_prompt_dismissed', {
                           'source': 'opencount_threshold',
                           'action': 'later',
                           'timestamp': DateTime.now().toIso8601String(),
@@ -2433,7 +2245,8 @@ class _AnimeListTestRankingState extends State<AnimeListTestRanking>
                     });
 
                     // ユーザーアクティビティログ
-                    await _logger.logUserActivity('subscription_prompt_dismissed', {
+                    await _logger
+                        .logUserActivity('subscription_prompt_dismissed', {
                       'source': 'opencount_threshold',
                       'action': 'close_button',
                       'timestamp': DateTime.now().toIso8601String(),
@@ -2458,7 +2271,6 @@ class _AnimeListTestRankingState extends State<AnimeListTestRanking>
     );
   }
 
-
   // サブスクリプション購入処理
   Future<void> _handleSubscriptionPurchase() async {
     try {
@@ -2466,10 +2278,9 @@ class _AnimeListTestRankingState extends State<AnimeListTestRanking>
       showDialog(
         context: context,
         barrierDismissible: false,
-        builder: (context) =>
-            Center(
-              child: CircularProgressIndicator(),
-            ),
+        builder: (context) => Center(
+          child: CircularProgressIndicator(),
+        ),
       );
 
       final bool success = await SubscriptionManager.purchaseSubscription();
@@ -2527,9 +2338,8 @@ class _AnimeListTestRankingState extends State<AnimeListTestRanking>
     return WillPopScope(
       onWillPop: () async {
         return await showDialog<bool>(
-          context: context,
-          builder: (context) =>
-              AlertDialog(
+              context: context,
+              builder: (context) => AlertDialog(
                 title: Text('アプリを終了しますか？'),
                 content: Text('アプリを閉じてもよろしいですか？'),
                 actions: [
@@ -2543,7 +2353,7 @@ class _AnimeListTestRankingState extends State<AnimeListTestRanking>
                   ),
                 ],
               ),
-        ) ??
+            ) ??
             false;
       },
       child: Scaffold(
@@ -2551,68 +2361,66 @@ class _AnimeListTestRankingState extends State<AnimeListTestRanking>
           automaticallyImplyLeading: false,
           title: _isSearching
               ? TextField(
-            controller: _searchController,
-            onChanged: _onSearchChanged,
-            autofocus: true,
-            decoration: InputDecoration(
-              hintText: _currentTabIndex == 0
-                  ? 'アニメで検索...'
-                  : _currentTabIndex == 1
-                  ? '都道府県で検索...'
-                  : 'イベントで検索...',
-              hintStyle: TextStyle(color: Colors.grey),
-              border: InputBorder.none,
-            ),
-            style: TextStyle(color: Colors.black),
-          )
+                  controller: _searchController,
+                  onChanged: _onSearchChanged,
+                  autofocus: true,
+                  decoration: InputDecoration(
+                    hintText: _currentTabIndex == 0
+                        ? 'アニメで検索...'
+                        : _currentTabIndex == 1
+                            ? '都道府県で検索...'
+                            : 'イベントで検索...',
+                    hintStyle: TextStyle(color: Colors.grey),
+                    border: InputBorder.none,
+                  ),
+                  style: TextStyle(color: Colors.black),
+                )
               : Row(
-            children: [
-              Text(
-                '巡礼スポット',
-                style: TextStyle(
-                  color: Color(0xFF00008b),
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              // サブスクリプション状態表示
-              if (_isSubscriptionActive)
-                Container(
-                  margin: EdgeInsets.only(left: 8),
-                  padding: EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: Colors.orange,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    'Premium',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
+                  children: [
+                    Text(
+                      '巡礼スポット',
+                      style: TextStyle(
+                        color: Color(0xFF00008b),
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
-                  ),
+                    // サブスクリプション状態表示
+                    if (_isSubscriptionActive)
+                      Container(
+                        margin: EdgeInsets.only(left: 8),
+                        padding:
+                            EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: Colors.orange,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          'Premium',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
-            ],
-          ),
           actions: [
             IconButton(
               key: checkInKey,
-              onPressed: () =>
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                        builder: (context) => const SpotTestScreen()),
-                  ),
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const SpotTestScreen()),
+              ),
               icon: const Icon(Icons.check_circle, color: Color(0xFF00008b)),
             ),
             IconButton(
               key: favoriteKey,
-              onPressed: () =>
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                        builder: (context) => FavoriteLocationsPage()),
-                  ),
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                    builder: (context) => FavoriteLocationsPage()),
+              ),
               icon: const Icon(Icons.favorite, color: Color(0xFF00008b)),
             ),
             // プレミアム購入・管理ボタン追加
@@ -2627,67 +2435,68 @@ class _AnimeListTestRankingState extends State<AnimeListTestRanking>
               onPressed: () {
                 showCupertinoModalPopup(
                   context: context,
-                  builder: (BuildContext context) =>
-                      CupertinoActionSheet(
-                        title: Text(
-                          'リクエストを選択',
-                          style: TextStyle(
-                            color: Colors.black,
-                          ),
-                        ),
-                        message: Text(
-                          '新しく追加したいコンテンツを選択してください',
-                          style: TextStyle(
-                            color: Colors.black,
-                          ),
-                        ),
-                        actions: <CupertinoActionSheetAction>[
-                          CupertinoActionSheetAction(
-                            onPressed: () {
-                              Navigator.pop(context);
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(builder: (context) =>
+                  builder: (BuildContext context) => CupertinoActionSheet(
+                    title: Text(
+                      'リクエストを選択',
+                      style: TextStyle(
+                        color: Colors.black,
+                      ),
+                    ),
+                    message: Text(
+                      '新しく追加したいコンテンツを選択してください',
+                      style: TextStyle(
+                        color: Colors.black,
+                      ),
+                    ),
+                    actions: <CupertinoActionSheetAction>[
+                      CupertinoActionSheetAction(
+                        onPressed: () {
+                          Navigator.pop(context);
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (context) =>
                                     AnimeRequestCustomerForm()),
-                              );
-                            },
-                            child: Text(
-                              '聖地をリクエストする',
-                              style: TextStyle(
-                                color: Color(0xFF00008b),
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                          CupertinoActionSheetAction(
-                            onPressed: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(builder: (context) =>
-                                    AnimeNameRequestCustomerForm()),
-                              );
-                            },
-                            child: Text(
-                              'アニメをリクエストする',
-                              style: TextStyle(
-                                color: Color(0xFF00008b),
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                        ],
-                        cancelButton: CupertinoActionSheetAction(
-                          onPressed: () {
-                            Navigator.pop(context);
-                          },
-                          child: Text(
-                            'キャンセル',
-                            style: TextStyle(
-                              color: Colors.red,
-                            ),
+                          );
+                        },
+                        child: Text(
+                          '聖地をリクエストする',
+                          style: TextStyle(
+                            color: Color(0xFF00008b),
+                            fontWeight: FontWeight.bold,
                           ),
                         ),
                       ),
+                      CupertinoActionSheetAction(
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (context) =>
+                                    AnimeNameRequestCustomerForm()),
+                          );
+                        },
+                        child: Text(
+                          'アニメをリクエストする',
+                          style: TextStyle(
+                            color: Color(0xFF00008b),
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
+                    cancelButton: CupertinoActionSheetAction(
+                      onPressed: () {
+                        Navigator.pop(context);
+                      },
+                      child: Text(
+                        'キャンセル',
+                        style: TextStyle(
+                          color: Colors.red,
+                        ),
+                      ),
+                    ),
+                  ),
                 );
               },
             ),
@@ -2723,16 +2532,17 @@ class _AnimeListTestRankingState extends State<AnimeListTestRanking>
                       _buildAnimeList(),
                       _currentTabIndex == 1
                           ? PrefectureListPage(
-                        prefectureSpots: _prefectureSpots,
-                        searchQuery: _searchQuery,
-                        onFetchPrefectureData: _fetchPrefectureData,
-                      )
+                              prefectureSpots: _prefectureSpots,
+                              searchQuery: _searchQuery,
+                              onFetchPrefectureData: _fetchPrefectureData,
+                            )
                           : Container(),
                     ],
                   ),
                 ),
                 // サブスクリプション有効時は底部広告を非表示
-                if (!_isSubscriptionActive && _isBottomBannerAdReady &&
+                if (!_isSubscriptionActive &&
+                    _isBottomBannerAdReady &&
                     _bottomBannerAd != null)
                   Container(
                     width: _bottomBannerAd!.size.width.toDouble(),
@@ -2742,15 +2552,13 @@ class _AnimeListTestRankingState extends State<AnimeListTestRanking>
               ],
             ),
             // 【追加】サブスクリプションプロンプトオーバーレイ
-            if (_showSubscriptionPrompt)
-              _buildSubscriptionPromptOverlay(),
+            if (_showSubscriptionPrompt) _buildSubscriptionPromptOverlay(),
           ],
         ),
       ),
     );
   }
 }
-
 
 class AnimeGridItem extends StatelessWidget {
   final String animeName;

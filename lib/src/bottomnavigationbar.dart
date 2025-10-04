@@ -1,39 +1,21 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:parts/Prensantionlayer/CameraCompositionScreen/CameraCompositionScreen.dart';
 import 'package:parts/bloc/Userinfo_bloc/Userinfo_bloc.dart';
 import 'package:parts/map_page/map_subsc.dart';
 import 'package:parts/map_page/map_subsc_en.dart';
 import 'package:parts/post_page/timeline_screen.dart';
 import 'package:parts/post_page/timeline_screen_en.dart';
-import 'package:parts/ranking/ranking_top.dart';
 import 'package:parts/shop/shop_maintenance.dart';
 import 'package:parts/shop/shop_top.dart';
 import 'package:parts/spot_page/anime_list_en_new.dart';
 
 import '../point_page/point_update.dart';
 import '../post_page/post_first/post_welcome.dart';
-import '../ranking/ranking_top_en.dart';
 import '../spot_page/anime_list_test_ranking.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_analytics/firebase_analytics.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/material.dart';
+
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:parts/map_page/map_subsc.dart';
-import 'package:parts/map_page/map_subsc_en.dart';
-import 'package:parts/post_page/timeline_screen.dart';
-import 'package:parts/post_page/timeline_screen_en.dart';
-import 'package:parts/ranking/ranking_top.dart';
-import 'package:parts/shop/shop_maintenance.dart';
-import 'package:parts/shop/shop_top.dart';
-import 'package:parts/spot_page/anime_list_en_new.dart';
-
-import '../point_page/point_update.dart';
-import '../post_page/post_first/post_welcome.dart';
-import '../ranking/ranking_top_en.dart';
-import '../spot_page/anime_list_test_ranking.dart';
 
 class MainScreen extends StatefulWidget {
   final int initalIndex;
@@ -48,6 +30,7 @@ class _MainScreenState extends State<MainScreen> {
   int _selectedIndex = 0;
   late PageController _pageController;
   final FirebaseAnalytics _analytics = FirebaseAnalytics.instance;
+  int _refreshKey = 0; // Key to force refresh of pages
 
   @override
   void initState() {
@@ -57,6 +40,12 @@ class _MainScreenState extends State<MainScreen> {
 
     // Initialize user data through BLoC
     context.read<UserBloc>().add(InitializeUser());
+  }
+
+  void _refreshMainScreen() {
+    setState(() {
+      _refreshKey++; // Increment refresh key to force refresh of all pages
+    });
   }
 
   void _onItemTapped(int index) async {
@@ -98,42 +87,6 @@ class _MainScreenState extends State<MainScreen> {
     _pageController.jumpToPage(index);
   }
 
-  Widget _buildShopScreen() {
-    return StreamBuilder<QuerySnapshot>(
-      stream:
-          FirebaseFirestore.instance.collection('shopMaintenance').snapshots(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
-        }
-
-        if (snapshot.hasError) {
-          return ShopHomeScreen();
-        }
-
-        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-          return ShopHomeScreen();
-        }
-
-        // 現在時刻を取得
-        final now = DateTime.now();
-
-        // メンテナンス情報をチェック
-        for (var doc in snapshot.data!.docs) {
-          final data = doc.data() as Map<String, dynamic>;
-          final startTime = (data['startTime'] as Timestamp).toDate();
-          final endTime = (data['endTime'] as Timestamp).toDate();
-
-          if (now.isAfter(startTime) && now.isBefore(endTime)) {
-            return MaintenanceScreen();
-          }
-        }
-
-        return ShopHomeScreen();
-      },
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return BlocBuilder<UserBloc, UserState>(
@@ -170,6 +123,7 @@ class _MainScreenState extends State<MainScreen> {
         if (state is UserDataLoaded) {
           return Scaffold(
             body: PageView(
+              key: ValueKey(_refreshKey), // Use refresh key to force refresh
               controller: _pageController,
               physics: const NeverScrollableScrollPhysics(),
               onPageChanged: (index) {
@@ -181,13 +135,18 @@ class _MainScreenState extends State<MainScreen> {
                 state.language == 'Japanese'
                     ? AnimeListTestRanking()
                     : AnimeListEnNew(),
-                state.language == 'Japanese'
-                    ? RankingTopPage()
-                    : RankingTopPageEn(),
+
                 state.language == 'Japanese'
                     ? MapSubscription(latitude: 37.7749, longitude: -122.4194)
                     : MapSubscriptionEn(
                         latitude: 37.7749, longitude: -122.4194),
+                state.language == 'Japanese'
+                    ? CameraCompositionScreen(
+                        onBackPressed: _refreshMainScreen,
+                      )
+                    : CameraCompositionScreen(
+                        onBackPressed: _refreshMainScreen,
+                      ),
                 state.language == 'Japanese'
                     ? (!state.hasSeenWelcome
                         ? PostWelcome1(showScaffold: false)
@@ -252,13 +211,18 @@ class CustomBottomNavigationBar extends StatelessWidget {
           icon: Icon(Icons.place),
           label: language == 'Japanese' ? 'スポット' : 'Spot',
         ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.calendar_today_outlined),
-          label: language == 'Japanese' ? 'イベント' : 'Event',
-        ),
+
+        // BottomNavigationBarItem(
+        //   icon: Icon(Icons.calendar_today_outlined),
+        //   label: language == 'Japanese' ? 'イベント' : 'Event',
+        // ),
         BottomNavigationBarItem(
           icon: Icon(Icons.map),
           label: language == 'Japanese' ? '地図' : 'Map',
+        ),
+        BottomNavigationBarItem(
+          icon: Icon(Icons.add),
+          label: "",
         ),
         BottomNavigationBarItem(
           icon: Icon(Icons.chat_outlined),

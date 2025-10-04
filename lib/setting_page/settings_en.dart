@@ -14,7 +14,7 @@ import '../help_page/help.dart';
 import '../manual_page/privacypolicy_screen.dart';
 import '../manual_page/terms_screen.dart';
 import '../notification/notification.dart';
-import '../profile_page/profile_en.dart';
+import '../Prensantionlayer/profile_page/profile_en.dart';
 import '../top_page/welcome_page.dart';
 
 class SettingsEn extends StatefulWidget {

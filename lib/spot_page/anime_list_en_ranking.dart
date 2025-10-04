@@ -183,7 +183,7 @@ class _AnimeListTestRankingEnState extends State<AnimeListTestRankingEn>
       final eventSnapshot = await firestore.collection('events').get();
       final activeEvents = eventSnapshot.docs
           .where((doc) => doc.data()['isEnabled'] == true)
-          .map((doc) => doc.data()['title'] as String)
+          .map((doc) => doc.data()['title'] as String? ?? '')
           .toList();
 
       setState(() {
@@ -334,7 +334,7 @@ class _AnimeListTestRankingEnState extends State<AnimeListTestRankingEn>
           .map((doc) {
         final data = doc.data();
         return {
-          'title': data['title'] as String,
+          'title': data['title'] as String? ?? '',
           'imageUrl': data['imageUrl'] as String? ?? '', // イベント画像のURL
           'description': data['description'] as String? ?? '',
           'startDate': data['startDate'],

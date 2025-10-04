@@ -801,6 +801,11 @@ class _AnimeListEnNewState extends State<AnimeListEnNew>
     }
 
     try {
+      // Dispose existing ad before creating new one
+      _bottomBannerAd?.dispose();
+      _bottomBannerAd = null;
+      _isBottomBannerAdReady = false;
+
       _bottomBannerAd = BannerAd(
         adUnitId: 'ca-app-pub-1580421227117187/2839937902',
         request: AdRequest(),
@@ -822,12 +827,15 @@ class _AnimeListEnNewState extends State<AnimeListEnNew>
               });
             }
             ad.dispose();
+            _bottomBannerAd = null;
           },
         ),
       );
       await _bottomBannerAd?.load();
     } catch (e) {
       print('❌ Exception loading bottom banner ad: $e');
+      _bottomBannerAd?.dispose();
+      _bottomBannerAd = null;
     }
   }
 
@@ -836,6 +844,11 @@ class _AnimeListEnNewState extends State<AnimeListEnNew>
     if (await SubscriptionManager.isSubscriptionActive()) {
       return; // サブスクリプション有効時は広告を読み込まない
     }
+
+    // Dispose existing ad before creating new one
+    _bottomBannerAd?.dispose();
+    _bottomBannerAd = null;
+    _isBottomBannerAdReady = false;
 
     _bottomBannerAd = BannerAd(
       adUnitId: 'ca-app-pub-1580421227117187/2839937902',
@@ -853,6 +866,7 @@ class _AnimeListEnNewState extends State<AnimeListEnNew>
             _isBottomBannerAdReady = false;
           });
           ad.dispose();
+          _bottomBannerAd = null;
         },
       ),
     );
@@ -874,7 +888,7 @@ class _AnimeListEnNewState extends State<AnimeListEnNew>
       final eventSnapshot = await firestore.collection('events').get();
       final activeEvents = eventSnapshot.docs
           .where((doc) => doc.data()['isEnabled'] == true)
-          .map((doc) => doc.data()['title'] as String)
+          .map((doc) => doc.data()['title'] as String? ?? '')
           .toList();
 
       setState(() {
@@ -893,7 +907,8 @@ class _AnimeListEnNewState extends State<AnimeListEnNew>
     }
 
     _bannerAd = BannerAd(
-      adUnitId: '',
+      adUnitId:
+          'ca-app-pub-1580421227117187/3454220382', // fallback to valid test or production ID
       request: AdRequest(),
       size: AdSize.banner,
       listener: BannerAdListener(
@@ -1057,7 +1072,7 @@ class _AnimeListEnNewState extends State<AnimeListEnNew>
           .map((doc) {
         final data = doc.data();
         return {
-          'title': data['title'] as String,
+          'title': data['title'] as String? ?? '',
           'imageUrl': data['imageUrl'] as String? ?? '',
           'description': data['description'] as String? ?? '',
           'startDate': data['startDate'],
