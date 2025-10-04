@@ -161,7 +161,6 @@ dependencies:
   # ======================
   html_unescape: ^2.0.0
   mailer: ^6.4.1
-<<<<<<< HEAD
   shimmer: ^3.0.0
 
   # ======================
@@ -176,9 +175,6 @@ dependencies:
   video_thumbnail: ^0.5.3
   ffmpeg_kit_flutter_new: ^3.2.0
   easy_localization: ^3.0.8
-=======
-  camera: ^0.11.0+2
->>>>>>> e484772360fb2fbe4230005e90cc8659329e9256
 
 dev_dependencies:
   flutter_test:
