@@ -8,7 +8,7 @@ import 'package:ffmpeg_kit_flutter_new/ffmpeg_kit.dart';
 import 'package:ffmpeg_kit_flutter_new/return_code.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:image_gallery_saver/image_gallery_saver.dart';
+// import 'package:gal/gal.dart'; // Temporarily disabled
 import 'package:parts/Prensantionlayer/CameraCompositionScreen/Capturevideo_image.dart';
 import 'package:parts/Prensantionlayer/CameraCompositionScreen/ScaredSitebottomsheet.dart';
 import 'package:photo_manager/photo_manager.dart';
@@ -602,16 +602,20 @@ class _CameraCompositionScreenState extends State<CameraCompositionScreen> {
         throw Exception('No combined image to save');
       }
 
-      final result = await ImageGallerySaver.saveImage(
+      // Use photo_manager to save image (primary method)
+      final AssetEntity? savedAsset = await PhotoManager.editor.saveImage(
         _combinedImageBytes!,
-        quality: 100,
-        name: 'sacred_composition_${DateTime.now().millisecondsSinceEpoch}',
+        title: 'sacred_composition_${DateTime.now().millisecondsSinceEpoch}',
+        filename:
+            'sacred_composition_${DateTime.now().millisecondsSinceEpoch}.png',
       );
 
-      final bool isSuccess = result['isSuccess'] == true;
-      print('Image save result: $result');
-
-      return isSuccess;
+      if (savedAsset != null) {
+        print('Image saved successfully with photo_manager');
+        return true;
+      } else {
+        throw Exception('Failed to save image with photo_manager');
+      }
     } catch (e) {
       print('Error saving combined image: $e');
 
@@ -653,22 +657,25 @@ class _CameraCompositionScreenState extends State<CameraCompositionScreen> {
         return false;
       }
 
-      // Use image_gallery_saver to save the video
-      final result =
-          await ImageGallerySaver.saveFile(_processedVideoFile!.path);
+      // Use photo_manager to save video (primary method)
+      final AssetEntity? savedAsset = await PhotoManager.editor.saveVideo(
+        _processedVideoFile!,
+        title: 'sacred_video_${DateTime.now().millisecondsSinceEpoch}',
+      );
 
-      final bool isSuccess = result['isSuccess'] == true;
-      print('Video save result: $result');
+      if (savedAsset != null) {
+        print('Video saved successfully with photo_manager');
 
-      if (isSuccess) {
-        // Only delete the temp file after successful save
+        // Clean up processed video file after saving
         await _processedVideoFile!.delete();
         setState(() {
           _processedVideoFile = null;
         });
-      }
 
-      return isSuccess;
+        return true;
+      } else {
+        throw Exception('Failed to save video with photo_manager');
+      }
     } catch (e) {
       print('Error saving processed video: $e');
       return false;

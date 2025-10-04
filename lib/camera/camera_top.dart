@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:path/path.dart' as path;
+// import 'package:path/path.dart' as path; // Unused
 import 'package:geolocator/geolocator.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:image_gallery_saver/image_gallery_saver.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:photo_manager/photo_manager.dart';
 import 'dart:async';
 import 'dart:io';
-import 'dart:typed_data';
+// import 'dart:typed_data'; // Unused
 
 class CameraTopScreen extends StatefulWidget {
   const CameraTopScreen({Key? key}) : super(key: key);
@@ -17,17 +17,19 @@ class CameraTopScreen extends StatefulWidget {
   State<CameraTopScreen> createState() => _CameraTopScreenState();
 }
 
-class _CameraTopScreenState extends State<CameraTopScreen> with WidgetsBindingObserver {
+class _CameraTopScreenState extends State<CameraTopScreen>
+    with WidgetsBindingObserver {
   // Method Channel for Swift integration
-  static const MethodChannel _cameraChannel = MethodChannel('com.jam.camera/native_camera');
-  static const EventChannel _previewChannel = EventChannel('com.jam.camera/camera_preview');
+  static const MethodChannel _cameraChannel =
+      MethodChannel('com.jam.camera/native_camera');
+  // static const EventChannel _previewChannel = EventChannel('com.jam.camera/camera_preview'); // Unused
 
   bool _isInitialized = false;
   bool _isRecording = false;
   String _selectedMode = '写真';
   int _selectedCameraIndex = 0;
   bool _isFlashOn = false;
-  double _currentZoom = 1.0;
+  // double _currentZoom = 1.0; // Unused
 
   // フォーカス関連
   bool _isFocusVisible = false;
@@ -144,7 +146,8 @@ class _CameraTopScreenState extends State<CameraTopScreen> with WidgetsBindingOb
   // カメラの性能情報を取得
   Future<void> _getCameraCapabilities() async {
     try {
-      final capabilities = await _cameraChannel.invokeMethod('getCameraCapabilities');
+      final capabilities =
+          await _cameraChannel.invokeMethod('getCameraCapabilities');
 
       _minExposureValue = capabilities['minExposure']?.toDouble() ?? -2.0;
       _maxExposureValue = capabilities['maxExposure']?.toDouble() ?? 2.0;
@@ -245,7 +248,8 @@ class _CameraTopScreenState extends State<CameraTopScreen> with WidgetsBindingOb
         'offset': newExposureValue,
       });
 
-      final newSliderY = (_exposureSliderY + deltaY).clamp(0.0, _exposureBarHeight);
+      final newSliderY =
+          (_exposureSliderY + deltaY).clamp(0.0, _exposureBarHeight);
 
       setState(() {
         _exposureValue = newExposureValue;
@@ -258,20 +262,7 @@ class _CameraTopScreenState extends State<CameraTopScreen> with WidgetsBindingOb
     }
   }
 
-  // ズーム設定
-  Future<void> _setZoom(double zoomLevel) async {
-    try {
-      await _cameraChannel.invokeMethod('setZoomLevel', {
-        'zoomLevel': zoomLevel.clamp(1.0, 10.0),
-      });
-
-      setState(() {
-        _currentZoom = zoomLevel.clamp(1.0, 10.0);
-      });
-    } catch (e) {
-      print('ズーム設定エラー: $e');
-    }
-  }
+  // ズーム設定 - REMOVED (unused method)
 
   // 写真撮影（合成機能付き）
   Future<void> _captureCompositePhoto() async {
@@ -301,14 +292,15 @@ class _CameraTopScreenState extends State<CameraTopScreen> with WidgetsBindingOb
           'hasLocation': true,
           'latitude': _currentPosition!.latitude,
           'longitude': _currentPosition!.longitude,
-          'timestamp': _currentPosition!.timestamp?.millisecondsSinceEpoch,
+          'timestamp': _currentPosition!.timestamp.millisecondsSinceEpoch,
         };
       } else {
         locationInfo = {'hasLocation': false};
       }
 
       // Swift側で写真撮影と合成を実行
-      final result = await _cameraChannel.invokeMethod('captureCompositePhoto', {
+      final result =
+          await _cameraChannel.invokeMethod('captureCompositePhoto', {
         'overlay': overlayInfo,
         'location': locationInfo,
         'quality': 100,
@@ -320,25 +312,29 @@ class _CameraTopScreenState extends State<CameraTopScreen> with WidgetsBindingOb
         // フォトライブラリに保存
         bool hasPermission = await _checkPhotosPermission();
         if (hasPermission) {
-          final saveResult = await ImageGallerySaver.saveFile(
-            imagePath,
-            name: 'JAM_composite_${DateTime.now().millisecondsSinceEpoch}',
+          final imageBytes = await File(imagePath).readAsBytes();
+          final AssetEntity? savedAsset = await PhotoManager.editor.saveImage(
+            imageBytes,
+            title: 'JAM_composite_${DateTime.now().millisecondsSinceEpoch}',
+            filename:
+                'JAM_composite_${DateTime.now().millisecondsSinceEpoch}.jpg',
           );
 
-          if (saveResult['isSuccess'] == true) {
+          if (savedAsset != null) {
             String locationText = _currentPosition != null ? ' 位置情報付き' : '';
             String compositeText = _showDraggableImage ? '\n重畳画像あり' : '';
 
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text('合成写真をフォトライブラリに保存しました$locationText$compositeText'),
+                content:
+                    Text('合成写真をフォトライブラリに保存しました$locationText$compositeText'),
                 duration: const Duration(seconds: 3),
               ),
             );
           } else {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text('保存エラー: ${saveResult['errorMessage'] ?? '不明なエラー'}'),
+                content: Text('保存エラー: 画像の保存に失敗しました'),
                 backgroundColor: Colors.red,
               ),
             );
@@ -365,49 +361,7 @@ class _CameraTopScreenState extends State<CameraTopScreen> with WidgetsBindingOb
     }
   }
 
-  // 通常写真撮影
-  Future<void> _capturePhoto() async {
-    try {
-      print('=== Swift側で通常写真撮影開始 ===');
-
-      final result = await _cameraChannel.invokeMethod('capturePhoto', {
-        'quality': 100,
-      });
-
-      if (result['success'] == true) {
-        final imagePath = result['imagePath'] as String;
-
-        bool hasPermission = await _checkPhotosPermission();
-        if (hasPermission) {
-          final saveResult = await ImageGallerySaver.saveFile(
-            imagePath,
-            name: 'JAM_photo_${DateTime.now().millisecondsSinceEpoch}',
-          );
-
-          if (saveResult['isSuccess'] == true) {
-            String locationText = _currentPosition != null ? ' 位置情報付き' : '';
-
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('写真をフォトライブラリに保存しました$locationText'),
-                duration: const Duration(seconds: 3),
-              ),
-            );
-          }
-        }
-      } else {
-        throw Exception(result['error'] ?? '撮影失敗');
-      }
-    } catch (e) {
-      print('写真撮影エラー: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('撮影エラー: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
-    }
-  }
+  // 通常写真撮影 - REMOVED (unused method)
 
   // 動画撮影開始
   Future<void> _startVideoRecording() async {
@@ -440,12 +394,12 @@ class _CameraTopScreenState extends State<CameraTopScreen> with WidgetsBindingOb
         bool hasPermission = await _checkPhotosPermission();
 
         if (hasPermission) {
-          final saveResult = await ImageGallerySaver.saveFile(
-            videoPath,
-            name: 'JAM_video_${DateTime.now().millisecondsSinceEpoch}',
+          final AssetEntity? savedAsset = await PhotoManager.editor.saveVideo(
+            File(videoPath),
+            title: 'JAM_video_${DateTime.now().millisecondsSinceEpoch}',
           );
 
-          if (saveResult['isSuccess'] == true) {
+          if (savedAsset != null) {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(content: Text('動画をフォトライブラリに保存しました')),
             );
@@ -481,7 +435,6 @@ class _CameraTopScreenState extends State<CameraTopScreen> with WidgetsBindingOb
       print('カメラ: ${cameraStatus.isGranted}');
       print('マイク: ${microphoneStatus.isGranted}');
       print('位置情報: ${locationStatus.isGranted}');
-
     } catch (e) {
       print('初期権限チェックエラー: $e');
     }
@@ -526,7 +479,6 @@ class _CameraTopScreenState extends State<CameraTopScreen> with WidgetsBindingOb
 
       print('すべての権限リクエストが失敗しました');
       return false;
-
     } catch (e) {
       print('権限チェック中にエラーが発生: $e');
       return false;
@@ -612,7 +564,7 @@ class _CameraTopScreenState extends State<CameraTopScreen> with WidgetsBindingOb
     _positionStream = Geolocator.getPositionStream(
       locationSettings: locationSettings,
     ).listen(
-          (Position position) {
+      (Position position) {
         if (mounted) {
           setState(() {
             _currentPosition = position;
@@ -643,7 +595,8 @@ class _CameraTopScreenState extends State<CameraTopScreen> with WidgetsBindingOb
     try {
       if (_cachedLocations != null &&
           _lastLocationFetch != null &&
-          DateTime.now().difference(_lastLocationFetch!) < _locationCacheTimeout) {
+          DateTime.now().difference(_lastLocationFetch!) <
+              _locationCacheTimeout) {
         print('キャッシュされた位置データを使用');
         _processLocationData(_cachedLocations!, currentPosition);
         return;
@@ -668,14 +621,15 @@ class _CameraTopScreenState extends State<CameraTopScreen> with WidgetsBindingOb
         return;
       }
 
-      _cachedLocations = snapshot.docs.map((doc) => {
-        'id': doc.id,
-        'data': doc.data() as Map<String, dynamic>,
-      }).toList();
+      _cachedLocations = snapshot.docs
+          .map((doc) => {
+                'id': doc.id,
+                'data': doc.data() as Map<String, dynamic>,
+              })
+          .toList();
       _lastLocationFetch = DateTime.now();
 
       _processLocationData(_cachedLocations!, currentPosition);
-
     } catch (e) {
       print('最寄り位置検索エラー: $e');
       setState(() {
@@ -687,7 +641,8 @@ class _CameraTopScreenState extends State<CameraTopScreen> with WidgetsBindingOb
     }
   }
 
-  void _processLocationData(List<Map<String, dynamic>> cachedData, Position currentPosition) {
+  void _processLocationData(
+      List<Map<String, dynamic>> cachedData, Position currentPosition) {
     List<Map<String, dynamic>> locationDistances = [];
 
     for (var item in cachedData) {
@@ -736,9 +691,9 @@ class _CameraTopScreenState extends State<CameraTopScreen> with WidgetsBindingOb
       _nearestLocations = nearest3;
       _nearestImageUrls = nearest3
           .map((location) {
-        var data = location['data'] as Map<String, dynamic>;
-        return data['imageUrl'] as String? ?? '';
-      })
+            var data = location['data'] as Map<String, dynamic>;
+            return data['imageUrl'] as String? ?? '';
+          })
           .where((url) => url.isNotEmpty)
           .toList();
 
@@ -831,8 +786,8 @@ class _CameraTopScreenState extends State<CameraTopScreen> with WidgetsBindingOb
 
     setState(() {
       if (_isScaleMode && details.scale != 1.0) {
-        _draggableImageScale = (_draggableImageScale * details.scale)
-            .clamp(0.5, 3.0);
+        _draggableImageScale =
+            (_draggableImageScale * details.scale).clamp(0.5, 3.0);
       }
 
       if (!_isScaleMode) {
@@ -843,10 +798,10 @@ class _CameraTopScreenState extends State<CameraTopScreen> with WidgetsBindingOb
       final actualImageWidth = _draggableImageWidth * _draggableImageScale;
       final actualImageHeight = _draggableImageHeight * _draggableImageScale;
 
-      _draggableImageX = _draggableImageX
-          .clamp(0.0, screenSize.width - actualImageWidth);
-      _draggableImageY = _draggableImageY
-          .clamp(0.0, screenSize.height - actualImageHeight);
+      _draggableImageX =
+          _draggableImageX.clamp(0.0, screenSize.width - actualImageWidth);
+      _draggableImageY =
+          _draggableImageY.clamp(0.0, screenSize.height - actualImageHeight);
     });
   }
 
@@ -917,7 +872,8 @@ class _CameraTopScreenState extends State<CameraTopScreen> with WidgetsBindingOb
               Row(
                 children: [
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
                       color: Colors.black.withOpacity(0.6),
                       borderRadius: BorderRadius.circular(12),
@@ -1039,7 +995,7 @@ class _CameraTopScreenState extends State<CameraTopScreen> with WidgetsBindingOb
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: List.generate(
                       _nearestImageUrls.length,
-                          (index) => Container(
+                      (index) => Container(
                         width: 6,
                         height: 6,
                         margin: const EdgeInsets.symmetric(horizontal: 2),
@@ -1091,7 +1047,9 @@ class _CameraTopScreenState extends State<CameraTopScreen> with WidgetsBindingOb
             height: actualImageHeight,
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(12),
-              border: _isScaleMode ? Border.all(color: Colors.yellow, width: 3) : null,
+              border: _isScaleMode
+                  ? Border.all(color: Colors.yellow, width: 3)
+                  : null,
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withOpacity(_isDragging ? 0.5 : 0.3),
@@ -1302,7 +1260,7 @@ class _CameraTopScreenState extends State<CameraTopScreen> with WidgetsBindingOb
                           : Colors.white.withOpacity(0.7),
                       fontSize: isSelected ? 17 : 15,
                       fontWeight:
-                      isSelected ? FontWeight.w600 : FontWeight.w400,
+                          isSelected ? FontWeight.w600 : FontWeight.w400,
                     ),
                   ),
                   const SizedBox(height: 3),
@@ -1482,12 +1440,13 @@ class _InternalGalleryScreenState extends State<InternalGalleryScreen> {
             .where((file) => file is File)
             .cast<File>()
             .where((file) =>
-        file.path.toLowerCase().endsWith('.jpg') ||
-            file.path.toLowerCase().endsWith('.jpeg') ||
-            file.path.toLowerCase().endsWith('.png'))
+                file.path.toLowerCase().endsWith('.jpg') ||
+                file.path.toLowerCase().endsWith('.jpeg') ||
+                file.path.toLowerCase().endsWith('.png'))
             .toList();
 
-        imageFiles.sort((a, b) => b.lastModifiedSync().compareTo(a.lastModifiedSync()));
+        imageFiles.sort(
+            (a, b) => b.lastModifiedSync().compareTo(a.lastModifiedSync()));
 
         setState(() {
           _savedImages = imageFiles;
@@ -1537,8 +1496,13 @@ class _InternalGalleryScreenState extends State<InternalGalleryScreen> {
 
   Future<void> _moveToPhotoLibrary(File imageFile) async {
     try {
-      final result = await ImageGallerySaver.saveFile(imageFile.path);
-      if (result['isSuccess'] == true) {
+      final imageBytes = await imageFile.readAsBytes();
+      final AssetEntity? savedAsset = await PhotoManager.editor.saveImage(
+        imageBytes,
+        title: 'JAM_shared_${DateTime.now().millisecondsSinceEpoch}',
+        filename: 'JAM_shared_${DateTime.now().millisecondsSinceEpoch}.jpg',
+      );
+      if (savedAsset != null) {
         await imageFile.delete();
         _loadSavedImages();
 
@@ -1547,7 +1511,7 @@ class _InternalGalleryScreenState extends State<InternalGalleryScreen> {
         );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('移動に失敗しました: ${result['errorMessage'] ?? '不明なエラー'}')),
+          SnackBar(content: Text('移動に失敗しました: 画像の保存に失敗しました')),
         );
       }
     } catch (e) {
@@ -1676,92 +1640,93 @@ class _InternalGalleryScreenState extends State<InternalGalleryScreen> {
       backgroundColor: Colors.black,
       body: _isLoading
           ? const Center(
-        child: CircularProgressIndicator(color: Colors.white),
-      )
+              child: CircularProgressIndicator(color: Colors.white),
+            )
           : _savedImages.isEmpty
-          ? const Center(
-        child: Text(
-          'まだ写真が保存されていません',
-          style: TextStyle(color: Colors.white, fontSize: 16),
-        ),
-      )
-          : Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Text(
-              '保存された写真: ${_savedImages.length}枚',
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-          Expanded(
-            child: GridView.builder(
-              padding: const EdgeInsets.all(8),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 3,
-                crossAxisSpacing: 4,
-                mainAxisSpacing: 4,
-              ),
-              itemCount: _savedImages.length,
-              itemBuilder: (context, index) {
-                final imageFile = _savedImages[index];
-                return GestureDetector(
-                  onTap: () => _showImageDialog(imageFile),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.grey[700]!),
+              ? const Center(
+                  child: Text(
+                    'まだ写真が保存されていません',
+                    style: TextStyle(color: Colors.white, fontSize: 16),
+                  ),
+                )
+              : Column(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Text(
+                        '保存された写真: ${_savedImages.length}枚',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(8),
-                      child: Stack(
-                        fit: StackFit.expand,
-                        children: [
-                          Image.file(
-                            imageFile,
-                            fit: BoxFit.cover,
-                          ),
-                          Positioned(
-                            bottom: 0,
-                            left: 0,
-                            right: 0,
+                    Expanded(
+                      child: GridView.builder(
+                        padding: const EdgeInsets.all(8),
+                        gridDelegate:
+                            const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 3,
+                          crossAxisSpacing: 4,
+                          mainAxisSpacing: 4,
+                        ),
+                        itemCount: _savedImages.length,
+                        itemBuilder: (context, index) {
+                          final imageFile = _savedImages[index];
+                          return GestureDetector(
+                            onTap: () => _showImageDialog(imageFile),
                             child: Container(
-                              padding: const EdgeInsets.all(4),
                               decoration: BoxDecoration(
-                                gradient: LinearGradient(
-                                  begin: Alignment.topCenter,
-                                  end: Alignment.bottomCenter,
-                                  colors: [
-                                    Colors.transparent,
-                                    Colors.black.withOpacity(0.7),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: Colors.grey[700]!),
+                              ),
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(8),
+                                child: Stack(
+                                  fit: StackFit.expand,
+                                  children: [
+                                    Image.file(
+                                      imageFile,
+                                      fit: BoxFit.cover,
+                                    ),
+                                    Positioned(
+                                      bottom: 0,
+                                      left: 0,
+                                      right: 0,
+                                      child: Container(
+                                        padding: const EdgeInsets.all(4),
+                                        decoration: BoxDecoration(
+                                          gradient: LinearGradient(
+                                            begin: Alignment.topCenter,
+                                            end: Alignment.bottomCenter,
+                                            colors: [
+                                              Colors.transparent,
+                                              Colors.black.withOpacity(0.7),
+                                            ],
+                                          ),
+                                        ),
+                                        child: Text(
+                                          _getImageDate(imageFile),
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                          textAlign: TextAlign.center,
+                                        ),
+                                      ),
+                                    ),
                                   ],
                                 ),
                               ),
-                              child: Text(
-                                _getImageDate(imageFile),
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                                textAlign: TextAlign.center,
-                              ),
                             ),
-                          ),
-                        ],
+                          );
+                        },
                       ),
                     ),
-                  ),
-                );
-              },
-            ),
-          ),
-        ],
-      ),
+                  ],
+                ),
     );
   }
 }

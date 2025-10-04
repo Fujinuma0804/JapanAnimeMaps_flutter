@@ -72,7 +72,7 @@ dependencies:
   youtube_player_iframe: ^5.1.3
   youtube_player_flutter: ^9.1.2
   screenshot: ^3.0.0
-  image_gallery_saver: ^2.0.3  # Temporarily disabled due to build issues
+  # gal: ^2.3.0  # Using photo_manager instead
 
   # ======================
   # ネットワーク・通信関連
