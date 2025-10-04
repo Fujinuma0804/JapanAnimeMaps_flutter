@@ -2,29 +2,22 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_chat_ui/flutter_chat_ui.dart' as snapshot;
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:parts/Prensantionlayer/CameraCompositionScreen/CameraCompositionScreen.dart';
 import 'package:parts/bloc/Userinfo_bloc/Userinfo_bloc.dart';
 import 'package:parts/map_page/map_subsc.dart';
 import 'package:parts/map_page/map_subsc_en.dart';
 import 'package:parts/post_page/timeline_screen.dart';
 import 'package:parts/post_page/timeline_screen_en.dart';
-import 'package:parts/shop/shop_maintenance.dart';
-import 'package:parts/shop/shop_top.dart';
+import 'package:parts/point_page/point_update.dart';
+import 'package:parts/post_page/post_first/post_welcome.dart';
 import 'package:parts/spot_page/anime_list_en_new.dart';
-import 'package:parts/test/books.dart';
-import 'package:parts/test/posts_photo.dart';
-
-import '../point_page/point_update.dart';
-import '../post_page/post_first/post_welcome.dart';
-import '../spot_page/anime_list_test_ranking.dart';
-
-import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:parts/spot_page/anime_list_test_ranking.dart';
 
 class MainScreen extends StatefulWidget {
-  final int initalIndex;
+  final int initialIndex;
 
-  const MainScreen({super.key, this.initalIndex = 0});
+  const MainScreen({super.key, this.initialIndex = 0});
 
   @override
   State<MainScreen> createState() => _MainScreenState();
@@ -32,21 +25,17 @@ class MainScreen extends StatefulWidget {
 
 class _MainScreenState extends State<MainScreen> {
   int _selectedIndex = 0;
-  late PageController _pageController = PageController();
+  late PageController _pageController;
   late User _user;
-  String _userLanguage = 'English';
-  late Stream<DocumentSnapshot> _userStream;
-  final double _latitude = 37.7749;
-  final double _longitude = -122.4194;
-  bool _hasSeenWelcome = false;
   final FirebaseAnalytics _analytics = FirebaseAnalytics.instance;
-  int _refreshKey = 0; // Key to force refresh of pages
+  int _refreshKey = 0;
 
   @override
   void initState() {
     super.initState();
-    _selectedIndex = widget.initalIndex;
-    _pageController = PageController(initialPage: widget.initalIndex);
+    _selectedIndex = widget.initialIndex;
+    _pageController = PageController(initialPage: widget.initialIndex);
+    _user = FirebaseAuth.instance.currentUser!;
 
     // Initialize user data through BLoC
     context.read<UserBloc>().add(InitializeUser());
@@ -54,7 +43,7 @@ class _MainScreenState extends State<MainScreen> {
 
   void _refreshMainScreen() {
     setState(() {
-      _refreshKey++; // Increment refresh key to force refresh of all pages
+      _refreshKey++;
     });
   }
 
@@ -65,10 +54,10 @@ class _MainScreenState extends State<MainScreen> {
         tabName = 'spot_tab';
         break;
       case 1:
-        tabName = 'genre_tab';
+        tabName = 'map_tab';
         break;
       case 2:
-        tabName = 'map_tab';
+        tabName = 'camera_tab';
         break;
       case 3:
         tabName = 'community_tab';
@@ -82,7 +71,6 @@ class _MainScreenState extends State<MainScreen> {
       name: 'bottom_nav_tap',
       parameters: {
         'tab_name': tabName,
-        'user_language': _userLanguage,
         'user_id': _user.uid,
       },
     );
@@ -99,12 +87,12 @@ class _MainScreenState extends State<MainScreen> {
       builder: (context, state) {
         // Handle loading state
         if (state is UserLoading || state is UserInitial) {
-          return Scaffold(
+          return const Scaffold(
             body: Center(child: CircularProgressIndicator()),
           );
         }
 
-        // Remove incorrect snapshot checks, handle errors via BLoC state
+        // Handle error state
         if (state is UserError) {
           return Scaffold(
             body: Center(child: Text('Error: ${state.message}')),
@@ -115,7 +103,7 @@ class _MainScreenState extends State<MainScreen> {
         if (state is UserDataLoaded) {
           return Scaffold(
             body: PageView(
-              key: ValueKey(_refreshKey), // Use refresh key to force refresh
+              key: ValueKey(_refreshKey),
               controller: _pageController,
               physics: const NeverScrollableScrollPhysics(),
               onPageChanged: (index) {
@@ -123,31 +111,7 @@ class _MainScreenState extends State<MainScreen> {
                   _selectedIndex = index;
                 });
               },
-              children: [
-                state.language == 'Japanese'
-                    ? AnimeListTestRanking()
-                    : AnimeListEnNew(),
-
-                state.language == 'Japanese'
-                    ? MapSubscription(latitude: 37.7749, longitude: -122.4194)
-                    : MapSubscriptionEn(
-                        latitude: 37.7749, longitude: -122.4194),
-                state.language == 'Japanese'
-                    ? CameraCompositionScreen(
-                        onBackPressed: _refreshMainScreen,
-                      )
-                    : CameraCompositionScreen(
-                        onBackPressed: _refreshMainScreen,
-                      ),
-                state.language == 'Japanese'
-                    ? (!state.hasSeenWelcome
-                        ? PostWelcome1(showScaffold: false)
-                        : TimelineScreen())
-                    : (!state.hasSeenWelcome
-                        ? PostWelcome1(showScaffold: false)
-                        : TimelineScreenEn()),
-                UserPointUpdatePage(), // Same for both languages
-              ],
+              children: _buildPages(state),
             ),
             bottomNavigationBar: CustomBottomNavigationBar(
               currentIndex: _selectedIndex,
@@ -158,11 +122,42 @@ class _MainScreenState extends State<MainScreen> {
         }
 
         // Fallback for unknown state
-        return Scaffold(
+        return const Scaffold(
           body: Center(child: Text('Unknown state')),
         );
       },
     );
+  }
+
+  List<Widget> _buildPages(UserDataLoaded state) {
+    return [
+      // Page 0: Spot
+      state.language == 'Japanese'
+          ? AnimeListTestRanking()
+          : const AnimeListEnNew(),
+
+      // Page 1: Map
+      state.language == 'Japanese'
+          ? MapSubscription(latitude: 37.7749, longitude: -122.4194)
+          : MapSubscriptionEn(latitude: 37.7749, longitude: -122.4194),
+
+      // Page 2: Camera
+      CameraCompositionScreen(
+        onBackPressed: _refreshMainScreen,
+      ),
+
+      // Page 3: Community
+      state.language == 'Japanese'
+          ? (!state.hasSeenWelcome
+              ? PostWelcome1(showScaffold: false)
+              : const TimelineScreen())
+          : (!state.hasSeenWelcome
+              ? PostWelcome1(showScaffold: false)
+              : const TimelineScreenEn()),
+
+      // Page 4: Ranking
+      const UserPointUpdatePage(),
+    ];
   }
 
   @override
@@ -203,21 +198,16 @@ class CustomBottomNavigationBar extends StatelessWidget {
           icon: const Icon(Icons.place),
           label: language == 'Japanese' ? 'スポット' : 'Spot',
         ),
-
-        // BottomNavigationBarItem(
-        //   icon: Icon(Icons.calendar_today_outlined),
-        //   label: language == 'Japanese' ? 'イベント' : 'Event',
-        // ),
         BottomNavigationBarItem(
-          icon: Icon(Icons.map),
+          icon: const Icon(Icons.map),
           label: language == 'Japanese' ? '地図' : 'Map',
         ),
-        BottomNavigationBarItem(
+        const BottomNavigationBarItem(
           icon: Icon(Icons.add),
           label: "",
         ),
         BottomNavigationBarItem(
-          icon: Icon(Icons.chat_outlined),
+          icon: const Icon(Icons.chat_outlined),
           label: language == 'Japanese' ? 'コミュニティ' : 'Community',
         ),
         BottomNavigationBarItem(

@@ -84,12 +84,10 @@ class OrderCompleteScreen extends StatelessWidget {
                 children: [
                   ElevatedButton(
                     onPressed: () {
-                     Navigator.push(
-                       context,
-                       MaterialPageRoute(builder: (context) => MainScreen(
-                         initalIndex: 1,
-                       ))
-                     );
+                      Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (context) => MainScreen()));
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF00008b),
