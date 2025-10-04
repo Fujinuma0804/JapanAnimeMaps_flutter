@@ -1,6 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_chat_ui/flutter_chat_ui.dart' as snapshot;
 import 'package:parts/Prensantionlayer/CameraCompositionScreen/CameraCompositionScreen.dart';
 import 'package:parts/bloc/Userinfo_bloc/Userinfo_bloc.dart';
 import 'package:parts/map_page/map_subsc.dart';
@@ -102,18 +104,11 @@ class _MainScreenState extends State<MainScreen> {
           );
         }
 
-        if (snapshot.hasError) {
+        // Remove incorrect snapshot checks, handle errors via BLoC state
+        if (state is UserError) {
           return Scaffold(
-            body: Center(child: Text('Error: ${snapshot.error}')),
+            body: Center(child: Text('Error: ${state.message}')),
           );
-        }
-
-        if (snapshot.hasData && snapshot.data != null) {
-          final userData = snapshot.data!.data() as Map<String, dynamic>?;
-          if (userData != null) {
-            _userLanguage = userData['language'] ?? 'English';
-            _hasSeenWelcome = userData['hasSeenWelcome'] ?? false;
-          }
         }
 
         // Handle loaded state

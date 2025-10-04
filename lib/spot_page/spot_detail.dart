@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:parts/Dataprovider/model/spot_model.dart';
 import 'package:parts/spot_page/spot.dart';
 
 class SpotDetailScreen extends StatelessWidget {

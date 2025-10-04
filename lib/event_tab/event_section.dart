@@ -317,7 +317,7 @@ class VideoCard extends StatefulWidget {
     required this.mediaType,
     required this.index,
     required this.onTap,
-  }) : super(key: key);
+  }) : super();
 
   @override
   State<VideoCard> createState() => _VideoCardState();
