@@ -190,7 +190,6 @@ class _FavoriteLocationsPageState extends State<FavoriteLocationsPage>
             backgroundColor: Colors.red.shade400,
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            margin: const EdgeInsets.symmetric(horizontal: 50, vertical: 50),
             duration: const Duration(seconds: 2),
           ),
         );
@@ -250,13 +249,10 @@ class _FavoriteLocationsPageState extends State<FavoriteLocationsPage>
           future: _fetchFavoriteLocations(),
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
-              return Container(
-                height: 400,
-                child: const Center(
-                  child: CircularProgressIndicator(
-                    valueColor: AlwaysStoppedAnimation<Color>(
-                      Color(0xFF3498DB),
-                    ),
+              return const Center(
+                child: CircularProgressIndicator(
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                    Color(0xFF3498DB),
                   ),
                 ),
               );
@@ -270,6 +266,7 @@ class _FavoriteLocationsPageState extends State<FavoriteLocationsPage>
                   border: Border.all(color: Colors.red.shade200),
                 ),
                 child: Column(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
                     Icon(
                       Icons.error_outline,
@@ -297,8 +294,7 @@ class _FavoriteLocationsPageState extends State<FavoriteLocationsPage>
                 ),
               );
             } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-              return Container(
-                height: 400,
+              return Center(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
@@ -596,12 +592,9 @@ class LocationSearchDelegate extends SearchDelegate {
         future: onSearch(query),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return Container(
-              height: 400,
-              child: const Center(
-                child: CircularProgressIndicator(
-                  valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF3498DB)),
-                ),
+            return const Center(
+              child: CircularProgressIndicator(
+                valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF3498DB)),
               ),
             );
           } else if (snapshot.hasError) {
@@ -614,6 +607,7 @@ class LocationSearchDelegate extends SearchDelegate {
                 border: Border.all(color: Colors.red.shade200),
               ),
               child: Column(
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(
                     Icons.error_outline,
@@ -641,8 +635,7 @@ class LocationSearchDelegate extends SearchDelegate {
               ),
             );
           } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            return Container(
-              height: 400,
+            return Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [

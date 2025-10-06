@@ -90,3 +90,5 @@ The app initialization should now work without compilation errors. The bloc will
 4. Sync user data and subscription information
 
 All linting errors have been resolved and the code is ready for testing.
+
+

@@ -62,3 +62,5 @@ After applying the Firebase Console changes:
 - The Firebase Console configuration is the most critical step
 - Make sure to download and replace the `google-services.json` file after adding the SHA-1 fingerprint
 - Test on a real device or emulator with Google Play Services installed
+
+

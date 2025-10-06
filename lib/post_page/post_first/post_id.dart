@@ -106,10 +106,7 @@ class _IdSetupScreenState extends State<IdSetupScreen> {
         if (mounted) {
           Navigator.pushReplacement(
             context,
-            MaterialPageRoute(
-                builder: (context) => MainScreen(
-                      initalIndex: 3,
-                    )),
+            MaterialPageRoute(builder: (context) => MainScreen()),
           );
         }
       }

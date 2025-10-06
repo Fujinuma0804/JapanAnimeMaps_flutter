@@ -99,7 +99,8 @@ class _MapSubscriptionState extends State<MapSubscription> {
   @override
   void initState() {
     super.initState();
-    print('MapSubscription: 🚀 Starting initState...');
+    print(
+        'MapSubscription: 🚀 Starting initState with MapBloc optimization...');
 
     // Initialize services
     NotificationService.initialize();

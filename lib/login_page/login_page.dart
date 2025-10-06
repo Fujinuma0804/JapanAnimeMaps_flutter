@@ -181,11 +181,30 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
     });
 
     try {
+      print('=== Device & Environment Info ===');
+      print('Platform: iOS実機');
+      print('Bundle ID: com.example.parts0705');
+
+      // Apple Sign-In 可用性チェック
+      final isAvailable = await SignInWithApple.isAvailable();
+      print('Apple Sign-In Available: $isAvailable');
+
+      if (!isAvailable) {
+        print('ERROR: Apple Sign-In is not available on this device');
+        throw Exception('Apple Sign-In is not available');
+      }
+
+      print('=== Generating Nonce ===');
       final rawNonce = generateNonce();
       final nonce = sha256ofString(rawNonce);
+      print('Raw Nonce (first 8 chars): ${rawNonce.substring(0, 8)}...');
+      print('SHA256 Nonce (first 8 chars): ${nonce.substring(0, 8)}...');
+
+      print('=== Starting Apple Authentication ===');
+      print('Requesting scopes: email, fullName');
 
       final AuthorizationCredentialAppleID credential =
-          await SignInWithApple.getAppleIDCredential(
+      await SignInWithApple.getAppleIDCredential(
         scopes: [
           AppleIDAuthorizationScopes.email,
           AppleIDAuthorizationScopes.fullName,
@@ -193,48 +212,73 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
         nonce: nonce,
       );
 
-      final oAuthProvider = OAuthProvider('apple.com');
-      final authCredential = oAuthProvider.credential(
-        idToken: credential.identityToken,
+      print('=== Apple Authentication Success ===');
+      print('User ID: ${credential.userIdentifier ?? "null"}');
+      print('Email: ${credential.email ?? "null"}');
+      print('Given Name: ${credential.givenName ?? "null"}');
+      print('Family Name: ${credential.familyName ?? "null"}');
+      print('Identity Token exists: ${credential.identityToken != null}');
+      print('Authorization Code exists: ${credential.authorizationCode != null}');
+
+      if (credential.identityToken == null) {
+        print('ERROR: Identity token is null');
+        throw Exception('Identity token is null');
+      }
+
+      print('=== Creating Firebase Credential ===');
+      final oauthCredential = OAuthProvider("apple.com").credential(
+        idToken: credential.identityToken!,
         rawNonce: rawNonce,
         accessToken: credential.authorizationCode
       );
+      print('OAuth Credential created successfully');
 
+      print('=== Starting Firebase Authentication ===');
       UserCredential userCredential =
-          await _auth.signInWithCredential(authCredential);
+      await _auth.signInWithCredential(oauthCredential);
 
-      QuerySnapshot existingUsers = await FirebaseFirestore.instance
-          .collection('users')
-          .where('email', isEqualTo: userCredential.user?.email)
-          .get();
+      print('=== Firebase Authentication Success ===');
+      print('Firebase UID: ${userCredential.user?.uid ?? "null"}');
+      print('Firebase Email: ${userCredential.user?.email ?? "null"}');
+      print('Firebase Display Name: ${userCredential.user?.displayName ?? "null"}');
+      print('Is Email Verified: ${userCredential.user?.emailVerified ?? false}');
 
-      if (existingUsers.docs.isNotEmpty) {
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(
-            builder: (context) => MainScreen(),
-          ),
-        );
-      } else {
-        await FirebaseFirestore.instance
-            .collection('users')
-            .doc(userCredential.user?.uid)
-            .set({
-          'email': userCredential.user?.email,
-          'language': '日本語',
-        });
+      // Firestore処理の前にもログを追加
+      print('=== Starting Firestore Operations ===');
 
-        Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (context) => SecondSignUpPage(
-              userCredential: userCredential,
-            ),
-          ),
-        );
+      // 既存のFirestore処理...
+
+    } on SignInWithAppleAuthorizationException catch (e) {
+      print('=== Apple Authorization Exception ===');
+      print('Error Code: ${e.code}');
+      print('Error Message: ${e.message}');
+      print('Details: $e');
+
+      if (e.code == AuthorizationErrorCode.canceled) {
+        print('User cancelled Apple Sign-In');
+        return;
       }
-    } catch (e) {
-      print('Error signing in with Apple: $e');
+
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Appleでのサインインに失敗しました。もう一度お試しください。')),
+        SnackBar(content: Text('Apple認証エラー: ${e.message}')),
+      );
+    } on FirebaseAuthException catch (e) {
+      print('=== Firebase Auth Exception ===');
+      print('Error Code: ${e.code}');
+      print('Error Message: ${e.message}');
+      print('Details: $e');
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Firebase認証エラー: ${e.message}')),
+      );
+    } catch (e, stackTrace) {
+      print('=== General Exception ===');
+      print('Error Type: ${e.runtimeType}');
+      print('Error: $e');
+      print('Stack Trace: $stackTrace');
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('認証エラー: $e')),
       );
     } finally {
       setState(() {

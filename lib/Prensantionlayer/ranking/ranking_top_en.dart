@@ -182,7 +182,7 @@ class _RankingTopPageEnState extends State<RankingTopPageEn> {
     try {
       // Fetch anime ranking data
       final rankingSnapshot =
-      await _database.ref().child('anime_rankings').get();
+          await _database.ref().child('anime_rankings').get();
 
       Map<String, int> rankings = {};
       if (rankingSnapshot.value != null) {
@@ -230,7 +230,7 @@ class _RankingTopPageEnState extends State<RankingTopPageEn> {
     try {
       // Fetch anime ranking data
       final rankingSnapshot =
-      await _database.ref().child('anime_rankings').get();
+          await _database.ref().child('anime_rankings').get();
 
       Map<String, int> rankings = {};
       if (rankingSnapshot.value != null) {
@@ -324,8 +324,8 @@ class _RankingTopPageEnState extends State<RankingTopPageEn> {
 
       if (videoDoc.docs.isNotEmpty) {
         final videoData = videoDoc.docs.first.data();
-        final videoUrl = videoData['url'] as String;
-        final videoWeekOf = videoData['weekOf'] as String;
+        final videoUrl = videoData['url'] as String? ?? '';
+        final videoWeekOf = videoData['weekOf'] as String? ?? '';
         final videoDocId = videoDoc.docs.first.id;
 
         final viewerDoc = await firestore
@@ -429,7 +429,7 @@ class _RankingTopPageEnState extends State<RankingTopPageEn> {
       final eventSnapshot = await firestore.collection('events').get();
       final activeEvents = eventSnapshot.docs
           .where((doc) => doc.data()['isEnabled'] == true)
-          .map((doc) => doc.data()['title'] as String)
+          .map((doc) => doc.data()['title'] as String? ?? '')
           .toList();
 
       setState(() {
@@ -453,7 +453,7 @@ class _RankingTopPageEnState extends State<RankingTopPageEn> {
           .map((doc) {
         final data = doc.data();
         return {
-          'title': data['title'] as String,
+          'title': data['title'] as String? ?? '',
           'imageUrl': data['imageUrl'] as String? ?? '',
           'description': data['description'] as String? ?? '',
           'startDate': data['startDate'],
@@ -556,7 +556,7 @@ class _RankingTopPageEnState extends State<RankingTopPageEn> {
     if (date is String) {
       try {
         final DateTime dateTime =
-        DateTime.parse(date.replaceAll('T00:00:00.000', ''));
+            DateTime.parse(date.replaceAll('T00:00:00.000', ''));
         return '${dateTime.month}/${dateTime.day}/${dateTime.year}';
       } catch (e) {
         return '';
@@ -641,7 +641,7 @@ class _RankingTopPageEnState extends State<RankingTopPageEn> {
                       left: 8,
                       child: Container(
                         padding:
-                        EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                         decoration: BoxDecoration(
                           color: _getRankingColor(index),
                           borderRadius: BorderRadius.circular(16),
@@ -798,7 +798,7 @@ class _RankingTopPageEnState extends State<RankingTopPageEn> {
       ),
       itemBuilder: (context, index) {
         final genre = _genreData[index];
-        final genreId = genre['id'] as String;
+        final genreId = genre['id'] as String? ?? '';
 
         return Card(
           elevation: 0,
@@ -860,7 +860,7 @@ class _RankingTopPageEnState extends State<RankingTopPageEn> {
                                 ListView.builder(
                                   scrollDirection: Axis.horizontal,
                                   padding:
-                                  EdgeInsets.symmetric(horizontal: 16.0),
+                                      EdgeInsets.symmetric(horizontal: 16.0),
                                   itemCount: animeList.length,
                                   itemBuilder: (context, animeIndex) {
                                     final anime = animeList[animeIndex];
@@ -977,7 +977,7 @@ class _RankingTopPageEnState extends State<RankingTopPageEn> {
                 eventTitle: event['title']?.toString() ?? 'Untitled Event',
                 startDate: event['startDate']?.toString() ?? '',
                 htmlContent:
-                event['htmlContent']?.toString() ?? 'No content available',
+                    event['htmlContent']?.toString() ?? 'No content available',
               ),
             ),
           );
