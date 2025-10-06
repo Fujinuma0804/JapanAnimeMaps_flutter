@@ -16,7 +16,6 @@ import 'package:parts/spot_page/user_activity_logger.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:showcaseview/showcaseview.dart';
 
-
 import 'anime_list_detail.dart';
 import 'anime_list_en_ranking.dart';
 import 'customer_anime_request.dart';
@@ -167,288 +166,53 @@ class _AnimeEventListState extends State<AnimeEventList>
   bool _isRecommendedEventsExpanded = true;
 
   final Map<String, Map<String, double>> prefectureBounds = {
-    '北海道': {
-      'minLat': 41.3,
-      'maxLat': 45.6,
-      'minLng': 139.3,
-      'maxLng': 148.9
-    },
-    '青森県': {
-      'minLat': 40.2,
-      'maxLat': 41.6,
-      'minLng': 139.5,
-      'maxLng': 141.7
-    },
-    '岩手県': {
-      'minLat': 38.7,
-      'maxLat': 40.5,
-      'minLng': 140.6,
-      'maxLng': 142.1
-    },
-    '宮城県': {
-      'minLat': 37.8,
-      'maxLat': 39.0,
-      'minLng': 140.3,
-      'maxLng': 141.7
-    },
-    '秋田県': {
-      'minLat': 38.8,
-      'maxLat': 40.5,
-      'minLng': 139.7,
-      'maxLng': 141.0
-    },
-    '山形県': {
-      'minLat': 37.8,
-      'maxLat': 39.0,
-      'minLng': 139.5,
-      'maxLng': 140.6
-    },
-    '福島県': {
-      'minLat': 36.8,
-      'maxLat': 38.0,
-      'minLng': 139.2,
-      'maxLng': 141.0
-    },
-    '茨城県': {
-      'minLat': 35.8,
-      'maxLat': 36.9,
-      'minLng': 139.7,
-      'maxLng': 140.9
-    },
-    '栃木県': {
-      'minLat': 36.2,
-      'maxLat': 37.2,
-      'minLng': 139.3,
-      'maxLng': 140.3
-    },
-    '群馬県': {
-      'minLat': 36.0,
-      'maxLat': 37.0,
-      'minLng': 138.4,
-      'maxLng': 139.7
-    },
-    '埼玉県': {
-      'minLat': 35.7,
-      'maxLat': 36.3,
-      'minLng': 138.8,
-      'maxLng': 139.9
-    },
-    '千葉県': {
-      'minLat': 34.9,
-      'maxLat': 36.1,
-      'minLng': 139.7,
-      'maxLng': 140.9
-    },
-    '東京都': {
-      'minLat': 35.5,
-      'maxLat': 35.9,
-      'minLng': 138.9,
-      'maxLng': 139.9
-    },
-    '神奈川県': {
-      'minLat': 35.1,
-      'maxLat': 35.7,
-      'minLng': 139.0,
-      'maxLng': 139.8
-    },
-    '新潟県': {
-      'minLat': 36.8,
-      'maxLat': 38.6,
-      'minLng': 137.6,
-      'maxLng': 139.8
-    },
-    '富山県': {
-      'minLat': 36.2,
-      'maxLat': 36.9,
-      'minLng': 136.8,
-      'maxLng': 137.7
-    },
-    '石川県': {
-      'minLat': 36.0,
-      'maxLat': 37.6,
-      'minLng': 136.2,
-      'maxLng': 137.4
-    },
-    '福井県': {
-      'minLat': 35.3,
-      'maxLat': 36.3,
-      'minLng': 135.4,
-      'maxLng': 136.8
-    },
-    '山梨県': {
-      'minLat': 35.2,
-      'maxLat': 35.9,
-      'minLng': 138.2,
-      'maxLng': 139.1
-    },
-    '長野県': {
-      'minLat': 35.2,
-      'maxLat': 37.0,
-      'minLng': 137.3,
-      'maxLng': 138.7
-    },
-    '岐阜県': {
-      'minLat': 35.2,
-      'maxLat': 36.5,
-      'minLng': 136.3,
-      'maxLng': 137.6
-    },
-    '静岡県': {
-      'minLat': 34.6,
-      'maxLat': 35.7,
-      'minLng': 137.4,
-      'maxLng': 139.1
-    },
-    '愛知県': {
-      'minLat': 34.6,
-      'maxLat': 35.4,
-      'minLng': 136.7,
-      'maxLng': 137.8
-    },
-    '三重県': {
-      'minLat': 33.7,
-      'maxLat': 35.3,
-      'minLng': 135.9,
-      'maxLng': 136.9
-    },
-    '滋賀県': {
-      'minLat': 34.8,
-      'maxLat': 35.7,
-      'minLng': 135.8,
-      'maxLng': 136.4
-    },
-    '京都府': {
-      'minLat': 34.7,
-      'maxLat': 35.8,
-      'minLng': 134.8,
-      'maxLng': 136.0
-    },
-    '大阪府': {
-      'minLat': 34.2,
-      'maxLat': 35.0,
-      'minLng': 135.1,
-      'maxLng': 135.7
-    },
-    '兵庫県': {
-      'minLat': 34.2,
-      'maxLat': 35.7,
-      'minLng': 134.2,
-      'maxLng': 135.4
-    },
-    '奈良県': {
-      'minLat': 33.8,
-      'maxLat': 34.7,
-      'minLng': 135.6,
-      'maxLng': 136.2
-    },
-    '和歌山県': {
-      'minLat': 33.4,
-      'maxLat': 34.3,
-      'minLng': 135.0,
-      'maxLng': 136.0
-    },
-    '鳥取県': {
-      'minLat': 35.1,
-      'maxLat': 35.6,
-      'minLng': 133.1,
-      'maxLng': 134.4
-    },
-    '島根県': {
-      'minLat': 34.3,
-      'maxLat': 35.6,
-      'minLng': 131.6,
-      'maxLng': 133.4
-    },
-    '岡山県': {
-      'minLat': 34.3,
-      'maxLat': 35.4,
-      'minLng': 133.3,
-      'maxLng': 134.4
-    },
-    '広島県': {
-      'minLat': 34.0,
-      'maxLat': 35.1,
-      'minLng': 132.0,
-      'maxLng': 133.5
-    },
-    '山口県': {
-      'minLat': 33.8,
-      'maxLat': 34.8,
-      'minLng': 130.8,
-      'maxLng': 132.4
-    },
-    '徳島県': {
-      'minLat': 33.5,
-      'maxLat': 34.2,
-      'minLng': 133.6,
-      'maxLng': 134.8
-    },
-    '香川県': {
-      'minLat': 34.0,
-      'maxLat': 34.6,
-      'minLng': 133.5,
-      'maxLng': 134.4
-    },
-    '愛媛県': {
-      'minLat': 32.9,
-      'maxLat': 34.3,
-      'minLng': 132.0,
-      'maxLng': 133.7
-    },
-    '高知県': {
-      'minLat': 32.7,
-      'maxLat': 33.9,
-      'minLng': 132.5,
-      'maxLng': 134.3
-    },
-    '福岡県': {
-      'minLat': 33.1,
-      'maxLat': 34.0,
-      'minLng': 129.9,
-      'maxLng': 131.0
-    },
-    '佐賀県': {
-      'minLat': 32.9,
-      'maxLat': 33.6,
-      'minLng': 129.7,
-      'maxLng': 130.5
-    },
-    '長崎県': {
-      'minLat': 32.6,
-      'maxLat': 34.7,
-      'minLng': 128.6,
-      'maxLng': 130.4
-    },
-    '熊本県': {
-      'minLat': 32.1,
-      'maxLat': 33.2,
-      'minLng': 129.9,
-      'maxLng': 131.2
-    },
-    '大分県': {
-      'minLat': 32.7,
-      'maxLat': 33.7,
-      'minLng': 130.7,
-      'maxLng': 132.1
-    },
-    '宮崎県': {
-      'minLat': 31.3,
-      'maxLat': 32.9,
-      'minLng': 130.7,
-      'maxLng': 131.9
-    },
-    '鹿児島県': {
-      'minLat': 30.4,
-      'maxLat': 32.2,
-      'minLng': 129.5,
-      'maxLng': 131.1
-    },
-    '沖縄県': {
-      'minLat': 24.0,
-      'maxLat': 27.9,
-      'minLng': 122.9,
-      'maxLng': 131.3
-    },
+    '北海道': {'minLat': 41.3, 'maxLat': 45.6, 'minLng': 139.3, 'maxLng': 148.9},
+    '青森県': {'minLat': 40.2, 'maxLat': 41.6, 'minLng': 139.5, 'maxLng': 141.7},
+    '岩手県': {'minLat': 38.7, 'maxLat': 40.5, 'minLng': 140.6, 'maxLng': 142.1},
+    '宮城県': {'minLat': 37.8, 'maxLat': 39.0, 'minLng': 140.3, 'maxLng': 141.7},
+    '秋田県': {'minLat': 38.8, 'maxLat': 40.5, 'minLng': 139.7, 'maxLng': 141.0},
+    '山形県': {'minLat': 37.8, 'maxLat': 39.0, 'minLng': 139.5, 'maxLng': 140.6},
+    '福島県': {'minLat': 36.8, 'maxLat': 38.0, 'minLng': 139.2, 'maxLng': 141.0},
+    '茨城県': {'minLat': 35.8, 'maxLat': 36.9, 'minLng': 139.7, 'maxLng': 140.9},
+    '栃木県': {'minLat': 36.2, 'maxLat': 37.2, 'minLng': 139.3, 'maxLng': 140.3},
+    '群馬県': {'minLat': 36.0, 'maxLat': 37.0, 'minLng': 138.4, 'maxLng': 139.7},
+    '埼玉県': {'minLat': 35.7, 'maxLat': 36.3, 'minLng': 138.8, 'maxLng': 139.9},
+    '千葉県': {'minLat': 34.9, 'maxLat': 36.1, 'minLng': 139.7, 'maxLng': 140.9},
+    '東京都': {'minLat': 35.5, 'maxLat': 35.9, 'minLng': 138.9, 'maxLng': 139.9},
+    '神奈川県': {'minLat': 35.1, 'maxLat': 35.7, 'minLng': 139.0, 'maxLng': 139.8},
+    '新潟県': {'minLat': 36.8, 'maxLat': 38.6, 'minLng': 137.6, 'maxLng': 139.8},
+    '富山県': {'minLat': 36.2, 'maxLat': 36.9, 'minLng': 136.8, 'maxLng': 137.7},
+    '石川県': {'minLat': 36.0, 'maxLat': 37.6, 'minLng': 136.2, 'maxLng': 137.4},
+    '福井県': {'minLat': 35.3, 'maxLat': 36.3, 'minLng': 135.4, 'maxLng': 136.8},
+    '山梨県': {'minLat': 35.2, 'maxLat': 35.9, 'minLng': 138.2, 'maxLng': 139.1},
+    '長野県': {'minLat': 35.2, 'maxLat': 37.0, 'minLng': 137.3, 'maxLng': 138.7},
+    '岐阜県': {'minLat': 35.2, 'maxLat': 36.5, 'minLng': 136.3, 'maxLng': 137.6},
+    '静岡県': {'minLat': 34.6, 'maxLat': 35.7, 'minLng': 137.4, 'maxLng': 139.1},
+    '愛知県': {'minLat': 34.6, 'maxLat': 35.4, 'minLng': 136.7, 'maxLng': 137.8},
+    '三重県': {'minLat': 33.7, 'maxLat': 35.3, 'minLng': 135.9, 'maxLng': 136.9},
+    '滋賀県': {'minLat': 34.8, 'maxLat': 35.7, 'minLng': 135.8, 'maxLng': 136.4},
+    '京都府': {'minLat': 34.7, 'maxLat': 35.8, 'minLng': 134.8, 'maxLng': 136.0},
+    '大阪府': {'minLat': 34.2, 'maxLat': 35.0, 'minLng': 135.1, 'maxLng': 135.7},
+    '兵庫県': {'minLat': 34.2, 'maxLat': 35.7, 'minLng': 134.2, 'maxLng': 135.4},
+    '奈良県': {'minLat': 33.8, 'maxLat': 34.7, 'minLng': 135.6, 'maxLng': 136.2},
+    '和歌山県': {'minLat': 33.4, 'maxLat': 34.3, 'minLng': 135.0, 'maxLng': 136.0},
+    '鳥取県': {'minLat': 35.1, 'maxLat': 35.6, 'minLng': 133.1, 'maxLng': 134.4},
+    '島根県': {'minLat': 34.3, 'maxLat': 35.6, 'minLng': 131.6, 'maxLng': 133.4},
+    '岡山県': {'minLat': 34.3, 'maxLat': 35.4, 'minLng': 133.3, 'maxLng': 134.4},
+    '広島県': {'minLat': 34.0, 'maxLat': 35.1, 'minLng': 132.0, 'maxLng': 133.5},
+    '山口県': {'minLat': 33.8, 'maxLat': 34.8, 'minLng': 130.8, 'maxLng': 132.4},
+    '徳島県': {'minLat': 33.5, 'maxLat': 34.2, 'minLng': 133.6, 'maxLng': 134.8},
+    '香川県': {'minLat': 34.0, 'maxLat': 34.6, 'minLng': 133.5, 'maxLng': 134.4},
+    '愛媛県': {'minLat': 32.9, 'maxLat': 34.3, 'minLng': 132.0, 'maxLng': 133.7},
+    '高知県': {'minLat': 32.7, 'maxLat': 33.9, 'minLng': 132.5, 'maxLng': 134.3},
+    '福岡県': {'minLat': 33.1, 'maxLat': 34.0, 'minLng': 129.9, 'maxLng': 131.0},
+    '佐賀県': {'minLat': 32.9, 'maxLat': 33.6, 'minLng': 129.7, 'maxLng': 130.5},
+    '長崎県': {'minLat': 32.6, 'maxLat': 34.7, 'minLng': 128.6, 'maxLng': 130.4},
+    '熊本県': {'minLat': 32.1, 'maxLat': 33.2, 'minLng': 129.9, 'maxLng': 131.2},
+    '大分県': {'minLat': 32.7, 'maxLat': 33.7, 'minLng': 130.7, 'maxLng': 132.1},
+    '宮崎県': {'minLat': 31.3, 'maxLat': 32.9, 'minLng': 130.7, 'maxLng': 131.9},
+    '鹿児島県': {'minLat': 30.4, 'maxLat': 32.2, 'minLng': 129.5, 'maxLng': 131.1},
+    '沖縄県': {'minLat': 24.0, 'maxLat': 27.9, 'minLng': 122.9, 'maxLng': 131.3},
   };
 
   final List<String> _allPrefectures = [
@@ -565,7 +329,7 @@ class _AnimeEventListState extends State<AnimeEventList>
         if (viewedAnimesSnapshot.docs.isNotEmpty) {
           // 閲覧したアニメ名を抽出
           preferredAnimeNames = viewedAnimesSnapshot.docs
-              .map((doc) => doc.data()['animeName'] as String)
+              .map((doc) => doc.data()['animeName'] as String? ?? '')
               .toList();
         }
       }
@@ -577,15 +341,14 @@ class _AnimeEventListState extends State<AnimeEventList>
           ..shuffle();
         preferredAnimeNames = randomAnimes
             .take(min(5, randomAnimes.length))
-            .map((anime) => anime['name'] as String)
+            .map((anime) => anime['name'] as String? ?? '')
             .toList();
       }
 
       // 好みのアニメに関連するイベントを取得
       if (preferredAnimeNames.isNotEmpty) {
-        final eventSnapshot = await firestore
-            .collection('anime_event_info')
-            .get();
+        final eventSnapshot =
+            await firestore.collection('anime_event_info').get();
 
         // ユーザーの好みのアニメに関連するイベントをフィルタリング
         // 注: イベントに'animeRelated'フィールドがあることを前提としています
@@ -594,10 +357,10 @@ class _AnimeEventListState extends State<AnimeEventList>
 
         for (var doc in eventSnapshot.docs) {
           final data = doc.data();
-          final String eventDescription = (data['eventInfo'] as String? ?? '')
-              .toLowerCase();
-          final String eventTitle = (data['eventName'] as String? ?? '')
-              .toLowerCase();
+          final String eventDescription =
+              (data['eventInfo'] as String? ?? '').toLowerCase();
+          final String eventTitle =
+              (data['eventName'] as String? ?? '').toLowerCase();
 
           // いずれかの好みのアニメがイベントで言及されているかチェック
           bool isRelated = preferredAnimeNames.any((animeName) {
@@ -613,20 +376,17 @@ class _AnimeEventListState extends State<AnimeEventList>
               'title': data['eventName'] as String? ?? '',
               'eventTopImageUrl': data['eventTopImageUrl'] as String? ?? '',
               'description': data['eventInfo'] as String? ?? '',
-              'eventStart': data['eventStart'] ??
-                  Timestamp.fromDate(DateTime.now()),
+              'eventStart':
+                  data['eventStart'] ?? Timestamp.fromDate(DateTime.now()),
               'eventFinish': data['eventFinish'] ??
                   Timestamp.fromDate(DateTime.now().add(Duration(days: 30))),
               'location': data['eventPlace'] as String? ?? '',
               'eventRemarks': data['eventRemarks'] as String? ?? '',
-              'relatedAnime': preferredAnimeNames.firstWhere(
-                      (animeName) {
-                    final String lowercaseAnimeName = animeName.toLowerCase();
-                    return eventDescription.contains(lowercaseAnimeName) ||
-                        eventTitle.contains(lowercaseAnimeName);
-                  },
-                  orElse: () => 'Unknown'
-              )
+              'relatedAnime': preferredAnimeNames.firstWhere((animeName) {
+                final String lowercaseAnimeName = animeName.toLowerCase();
+                return eventDescription.contains(lowercaseAnimeName) ||
+                    eventTitle.contains(lowercaseAnimeName);
+              }, orElse: () => 'Unknown')
             });
           }
         }
@@ -635,25 +395,23 @@ class _AnimeEventListState extends State<AnimeEventList>
         if (recommendedEvents.isEmpty && eventSnapshot.docs.isNotEmpty) {
           final randomEvents = List<DocumentSnapshot>.from(eventSnapshot.docs)
             ..shuffle();
-          recommendedEvents = randomEvents
-              .take(min(3, randomEvents.length))
-              .map((doc) {
+          recommendedEvents =
+              randomEvents.take(min(3, randomEvents.length)).map((doc) {
             final data = doc.data() as Map<String, dynamic>;
             return {
               'id': doc.id,
               'title': data['eventName'] as String? ?? '',
               'eventTopImageUrl': data['eventTopImageUrl'] as String? ?? '',
               'description': data['eventInfo'] as String? ?? '',
-              'eventStart': data['eventStart'] ??
-                  Timestamp.fromDate(DateTime.now()),
+              'eventStart':
+                  data['eventStart'] ?? Timestamp.fromDate(DateTime.now()),
               'eventFinish': data['eventFinish'] ??
                   Timestamp.fromDate(DateTime.now().add(Duration(days: 30))),
               'location': data['eventPlace'] as String? ?? '',
               'eventRemarks': data['eventRemarks'] as String? ?? '',
               'isRandom': true
             };
-          })
-              .toList();
+          }).toList();
         }
 
         // おすすめイベントで状態を更新
@@ -678,6 +436,11 @@ class _AnimeEventListState extends State<AnimeEventList>
   }
 
   void _loadBottomBannerAd() {
+    // Dispose existing ad before creating new one
+    _bottomBannerAd?.dispose();
+    _bottomBannerAd = null;
+    _isBottomBannerAdReady = false;
+
     _bottomBannerAd = BannerAd(
       adUnitId: 'ca-app-pub-1580421227117187/2839937902',
       request: AdRequest(),
@@ -694,6 +457,7 @@ class _AnimeEventListState extends State<AnimeEventList>
             _isBottomBannerAdReady = false;
           });
           ad.dispose();
+          _bottomBannerAd = null;
         },
       ),
     );
@@ -716,7 +480,7 @@ class _AnimeEventListState extends State<AnimeEventList>
       final eventSnapshot = await firestore.collection('events').get();
       final activeEvents = eventSnapshot.docs
           .where((doc) => doc.data()['isEnabled'] == true)
-          .map((doc) => doc.data()['title'] as String)
+          .map((doc) => doc.data()['title'] as String? ?? '')
           .toList();
 
       setState(() {
@@ -759,7 +523,7 @@ class _AnimeEventListState extends State<AnimeEventList>
     databaseReference.onValue.listen((event) {
       if (event.snapshot.value != null) {
         Map<dynamic, dynamic> rankings =
-        event.snapshot.value as Map<dynamic, dynamic>;
+            event.snapshot.value as Map<dynamic, dynamic>;
         _updateRankings(rankings);
       }
     });
@@ -768,16 +532,16 @@ class _AnimeEventListState extends State<AnimeEventList>
   void _updateRankings(Map<dynamic, dynamic> rankings) {
     List<MapEntry<String, int>> sortedRankings = rankings.entries
         .map((entry) =>
-        MapEntry(entry.key.toString(), (entry.value as num).toInt()))
+            MapEntry(entry.key.toString(), (entry.value as num).toInt()))
         .toList()
       ..sort((a, b) => b.value.compareTo(a.value));
 
     setState(() {
       _topRankedAnime = sortedRankings.take(10).map((entry) {
         return _allAnimeData.firstWhere(
-              (anime) => anime['name'] == entry.key,
+          (anime) => anime['name'] == entry.key,
           orElse: () =>
-          {'name': entry.key, 'imageUrl': '', 'count': entry.value},
+              {'name': entry.key, 'imageUrl': '', 'count': entry.value},
         );
       }).toList();
 
@@ -839,7 +603,6 @@ class _AnimeEventListState extends State<AnimeEventList>
     }
   }
 
-
   Future<void> _showTutorial() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     bool showTutorial = prefs.getBool('showTutorial') ?? true;
@@ -877,7 +640,7 @@ class _AnimeEventListState extends State<AnimeEventList>
       DatabaseEvent event = await databaseReference.once();
       if (event.snapshot.value != null) {
         Map<dynamic, dynamic> rankings =
-        event.snapshot.value as Map<dynamic, dynamic>;
+            event.snapshot.value as Map<dynamic, dynamic>;
         _updateRankings(rankings);
       }
 
@@ -890,14 +653,13 @@ class _AnimeEventListState extends State<AnimeEventList>
   Future<void> _fetchEventData() async {
     try {
       // anime_event_info コレクションからイベントデータを取得
-      final eventSnapshot = await firestore.collection('anime_event_info')
-          .get();
+      final eventSnapshot =
+          await firestore.collection('anime_event_info').get();
       List<Map<String, dynamic>> events = [];
 
       // データが見つからない場合のチェック
       if (eventSnapshot.docs.isEmpty) {
-        print(
-            'イベントデータが見つかりませんでした。サンプルデータを使用します。');
+        print('イベントデータが見つかりませんでした。サンプルデータを使用します。');
         // サンプルデータを追加
         events = [
           {
@@ -906,8 +668,8 @@ class _AnimeEventListState extends State<AnimeEventList>
             'eventTopImageUrl': '',
             'eventInfo': 'これはサンプルイベントです。',
             'eventStart': Timestamp.fromDate(DateTime.now()),
-            'eventFinish': Timestamp.fromDate(
-                DateTime.now().add(Duration(days: 30))),
+            'eventFinish':
+                Timestamp.fromDate(DateTime.now().add(Duration(days: 30))),
             'location': '東京都',
             'eventRemarks': 'サンプルデータです',
           }
@@ -921,8 +683,8 @@ class _AnimeEventListState extends State<AnimeEventList>
             'title': data['eventName'] as String? ?? '',
             'eventTopImageUrl': data['eventTopImageUrl'] as String? ?? '',
             'description': data['eventInfo'] as String? ?? '',
-            'eventStart': data['eventStart'] ??
-                Timestamp.fromDate(DateTime.now()),
+            'eventStart':
+                data['eventStart'] ?? Timestamp.fromDate(DateTime.now()),
             'eventFinish': data['eventFinish'] ??
                 Timestamp.fromDate(DateTime.now().add(Duration(days: 30))),
             'location': data['eventPlace'] as String? ?? '',
@@ -953,8 +715,8 @@ class _AnimeEventListState extends State<AnimeEventList>
               'eventTopImageUrl': '',
               'description': 'イベントデータの読み込み中にエラーが発生しました。',
               'eventStart': Timestamp.fromDate(DateTime.now()),
-              'eventFinish': Timestamp.fromDate(
-                  DateTime.now().add(Duration(days: 1))),
+              'eventFinish':
+                  Timestamp.fromDate(DateTime.now().add(Duration(days: 1))),
               'location': 'エラー',
               'eventRemarks': 'エラーが発生しました',
             }
@@ -1080,26 +842,26 @@ class _AnimeEventListState extends State<AnimeEventList>
 
     try {
       QuerySnapshot spotSnapshot =
-      await firestore.collection('locations').get();
+          await firestore.collection('locations').get();
       print("Fetched ${spotSnapshot.docs.length} documents in total");
 
       for (String prefecture in _allPrefectures) {
         List<Map<String, dynamic>> prefSpots = spotSnapshot.docs
             .map((doc) {
-          var data = doc.data() as Map<String, dynamic>;
-          return {
-            'name': data['sourceTitle'] ?? '',
-            'imageUrl': data['imageUrl'] ?? '',
-            'anime': data['anime'] ?? '',
-            'latitude': (data['latitude'] is num)
-                ? (data['latitude'] as num).toDouble()
-                : 0.0,
-            'longitude': (data['longitude'] is num)
-                ? (data['longitude'] as num).toDouble()
-                : 0.0,
-            'locationID': doc.id,
-          };
-        })
+              var data = doc.data() as Map<String, dynamic>;
+              return {
+                'name': data['sourceTitle'] ?? '',
+                'imageUrl': data['imageUrl'] ?? '',
+                'anime': data['anime'] ?? '',
+                'latitude': (data['latitude'] is num)
+                    ? (data['latitude'] as num).toDouble()
+                    : 0.0,
+                'longitude': (data['longitude'] is num)
+                    ? (data['longitude'] as num).toDouble()
+                    : 0.0,
+                'locationID': doc.id,
+              };
+            })
             .where((spot) => _isInPrefecture(spot, prefecture))
             .toList();
 
@@ -1177,7 +939,8 @@ class _AnimeEventListState extends State<AnimeEventList>
 
     if (userId.isNotEmpty) {
       try {
-        final animeQuery = await firestore.collection('animes')
+        final animeQuery = await firestore
+            .collection('animes')
             .where('name', isEqualTo: animeName)
             .limit(1)
             .get();
@@ -1195,8 +958,8 @@ class _AnimeEventListState extends State<AnimeEventList>
             'createdAt': FieldValue.serverTimestamp(),
           });
         }
-        final viewedAnimeRef = userDocRef.collection('viewedAnimes').doc(
-            animeId);
+        final viewedAnimeRef =
+            userDocRef.collection('viewedAnimes').doc(animeId);
         final viewedAnimeDoc = await viewedAnimeRef.get();
 
         if (viewedAnimeDoc.exists) {
@@ -1237,7 +1000,7 @@ class _AnimeEventListState extends State<AnimeEventList>
         if (votedAnimeToday.length < 1) {
           rtdb.DatabaseReference animeRef = databaseReference.child(animeName);
           rtdb.TransactionResult result =
-          await animeRef.runTransaction((Object? currentValue) {
+              await animeRef.runTransaction((Object? currentValue) {
             if (currentValue == null) {
               return rtdb.Transaction.success(1);
             }
@@ -1342,40 +1105,44 @@ class _AnimeEventListState extends State<AnimeEventList>
     final DateTime now = DateTime.now();
 
     // 終了していないイベントだけをフィルタリング
-    List<Map<String, dynamic>> activeEventData = _eventData
-        .where((event) {
+    List<Map<String, dynamic>> activeEventData = _eventData.where((event) {
       if (event['eventFinish'] != null) {
         DateTime eventEndDate = (event['eventFinish'] as Timestamp).toDate();
         return eventEndDate.isAfter(now);
       }
       return true;
-    })
-        .toList();
+    }).toList();
 
     // 検索クエリに基づいてイベントデータをフィルタリング
     List<Map<String, dynamic>> filteredEventData = activeEventData
         .where((event) =>
-    event['title'].toString().toLowerCase().contains(_searchQuery) ||
-        (event['location'] != null &&
-            event['location'].toString().toLowerCase().contains(
-                _searchQuery)) ||
-        (event['description'] != null &&
-            event['description'].toString().toLowerCase().contains(
-                _searchQuery))
-    )
+            event['title'].toString().toLowerCase().contains(_searchQuery) ||
+            (event['location'] != null &&
+                event['location']
+                    .toString()
+                    .toLowerCase()
+                    .contains(_searchQuery)) ||
+            (event['description'] != null &&
+                event['description']
+                    .toString()
+                    .toLowerCase()
+                    .contains(_searchQuery)))
         .toList();
 
     // 同様に検索クエリでおすすめイベントをフィルタリング
     List<Map<String, dynamic>> filteredRecommendedEvents = _recommendedEvents
         .where((event) =>
-    event['title'].toString().toLowerCase().contains(_searchQuery) ||
-        (event['location'] != null &&
-            event['location'].toString().toLowerCase().contains(
-                _searchQuery)) ||
-        (event['description'] != null &&
-            event['description'].toString().toLowerCase().contains(
-                _searchQuery))
-    )
+            event['title'].toString().toLowerCase().contains(_searchQuery) ||
+            (event['location'] != null &&
+                event['location']
+                    .toString()
+                    .toLowerCase()
+                    .contains(_searchQuery)) ||
+            (event['description'] != null &&
+                event['description']
+                    .toString()
+                    .toLowerCase()
+                    .contains(_searchQuery)))
         .toList();
 
     return Column(
@@ -1414,210 +1181,241 @@ class _AnimeEventListState extends State<AnimeEventList>
             },
             children: _showRecommendedEvents
                 ? [
-              SizedBox(
-                height: 200, // おすすめイベントの高さを設定
-                child: !_isRecommendedEventsLoaded
-                    ? Center(child: CircularProgressIndicator())
-                    : ListView.builder(
-                  scrollDirection: Axis.horizontal,
-                  padding: EdgeInsets.symmetric(horizontal: 12.0),
-                  itemCount: filteredRecommendedEvents.length,
-                  itemBuilder: (context, index) {
-                    final event = filteredRecommendedEvents[index];
+                    SizedBox(
+                      height: 200, // おすすめイベントの高さを設定
+                      child: !_isRecommendedEventsLoaded
+                          ? Center(child: CircularProgressIndicator())
+                          : ListView.builder(
+                              scrollDirection: Axis.horizontal,
+                              padding: EdgeInsets.symmetric(horizontal: 12.0),
+                              itemCount: filteredRecommendedEvents.length,
+                              itemBuilder: (context, index) {
+                                final event = filteredRecommendedEvents[index];
 
-                    // イベント情報を取得
-                    final String title = event['title'] ?? '';
-                    final String description = event['description'] ?? '';
-                    final String location = event['location'] ?? '場所未定';
-                    final String eventTopImageUrl = event['eventTopImageUrl'] ??
-                        '';
-                    final String relatedAnime = event['relatedAnime'] ?? '';
-                    final bool isRandom = event['isRandom'] ?? false;
+                                // イベント情報を取得
+                                final String title = event['title'] ?? '';
+                                final String description =
+                                    event['description'] ?? '';
+                                final String location =
+                                    event['location'] ?? '場所未定';
+                                final String eventTopImageUrl =
+                                    event['eventTopImageUrl'] ?? '';
+                                final String relatedAnime =
+                                    event['relatedAnime'] ?? '';
+                                final bool isRandom =
+                                    event['isRandom'] ?? false;
 
-                    // イベントの日付を取得
-                    final DateTime? startDate = event['eventStart'] != null
-                        ? (event['eventStart'] as Timestamp).toDate()
-                        : null;
-                    final DateTime? eventFinish = event['eventFinish'] != null
-                        ? (event['eventFinish'] as Timestamp).toDate()
-                        : null;
+                                // イベントの日付を取得
+                                final DateTime? startDate =
+                                    event['eventStart'] != null
+                                        ? (event['eventStart'] as Timestamp)
+                                            .toDate()
+                                        : null;
+                                final DateTime? eventFinish =
+                                    event['eventFinish'] != null
+                                        ? (event['eventFinish'] as Timestamp)
+                                            .toDate()
+                                        : null;
 
-                    // イベントの状態を判断
-                    String status = '';
-                    Color statusColor = Colors.grey;
+                                // イベントの状態を判断
+                                String status = '';
+                                Color statusColor = Colors.grey;
 
-                    if (startDate != null && eventFinish != null) {
-                      if (now.isAfter(startDate) && now.isBefore(eventFinish)) {
-                        status = '開催中';
-                        statusColor = Colors.green;
-                      } else if (now.isBefore(startDate)) {
-                        status = '近日開催';
-                        statusColor = Colors.orange;
-                      }
-                    }
+                                if (startDate != null && eventFinish != null) {
+                                  if (now.isAfter(startDate) &&
+                                      now.isBefore(eventFinish)) {
+                                    status = '開催中';
+                                    statusColor = Colors.green;
+                                  } else if (now.isBefore(startDate)) {
+                                    status = '近日開催';
+                                    statusColor = Colors.orange;
+                                  }
+                                }
 
-                    // 横スクロール用のイベントカード
-                    return Container(
-                      width: 210,
-                      margin: EdgeInsets.only(right: 12, bottom: 8),
-                      child: Card(
-                        elevation: 3,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        clipBehavior: Clip.antiAlias,
-                        child: InkWell(
-                          onTap: () {
-                            // イベントタップ時の処理
-                            _logger.logUserActivity('recommended_event_view', {
-                              'eventTitle': title,
-                              'eventId': event['id'] ?? '',
-                              'relatedAnime': relatedAnime,
-                              'isRandom': isRandom,
-                              'timestamp': DateTime.now().toIso8601String(),
-                            });
-
-                            // イベント詳細画面に遷移
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) =>
-                                    AnimeEventDetail(
-                                      eventNumber: event['id'] ?? '',
+                                // 横スクロール用のイベントカード
+                                return Container(
+                                  width: 210,
+                                  margin: EdgeInsets.only(right: 12, bottom: 8),
+                                  child: Card(
+                                    elevation: 3,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(8),
                                     ),
-                              ),
-                            );
-                          },
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              // イベント画像
-                              Stack(
-                                children: [
-                                  CachedNetworkImage(
-                                    imageUrl: eventTopImageUrl,
-                                    height: 120,
-                                    width: double.infinity,
-                                    fit: BoxFit.cover,
-                                    placeholder: (context, url) =>
-                                        Container(
-                                          height: 120,
-                                          color: Colors.grey[300],
-                                          child: Center(
-                                              child: CircularProgressIndicator(
-                                                  strokeWidth: 2.0)),
-                                        ),
-                                    errorWidget: (context, url, error) =>
-                                        Container(
-                                          height: 120,
-                                          color: Colors.grey[300],
-                                          child: Center(
-                                            child: Icon(
-                                                Icons.image_not_supported,
-                                                size: 30, color: Colors.grey),
+                                    clipBehavior: Clip.antiAlias,
+                                    child: InkWell(
+                                      onTap: () {
+                                        // イベントタップ時の処理
+                                        _logger.logUserActivity(
+                                            'recommended_event_view', {
+                                          'eventTitle': title,
+                                          'eventId': event['id'] ?? '',
+                                          'relatedAnime': relatedAnime,
+                                          'isRandom': isRandom,
+                                          'timestamp':
+                                              DateTime.now().toIso8601String(),
+                                        });
+
+                                        // イベント詳細画面に遷移
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (context) =>
+                                                AnimeEventDetail(
+                                              eventNumber: event['id'] ?? '',
+                                            ),
                                           ),
-                                        ),
-                                  ),
-                                  // ステータスバッジ
-                                  Positioned(
-                                    top: 8,
-                                    right: 8,
-                                    child: Container(
-                                      padding: EdgeInsets.symmetric(
-                                          horizontal: 8, vertical: 4),
-                                      decoration: BoxDecoration(
-                                        color: statusColor,
-                                        borderRadius: BorderRadius.circular(12),
-                                      ),
-                                      child: Text(
-                                        status,
-                                        style: TextStyle(
-                                          color: Colors.white,
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 12,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                  // 関連アニメのバッジ（ランダム選出でなければ表示）
-                                  if (!isRandom && relatedAnime.isNotEmpty)
-                                    Positioned(
-                                      top: 8,
-                                      left: 8,
-                                      child: Container(
-                                        padding: EdgeInsets.symmetric(
-                                            horizontal: 8, vertical: 4),
-                                        decoration: BoxDecoration(
-                                          color: Colors.deepOrange.withOpacity(
-                                              0.8),
-                                          borderRadius: BorderRadius.circular(
-                                              12),
-                                        ),
-                                        child: Text(
-                                          relatedAnime.length > 10
-                                              ? '${relatedAnime.substring(
-                                              0, 10)}...'
-                                              : relatedAnime,
-                                          style: TextStyle(
-                                            color: Colors.white,
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 10,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                ],
-                              ),
-                              // イベント情報
-                              Expanded(
-                                child: Padding(
-                                  padding: EdgeInsets.all(10.0),
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment
-                                        .start,
-                                    children: [
-                                      // タイトル
-                                      Text(
-                                        title,
-                                        style: TextStyle(
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.bold,
-                                          color: Colors.deepOrange,
-                                        ),
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                      Row(
+                                        );
+                                      },
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
                                         children: [
-                                          Icon(Icons.location_on, size: 12,
-                                              color: Colors.grey[600]),
-                                          SizedBox(width: 4),
-                                          Expanded(
-                                            child: Text(
-                                              location,
-                                              style: TextStyle(
-                                                fontSize: 15,
-                                                color: Colors.grey[600],
+                                          // イベント画像
+                                          Stack(
+                                            children: [
+                                              CachedNetworkImage(
+                                                imageUrl: eventTopImageUrl,
+                                                height: 120,
+                                                width: double.infinity,
+                                                fit: BoxFit.cover,
+                                                placeholder: (context, url) =>
+                                                    Container(
+                                                  height: 120,
+                                                  color: Colors.grey[300],
+                                                  child: Center(
+                                                      child:
+                                                          CircularProgressIndicator(
+                                                              strokeWidth:
+                                                                  2.0)),
+                                                ),
+                                                errorWidget:
+                                                    (context, url, error) =>
+                                                        Container(
+                                                  height: 120,
+                                                  color: Colors.grey[300],
+                                                  child: Center(
+                                                    child: Icon(
+                                                        Icons
+                                                            .image_not_supported,
+                                                        size: 30,
+                                                        color: Colors.grey),
+                                                  ),
+                                                ),
                                               ),
-                                              maxLines: 1,
-                                              overflow: TextOverflow.ellipsis,
+                                              // ステータスバッジ
+                                              Positioned(
+                                                top: 8,
+                                                right: 8,
+                                                child: Container(
+                                                  padding: EdgeInsets.symmetric(
+                                                      horizontal: 8,
+                                                      vertical: 4),
+                                                  decoration: BoxDecoration(
+                                                    color: statusColor,
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                            12),
+                                                  ),
+                                                  child: Text(
+                                                    status,
+                                                    style: TextStyle(
+                                                      color: Colors.white,
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                      fontSize: 12,
+                                                    ),
+                                                  ),
+                                                ),
+                                              ),
+                                              // 関連アニメのバッジ（ランダム選出でなければ表示）
+                                              if (!isRandom &&
+                                                  relatedAnime.isNotEmpty)
+                                                Positioned(
+                                                  top: 8,
+                                                  left: 8,
+                                                  child: Container(
+                                                    padding:
+                                                        EdgeInsets.symmetric(
+                                                            horizontal: 8,
+                                                            vertical: 4),
+                                                    decoration: BoxDecoration(
+                                                      color: Colors.deepOrange
+                                                          .withOpacity(0.8),
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                              12),
+                                                    ),
+                                                    child: Text(
+                                                      relatedAnime.length > 10
+                                                          ? '${relatedAnime.substring(0, 10)}...'
+                                                          : relatedAnime,
+                                                      style: TextStyle(
+                                                        color: Colors.white,
+                                                        fontWeight:
+                                                            FontWeight.bold,
+                                                        fontSize: 10,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ),
+                                            ],
+                                          ),
+                                          // イベント情報
+                                          Expanded(
+                                            child: Padding(
+                                              padding: EdgeInsets.all(10.0),
+                                              child: Column(
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.start,
+                                                children: [
+                                                  // タイトル
+                                                  Text(
+                                                    title,
+                                                    style: TextStyle(
+                                                      fontSize: 14,
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                      color: Colors.deepOrange,
+                                                    ),
+                                                    maxLines: 1,
+                                                    overflow:
+                                                        TextOverflow.ellipsis,
+                                                  ),
+                                                  Row(
+                                                    children: [
+                                                      Icon(Icons.location_on,
+                                                          size: 12,
+                                                          color:
+                                                              Colors.grey[600]),
+                                                      SizedBox(width: 4),
+                                                      Expanded(
+                                                        child: Text(
+                                                          location,
+                                                          style: TextStyle(
+                                                            fontSize: 15,
+                                                            color: Colors
+                                                                .grey[600],
+                                                          ),
+                                                          maxLines: 1,
+                                                          overflow: TextOverflow
+                                                              .ellipsis,
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                ],
+                                              ),
                                             ),
                                           ),
                                         ],
                                       ),
-                                    ],
+                                    ),
                                   ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    );
-                  },
-                ),
-              ),
-            ]
+                                );
+                              },
+                            ),
+                    ),
+                  ]
                 : [],
           ),
         ),
@@ -1652,207 +1450,217 @@ class _AnimeEventListState extends State<AnimeEventList>
           child: _eventData.isEmpty
               ? Center(child: CircularProgressIndicator()) // データ読み込み中
               : filteredEventData.isEmpty
-              ? Center(
-            child: Text('該当するイベントが見つかりませんでした。'),
-          ) // 検索結果なし
-              : Padding(
-            padding: EdgeInsets.only(bottom: 8.0),
-            child: GridView.builder(
-              controller: _eventScrollController,
-              // スクロールコントローラーを設定
-              padding: EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
-              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                childAspectRatio: 0.82,
-                crossAxisSpacing: 12,
-                mainAxisSpacing: 12,
-              ),
-              itemCount: filteredEventData.length,
-              itemBuilder: (context, index) {
-                final event = filteredEventData[index];
-
-                // 以下は既存のコードと同じ
-                final String title = event['title'] ?? '';
-                final String description = event['description'] ?? '';
-                final String location = event['location'] ?? '場所未定';
-                final String eventTopImageUrl = event['eventTopImageUrl'] ?? '';
-
-                final DateTime? startDate = event['eventStart'] != null
-                    ? (event['eventStart'] as Timestamp).toDate()
-                    : null;
-                final DateTime? eventFinish = event['eventFinish'] != null
-                    ? (event['eventFinish'] as Timestamp).toDate()
-                    : null;
-
-                String status = '';
-                Color statusColor = Colors.grey;
-
-                if (startDate != null && eventFinish != null) {
-                  if (now.isAfter(startDate) && now.isBefore(eventFinish)) {
-                    status = '開催中';
-                    statusColor = Colors.green;
-                  } else if (now.isBefore(startDate)) {
-                    status = '近日開催';
-                    statusColor = Colors.orange;
-                  }
-                }
-
-                return Card(
-                  margin: EdgeInsets.zero,
-                  elevation: 2,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  clipBehavior: Clip.antiAlias,
-                  child: InkWell(
-                    onTap: () {
-                      _logger.logUserActivity('event_view', {
-                        'eventTitle': title,
-                        'eventId': event['id'] ?? '',
-                        'timestamp': DateTime.now().toIso8601String(),
-                      });
-
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) =>
-                              AnimeEventDetail(
-                                eventNumber: event['id'] ?? '',
-                              ),
+                  ? Center(
+                      child: Text('該当するイベントが見つかりませんでした。'),
+                    ) // 検索結果なし
+                  : Padding(
+                      padding: EdgeInsets.only(bottom: 8.0),
+                      child: GridView.builder(
+                        controller: _eventScrollController,
+                        // スクロールコントローラーを設定
+                        padding: EdgeInsets.symmetric(
+                            horizontal: 12.0, vertical: 8.0),
+                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 2,
+                          childAspectRatio: 0.82,
+                          crossAxisSpacing: 12,
+                          mainAxisSpacing: 12,
                         ),
-                      );
-                    },
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Stack(
-                          children: [
-                            CachedNetworkImage(
-                              imageUrl: eventTopImageUrl,
-                              height: 100,
-                              width: double.infinity,
-                              fit: BoxFit.cover,
-                              placeholder: (context, url) =>
-                                  Container(
-                                    height: 100,
-                                    color: Colors.grey[300],
-                                    child: Center(
-                                        child: CircularProgressIndicator(
-                                            strokeWidth: 2.0)),
-                                  ),
-                              errorWidget: (context, url, error) =>
-                                  Container(
-                                    height: 100,
-                                    color: Colors.grey[300],
-                                    child: Center(
-                                      child: Icon(
-                                          Icons.image_not_supported, size: 30,
-                                          color: Colors.grey),
+                        itemCount: filteredEventData.length,
+                        itemBuilder: (context, index) {
+                          final event = filteredEventData[index];
+
+                          // 以下は既存のコードと同じ
+                          final String title = event['title'] ?? '';
+                          final String description = event['description'] ?? '';
+                          final String location = event['location'] ?? '場所未定';
+                          final String eventTopImageUrl =
+                              event['eventTopImageUrl'] ?? '';
+
+                          final DateTime? startDate =
+                              event['eventStart'] != null
+                                  ? (event['eventStart'] as Timestamp).toDate()
+                                  : null;
+                          final DateTime? eventFinish =
+                              event['eventFinish'] != null
+                                  ? (event['eventFinish'] as Timestamp).toDate()
+                                  : null;
+
+                          String status = '';
+                          Color statusColor = Colors.grey;
+
+                          if (startDate != null && eventFinish != null) {
+                            if (now.isAfter(startDate) &&
+                                now.isBefore(eventFinish)) {
+                              status = '開催中';
+                              statusColor = Colors.green;
+                            } else if (now.isBefore(startDate)) {
+                              status = '近日開催';
+                              statusColor = Colors.orange;
+                            }
+                          }
+
+                          return Card(
+                            margin: EdgeInsets.zero,
+                            elevation: 2,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            clipBehavior: Clip.antiAlias,
+                            child: InkWell(
+                              onTap: () {
+                                _logger.logUserActivity('event_view', {
+                                  'eventTitle': title,
+                                  'eventId': event['id'] ?? '',
+                                  'timestamp': DateTime.now().toIso8601String(),
+                                });
+
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => AnimeEventDetail(
+                                      eventNumber: event['id'] ?? '',
                                     ),
                                   ),
-                            ),
-                            Positioned(
-                              top: 8,
-                              right: 8,
-                              child: Container(
-                                padding: EdgeInsets.symmetric(
-                                    horizontal: 8, vertical: 4),
-                                decoration: BoxDecoration(
-                                  color: statusColor,
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: Text(
-                                  status,
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 12,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        Expanded(
-                          child: Padding(
-                            padding: EdgeInsets.all(8.0),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Text(
-                                  title,
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.bold,
-                                    color: Color(0xFF00008b),
-                                  ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                                SizedBox(height: 2),
-                                Text(
-                                  description,
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: Colors.black87,
-                                  ),
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                                Spacer(),
-                                Row(
-                                  children: [
-                                    Icon(Icons.location_on, size: 12,
-                                        color: Colors.grey[600]),
-                                    SizedBox(width: 4),
-                                    Expanded(
-                                      child: Text(
-                                        location,
-                                        style: TextStyle(
-                                          fontSize: 11,
-                                          color: Colors.grey[600],
+                                );
+                              },
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Stack(
+                                    children: [
+                                      CachedNetworkImage(
+                                        imageUrl: eventTopImageUrl,
+                                        height: 100,
+                                        width: double.infinity,
+                                        fit: BoxFit.cover,
+                                        placeholder: (context, url) =>
+                                            Container(
+                                          height: 100,
+                                          color: Colors.grey[300],
+                                          child: Center(
+                                              child: CircularProgressIndicator(
+                                                  strokeWidth: 2.0)),
                                         ),
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
+                                        errorWidget: (context, url, error) =>
+                                            Container(
+                                          height: 100,
+                                          color: Colors.grey[300],
+                                          child: Center(
+                                            child: Icon(
+                                                Icons.image_not_supported,
+                                                size: 30,
+                                                color: Colors.grey),
+                                          ),
+                                        ),
+                                      ),
+                                      Positioned(
+                                        top: 8,
+                                        right: 8,
+                                        child: Container(
+                                          padding: EdgeInsets.symmetric(
+                                              horizontal: 8, vertical: 4),
+                                          decoration: BoxDecoration(
+                                            color: statusColor,
+                                            borderRadius:
+                                                BorderRadius.circular(12),
+                                          ),
+                                          child: Text(
+                                            status,
+                                            style: TextStyle(
+                                              color: Colors.white,
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 12,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  Expanded(
+                                    child: Padding(
+                                      padding: EdgeInsets.all(8.0),
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Text(
+                                            title,
+                                            style: TextStyle(
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.bold,
+                                              color: Color(0xFF00008b),
+                                            ),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                          SizedBox(height: 2),
+                                          Text(
+                                            description,
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              color: Colors.black87,
+                                            ),
+                                            maxLines: 2,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                          Spacer(),
+                                          Row(
+                                            children: [
+                                              Icon(Icons.location_on,
+                                                  size: 12,
+                                                  color: Colors.grey[600]),
+                                              SizedBox(width: 4),
+                                              Expanded(
+                                                child: Text(
+                                                  location,
+                                                  style: TextStyle(
+                                                    fontSize: 11,
+                                                    color: Colors.grey[600],
+                                                  ),
+                                                  maxLines: 1,
+                                                  overflow:
+                                                      TextOverflow.ellipsis,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                          SizedBox(height: 2),
+                                          Row(
+                                            children: [
+                                              Icon(Icons.calendar_today,
+                                                  size: 12,
+                                                  color: Colors.grey[600]),
+                                              SizedBox(width: 4),
+                                              Expanded(
+                                                child: Text(
+                                                  startDate != null &&
+                                                          eventFinish != null
+                                                      ? '${startDate.month}/${startDate.day}〜${eventFinish.month}/${eventFinish.day}'
+                                                      : '日程未定',
+                                                  style: TextStyle(
+                                                    fontSize: 11,
+                                                    color: Colors.grey[600],
+                                                  ),
+                                                  maxLines: 1,
+                                                  overflow:
+                                                      TextOverflow.ellipsis,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ],
                                       ),
                                     ),
-                                  ],
-                                ),
-                                SizedBox(height: 2),
-                                Row(
-                                  children: [
-                                    Icon(Icons.calendar_today, size: 12,
-                                        color: Colors.grey[600]),
-                                    SizedBox(width: 4),
-                                    Expanded(
-                                      child: Text(
-                                        startDate != null && eventFinish != null
-                                            ? '${startDate.month}/${startDate
-                                            .day}〜${eventFinish
-                                            .month}/${eventFinish.day}'
-                                            : '日程未定',
-                                        style: TextStyle(
-                                          fontSize: 11,
-                                          color: Colors.grey[600],
-                                        ),
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ],
+                                  ),
+                                ],
+                              ),
                             ),
-                          ),
-                        ),
-                      ],
+                          );
+                        },
+                      ),
                     ),
-                  ),
-                );
-              },
-            ),
-          ),
         ),
       ],
     );
@@ -1861,13 +1669,13 @@ class _AnimeEventListState extends State<AnimeEventList>
   Widget _buildAnimeList() {
     List<Map<String, dynamic>> filteredAnimeData = _sortedAnimeData
         .where((anime) =>
-    anime['name'].toLowerCase().contains(_searchQuery) ||
-        _allPrefectures.any((prefecture) =>
-        prefecture.toLowerCase().contains(_searchQuery) &&
-            (_prefectureSpots[prefecture]?.any((spot) =>
-            spot['anime'].toLowerCase() ==
-                anime['name'].toLowerCase()) ??
-                false)))
+            anime['name'].toLowerCase().contains(_searchQuery) ||
+            _allPrefectures.any((prefecture) =>
+                prefecture.toLowerCase().contains(_searchQuery) &&
+                (_prefectureSpots[prefecture]?.any((spot) =>
+                        spot['anime'].toLowerCase() ==
+                        anime['name'].toLowerCase()) ??
+                    false)))
         .toList();
 
     return Column(
@@ -1891,76 +1699,75 @@ class _AnimeEventListState extends State<AnimeEventList>
           },
           children: _showRanking
               ? [
-            SizedBox(
-              height: 200,
-              child: ListView.builder(
-                padding: EdgeInsets.symmetric(horizontal: 16.0),
-                scrollDirection: Axis.horizontal,
-                itemCount: _topRankedAnime.length,
-                itemBuilder: (context, index) {
-                  final anime = _topRankedAnime[index];
-                  return GestureDetector(
-                    onTap: () => _navigateAndVote(context, anime['name']),
-                    child: Container(
-                      width: 160,
-                      margin: EdgeInsets.only(right: 16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Stack(
-                            children: [
-                              ClipRRect(
-                                borderRadius: BorderRadius.circular(8),
-                                child: CachedNetworkImage(
-                                  imageUrl: anime['imageUrl'],
-                                  height: 150,
-                                  width: 250,
-                                  fit: BoxFit.cover,
-                                  placeholder: (context, url) =>
-                                      Center(
-                                          child: CircularProgressIndicator()),
-                                  errorWidget: (context, url, error) =>
-                                      Icon(Icons.error),
-                                ),
-                              ),
-                              Positioned(
-                                top: 8,
-                                left: 8,
-                                child: Container(
-                                  padding: EdgeInsets.symmetric(
-                                      horizontal: 8, vertical: 4),
-                                  decoration: BoxDecoration(
-                                    color: Colors.black.withOpacity(0.7),
-                                    borderRadius:
-                                    BorderRadius.circular(12),
-                                  ),
-                                  child: Text(
-                                    '${index + 1}',
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 14,
+                  SizedBox(
+                    height: 200,
+                    child: ListView.builder(
+                      padding: EdgeInsets.symmetric(horizontal: 16.0),
+                      scrollDirection: Axis.horizontal,
+                      itemCount: _topRankedAnime.length,
+                      itemBuilder: (context, index) {
+                        final anime = _topRankedAnime[index];
+                        return GestureDetector(
+                          onTap: () => _navigateAndVote(context, anime['name']),
+                          child: Container(
+                            width: 160,
+                            margin: EdgeInsets.only(right: 16),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Stack(
+                                  children: [
+                                    ClipRRect(
+                                      borderRadius: BorderRadius.circular(8),
+                                      child: CachedNetworkImage(
+                                        imageUrl: anime['imageUrl'],
+                                        height: 150,
+                                        width: 250,
+                                        fit: BoxFit.cover,
+                                        placeholder: (context, url) => Center(
+                                            child: CircularProgressIndicator()),
+                                        errorWidget: (context, url, error) =>
+                                            Icon(Icons.error),
+                                      ),
                                     ),
-                                  ),
+                                    Positioned(
+                                      top: 8,
+                                      left: 8,
+                                      child: Container(
+                                        padding: EdgeInsets.symmetric(
+                                            horizontal: 8, vertical: 4),
+                                        decoration: BoxDecoration(
+                                          color: Colors.black.withOpacity(0.7),
+                                          borderRadius:
+                                              BorderRadius.circular(12),
+                                        ),
+                                        child: Text(
+                                          '${index + 1}',
+                                          style: TextStyle(
+                                            color: Colors.white,
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 14,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
                                 ),
-                              ),
-                            ],
+                                SizedBox(height: 8),
+                                Text(
+                                  anime['name'],
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(fontWeight: FontWeight.bold),
+                                ),
+                              ],
+                            ),
                           ),
-                          SizedBox(height: 8),
-                          Text(
-                            anime['name'],
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(fontWeight: FontWeight.bold),
-                          ),
-                        ],
-                      ),
+                        );
+                      },
                     ),
-                  );
-                },
-              ),
-            ),
-          ]
+                  ),
+                ]
               : [],
         ),
         Padding(
@@ -1978,68 +1785,68 @@ class _AnimeEventListState extends State<AnimeEventList>
           child: _allAnimeData.isEmpty
               ? Center(child: CircularProgressIndicator())
               : filteredAnimeData.isEmpty
-              ? Center(
-            child: Text('何も見つかりませんでした。。'),
-          )
-              : GridView.builder(
-            controller: _scrollController,
-            padding: EdgeInsets.only(bottom: 16.0),
-            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
-              childAspectRatio: 1.3,
-              mainAxisSpacing: 1.0,
-              crossAxisSpacing: 3.0,
-            ),
-            itemCount: filteredAnimeData.length,
-            itemBuilder: (context, index) {
-              if (index != 0 && index % 6 == 0) {
-                if (AdManager.canLoadAdForIndex(index)) {
-                  Future.microtask(
-                          () => AdManager.loadGridBannerAd(index));
-                }
+                  ? Center(
+                      child: Text('何も見つかりませんでした。。'),
+                    )
+                  : GridView.builder(
+                      controller: _scrollController,
+                      padding: EdgeInsets.only(bottom: 16.0),
+                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 2,
+                        childAspectRatio: 1.3,
+                        mainAxisSpacing: 1.0,
+                        crossAxisSpacing: 3.0,
+                      ),
+                      itemCount: filteredAnimeData.length,
+                      itemBuilder: (context, index) {
+                        if (index != 0 && index % 6 == 0) {
+                          if (AdManager.canLoadAdForIndex(index)) {
+                            Future.microtask(
+                                () => AdManager.loadGridBannerAd(index));
+                          }
 
-                if (AdManager.isAdReadyForIndex(index)) {
-                  final ad = AdManager.getAdForIndex(index);
-                  return Container(
-                    width: ad!.size.width.toDouble(),
-                    height: ad.size.height.toDouble(),
-                    child: AdWidget(ad: ad),
-                  );
-                } else {
-                  return Container(
-                    height: 50,
-                    child: Center(
-                        child: Text(
-                          '広告',
-                          style: TextStyle(
-                            color: Colors.grey,
+                          if (AdManager.isAdReadyForIndex(index)) {
+                            final ad = AdManager.getAdForIndex(index);
+                            return Container(
+                              width: ad!.size.width.toDouble(),
+                              height: ad.size.height.toDouble(),
+                              child: AdWidget(ad: ad),
+                            );
+                          } else {
+                            return Container(
+                              height: 50,
+                              child: Center(
+                                  child: Text(
+                                '広告',
+                                style: TextStyle(
+                                  color: Colors.grey,
+                                ),
+                              )),
+                            );
+                          }
+                        }
+
+                        final adjustedIndex = index - (index ~/ 6);
+                        if (adjustedIndex >= filteredAnimeData.length) {
+                          return SizedBox();
+                        }
+
+                        final animeName =
+                            filteredAnimeData[adjustedIndex]['name'];
+                        final imageUrl =
+                            filteredAnimeData[adjustedIndex]['imageUrl'];
+                        final key = adjustedIndex == 0 ? firstItemKey : null;
+
+                        return GestureDetector(
+                          key: key,
+                          onTap: () => _navigateAndVote(context, animeName),
+                          child: AnimeGridItem(
+                            animeName: animeName,
+                            imageUrl: imageUrl,
                           ),
-                        )),
-                  );
-                }
-              }
-
-              final adjustedIndex = index - (index ~/ 6);
-              if (adjustedIndex >= filteredAnimeData.length) {
-                return SizedBox();
-              }
-
-              final animeName =
-              filteredAnimeData[adjustedIndex]['name'];
-              final imageUrl =
-              filteredAnimeData[adjustedIndex]['imageUrl'];
-              final key = adjustedIndex == 0 ? firstItemKey : null;
-
-              return GestureDetector(
-                key: key,
-                onTap: () => _navigateAndVote(context, animeName),
-                child: AnimeGridItem(
-                  animeName: animeName,
-                  imageUrl: imageUrl,
-                ),
-              );
-            },
-          ),
+                        );
+                      },
+                    ),
         ),
       ],
     );
@@ -2054,34 +1861,32 @@ class _AnimeEventListState extends State<AnimeEventList>
     }
 
     return ShowCaseWidget(
-        builder: (context) =>
-            WillPopScope(
-              onWillPop: () async {
-                return await showDialog<bool>(
-                  context: context,
-                  builder: (context) =>
-                      AlertDialog(
-                        title: Text('アプリを終了しますか？'),
-                        content: Text('アプリを閉じてもよろしいですか？'),
-                        actions: [
-                          TextButton(
-                            onPressed: () => Navigator.of(context).pop(false),
-                            child: Text('キャンセル'),
-                          ),
-                          TextButton(
-                            onPressed: () => Navigator.of(context).pop(true),
-                            child: Text('終了'),
-                          ),
-                        ],
-                      ),
-                ) ??
-                    false;
-              },
-              child: Scaffold(
-                appBar: AppBar(
-                  automaticallyImplyLeading: false,
-                  title: _isSearching
-                      ? TextField(
+      builder: (context) => WillPopScope(
+        onWillPop: () async {
+          return await showDialog<bool>(
+                context: context,
+                builder: (context) => AlertDialog(
+                  title: Text('アプリを終了しますか？'),
+                  content: Text('アプリを閉じてもよろしいですか？'),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.of(context).pop(false),
+                      child: Text('キャンセル'),
+                    ),
+                    TextButton(
+                      onPressed: () => Navigator.of(context).pop(true),
+                      child: Text('終了'),
+                    ),
+                  ],
+                ),
+              ) ??
+              false;
+        },
+        child: Scaffold(
+          appBar: AppBar(
+            automaticallyImplyLeading: false,
+            title: _isSearching
+                ? TextField(
                     controller: _searchController,
                     onChanged: _onSearchChanged,
                     autofocus: true,
@@ -2089,165 +1894,162 @@ class _AnimeEventListState extends State<AnimeEventList>
                       hintText: _currentTabIndex == 0
                           ? 'アニメで検索...'
                           : _currentTabIndex == 1
-                          ? '都道府県で検索...'
-                          : 'イベントで検索...',
+                              ? '都道府県で検索...'
+                              : 'イベントで検索...',
                       hintStyle: TextStyle(color: Colors.grey),
                       border: InputBorder.none,
                     ),
                     style: TextStyle(color: Colors.black),
                   )
-                      : Text(
+                : Text(
                     _currentTabIndex == 2 ? 'イベント情報' : '巡礼スポット',
                     style: TextStyle(
                       color: Color(0xFF00008b),
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  actions: [
-                    IconButton(
-                      key: checkInKey,
-                      onPressed: () =>
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                                builder: (context) => const SpotTestScreen()),
-                          ),
-                      icon: const Icon(
-                          Icons.check_circle, color: Color(0xFF00008b)),
-                    ),
-                    IconButton(
-                      key: favoriteKey,
-                      onPressed: () =>
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                                builder: (context) => FavoriteLocationsPage()),
-                          ),
-                      icon: const Icon(
-                          Icons.favorite, color: Color(0xFF00008b)),
-                    ),
-                    IconButton(
-                      key: addKey,
-                      icon: Icon(Icons.add, color: Color(0xFF00008b)),
-                      onPressed: () {
-                        showCupertinoModalPopup(
-                          context: context,
-                          builder: (BuildContext context) =>
-                              CupertinoActionSheet(
-                                title: Text(
-                                  'リクエストを選択',
-                                  style: TextStyle(
-                                    color: Colors.black,
-                                  ),
-                                ),
-                                message: Text(
-                                  '新しく追加したいコンテンツを選択してください',
-                                  style: TextStyle(
-                                    color: Colors.black,
-                                  ),
-                                ),
-                                actions: <CupertinoActionSheetAction>[
-                                  CupertinoActionSheetAction(
-                                    onPressed: () {
-                                      Navigator.pop(context);
-                                      Navigator.push(
-                                        context,
-                                        MaterialPageRoute(builder: (context) =>
-                                            AnimeRequestCustomerForm()),
-                                      );
-                                    },
-                                    child: Text(
-                                      '聖地をリクエストする',
-                                      style: TextStyle(
-                                        color: Color(0xFF00008b),
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ),
-                                  CupertinoActionSheetAction(
-                                    onPressed: () {
-                                      Navigator.pop(context);
-                                      Navigator.push(
-                                        context,
-                                        MaterialPageRoute(builder: (context) =>
-                                            AnimeNameRequestCustomerForm()),
-                                      );
-                                    },
-                                    child: Text(
-                                      'アニメをリクエストする',
-                                      style: TextStyle(
-                                        color: Color(0xFF00008b),
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                                cancelButton: CupertinoActionSheetAction(
-                                  onPressed: () {
-                                    Navigator.pop(context);
-                                  },
-                                  child: Text(
-                                    'キャンセル',
-                                    style: TextStyle(
-                                      color: Colors.red,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                        );
-                      },
-                    ),
-                    IconButton(
-                      key: searchKey,
-                      icon: Icon(
-                        _isSearching ? Icons.close : Icons.search,
-                        color: Color(0xFF00008b),
-                      ),
-                      onPressed: _toggleSearch,
-                    ),
-                  ],
-                  bottom: TabBar(
-                    controller: _tabController,
-                    tabs: [
-                      Tab(text: 'アニメで探す'),
-                      Tab(text: '場所で探す'),
-                      Tab(text: 'イベントで探す'),
-                    ],
-                    labelColor: Color(0xFF00008b),
-                    unselectedLabelColor: Colors.grey,
-                    indicatorColor: Color(0xFF00008b),
-                  ),
+            actions: [
+              IconButton(
+                key: checkInKey,
+                onPressed: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (context) => const SpotTestScreen()),
                 ),
-                body: Column(
+                icon: const Icon(Icons.check_circle, color: Color(0xFF00008b)),
+              ),
+              IconButton(
+                key: favoriteKey,
+                onPressed: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (context) => FavoriteLocationsPage()),
+                ),
+                icon: const Icon(Icons.favorite, color: Color(0xFF00008b)),
+              ),
+              IconButton(
+                key: addKey,
+                icon: Icon(Icons.add, color: Color(0xFF00008b)),
+                onPressed: () {
+                  showCupertinoModalPopup(
+                    context: context,
+                    builder: (BuildContext context) => CupertinoActionSheet(
+                      title: Text(
+                        'リクエストを選択',
+                        style: TextStyle(
+                          color: Colors.black,
+                        ),
+                      ),
+                      message: Text(
+                        '新しく追加したいコンテンツを選択してください',
+                        style: TextStyle(
+                          color: Colors.black,
+                        ),
+                      ),
+                      actions: <CupertinoActionSheetAction>[
+                        CupertinoActionSheetAction(
+                          onPressed: () {
+                            Navigator.pop(context);
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (context) =>
+                                      AnimeRequestCustomerForm()),
+                            );
+                          },
+                          child: Text(
+                            '聖地をリクエストする',
+                            style: TextStyle(
+                              color: Color(0xFF00008b),
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                        CupertinoActionSheetAction(
+                          onPressed: () {
+                            Navigator.pop(context);
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (context) =>
+                                      AnimeNameRequestCustomerForm()),
+                            );
+                          },
+                          child: Text(
+                            'アニメをリクエストする',
+                            style: TextStyle(
+                              color: Color(0xFF00008b),
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ],
+                      cancelButton: CupertinoActionSheetAction(
+                        onPressed: () {
+                          Navigator.pop(context);
+                        },
+                        child: Text(
+                          'キャンセル',
+                          style: TextStyle(
+                            color: Colors.red,
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+              IconButton(
+                key: searchKey,
+                icon: Icon(
+                  _isSearching ? Icons.close : Icons.search,
+                  color: Color(0xFF00008b),
+                ),
+                onPressed: _toggleSearch,
+              ),
+            ],
+            bottom: TabBar(
+              controller: _tabController,
+              tabs: [
+                Tab(text: 'アニメで探す'),
+                Tab(text: '場所で探す'),
+                Tab(text: 'イベントで探す'),
+              ],
+              labelColor: Color(0xFF00008b),
+              unselectedLabelColor: Colors.grey,
+              indicatorColor: Color(0xFF00008b),
+            ),
+          ),
+          body: Column(
+            children: [
+              Expanded(
+                child: TabBarView(
+                  physics: NeverScrollableScrollPhysics(),
+                  controller: _tabController,
                   children: [
-                    Expanded(
-                      child: TabBarView(
-                        physics: NeverScrollableScrollPhysics(),
-                        controller: _tabController,
-                        children: [
-                          _buildAnimeList(),
-                          _currentTabIndex == 1
-                              ? PrefectureListPage(
+                    _buildAnimeList(),
+                    _currentTabIndex == 1
+                        ? PrefectureListPage(
                             prefectureSpots: _prefectureSpots,
                             searchQuery: _searchQuery,
                             onFetchPrefectureData: _fetchPrefectureData,
                           )
-                              : Container(),
-                          _buildEventList(),
-                        ],
-                      ),
-                    ),
-                    if (_isBottomBannerAdReady && _bottomBannerAd != null)
-                      Container(
-                        width: _bottomBannerAd!.size.width.toDouble(),
-                        height: _bottomBannerAd!.size.height.toDouble(),
-                        child: AdWidget(ad: _bottomBannerAd!),
-                      ),
+                        : Container(),
+                    _buildEventList(),
                   ],
                 ),
               ),
-            ),
-      );
+              if (_isBottomBannerAdReady && _bottomBannerAd != null)
+                Container(
+                  width: _bottomBannerAd!.size.width.toDouble(),
+                  height: _bottomBannerAd!.size.height.toDouble(),
+                  child: AdWidget(ad: _bottomBannerAd!),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }
 

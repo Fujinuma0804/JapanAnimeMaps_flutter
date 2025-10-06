@@ -398,7 +398,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                 context,
                 MaterialPageRoute(
                     builder: (context) => MainScreen(
-                          initalIndex: 3,
+                          
                         )));
           },
           icon: Icon(

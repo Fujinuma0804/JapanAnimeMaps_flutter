@@ -1,5 +1,4 @@
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:parts/Dataprovider/model/spot_model.dart';
@@ -225,12 +224,7 @@ class SpotDetailScreen extends StatelessWidget {
                       return Container(
                         color: Colors.grey[200],
                         child: Center(
-                          child: CircularProgressIndicator(
-                              // value: loadingProgress.expectedTotalBytes != null
-                              //     ? loadingProgress.cumulativeBytesLoaded /
-                              //         loadingProgress.expectedTotalBytes!
-                              //     : null,
-                              ),
+                          child: CircularProgressIndicator(),
                         ),
                       );
                     },

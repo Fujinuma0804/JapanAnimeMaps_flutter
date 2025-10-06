@@ -100,7 +100,6 @@ class _AnimeListTestRankingEngState extends State<AnimeListTestRankingEng>
   int _currentTabIndex = 0;
   bool _isPrefectureDataFetched = false;
 
-
   GlobalKey searchKey = GlobalKey();
   GlobalKey addKey = GlobalKey();
   GlobalKey favoriteKey = GlobalKey();
@@ -388,6 +387,11 @@ class _AnimeListTestRankingEngState extends State<AnimeListTestRankingEng>
   }
 
   void _loadBottomBannerAd() {
+    // Dispose existing ad before creating new one
+    _bottomBannerAd?.dispose();
+    _bottomBannerAd = null;
+    _isBottomBannerAdReady = false;
+
     _bottomBannerAd = BannerAd(
       adUnitId: 'ca-app-pub-1580421227117187/2839937902',
       request: AdRequest(),
@@ -404,6 +408,7 @@ class _AnimeListTestRankingEngState extends State<AnimeListTestRankingEng>
             _isBottomBannerAdReady = false;
           });
           ad.dispose();
+          _bottomBannerAd = null;
         },
       ),
     );
@@ -451,7 +456,7 @@ class _AnimeListTestRankingEngState extends State<AnimeListTestRankingEng>
 
       for (var doc in eventSnapshot.docs) {
         if (doc.data()['isEnabled'] == true) {
-          String title = doc.data()['title'] as String;
+          String title = doc.data()['title'] as String? ?? '';
           String translatedTitle = await translateText(title);
           activeEvents.add(translatedTitle);
         }
@@ -560,13 +565,14 @@ class _AnimeListTestRankingEngState extends State<AnimeListTestRankingEng>
       for (var doc in eventSnapshot.docs) {
         if (doc.data()['isEnabled'] == true) {
           final data = doc.data();
-          String translatedTitle = await translateText(data['title'] as String);
+          String translatedTitle =
+              await translateText(data['title'] as String? ?? '');
           String translatedDescription =
               await translateText(data['description'] as String? ?? '');
 
           translatedEvents.add({
             'title': translatedTitle,
-            'originalTitle': data['title'] as String,
+            'originalTitle': data['title'] as String? ?? '',
             'imageUrl': data['imageUrl'] as String? ?? '',
             'description': translatedDescription,
             'startDate': data['startDate'],

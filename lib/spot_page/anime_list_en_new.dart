@@ -17,7 +17,6 @@ import 'package:parts/spot_page/anime_list_test_ranking.dart';
 import 'package:parts/subscription/payment_subscription.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:showcaseview/showcaseview.dart';
-import 'package:parts/components/shimmer_loading.dart';
 
 import 'anime_list_detail.dart';
 import 'anime_list_en_ranking.dart';
@@ -78,7 +77,7 @@ class AdManager {
 
     _gridBannerAds[index] = BannerAd(
       adUnitId: 'ca-app-pub-1580421227117187/3454220382',
-      request: AdRequest(),
+      request: const AdRequest(),
       size: AdSize.banner,
       listener: BannerAdListener(
         onAdLoaded: (_) {
@@ -180,7 +179,7 @@ class PrefectureListPage2 extends StatelessWidget {
     'Okinawa': '沖縄県',
   };
 
-  PrefectureListPage2({
+  PrefectureListPage2({super.key, 
     required this.prefectureSpots,
     required this.searchQuery,
     required this.onFetchPrefectureData,
@@ -195,12 +194,12 @@ class PrefectureListPage2 extends StatelessWidget {
   Widget build(BuildContext context) {
     List<String> filteredPrefectures = prefectureImageMapping.keys
         .where((prefecture) =>
-            prefecture.toLowerCase().contains(searchQuery.toLowerCase()))
+        prefecture.toLowerCase().contains(searchQuery.toLowerCase()))
         .toList();
 
     return GridView.builder(
-      padding: EdgeInsets.all(8.0),
-      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+      padding: const EdgeInsets.all(8.0),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
         childAspectRatio: 1.3,
         crossAxisSpacing: 10,
@@ -233,28 +232,28 @@ class PrefectureListPage2 extends StatelessWidget {
                     _getPrefectureImagePath(prefecture),
                     fit: BoxFit.cover,
                     errorBuilder: (context, error, stackTrace) {
-                      return Center(
+                      return const Center(
                         child: Icon(Icons.image_not_supported, size: 40),
                       );
                     },
                   ),
                 ),
                 Container(
-                  padding: EdgeInsets.all(8),
+                  padding: const EdgeInsets.all(8),
                   color: Colors.white,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
                         prefecture,
-                        style: TextStyle(
+                        style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
                       Text(
                         '${spots.length} spots',
-                        style: TextStyle(
+                        style: const TextStyle(
                           fontSize: 12,
                           color: Colors.grey,
                         ),
@@ -275,7 +274,7 @@ class PrefectureDetailPage extends StatelessWidget {
   final String prefecture;
   final List<Map<String, dynamic>> spots;
 
-  PrefectureDetailPage({
+  PrefectureDetailPage({super.key, 
     required this.prefecture,
     required this.spots,
   });
@@ -291,19 +290,15 @@ class PrefectureDetailPage extends StatelessWidget {
         itemBuilder: (context, index) {
           final spot = spots[index];
           return Card(
-            margin: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             child: ListTile(
               leading: CachedNetworkImage(
                 imageUrl: spot['imageUrl'] ?? '',
                 width: 60,
                 height: 60,
                 fit: BoxFit.cover,
-                placeholder: (context, url) => ShimmerLoading.imageShimmer(
-                  width: double.infinity,
-                  height: 60,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                errorWidget: (context, url, error) => Icon(Icons.error),
+                placeholder: (context, url) => const CircularProgressIndicator(),
+                errorWidget: (context, url, error) => const Icon(Icons.error),
               ),
               title: Text(spot['nameEn'] ?? ''),
               subtitle: Text(spot['animeEn'] ?? ''),
@@ -319,8 +314,10 @@ class PrefectureDetailPage extends StatelessWidget {
 }
 
 class AnimeListEnNew extends StatefulWidget {
+  const AnimeListEnNew({super.key});
+
   @override
-  _AnimeListEnNewState createState() => _AnimeListEnNewState();
+  State<AnimeListEnNew> createState() => _AnimeListEnNewState();
 }
 
 class _AnimeListEnNewState extends State<AnimeListEnNew>
@@ -365,103 +362,28 @@ class _AnimeListEnNewState extends State<AnimeListEnNew>
   final FirebaseInAppMessaging fiam = FirebaseInAppMessaging.instance;
 
   final Map<String, Map<String, double>> prefectureBounds = {
-    'Hokkaido': {
-      'minLat': 41.3,
-      'maxLat': 45.6,
-      'minLng': 139.3,
-      'maxLng': 148.9
-    },
-    'Aomori': {
-      'minLat': 40.2,
-      'maxLat': 41.6,
-      'minLng': 139.5,
-      'maxLng': 141.7
-    },
+    'Hokkaido': {'minLat': 41.3, 'maxLat': 45.6, 'minLng': 139.3, 'maxLng': 148.9},
+    'Aomori': {'minLat': 40.2, 'maxLat': 41.6, 'minLng': 139.5, 'maxLng': 141.7},
     'Iwate': {'minLat': 38.7, 'maxLat': 40.5, 'minLng': 140.6, 'maxLng': 142.1},
-    'Miyagi': {
-      'minLat': 37.8,
-      'maxLat': 39.0,
-      'minLng': 140.3,
-      'maxLng': 141.7
-    },
+    'Miyagi': {'minLat': 37.8, 'maxLat': 39.0, 'minLng': 140.3, 'maxLng': 141.7},
     'Akita': {'minLat': 38.8, 'maxLat': 40.5, 'minLng': 139.7, 'maxLng': 141.0},
-    'Yamagata': {
-      'minLat': 37.8,
-      'maxLat': 39.0,
-      'minLng': 139.5,
-      'maxLng': 140.6
-    },
-    'Fukushima': {
-      'minLat': 36.8,
-      'maxLat': 38.0,
-      'minLng': 139.2,
-      'maxLng': 141.0
-    },
-    'Ibaraki': {
-      'minLat': 35.8,
-      'maxLat': 36.9,
-      'minLng': 139.7,
-      'maxLng': 140.9
-    },
-    'Tochigi': {
-      'minLat': 36.2,
-      'maxLat': 37.2,
-      'minLng': 139.3,
-      'maxLng': 140.3
-    },
+    'Yamagata': {'minLat': 37.8, 'maxLat': 39.0, 'minLng': 139.5, 'maxLng': 140.6},
+    'Fukushima': {'minLat': 36.8, 'maxLat': 38.0, 'minLng': 139.2, 'maxLng': 141.0},
+    'Ibaraki': {'minLat': 35.8, 'maxLat': 36.9, 'minLng': 139.7, 'maxLng': 140.9},
+    'Tochigi': {'minLat': 36.2, 'maxLat': 37.2, 'minLng': 139.3, 'maxLng': 140.3},
     'Gunma': {'minLat': 36.0, 'maxLat': 37.0, 'minLng': 138.4, 'maxLng': 139.7},
-    'Saitama': {
-      'minLat': 35.7,
-      'maxLat': 36.3,
-      'minLng': 138.8,
-      'maxLng': 139.9
-    },
+    'Saitama': {'minLat': 35.7, 'maxLat': 36.3, 'minLng': 138.8, 'maxLng': 139.9},
     'Chiba': {'minLat': 34.9, 'maxLat': 36.1, 'minLng': 139.7, 'maxLng': 140.9},
     'Tokyo': {'minLat': 35.5, 'maxLat': 35.9, 'minLng': 138.9, 'maxLng': 139.9},
-    'Kanagawa': {
-      'minLat': 35.1,
-      'maxLat': 35.7,
-      'minLng': 139.0,
-      'maxLng': 139.8
-    },
-    'Nigata': {
-      'minLat': 36.8,
-      'maxLat': 38.6,
-      'minLng': 137.6,
-      'maxLng': 139.8
-    },
-    'Toyama': {
-      'minLat': 36.2,
-      'maxLat': 36.9,
-      'minLng': 136.8,
-      'maxLng': 137.7
-    },
-    'Ishikawa': {
-      'minLat': 36.0,
-      'maxLat': 37.6,
-      'minLng': 136.2,
-      'maxLng': 137.4
-    },
+    'Kanagawa': {'minLat': 35.1, 'maxLat': 35.7, 'minLng': 139.0, 'maxLng': 139.8},
+    'Nigata': {'minLat': 36.8, 'maxLat': 38.6, 'minLng': 137.6, 'maxLng': 139.8},
+    'Toyama': {'minLat': 36.2, 'maxLat': 36.9, 'minLng': 136.8, 'maxLng': 137.7},
+    'Ishikawa': {'minLat': 36.0, 'maxLat': 37.6, 'minLng': 136.2, 'maxLng': 137.4},
     'Fukui': {'minLat': 35.3, 'maxLat': 36.3, 'minLng': 135.4, 'maxLng': 136.8},
-    'Yamanashi': {
-      'minLat': 35.2,
-      'maxLat': 35.9,
-      'minLng': 138.2,
-      'maxLng': 139.1
-    },
-    'Nagano': {
-      'minLat': 35.2,
-      'maxLat': 37.0,
-      'minLng': 137.3,
-      'maxLng': 138.7
-    },
+    'Yamanashi': {'minLat': 35.2, 'maxLat': 35.9, 'minLng': 138.2, 'maxLng': 139.1},
+    'Nagano': {'minLat': 35.2, 'maxLat': 37.0, 'minLng': 137.3, 'maxLng': 138.7},
     'Gifu': {'minLat': 35.2, 'maxLat': 36.5, 'minLng': 136.3, 'maxLng': 137.6},
-    'Shizuoka': {
-      'minLat': 34.6,
-      'maxLat': 35.7,
-      'minLng': 137.4,
-      'maxLng': 139.1
-    },
+    'Shizuoka': {'minLat': 34.6, 'maxLat': 35.7, 'minLng': 137.4, 'maxLng': 139.1},
     'Aichi': {'minLat': 34.6, 'maxLat': 35.4, 'minLng': 136.7, 'maxLng': 137.8},
     'Mie': {'minLat': 33.7, 'maxLat': 35.3, 'minLng': 135.9, 'maxLng': 136.9},
     'Shiga': {'minLat': 34.8, 'maxLat': 35.7, 'minLng': 135.8, 'maxLng': 136.4},
@@ -469,94 +391,24 @@ class _AnimeListEnNewState extends State<AnimeListEnNew>
     'Osaka': {'minLat': 34.2, 'maxLat': 35.0, 'minLng': 135.1, 'maxLng': 135.7},
     'Hyogo': {'minLat': 34.2, 'maxLat': 35.7, 'minLng': 134.2, 'maxLng': 135.4},
     'Nara': {'minLat': 33.8, 'maxLat': 34.7, 'minLng': 135.6, 'maxLng': 136.2},
-    'Wakayama': {
-      'minLat': 33.4,
-      'maxLat': 34.3,
-      'minLng': 135.0,
-      'maxLng': 136.0
-    },
-    'Tottori': {
-      'minLat': 35.1,
-      'maxLat': 35.6,
-      'minLng': 133.1,
-      'maxLng': 134.4
-    },
-    'Shimane': {
-      'minLat': 34.3,
-      'maxLat': 35.6,
-      'minLng': 131.6,
-      'maxLng': 133.4
-    },
-    'Okayama': {
-      'minLat': 34.3,
-      'maxLat': 35.4,
-      'minLng': 133.3,
-      'maxLng': 134.4
-    },
-    'Hiroshima': {
-      'minLat': 34.0,
-      'maxLat': 35.1,
-      'minLng': 132.0,
-      'maxLng': 133.5
-    },
-    'Yamaguchi': {
-      'minLat': 33.8,
-      'maxLat': 34.8,
-      'minLng': 130.8,
-      'maxLng': 132.4
-    },
-    'Tokushima': {
-      'minLat': 33.5,
-      'maxLat': 34.2,
-      'minLng': 133.6,
-      'maxLng': 134.8
-    },
-    'Kagawa': {
-      'minLat': 34.0,
-      'maxLat': 34.6,
-      'minLng': 133.5,
-      'maxLng': 134.4
-    },
+    'Wakayama': {'minLat': 33.4, 'maxLat': 34.3, 'minLng': 135.0, 'maxLng': 136.0},
+    'Tottori': {'minLat': 35.1, 'maxLat': 35.6, 'minLng': 133.1, 'maxLng': 134.4},
+    'Shimane': {'minLat': 34.3, 'maxLat': 35.6, 'minLng': 131.6, 'maxLng': 133.4},
+    'Okayama': {'minLat': 34.3, 'maxLat': 35.4, 'minLng': 133.3, 'maxLng': 134.4},
+    'Hiroshima': {'minLat': 34.0, 'maxLat': 35.1, 'minLng': 132.0, 'maxLng': 133.5},
+    'Yamaguchi': {'minLat': 33.8, 'maxLat': 34.8, 'minLng': 130.8, 'maxLng': 132.4},
+    'Tokushima': {'minLat': 33.5, 'maxLat': 34.2, 'minLng': 133.6, 'maxLng': 134.8},
+    'Kagawa': {'minLat': 34.0, 'maxLat': 34.6, 'minLng': 133.5, 'maxLng': 134.4},
     'Ehime': {'minLat': 32.9, 'maxLat': 34.3, 'minLng': 132.0, 'maxLng': 133.7},
     'Kochi': {'minLat': 32.7, 'maxLat': 33.9, 'minLng': 132.5, 'maxLng': 134.3},
-    'Fukuoka': {
-      'minLat': 33.1,
-      'maxLat': 34.0,
-      'minLng': 129.9,
-      'maxLng': 131.0
-    },
+    'Fukuoka': {'minLat': 33.1, 'maxLat': 34.0, 'minLng': 129.9, 'maxLng': 131.0},
     'Saga': {'minLat': 32.9, 'maxLat': 33.6, 'minLng': 129.7, 'maxLng': 130.5},
-    'Nagasaki': {
-      'minLat': 32.6,
-      'maxLat': 34.7,
-      'minLng': 128.6,
-      'maxLng': 130.4
-    },
-    'Kumamoto': {
-      'minLat': 32.1,
-      'maxLat': 33.2,
-      'minLng': 129.9,
-      'maxLng': 131.2
-    },
+    'Nagasaki': {'minLat': 32.6, 'maxLat': 34.7, 'minLng': 128.6, 'maxLng': 130.4},
+    'Kumamoto': {'minLat': 32.1, 'maxLat': 33.2, 'minLng': 129.9, 'maxLng': 131.2},
     'Oita': {'minLat': 32.7, 'maxLat': 33.7, 'minLng': 130.7, 'maxLng': 132.1},
-    'Miyazaki': {
-      'minLat': 31.3,
-      'maxLat': 32.9,
-      'minLng': 130.7,
-      'maxLng': 131.9
-    },
-    'Kagoshima': {
-      'minLat': 30.4,
-      'maxLat': 32.2,
-      'minLng': 129.5,
-      'maxLng': 131.1
-    },
-    'Okinawa': {
-      'minLat': 24.0,
-      'maxLat': 27.9,
-      'minLng': 122.9,
-      'maxLng': 131.3
-    },
+    'Miyazaki': {'minLat': 31.3, 'maxLat': 32.9, 'minLng': 130.7, 'maxLng': 131.9},
+    'Kagoshima': {'minLat': 30.4, 'maxLat': 32.2, 'minLng': 129.5, 'maxLng': 131.1},
+    'Okinawa': {'minLat': 24.0, 'maxLat': 27.9, 'minLng': 122.9, 'maxLng': 131.3},
   };
 
   final List<String> _allPrefectures = [
@@ -636,8 +488,7 @@ class _AnimeListEnNewState extends State<AnimeListEnNew>
     await _syncRevenueCatUser();
 
     _initializeTabController();
-    databaseReference =
-        rtdb.FirebaseDatabase.instance.ref().child('anime_rankings');
+    databaseReference = rtdb.FirebaseDatabase.instance.ref().child('anime_rankings');
     _fetchAnimeData();
     _fetchEventData();
     WidgetsBinding.instance.addPostFrameCallback((_) => _showTutorial());
@@ -801,9 +652,14 @@ class _AnimeListEnNewState extends State<AnimeListEnNew>
     }
 
     try {
+      // Dispose existing ad before creating new one
+      _bottomBannerAd?.dispose();
+      _bottomBannerAd = null;
+      _isBottomBannerAdReady = false;
+
       _bottomBannerAd = BannerAd(
         adUnitId: 'ca-app-pub-1580421227117187/2839937902',
-        request: AdRequest(),
+        request: const AdRequest(),
         size: AdSize.banner,
         listener: BannerAdListener(
           onAdLoaded: (_) {
@@ -822,12 +678,15 @@ class _AnimeListEnNewState extends State<AnimeListEnNew>
               });
             }
             ad.dispose();
+            _bottomBannerAd = null;
           },
         ),
       );
       await _bottomBannerAd?.load();
     } catch (e) {
       print('❌ Exception loading bottom banner ad: $e');
+      _bottomBannerAd?.dispose();
+      _bottomBannerAd = null;
     }
   }
 
@@ -837,9 +696,14 @@ class _AnimeListEnNewState extends State<AnimeListEnNew>
       return; // サブスクリプション有効時は広告を読み込まない
     }
 
+    // Dispose existing ad before creating new one
+    _bottomBannerAd?.dispose();
+    _bottomBannerAd = null;
+    _isBottomBannerAdReady = false;
+
     _bottomBannerAd = BannerAd(
       adUnitId: 'ca-app-pub-1580421227117187/2839937902',
-      request: AdRequest(),
+      request: const AdRequest(),
       size: AdSize.banner,
       listener: BannerAdListener(
         onAdLoaded: (_) {
@@ -853,6 +717,7 @@ class _AnimeListEnNewState extends State<AnimeListEnNew>
             _isBottomBannerAdReady = false;
           });
           ad.dispose();
+          _bottomBannerAd = null;
         },
       ),
     );
@@ -874,7 +739,7 @@ class _AnimeListEnNewState extends State<AnimeListEnNew>
       final eventSnapshot = await firestore.collection('events').get();
       final activeEvents = eventSnapshot.docs
           .where((doc) => doc.data()['isEnabled'] == true)
-          .map((doc) => doc.data()['title'] as String)
+          .map((doc) => doc.data()['title'] as String? ?? '')
           .toList();
 
       setState(() {
@@ -893,7 +758,8 @@ class _AnimeListEnNewState extends State<AnimeListEnNew>
     }
 
     _bannerAd = BannerAd(
-      adUnitId: '',
+      adUnitId:
+          'ca-app-pub-1580421227117187/3454220382', // fallback to valid test or production ID
       request: AdRequest(),
       size: AdSize.banner,
       listener: BannerAdListener(
@@ -922,7 +788,7 @@ class _AnimeListEnNewState extends State<AnimeListEnNew>
     databaseReference.onValue.listen((event) {
       if (event.snapshot.value != null) {
         Map<dynamic, dynamic> rankings =
-            event.snapshot.value as Map<dynamic, dynamic>;
+        event.snapshot.value as Map<dynamic, dynamic>;
         _updateRankings(rankings);
       }
     });
@@ -931,16 +797,16 @@ class _AnimeListEnNewState extends State<AnimeListEnNew>
   void _updateRankings(Map<dynamic, dynamic> rankings) {
     List<MapEntry<String, int>> sortedRankings = rankings.entries
         .map((entry) =>
-            MapEntry(entry.key.toString(), (entry.value as num).toInt()))
+        MapEntry(entry.key.toString(), (entry.value as num).toInt()))
         .toList()
       ..sort((a, b) => b.value.compareTo(a.value));
 
     setState(() {
       _topRankedAnime = sortedRankings.take(10).map((entry) {
         return _allAnimeData.firstWhere(
-          (anime) => anime['name'] == entry.key,
+              (anime) => anime['name'] == entry.key,
           orElse: () =>
-              {'name': entry.key, 'imageUrl': '', 'count': entry.value},
+          {'name': entry.key, 'imageUrl': '', 'count': entry.value},
         );
       }).toList();
 
@@ -1033,13 +899,11 @@ class _AnimeListEnNewState extends State<AnimeListEnNew>
       }).toList();
 
       _sortedAnimeData = List.from(_allAnimeData);
-      _sortedAnimeData
-          .sort((a, b) => _compareNames(a['sortKey'], b['sortKey']));
+      _sortedAnimeData.sort((a, b) => _compareNames(a['sortKey'], b['sortKey']));
 
       DatabaseEvent event = await databaseReference.once();
       if (event.snapshot.value != null) {
-        Map<dynamic, dynamic> rankings =
-            event.snapshot.value as Map<dynamic, dynamic>;
+        Map<dynamic, dynamic> rankings = event.snapshot.value as Map<dynamic, dynamic>;
         _updateRankings(rankings);
       }
 
@@ -1057,7 +921,7 @@ class _AnimeListEnNewState extends State<AnimeListEnNew>
           .map((doc) {
         final data = doc.data();
         return {
-          'title': data['title'] as String,
+          'title': data['title'] as String? ?? '',
           'imageUrl': data['imageUrl'] as String? ?? '',
           'description': data['description'] as String? ?? '',
           'startDate': data['startDate'],
@@ -1078,27 +942,26 @@ class _AnimeListEnNewState extends State<AnimeListEnNew>
     if (_isPrefectureDataFetched) return;
 
     try {
-      QuerySnapshot spotSnapshot =
-          await firestore.collection('locations').get();
+      QuerySnapshot spotSnapshot = await firestore.collection('locations').get();
       print("Fetched ${spotSnapshot.docs.length} documents in total");
 
       for (String prefecture in _allPrefectures) {
         List<Map<String, dynamic>> prefSpots = spotSnapshot.docs
             .map((doc) {
-              var data = doc.data() as Map<String, dynamic>;
-              return {
-                'name': data['sourceTitle'] ?? '',
-                'imageUrl': data['imageUrl'] ?? '',
-                'anime': data['anime'] ?? '',
-                'latitude': (data['latitude'] is num)
-                    ? (data['latitude'] as num).toDouble()
-                    : 0.0,
-                'longitude': (data['longitude'] is num)
-                    ? (data['longitude'] as num).toDouble()
-                    : 0.0,
-                'locationID': doc.id,
-              };
-            })
+          var data = doc.data() as Map<String, dynamic>;
+          return {
+            'name': data['sourceTitle'] ?? '',
+            'imageUrl': data['imageUrl'] ?? '',
+            'anime': data['anime'] ?? '',
+            'latitude': (data['latitude'] is num)
+                ? (data['latitude'] as num).toDouble()
+                : 0.0,
+            'longitude': (data['longitude'] is num)
+                ? (data['longitude'] as num).toDouble()
+                : 0.0,
+            'locationID': doc.id,
+          };
+        })
             .where((spot) => _isInPrefecture(spot, prefecture))
             .toList();
 
@@ -1144,80 +1007,22 @@ class _AnimeListEnNewState extends State<AnimeListEnNew>
 
   String _katakanaToHiragana(String kata) {
     const Map<String, String> katakanaToHiragana = {
-      'ア': 'あ',
-      'イ': 'い',
-      'ウ': 'う',
-      'エ': 'え',
-      'オ': 'お',
-      'カ': 'か',
-      'キ': 'き',
-      'ク': 'く',
-      'ケ': 'け',
-      'コ': 'こ',
-      'サ': 'さ',
-      'シ': 'し',
-      'ス': 'す',
-      'セ': 'せ',
-      'ソ': 'そ',
-      'タ': 'た',
-      'チ': 'ち',
-      'ツ': 'つ',
-      'テ': 'て',
-      'ト': 'と',
-      'ナ': 'な',
-      'ニ': 'に',
-      'ヌ': 'ぬ',
-      'ネ': 'ね',
-      'ノ': 'の',
-      'ハ': 'は',
-      'ヒ': 'ひ',
-      'フ': 'ふ',
-      'ヘ': 'へ',
-      'ホ': 'ほ',
-      'マ': 'ま',
-      'ミ': 'み',
-      'ム': 'む',
-      'メ': 'め',
-      'モ': 'も',
-      'ヤ': 'や',
-      'ユ': 'ゆ',
-      'ヨ': 'よ',
-      'ラ': 'ら',
-      'リ': 'り',
-      'ル': 'る',
-      'レ': 'れ',
-      'ロ': 'ろ',
-      'ワ': 'わ',
-      'ヲ': 'を',
-      'ン': 'ん',
-      'ガ': 'が',
-      'ギ': 'ぎ',
-      'グ': 'ぐ',
-      'ゲ': 'げ',
-      'ゴ': 'ご',
-      'ザ': 'ざ',
-      'ジ': 'じ',
-      'ズ': 'ず',
-      'ゼ': 'ぜ',
-      'ゾ': 'ぞ',
-      'ダ': 'だ',
-      'ヂ': 'ぢ',
-      'ヅ': 'づ',
-      'デ': 'で',
-      'ド': 'ど',
-      'バ': 'ば',
-      'ビ': 'び',
-      'ブ': 'ぶ',
-      'ベ': 'べ',
-      'ボ': 'ぼ',
-      'パ': 'ぱ',
-      'ピ': 'ぴ',
-      'プ': 'ぷ',
-      'ペ': 'ぺ',
-      'ポ': 'ぽ',
-      'ャ': 'ゃ',
-      'ュ': 'ゅ',
-      'ョ': 'ょ',
+      'ア': 'あ', 'イ': 'い', 'ウ': 'う', 'エ': 'え', 'オ': 'お',
+      'カ': 'か', 'キ': 'き', 'ク': 'く', 'ケ': 'け', 'コ': 'こ',
+      'サ': 'さ', 'シ': 'し', 'ス': 'す', 'セ': 'せ', 'ソ': 'そ',
+      'タ': 'た', 'チ': 'ち', 'ツ': 'つ', 'テ': 'て', 'ト': 'と',
+      'ナ': 'な', 'ニ': 'に', 'ヌ': 'ぬ', 'ネ': 'ね', 'ノ': 'の',
+      'ハ': 'は', 'ヒ': 'ひ', 'フ': 'ふ', 'ヘ': 'へ', 'ホ': 'ほ',
+      'マ': 'ま', 'ミ': 'み', 'ム': 'む', 'メ': 'め', 'モ': 'も',
+      'ヤ': 'や', 'ユ': 'ゆ', 'ヨ': 'よ',
+      'ラ': 'ら', 'リ': 'り', 'ル': 'る', 'レ': 'れ', 'ロ': 'ろ',
+      'ワ': 'わ', 'ヲ': 'を', 'ン': 'ん',
+      'ガ': 'が', 'ギ': 'ぎ', 'グ': 'ぐ', 'ゲ': 'げ', 'ゴ': 'ご',
+      'ザ': 'ざ', 'ジ': 'じ', 'ズ': 'ず', 'ゼ': 'ぜ', 'ゾ': 'ぞ',
+      'ダ': 'だ', 'ヂ': 'ぢ', 'ヅ': 'づ', 'デ': 'で', 'ド': 'ど',
+      'バ': 'ば', 'ビ': 'び', 'ブ': 'ぶ', 'ベ': 'べ', 'ボ': 'ぼ',
+      'パ': 'ぱ', 'ピ': 'ぴ', 'プ': 'ぷ', 'ペ': 'ぺ', 'ポ': 'ぽ',
+      'ャ': 'ゃ', 'ュ': 'ゅ', 'ョ': 'ょ',
       'ッ': 'っ',
       'ー': '-',
     };
@@ -1264,8 +1069,7 @@ class _AnimeListEnNewState extends State<AnimeListEnNew>
     });
   }
 
-  Future<void> _navigateAndVote2(
-      BuildContext context, String animeNameEn) async {
+  Future<void> _navigateAndVote2(BuildContext context, String animeNameEn) async {
     await _logger.logUserActivity('anime_view', {
       'animeNameEn': animeNameEn,
       'timestamp': DateTime.now().toIso8601String(),
@@ -1290,10 +1094,9 @@ class _AnimeListEnNewState extends State<AnimeListEnNew>
             prefs.getStringList('votedAnime_$today') ?? [];
 
         if (votedAnimeToday.length < 1) {
-          rtdb.DatabaseReference animeRef =
-              databaseReference.child(animeNameEn);
+          rtdb.DatabaseReference animeRef = databaseReference.child(animeNameEn);
           rtdb.TransactionResult result =
-              await animeRef.runTransaction((Object? currentValue) {
+          await animeRef.runTransaction((Object? currentValue) {
             if (currentValue == null) {
               return rtdb.Transaction.success(1);
             }
@@ -1349,13 +1152,12 @@ class _AnimeListEnNewState extends State<AnimeListEnNew>
   Widget _buildAnimeList() {
     List<Map<String, dynamic>> filteredAnimeData = _sortedAnimeData
         .where((anime) =>
-            anime['nameEn'].toLowerCase().contains(_searchQuery) ||
-            _allPrefectures.any((prefecture) =>
-                prefecture.toLowerCase().contains(_searchQuery) &&
-                (_prefectureSpots[prefecture]?.any((spot) =>
-                        spot['anime'].toLowerCase() ==
-                        anime['name'].toLowerCase()) ??
-                    false)))
+    anime['nameEn'].toLowerCase().contains(_searchQuery) ||
+        _allPrefectures.any((prefecture) =>
+        prefecture.toLowerCase().contains(_searchQuery) &&
+            (_prefectureSpots[prefecture]?.any((spot) =>
+            spot['anime'].toLowerCase() == anime['name'].toLowerCase()) ??
+                false)))
         .toList();
 
     return Column(
@@ -1365,7 +1167,7 @@ class _AnimeListEnNewState extends State<AnimeListEnNew>
           title: Text(
             key: rankingKey,
             '■ Ranking (Top 10)',
-            style: TextStyle(
+            style: const TextStyle(
               color: Color(0xFF00008b),
               fontWeight: FontWeight.bold,
               fontSize: 16,
@@ -1379,84 +1181,77 @@ class _AnimeListEnNewState extends State<AnimeListEnNew>
           },
           children: _showRanking
               ? [
-                  SizedBox(
-                    height: 200,
-                    child: ListView.builder(
-                      padding: EdgeInsets.symmetric(horizontal: 16.0),
-                      scrollDirection: Axis.horizontal,
-                      itemCount: _topRankedAnime.length,
-                      itemBuilder: (context, index) {
-                        final anime = _topRankedAnime[index];
-                        return GestureDetector(
-                          onTap: () =>
-                              _navigateAndVote2(context, anime['nameEn']),
-                          child: Container(
-                            width: 160,
-                            margin: EdgeInsets.only(right: 16),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Stack(
-                                  children: [
-                                    ClipRRect(
-                                      borderRadius: BorderRadius.circular(8),
-                                      child: CachedNetworkImage(
-                                        imageUrl: anime['imageUrl'],
-                                        height: 150,
-                                        width: 250,
-                                        fit: BoxFit.cover,
-                                        placeholder: (context, url) =>
-                                            ShimmerLoading.imageShimmer(
-                                          width: double.infinity,
-                                          height: 200,
-                                          borderRadius:
-                                              BorderRadius.circular(8),
-                                        ),
-                                        errorWidget: (context, url, error) =>
-                                            Icon(Icons.error),
-                                      ),
-                                    ),
-                                    Positioned(
-                                      top: 8,
-                                      left: 8,
-                                      child: Container(
-                                        padding: EdgeInsets.symmetric(
-                                            horizontal: 8, vertical: 4),
-                                        decoration: BoxDecoration(
-                                          color: Colors.black.withOpacity(0.7),
-                                          borderRadius:
-                                              BorderRadius.circular(12),
-                                        ),
-                                        child: Text(
-                                          '${index + 1}',
-                                          style: TextStyle(
-                                            color: Colors.white,
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 14,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ],
+            SizedBox(
+              height: 200,
+              child: ListView.builder(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                scrollDirection: Axis.horizontal,
+                itemCount: _topRankedAnime.length,
+                itemBuilder: (context, index) {
+                  final anime = _topRankedAnime[index];
+                  return GestureDetector(
+                    onTap: () => _navigateAndVote2(context, anime['nameEn']),
+                    child: Container(
+                      width: 160,
+                      margin: const EdgeInsets.only(right: 16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Stack(
+                            children: [
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(8),
+                                child: CachedNetworkImage(
+                                  imageUrl: anime['imageUrl'],
+                                  height: 150,
+                                  width: 250,
+                                  fit: BoxFit.cover,
+                                  placeholder: (context, url) => const Center(
+                                      child: CircularProgressIndicator()),
+                                  errorWidget: (context, url, error) =>
+                                      const Icon(Icons.error),
                                 ),
-                                SizedBox(height: 8),
-                                Text(
-                                  anime['nameEn'],
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(fontWeight: FontWeight.bold),
+                              ),
+                              Positioned(
+                                top: 8,
+                                left: 8,
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 8, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: Colors.black.withOpacity(0.7),
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Text(
+                                    '${index + 1}',
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 14,
+                                    ),
+                                  ),
                                 ),
-                              ],
-                            ),
+                              ),
+                            ],
                           ),
-                        );
-                      },
+                          const SizedBox(height: 8),
+                          Text(
+                            anime['nameEn'],
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                ]
+                  );
+                },
+              ),
+            ),
+          ]
               : [],
         ),
-        Padding(
+        const Padding(
           padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
           child: Text(
             '■ Anime list',
@@ -1469,83 +1264,76 @@ class _AnimeListEnNewState extends State<AnimeListEnNew>
         ),
         Expanded(
           child: _allAnimeData.isEmpty
-              ? ShimmerLoading.animeGridShimmer(itemCount: 6)
+              ? const Center(child: CircularProgressIndicator())
               : filteredAnimeData.isEmpty
-                  ? Center(
-                      child: Text('nothing found..'),
-                    )
-                  : GridView.builder(
-                      controller: _scrollController,
-                      padding: EdgeInsets.only(bottom: 16.0),
-                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 2,
-                        childAspectRatio: 1.3,
-                        mainAxisSpacing: 1.0,
-                        crossAxisSpacing: 3.0,
-                      ),
-                      itemCount: filteredAnimeData.length,
-                      itemBuilder: (context, index) {
-                        // 【修正】サブスクリプション有効時は広告を表示しない
-                        if (!_isSubscriptionActive &&
-                            index != 0 &&
-                            index % 6 == 0) {
-                          if (AdManager.canLoadAdForIndex(index)) {
-                            Future.microtask(
-                                () => AdManager.loadGridBannerAd(index));
-                          }
+              ? const Center(
+            child: Text('nothing found..'),
+          )
+              : GridView.builder(
+            controller: _scrollController,
+            padding: const EdgeInsets.only(bottom: 16.0),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              childAspectRatio: 1.3,
+              mainAxisSpacing: 1.0,
+              crossAxisSpacing: 3.0,
+            ),
+            itemCount: filteredAnimeData.length,
+            itemBuilder: (context, index) {
+              // 【修正】サブスクリプション有効時は広告を表示しない
+              if (!_isSubscriptionActive && index != 0 && index % 6 == 0) {
+                if (AdManager.canLoadAdForIndex(index)) {
+                  Future.microtask(
+                          () => AdManager.loadGridBannerAd(index));
+                }
 
-                          return FutureBuilder<bool>(
-                            future: AdManager.isAdReadyForIndex(index),
-                            builder: (context, snapshot) {
-                              if (snapshot.hasData && snapshot.data == true) {
-                                final ad = AdManager.getAdForIndex(index);
-                                if (ad != null) {
-                                  return Container(
-                                    width: ad.size.width.toDouble(),
-                                    height: ad.size.height.toDouble(),
-                                    child: AdWidget(ad: ad),
-                                  );
-                                }
-                              }
-                              return Container(
-                                height: 50,
-                                child: Center(
-                                    child: Text(
-                                  'advertisement',
-                                  style: TextStyle(
-                                    color: Colors.grey,
-                                  ),
-                                )),
-                              );
-                            },
-                          );
-                        }
-
-                        // サブスクリプション有効時、または広告表示位置でない場合のアニメアイテム表示
-                        final adjustedIndex = _isSubscriptionActive
-                            ? index
-                            : index - (index ~/ 6);
-                        if (adjustedIndex >= filteredAnimeData.length) {
-                          return SizedBox();
-                        }
-
-                        final key = adjustedIndex == 0 ? firstItemKey : null;
-
-                        return GestureDetector(
-                          key: key,
-                          onTap: () => _navigateAndVote2(context,
-                              filteredAnimeData[adjustedIndex]['nameEn']),
-                          child: AnimeGridItem(
-                            animeName: filteredAnimeData[adjustedIndex]
-                                ['nameEn'],
-                            animeNameEn: filteredAnimeData[adjustedIndex]
-                                ['nameEn'],
-                            imageUrl: filteredAnimeData[adjustedIndex]
-                                ['imageUrl'],
-                          ),
+                return FutureBuilder<bool>(
+                  future: AdManager.isAdReadyForIndex(index),
+                  builder: (context, snapshot) {
+                    if (snapshot.hasData && snapshot.data == true) {
+                      final ad = AdManager.getAdForIndex(index);
+                      if (ad != null) {
+                        return Container(
+                          width: ad.size.width.toDouble(),
+                          height: ad.size.height.toDouble(),
+                          child: AdWidget(ad: ad),
                         );
-                      },
-                    ),
+                      }
+                    }
+                    return Container(
+                      height: 50,
+                      child: const Center(
+                          child: Text(
+                            'advertisement',
+                            style: TextStyle(
+                              color: Colors.grey,
+                            ),
+                          )),
+                    );
+                  },
+                );
+              }
+
+              // サブスクリプション有効時、または広告表示位置でない場合のアニメアイテム表示
+              final adjustedIndex = _isSubscriptionActive ? index : index - (index ~/ 6);
+              if (adjustedIndex >= filteredAnimeData.length) {
+                return const SizedBox();
+              }
+
+              final key = adjustedIndex == 0 ? firstItemKey : null;
+
+              return GestureDetector(
+                key: key,
+                onTap: () => _navigateAndVote2(
+                    context, filteredAnimeData[adjustedIndex]['nameEn']),
+                child: AnimeGridItem(
+                  animeName: filteredAnimeData[adjustedIndex]['nameEn'],
+                  animeNameEn: filteredAnimeData[adjustedIndex]['nameEn'],
+                  imageUrl: filteredAnimeData[adjustedIndex]['imageUrl'],
+                ),
+              );
+            },
+          ),
         ),
       ],
     );
@@ -1555,14 +1343,14 @@ class _AnimeListEnNewState extends State<AnimeListEnNew>
   Widget _buildSubscriptionPromptOverlay() {
     // サブスクリプションが有効な場合は何も表示しない
     if (_isSubscriptionActive) {
-      return SizedBox.shrink();
+      return const SizedBox.shrink();
     }
 
     return Container(
       color: Colors.black.withOpacity(0.7),
       child: Center(
         child: Container(
-          margin: EdgeInsets.symmetric(horizontal: 40),
+          margin: const EdgeInsets.symmetric(horizontal: 40),
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(16),
@@ -1571,7 +1359,7 @@ class _AnimeListEnNewState extends State<AnimeListEnNew>
             children: [
               // メインコンテンツ
               Padding(
-                padding: EdgeInsets.all(20),
+                padding: const EdgeInsets.all(20),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -1584,7 +1372,7 @@ class _AnimeListEnNewState extends State<AnimeListEnNew>
                         color: Colors.grey[200],
                         border: Border.all(color: Colors.grey[300]!),
                       ),
-                      child: Column(
+                      child: const Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Icon(
@@ -1604,8 +1392,8 @@ class _AnimeListEnNewState extends State<AnimeListEnNew>
                         ],
                       ),
                     ),
-                    SizedBox(height: 20),
-                    Text(
+                    const SizedBox(height: 20),
+                    const Text(
                       'Please consider using\nJAM Premium Plan!',
                       textAlign: TextAlign.center,
                       style: TextStyle(
@@ -1614,7 +1402,7 @@ class _AnimeListEnNewState extends State<AnimeListEnNew>
                         color: Colors.black87,
                       ),
                     ),
-                    SizedBox(height: 12),
+                    const SizedBox(height: 12),
                     Text(
                       'Enjoy unlimited pilgrimage\nwith Premium Plan',
                       textAlign: TextAlign.center,
@@ -1623,7 +1411,7 @@ class _AnimeListEnNewState extends State<AnimeListEnNew>
                         color: Colors.grey[600],
                       ),
                     ),
-                    SizedBox(height: 20),
+                    const SizedBox(height: 20),
                     // プレミアムプランボタン
                     SizedBox(
                       width: double.infinity,
@@ -1633,19 +1421,18 @@ class _AnimeListEnNewState extends State<AnimeListEnNew>
                             context: context,
                             isScrollControlled: true,
                             backgroundColor: Colors.transparent,
-                            builder: (context) =>
-                                const PaymentSubscriptionScreen(),
+                            builder: (context) => const PaymentSubscriptionScreen(),
                           );
                         },
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Color(0xFF00008b),
+                          backgroundColor: const Color(0xFF00008b),
                           foregroundColor: Colors.white,
-                          padding: EdgeInsets.symmetric(vertical: 14),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(8),
                           ),
                         ),
-                        child: Text(
+                        child: const Text(
                           'View Premium Plan',
                           style: TextStyle(
                             fontSize: 16,
@@ -1672,8 +1459,8 @@ class _AnimeListEnNewState extends State<AnimeListEnNew>
                     color: Colors.grey[600],
                     size: 24,
                   ),
-                  padding: EdgeInsets.all(4),
-                  constraints: BoxConstraints(
+                  padding: const EdgeInsets.all(4),
+                  constraints: const BoxConstraints(
                     minWidth: 32,
                     minHeight: 32,
                   ),
@@ -1689,28 +1476,30 @@ class _AnimeListEnNewState extends State<AnimeListEnNew>
   @override
   Widget build(BuildContext context) {
     if (!_isEventsLoaded) {
-      return ShimmerLoading.fullScreenShimmer();
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
     }
 
     return WillPopScope(
       onWillPop: () async {
         return await showDialog<bool>(
-              context: context,
-              builder: (context) => AlertDialog(
-                title: Text('Do you want to close the app?'),
-                content: Text('Are you sure you want to close the app?'),
-                actions: [
-                  TextButton(
-                    onPressed: () => Navigator.of(context).pop(false),
-                    child: Text('cancel'),
-                  ),
-                  TextButton(
-                    onPressed: () => Navigator.of(context).pop(true),
-                    child: Text('close'),
-                  ),
-                ],
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('Do you want to close the app?'),
+            content: const Text('Are you sure you want to close the app?'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                child: const Text('cancel'),
               ),
-            ) ??
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(true),
+                child: const Text('close'),
+              ),
+            ],
+          ),
+        ) ??
             false;
       },
       child: Scaffold(
@@ -1718,57 +1507,55 @@ class _AnimeListEnNewState extends State<AnimeListEnNew>
           automaticallyImplyLeading: false,
           title: _isSearching
               ? TextField(
-                  controller: _searchController,
-                  onChanged: _onSearchChanged,
-                  autofocus: true,
-                  decoration: InputDecoration(
-                    hintText: _currentTabIndex == 0
-                        ? 'Search by anime...'
-                        : _currentTabIndex == 1
-                            ? 'Search by prefecture...'
-                            : 'Search by event...',
-                    hintStyle: TextStyle(color: Colors.grey),
-                    border: InputBorder.none,
-                  ),
-                  style: TextStyle(color: Colors.black),
-                )
+            controller: _searchController,
+            onChanged: _onSearchChanged,
+            autofocus: true,
+            decoration: InputDecoration(
+              hintText: _currentTabIndex == 0
+                  ? 'Search by anime...'
+                  : _currentTabIndex == 1
+                  ? 'Search by prefecture...'
+                  : 'Search by event...',
+              hintStyle: const TextStyle(color: Colors.grey),
+              border: InputBorder.none,
+            ),
+            style: const TextStyle(color: Colors.black),
+          )
               : Row(
-                  children: [
-                    Text(
-                      'Pilgrimage spot',
-                      style: TextStyle(
-                        color: Color(0xFF00008b),
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    // 【追加】サブスクリプション状態表示
-                    if (_isSubscriptionActive)
-                      Container(
-                        margin: EdgeInsets.only(left: 5),
-                        padding:
-                            EdgeInsets.symmetric(horizontal: 5, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: Colors.orange,
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: Text(
-                          'Premium',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                  ],
+            children: [
+              const Text(
+                'Pilgrimage spot',
+                style: TextStyle(
+                  color: Color(0xFF00008b),
+                  fontWeight: FontWeight.bold,
                 ),
+              ),
+              // 【追加】サブスクリプション状態表示
+              if (_isSubscriptionActive)
+                Container(
+                  margin: const EdgeInsets.only(left: 5),
+                  padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: Colors.orange,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Text(
+                    'Premium',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+            ],
+          ),
           actions: [
             IconButton(
               key: checkInKey,
               onPressed: () => Navigator.push(
                 context,
-                MaterialPageRoute(
-                    builder: (context) => const CheckInEnScreen()),
+                MaterialPageRoute(builder: (context) => const CheckInEnScreen()),
               ),
               icon: const Icon(Icons.check_circle, color: Color(0xFF00008b)),
             ),
@@ -1783,7 +1570,7 @@ class _AnimeListEnNewState extends State<AnimeListEnNew>
             ),
             IconButton(
               key: addKey,
-              icon: Icon(Icons.add, color: Color(0xFF00008b)),
+              icon: const Icon(Icons.add, color: Color(0xFF00008b)),
               onPressed: () {
                 Navigator.push(
                   context,
@@ -1796,7 +1583,7 @@ class _AnimeListEnNewState extends State<AnimeListEnNew>
               key: searchKey,
               icon: Icon(
                 _isSearching ? Icons.close : Icons.search,
-                color: Color(0xFF00008b),
+                color: const Color(0xFF00008b),
               ),
               onPressed: _toggleSearch,
             ),
@@ -1804,52 +1591,48 @@ class _AnimeListEnNewState extends State<AnimeListEnNew>
           bottom: TabBar(
             controller: _tabController,
             tabs: [
-              Tab(text: 'Search by anime'),
-              Tab(text: 'Search by location'),
+              const Tab(text: 'Search by anime'),
+              const Tab(text: 'Search by location'),
             ],
-            labelColor: Color(0xFF00008b),
+            labelColor: const Color(0xFF00008b),
             unselectedLabelColor: Colors.grey,
-            indicatorColor: Color(0xFF00008b),
+            indicatorColor: const Color(0xFF00008b),
           ),
         ),
-        body: !_isEventsLoaded
-            ? ShimmerLoading.fullScreenShimmer()
-            : Stack(
-                children: [
-                  Column(
+        body: Stack(
+          children: [
+            Column(
+              children: [
+                Expanded(
+                  child: TabBarView(
+                    physics: const NeverScrollableScrollPhysics(),
+                    controller: _tabController,
                     children: [
-                      Expanded(
-                        child: TabBarView(
-                          physics: NeverScrollableScrollPhysics(),
-                          controller: _tabController,
-                          children: [
-                            _buildAnimeList(),
-                            _currentTabIndex == 1
-                                ? PrefectureListEnPage(
-                                    prefectureSpots: _prefectureSpots,
-                                    searchQuery: _searchQuery,
-                                    onFetchPrefectureData: _fetchPrefectureData,
-                                  )
-                                : Container(),
-                          ],
-                        ),
-                      ),
-                      // 【修正】サブスクリプション有効時は底部広告を非表示
-                      if (!_isSubscriptionActive &&
-                          _isBottomBannerAdReady &&
-                          _bottomBannerAd != null)
-                        Container(
-                          width: _bottomBannerAd!.size.width.toDouble(),
-                          height: _bottomBannerAd!.size.height.toDouble(),
-                          child: AdWidget(ad: _bottomBannerAd!),
-                        ),
+                      _buildAnimeList(),
+                      _currentTabIndex == 1
+                          ? PrefectureListEnPage(
+                        prefectureSpots: _prefectureSpots,
+                        searchQuery: _searchQuery,
+                        onFetchPrefectureData: _fetchPrefectureData,
+                      )
+                          : Container(),
                     ],
                   ),
-                  // 【追加】サブスクリプションプロンプトオーバーレイ
-                  if (_showSubscriptionPrompt)
-                    _buildSubscriptionPromptOverlay(),
-                ],
-              ),
+                ),
+                // 【修正】サブスクリプション有効時は底部広告を非表示
+                if (!_isSubscriptionActive && _isBottomBannerAdReady && _bottomBannerAd != null)
+                  Container(
+                    width: _bottomBannerAd!.size.width.toDouble(),
+                    height: _bottomBannerAd!.size.height.toDouble(),
+                    child: AdWidget(ad: _bottomBannerAd!),
+                  ),
+              ],
+            ),
+            // 【追加】サブスクリプションプロンプトオーバーレイ
+            if (_showSubscriptionPrompt)
+              _buildSubscriptionPromptOverlay(),
+          ],
+        ),
       ),
     );
   }
@@ -1878,19 +1661,17 @@ class AnimeGridItem extends StatelessWidget {
             child: CachedNetworkImage(
               imageUrl: imageUrl,
               fit: BoxFit.cover,
-              placeholder: (context, url) => ShimmerLoading.imageShimmer(
-                width: double.infinity,
-                height: 200,
-                borderRadius: BorderRadius.circular(8),
+              placeholder: (context, url) => const Center(
+                child: CircularProgressIndicator(),
               ),
-              errorWidget: (context, url, error) => Icon(Icons.error),
+              errorWidget: (context, url, error) => const Icon(Icons.error),
             ),
           ),
           Padding(
             padding: const EdgeInsets.all(8.0),
             child: Text(
               animeNameEn,
-              style: TextStyle(
+              style: const TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.bold,
               ),

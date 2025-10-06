@@ -10,7 +10,6 @@ import 'package:parts/spot_page/anime_list_detail.dart';
 import 'package:parts/spot_page/anime_list_test_ranking.dart';
 import 'package:parts/spot_page/event_more.dart';
 import 'package:video_player/video_player.dart';
-import 'package:parts/subscription/payment_subscription.dart';
 
 class RankingTopPage extends StatefulWidget {
   @override
@@ -72,6 +71,11 @@ class _RankingTopPageState extends State<RankingTopPage> {
       return;
     }
 
+    // Dispose existing ad before creating new one
+    _bannerAd?.dispose();
+    _bannerAd = null;
+    _isAdLoaded = false;
+
     _bannerAd = BannerAd(
       size: AdSize.banner,
       adUnitId: 'ca-app-pub-1580421227117187/7476955408',
@@ -86,6 +90,7 @@ class _RankingTopPageState extends State<RankingTopPage> {
         onAdFailedToLoad: (ad, error) {
           print('❌ Banner ad failed to load: ${error.message}');
           ad.dispose();
+          _bannerAd = null;
         },
       ),
       request: AdRequest(),
@@ -216,8 +221,8 @@ class _RankingTopPageState extends State<RankingTopPage> {
 
       if (videoDoc.docs.isNotEmpty) {
         final videoData = videoDoc.docs.first.data();
-        final videoUrl = videoData['url'] as String;
-        final videoWeekOf = videoData['weekOf'] as String;
+        final videoUrl = videoData['url'] as String? ?? '';
+        final videoWeekOf = videoData['weekOf'] as String? ?? '';
         final videoDocId = videoDoc.docs.first.id;
 
         final viewerDoc = await firestore
@@ -320,7 +325,7 @@ class _RankingTopPageState extends State<RankingTopPage> {
       final eventSnapshot = await firestore.collection('events').get();
       final activeEvents = eventSnapshot.docs
           .where((doc) => doc.data()['isEnabled'] == true)
-          .map((doc) => doc.data()['title'] as String)
+          .map((doc) => doc.data()['title'] as String? ?? '')
           .toList();
 
       setState(() {
@@ -344,7 +349,7 @@ class _RankingTopPageState extends State<RankingTopPage> {
           .map((doc) {
         final data = doc.data();
         return {
-          'title': data['title'] as String,
+          'title': data['title'] as String? ?? '',
           'imageUrl': data['imageUrl'] as String? ?? '',
           'description': data['description'] as String? ?? '',
           'startDate': data['startDate'],
@@ -663,7 +668,10 @@ class _RankingTopPageState extends State<RankingTopPage> {
                         else
                           _buildGenreList(),
                         // 【修正】サブスクリプション有効時は広告スペースを確保しない
-                        SizedBox(height: (!_isSubscriptionActive && _isAdLoaded) ? 60 : 0),
+                        SizedBox(
+                            height: (!_isSubscriptionActive && _isAdLoaded)
+                                ? 60
+                                : 0),
                       ],
                     ),
                   ),
@@ -698,7 +706,7 @@ class _RankingTopPageState extends State<RankingTopPage> {
       ),
       itemBuilder: (context, index) {
         final genre = _genreData[index];
-        final genreId = genre['id'] as String;
+        final genreId = genre['id'] as String? ?? '';
 
         return Card(
           elevation: 0,
