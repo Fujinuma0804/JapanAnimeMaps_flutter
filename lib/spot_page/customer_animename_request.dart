@@ -61,6 +61,9 @@ class _AnimeNameRequestCustomerFormState
       requestSoundPermission: true,
       requestBadgePermission: true,
       requestAlertPermission: true,
+      // onDidReceiveLocalNotification: (id, title, body, payload) async {
+      //   // iOS 10未満の場合のコールバック（現在はほぼ使用されない）
+      // },
     );
 
     // 初期化設定

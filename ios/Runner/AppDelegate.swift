@@ -4,6 +4,7 @@ import AVFoundation
 import Photos
 import CoreLocation
 
+<<<<<<< HEAD
 // MARK: - ネイティブカメラハンドラー
 class NativeCameraHandler: NSObject {
     private var methodChannel: FlutterMethodChannel?
@@ -15,6 +16,10 @@ class NativeCameraHandler: NSObject {
     private var previewLayer: AVCaptureVideoPreviewLayer?
     private var textureRegistry: FlutterTextureRegistry?
     private var textureId: Int64?
+=======
+@main
+@objc class AppDelegate: FlutterAppDelegate {
+>>>>>>> main
 
     // カメラ設定
     private var currentCameraPosition: AVCaptureDevice.Position = .back

@@ -134,7 +134,7 @@ class _MainScreenState extends State<MainScreen> {
       // Page 0: Spot
       state.language == 'Japanese'
           ? AnimeListTestRanking()
-          : const AnimeListEnNew(),
+          :  AnimeListEnNew(),
 
       // Page 1: Map
       state.language == 'Japanese'

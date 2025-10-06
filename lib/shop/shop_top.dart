@@ -1,5 +1,3 @@
-// ignore_for_file: avoid_print
-
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
@@ -105,10 +103,10 @@ class ProductCard extends StatelessWidget {
   final VoidCallback? onTap;
 
   const ProductCard({
-    super.key,
+    Key? key,
     required this.product,
     this.onTap,
-  });
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -172,7 +170,7 @@ class ProductCard extends StatelessWidget {
 
 // Shop Home Screen
 class ShopHomeScreen extends StatelessWidget {
-  ShopHomeScreen({super.key});
+  ShopHomeScreen({Key? key}) : super(key: key);
 
   final List<StaticCarouselItem> staticItems = [
     StaticCarouselItem(
@@ -411,156 +409,156 @@ class ShopHomeScreen extends StatelessWidget {
     );
   }
 
-  // Widget _buildCategoryCircles() {
-  //   return Container(
-  //     height: 100,
-  //     margin: const EdgeInsets.only(top: 8.0),
-  //     child: ListView.builder(
-  //       scrollDirection: Axis.horizontal,
-  //       padding: const EdgeInsets.symmetric(horizontal: 16.0),
-  //       itemCount: categoryCircles.length,
-  //       itemBuilder: (context, index) {
-  //         return Padding(
-  //           padding: const EdgeInsets.only(right: 16.0),
-  //           child: Column(
-  //             children: [
-  //               GestureDetector(
-  //                 onTap: () {
-  //                   Navigator.pushNamed(
-  //                     context,
-  //                     categoryCircles[index].route,
-  //                   );
-  //                 },
-  //                 child: Container(
-  //                   width: 60,
-  //                   height: 60,
-  //                   decoration: BoxDecoration(
-  //                     shape: BoxShape.circle,
-  //                     border: Border.all(
-  //                       color: Colors.grey[300]!,
-  //                       width: 1,
-  //                     ),
-  //                   ),
-  //                   child: ClipRRect(
-  //                     borderRadius: BorderRadius.circular(30),
-  //                     child: Image.asset(
-  //                       categoryCircles[index].imageUrl,
-  //                       fit: BoxFit.cover,
-  //                     ),
-  //                   ),
-  //                 ),
-  //               ),
-  //               const SizedBox(height: 8),
-  //               Text(
-  //                 categoryCircles[index].name,
-  //                 style: const TextStyle(
-  //                   fontSize: 12,
-  //                   fontWeight: FontWeight.w500,
-  //                 ),
-  //               ),
-  //             ],
-  //           ),
-  //         );
-  //       },
-  //     ),
-  //   );
-  // }
+  Widget _buildCategoryCircles() {
+    return Container(
+      height: 100,
+      margin: const EdgeInsets.only(top: 8.0),
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 16.0),
+        itemCount: categoryCircles.length,
+        itemBuilder: (context, index) {
+          return Padding(
+            padding: const EdgeInsets.only(right: 16.0),
+            child: Column(
+              children: [
+                GestureDetector(
+                  onTap: () {
+                    Navigator.pushNamed(
+                      context,
+                      categoryCircles[index].route,
+                    );
+                  },
+                  child: Container(
+                    width: 60,
+                    height: 60,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: Colors.grey[300]!,
+                        width: 1,
+                      ),
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(30),
+                      child: Image.asset(
+                        categoryCircles[index].imageUrl,
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  categoryCircles[index].name,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
 
-  // Widget _buildSquareItems() {
-  //   return SizedBox(
-  //     height: 70,
-  //     child: ListView.builder(
-  //       scrollDirection: Axis.horizontal,
-  //       padding: const EdgeInsets.symmetric(horizontal: 16.0),
-  //       itemCount: squareItems.length,
-  //       itemBuilder: (context, index) {
-  //         return Padding(
-  //           padding: const EdgeInsets.only(right: 12.0),
-  //           child: GestureDetector(
-  //             onTap: () {
-  //               Navigator.pushNamed(
-  //                 context,
-  //                 squareItems[index].route,
-  //               );
-  //             },
-  //             child: Container(
-  //               width: 75,
-  //               decoration: BoxDecoration(
-  //                 borderRadius: BorderRadius.circular(8),
-  //                 border: Border.all(
-  //                   color: Colors.grey[300]!,
-  //                   width: 1,
-  //                 ),
-  //               ),
-  //               child: Column(
-  //                 children: [
-  //                   Expanded(
-  //                     child: ClipRRect(
-  //                       borderRadius: const BorderRadius.vertical(top: Radius.circular(8)),
-  //                       child: Image.asset(
-  //                         squareItems[index].imageUrl,
-  //                         width: double.infinity,
-  //                         fit: BoxFit.cover,
-  //                       ),
-  //                     ),
-  //                   ),
-  //                 ],
-  //               ),
-  //             ),
-  //           ),
-  //         );
-  //       },
-  //     ),
-  //   );
-  // }
+  Widget _buildSquareItems() {
+    return Container(
+      height: 70,
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 16.0),
+        itemCount: squareItems.length,
+        itemBuilder: (context, index) {
+          return Padding(
+            padding: const EdgeInsets.only(right: 12.0),
+            child: GestureDetector(
+              onTap: () {
+                Navigator.pushNamed(
+                  context,
+                  squareItems[index].route,
+                );
+              },
+              child: Container(
+                width: 75,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: Colors.grey[300]!,
+                    width: 1,
+                  ),
+                ),
+                child: Column(
+                  children: [
+                    Expanded(
+                      child: ClipRRect(
+                        borderRadius: const BorderRadius.vertical(top: Radius.circular(8)),
+                        child: Image.asset(
+                          squareItems[index].imageUrl,
+                          width: double.infinity,
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
 
-  // Widget _buildSquare2Items() {
-  //   return SizedBox(
-  //     height: 145,
-  //     child: ListView.builder(
-  //       scrollDirection: Axis.horizontal,
-  //       padding: const EdgeInsets.symmetric(horizontal: 16.0),
-  //       itemCount: squareItems.length,
-  //       itemBuilder: (context, index) {
-  //         return Padding(
-  //           padding: const EdgeInsets.only(right: 12.0),
-  //           child: GestureDetector(
-  //             onTap: () {
-  //               Navigator.pushNamed(
-  //                 context,
-  //                 squareItems[index].route,
-  //               );
-  //             },
-  //             child: Container(
-  //               width: 140,
-  //               decoration: BoxDecoration(
-  //                 borderRadius: BorderRadius.circular(8),
-  //                 border: Border.all(
-  //                   color: Colors.grey[300]!,
-  //                   width: 1,
-  //                 ),
-  //               ),
-  //               child: Column(
-  //                 children: [
-  //                   Expanded(
-  //                     child: ClipRRect(
-  //                       borderRadius: const BorderRadius.vertical(top: Radius.circular(8)),
-  //                       child: Image.asset(
-  //                         squareItems[index].imageUrl,
-  //                         width: double.infinity,
-  //                         fit: BoxFit.cover,
-  //                       ),
-  //                     ),
-  //                   ),
-  //                 ],
-  //               ),
-  //             ),
-  //           ),
-  //         );
-  //       },
-  //     ),
-  //   );
-  // }
+  Widget _buildSquare2Items() {
+    return Container(
+      height: 145,
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 16.0),
+        itemCount: squareItems.length,
+        itemBuilder: (context, index) {
+          return Padding(
+            padding: const EdgeInsets.only(right: 12.0),
+            child: GestureDetector(
+              onTap: () {
+                Navigator.pushNamed(
+                  context,
+                  squareItems[index].route,
+                );
+              },
+              child: Container(
+                width: 140,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: Colors.grey[300]!,
+                    width: 1,
+                  ),
+                ),
+                child: Column(
+                  children: [
+                    Expanded(
+                      child: ClipRRect(
+                        borderRadius: const BorderRadius.vertical(top: Radius.circular(8)),
+                        child: Image.asset(
+                          squareItems[index].imageUrl,
+                          width: double.infinity,
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
 
   Widget _buildCategorySection(BuildContext context, String category, List<Product> products) {
     return Column(
@@ -702,15 +700,7 @@ class ShopHomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // endDrawer: const CustomDrawer(),
-      appBar: AppBar(
-        title: const Text('SHOP'),
-        centerTitle: true,
-        // backgroundColor: Colors.white,
-        foregroundColor: Colors.black,
-        elevation: 0,
-
-      ),
+      endDrawer: const CustomDrawer(),
       body: SafeArea(
         child: Stack(
           children: [
@@ -743,49 +733,49 @@ class ShopHomeScreen extends StatelessWidget {
                               ),
                             ),
                           ),
-                          // Builder(
-                          //   builder: (BuildContext context) {
-                          //     return IconButton(
-                          //       icon: const Icon(Icons.menu),
-                          //       color: Colors.black,
-                          //       onPressed: () {
-                          //         Scaffold.of(context).openEndDrawer();
-                          //       },
-                          //     );
-                          //   },
-                          // ),
+                          Builder(
+                            builder: (BuildContext context) {
+                              return IconButton(
+                                icon: const Icon(Icons.menu),
+                                color: Colors.black,
+                                onPressed: () {
+                                  Scaffold.of(context).openEndDrawer();
+                                },
+                              );
+                            },
+                          ),
                         ],
                       ),
                     ),
-                    // _buildCategoryCircles(),
-                    // _buildSquareItems(),
-                    // const SizedBox(height: 5.0),
-                    // _buildSquare2Items(),
-                    // const SizedBox(height: 16.0),
-                    // FutureBuilder<List<ShopEvent>>(
-                    //   future: fetchShopEvents(),
-                    //   builder: (context, snapshot) {
-                    //     if (snapshot.hasError) {
-                    //       print('Error in events: ${snapshot.error}');
-                    //       return _buildCarousel([]);
-                    //     }
+                    _buildCategoryCircles(),
+                    _buildSquareItems(),
+                    const SizedBox(height: 5.0),
+                    _buildSquare2Items(),
+                    const SizedBox(height: 16.0),
+                    FutureBuilder<List<ShopEvent>>(
+                      future: fetchShopEvents(),
+                      builder: (context, snapshot) {
+                        if (snapshot.hasError) {
+                          print('Error in events: ${snapshot.error}');
+                          return _buildCarousel([]);
+                        }
 
-                    //     if (snapshot.connectionState == ConnectionState.waiting) {
-                    //       return _buildCarousel([]);
-                    //     }
+                        if (snapshot.connectionState == ConnectionState.waiting) {
+                          return _buildCarousel([]);
+                        }
 
-                    //     final now = DateTime.now();
-                    //     final activeEvents = snapshot.data
-                    //         ?.where((event) =>
-                    //     event.isActive &&
-                    //         now.isAfter(event.startDate) &&
-                    //         now.isBefore(event.endDate))
-                    //         .toList() ??
-                    //         [];
+                        final now = DateTime.now();
+                        final activeEvents = snapshot.data
+                            ?.where((event) =>
+                        event.isActive &&
+                            now.isAfter(event.startDate) &&
+                            now.isBefore(event.endDate))
+                            .toList() ??
+                            [];
 
-                    //     return _buildCarousel(activeEvents);
-                    //   },
-                    // ),
+                        return _buildCarousel(activeEvents);
+                      },
+                    ),
                     const SizedBox(height: 20.0),
                     FutureBuilder<Map<String, List<Product>>>(
                       future: fetchProductsByCategory(),
@@ -837,111 +827,111 @@ class ShopHomeScreen extends StatelessWidget {
           ],
         ),
       ),
-      // bottomSheet: Container(
-      //   decoration: BoxDecoration(
-      //     color: Colors.white,
-      //     boxShadow: [
-      //       BoxShadow(
-      //         color: Colors.grey.withValues(alpha: 0.2),
-      //         spreadRadius: 0,
-      //         blurRadius: 10,
-      //         offset: const Offset(0, -2),
-      //       ),
-      //     ],
-      //   ),
-      //   child: SafeArea(
-      //     top: false,
-      //     child: Padding(
-      //       padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
-      //       child: Row(
-      //         children: [
-      //           Expanded(
-      //             child: Material(
-      //               color: Colors.white,
-      //               child: InkWell(
-      //                 onTap: () {
-      //                   print('Favorite button tapped');
-      //                 },
-      //                 borderRadius: BorderRadius.circular(8),
-      //                 child: Container(
-      //                   padding: const EdgeInsets.symmetric(vertical: 12),
-      //                   decoration: BoxDecoration(
-      //                     border: Border.all(
-      //                       color: Colors.black,
-      //                       width: 1.0,
-      //                     ),
-      //                     borderRadius: BorderRadius.circular(8),
-      //                   ),
-      //                   child: const Row(
-      //                     mainAxisAlignment: MainAxisAlignment.center,
-      //                     children: [
-      //                       Icon(
-      //                         Icons.favorite_border,
-      //                         color: Colors.black,
-      //                         size: 24,
-      //                       ),
-      //                       SizedBox(width: 8),
-      //                       Text(
-      //                         'お気に入り',
-      //                         style: TextStyle(
-      //                           color: Colors.black,
-      //                           fontWeight: FontWeight.w500,
-      //                         ),
-      //                       ),
-      //                     ],
-      //                   ),
-      //                 ),
-      //               ),
-      //             ),
-      //           ),
-      //           const SizedBox(width: 12),
-      //           Expanded(
-      //             child: Material(
-      //               color: Colors.white,
-      //               child: InkWell(
-      //                 onTap: () {
-      //                   Navigator.push(
-      //                     context,
-      //                     MaterialPageRoute(builder: (context) => const CartScreen()),
-      //                   );
-      //                 },
-      //                 borderRadius: BorderRadius.circular(8),
-      //                 child: Container(
-      //                   padding: const EdgeInsets.symmetric(vertical: 12),
-      //                   decoration: BoxDecoration(
-      //                     border: Border.all(
-      //                       color: Colors.black,
-      //                       width: 1.0,
-      //                     ),
-      //                     borderRadius: BorderRadius.circular(8),
-      //                   ),
-      //                   child: const Row(
-      //                     mainAxisAlignment: MainAxisAlignment.center,
-      //                     children: [
-      //                       Icon(
-      //                         Icons.shopping_cart_outlined,
-      //                         color: Colors.black,
-      //                         size: 24,
-      //                       ),
-      //                       SizedBox(width: 8),
-      //                       Text(
-      //                         'カート',
-      //                         style: TextStyle(
-      //                           color: Colors.black,
-      //                           fontWeight: FontWeight.w500,
-      //                         ),
-      //                       ),
-      //                     ],
-      //                   ),
-      //                 ),
-      //               ),
-      //             ),
-      //           ),
-      //         ],
-      //       ),
-      //     ),
-      //   ),
-      // ),
+      bottomSheet: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.grey.withOpacity(0.2),
+              spreadRadius: 0,
+              blurRadius: 10,
+              offset: const Offset(0, -2),
+            ),
+          ],
+        ),
+        child: SafeArea(
+          top: false,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Material(
+                    color: Colors.white,
+                    child: InkWell(
+                      onTap: () {
+                        print('Favorite button tapped');
+                      },
+                      borderRadius: BorderRadius.circular(8),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        decoration: BoxDecoration(
+                          border: Border.all(
+                            color: Colors.black,
+                            width: 1.0,
+                          ),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.favorite_border,
+                              color: Colors.black,
+                              size: 24,
+                            ),
+                            SizedBox(width: 8),
+                            Text(
+                              'お気に入り',
+                              style: TextStyle(
+                                color: Colors.black,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Material(
+                    color: Colors.white,
+                    child: InkWell(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => CartScreen()),
+                        );
+                      },
+                      borderRadius: BorderRadius.circular(8),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        decoration: BoxDecoration(
+                          border: Border.all(
+                            color: Colors.black,
+                            width: 1.0,
+                          ),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.shopping_cart_outlined,
+                              color: Colors.black,
+                              size: 24,
+                            ),
+                            SizedBox(width: 8),
+                            Text(
+                              'カート',
+                              style: TextStyle(
+                                color: Colors.black,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
@@ -952,10 +942,10 @@ class CategoryDetailScreen extends StatelessWidget {
   final List<Product> products;
 
   const CategoryDetailScreen({
-    super.key,
+    Key? key,
     required this.category,
     required this.products,
-  });
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
