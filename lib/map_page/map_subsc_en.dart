@@ -8,6 +8,7 @@ import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
@@ -424,6 +425,10 @@ class _MapSubscriptionEnState extends State<MapSubscriptionEn> {
 
   //サブスクリプション状態をチェックするメソッド【追加】
   Future<void> _checkSubscriptionStatus() async {
+    if (Firebase.apps.isEmpty) {
+      print('Error handling location update: Firebase not initialized');
+      return;
+    }
     setState(() {
       _isCheckingSubscription = true;
     });
@@ -502,6 +507,10 @@ class _MapSubscriptionEnState extends State<MapSubscriptionEn> {
 
   // 検索制限データをFirestoreからロードする新しいメソッド
   Future<void> _loadSearchLimitData() async {
+    if (Firebase.apps.isEmpty) {
+      print('Error handling location update: Firebase not initialized');
+      return;
+    }
     print('===検索制限データ読み込み開始＝＝＝');
     print('_userId: $_userId');
     // ユーザーの初期化を待つ
@@ -738,43 +747,18 @@ class _MapSubscriptionEnState extends State<MapSubscriptionEn> {
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Header with close button
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Expanded(
-                    child: Container(
-                      padding: EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: Colors.red.withOpacity(0.1),
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(
-                        Icons.search_off_rounded,
-                        color: Colors.red[600],
-                        size: 32,
-                      ),
-                    ),
-                  ),
-                  // Close button
-                  GestureDetector(
-                    onTap: () {
-                      Navigator.of(context).pop();
-                    },
-                    child: Container(
-                      padding: EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: Colors.grey.withOpacity(0.1),
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(
-                        Icons.close_rounded,
-                        color: Colors.grey[600],
-                        size: 20,
-                      ),
-                    ),
-                  ),
-                ],
+              // アイコン
+              Container(
+                padding: EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.red.withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.search_off_rounded,
+                  color: Colors.red[600],
+                  size: 48,
+                ),
               ),
               SizedBox(height: 20),
 
@@ -819,7 +803,7 @@ class _MapSubscriptionEnState extends State<MapSubscriptionEn> {
                         _isWatchingAd
                             ? Icons.hourglass_empty_rounded
                             : _isAdAvailable
-                                ? Icons.play_arrow_rounded
+                                ? Icons.play_circle_filled_rounded
                                 : Icons.hourglass_empty_rounded,
                         size: 20,
                       ),
@@ -827,10 +811,9 @@ class _MapSubscriptionEnState extends State<MapSubscriptionEn> {
                         _isWatchingAd
                             ? 'Ad loading...'
                             : _isAdAvailable
-                                ? 'Watch Ad & Get More Searches'
+                                ? 'Watch ads to get more searches'
                                 : 'Preparing for advertisement...',
-                        style: TextStyle(
-                            fontSize: 14, fontWeight: FontWeight.w600),
+                        style: TextStyle(fontSize: 14),
                       ),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: _isAdAvailable && !_isWatchingAd
@@ -850,16 +833,12 @@ class _MapSubscriptionEnState extends State<MapSubscriptionEn> {
                   // 後で試すボタン
                   SizedBox(
                     width: double.infinity,
-                    child: OutlinedButton.icon(
+                    child: OutlinedButton(
                       onPressed: () {
                         Navigator.of(context).pop(); // ダイアログを閉じる
                       },
-                      icon: Icon(
-                        Icons.close_rounded,
-                        size: 18,
-                      ),
-                      label: Text(
-                        'Cancel',
+                      child: Text(
+                        'Try Later',
                         style: TextStyle(fontSize: 14),
                       ),
                       style: OutlinedButton.styleFrom(
@@ -1190,6 +1169,12 @@ class _MapSubscriptionEnState extends State<MapSubscriptionEn> {
   }
 
   Future<void> _getCurrentLocation() async {
+    //【Firebaseのデバックエラー解決のため追加】
+    if (Firebase.apps.isEmpty) {
+      print('Error handling location update : Firebase not initialized');
+      return;
+    }
+
     bool serviceEnabled;
     LocationPermission permission;
 
@@ -1240,9 +1225,6 @@ class _MapSubscriptionEnState extends State<MapSubscriptionEn> {
       _addCurrentLocationCircle();
     });
     _moveToCurrentLocation();
-
-    // Automatically load nearby locations after getting current position
-    _loadNearbyMarkersFromCurrentPosition();
   }
 
   // 検索機能のメソッドを修正
@@ -2095,7 +2077,7 @@ class _MapSubscriptionEnState extends State<MapSubscriptionEn> {
             AnimatedContainer(
               duration: Duration(milliseconds: 400),
               curve: Curves.easeInOut,
-              height: _isWatchingAd ? 3 : 0,
+              height: _isSearching || _isWatchingAd ? 3 : 0,
               child: _isWatchingAd
                   ? Container(
                       decoration: BoxDecoration(
@@ -2115,7 +2097,26 @@ class _MapSubscriptionEnState extends State<MapSubscriptionEn> {
                             AlwaysStoppedAnimation<Color>(Colors.transparent),
                       ),
                     )
-                  : null,
+                  : _isSearching
+                      ? Container(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [
+                                Color(0xFF00008b).withOpacity(0.3),
+                                Color(0xFF00008b),
+                                Color(0xFF00008b).withOpacity(0.3),
+                              ],
+                              stops: [0.0, 0.5, 1.0],
+                            ),
+                            borderRadius: BorderRadius.circular(2),
+                          ),
+                          child: LinearProgressIndicator(
+                            backgroundColor: Colors.transparent,
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                                Colors.transparent),
+                          ),
+                        )
+                      : null,
             ),
 
             // 検索制限メッセージ（改良版）
@@ -2827,7 +2828,11 @@ class _MapSubscriptionEnState extends State<MapSubscriptionEn> {
 
 // Load markers from the current camera position
   Future<void> _loadNearbyMarkers() async {
-    if (_mapController == null) return;
+    if (_isLoadingNearbyMarkers || _mapController == null) return;
+
+    setState(() {
+      _isLoadingNearbyMarkers = true;
+    });
 
     try {
       // 現在のカメラ位置を取得
@@ -2914,79 +2919,19 @@ class _MapSubscriptionEnState extends State<MapSubscriptionEn> {
       //     duration: Duration(seconds: 2),
       //   ),
       // );
-    }
-  }
-
-  // Load nearby markers from current position automatically
-  Future<void> _loadNearbyMarkersFromCurrentPosition() async {
-    if (_currentPosition == null) return;
-
-    try {
-      // Get all locations from Firestore
-      CollectionReference locations =
-          FirebaseFirestore.instance.collection('locations');
-      QuerySnapshot snapshot = await locations.get();
-
-      // Filter locations within the maximum display radius
-      for (var doc in snapshot.docs) {
-        Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
-
-        // Skip if no valid coordinates
-        if (data['latitude'] == null || data['longitude'] == null) {
-          continue;
-        }
-
-        double latitude = (data['latitude'] as num).toDouble();
-        double longitude = (data['longitude'] as num).toDouble();
-
-        // Calculate distance from current position
-        double distance = Geolocator.distanceBetween(
-          _currentPosition!.latitude,
-          _currentPosition!.longitude,
-          latitude,
-          longitude,
-        );
-
-        // Only add markers within the maximum display radius
-        if (distance <= _maxDisplayRadius) {
-          // Check if marker already exists
-          bool alreadyExists =
-              _markers.any((marker) => marker.markerId.value == doc.id);
-
-          if (!alreadyExists) {
-            LatLng position = LatLng(latitude, longitude);
-            String imageUrl = data['imageUrl'] ?? '';
-            String locationId = doc.id;
-            String titleEn = data['titleEn'] ?? '';
-            String animeNameEn = data['animeNameEn'] ?? '';
-            String description = data['descriptionEn'] ?? '';
-
-            Marker? marker = await _createMarkerWithImage(
-              position,
-              imageUrl,
-              locationId,
-              300,
-              200,
-              titleEn,
-              animeNameEn,
-              description,
-            );
-
-            if (marker != null) {
-              setState(() {
-                _markers.add(marker);
-              });
-            }
-          }
-        }
-      }
-    } catch (e) {
-      print('Error loading nearby markers from current position: $e');
+    } finally {
+      setState(() {
+        _isLoadingNearbyMarkers = false;
+      });
     }
   }
 
   Future<void> _processMarkerBatch() async {
-    if (_pendingMarkers.isEmpty) return;
+    if (_pendingMarkers.isEmpty || _isLoadingMoreMarkers) return;
+
+    setState(() {
+      _isLoadingMoreMarkers = true;
+    });
 
     // Process a limited number of markers at once to avoid UI freezing
     final batch = _pendingMarkers.take(_markerBatchSize).toList();
@@ -3030,6 +2975,7 @@ class _MapSubscriptionEnState extends State<MapSubscriptionEn> {
           _markers.add(marker);
         }
       }
+      _isLoadingMoreMarkers = false;
     });
 
     // If there are more markers to process, schedule the next batch
@@ -4716,7 +4662,8 @@ class _MapSubscriptionEnState extends State<MapSubscriptionEn> {
                             });
                           },
                           onCameraIdle: () {
-                            if (_pendingMarkers.isNotEmpty) {
+                            if (_pendingMarkers.isNotEmpty &&
+                                !_isLoadingMoreMarkers) {
                               _processMarkerBatch();
                             }
                           },
@@ -4726,43 +4673,87 @@ class _MapSubscriptionEnState extends State<MapSubscriptionEn> {
                         _buildSearchBar(),
 
                         // Loading indicators and other UI elements
-
-                        // Nearby floating button with text
-                        Positioned(
-                          bottom: 80,
-                          left: 16,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              // Text label
-                              Container(
-                                padding: EdgeInsets.symmetric(
-                                    horizontal: 8, vertical: 4),
-                                decoration: BoxDecoration(
-                                  color: Colors.black54,
-                                  borderRadius: BorderRadius.circular(4),
-                                ),
-                                child: Text(
-                                  'Find Nearby',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w500,
+                        if (_isLoadingMoreMarkers)
+                          Positioned(
+                            bottom: 70,
+                            right: 16,
+                            child: Container(
+                              padding: EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  SizedBox(
+                                    width: 16,
+                                    height: 16,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                    ),
                                   ),
+                                  SizedBox(width: 8),
+                                ],
+                              ),
+                            ),
+                          ),
+
+                        Positioned(
+                          bottom: 25,
+                          left: 0,
+                          right: 0,
+                          child: Center(
+                            child: FloatingActionButton.extended(
+                              onPressed: _isLoadingNearbyMarkers
+                                  ? null
+                                  : _loadNearbyMarkers,
+                              backgroundColor: Colors.transparent,
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(30),
+                                side: BorderSide(color: Colors.white, width: 2),
+                              ),
+                              icon: Icon(
+                                Icons.near_me,
+                                color: Colors.white,
+                              ),
+                              label: Text(
+                                'Load nearby',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
                                 ),
                               ),
-                              SizedBox(height: 8),
-                              // Floating button
-                              FloatingActionButton(
-                                mini: true,
-                                backgroundColor: Colors.blue[600],
-                                foregroundColor: Colors.white,
-                                onPressed: _loadNearbyMarkers,
-                                child: Icon(Icons.near_me_rounded),
-                              ),
-                            ],
+                            ),
                           ),
                         ),
+
+                        if (_isLoadingNearbyMarkers)
+                          Positioned(
+                            bottom: 210,
+                            right: 16,
+                            child: Container(
+                              padding: EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  SizedBox(
+                                    width: 16,
+                                    height: 16,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                    ),
+                                  ),
+                                  SizedBox(width: 8),
+                                ],
+                              ),
+                            ),
+                          ),
                       ],
                     ),
           if (_showConfirmation)

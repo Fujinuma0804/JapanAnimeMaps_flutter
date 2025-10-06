@@ -6,7 +6,7 @@ import '../src/page_route.dart';
 import 'sign_up.dart';
 
 class MailLoginPage extends StatefulWidget {
-  const MailLoginPage({Key? key}) : super(key: key);
+  const MailLoginPage({super.key});
 
   @override
   State<MailLoginPage> createState() => _MailLoginPageState();
@@ -126,7 +126,7 @@ class _MailLoginPageState extends State<MailLoginPage>
                                           Offset(0, _letterAnimations[i].value),
                                       child: Text(
                                         titleText[i],
-                                        style: TextStyle(
+                                        style: const TextStyle(
                                           color: Color(0xFF00008b),
                                           fontSize: 28,
                                           fontWeight: FontWeight.bold,
@@ -141,7 +141,7 @@ class _MailLoginPageState extends State<MailLoginPage>
                           ],
                         ),
                       ),
-                      SizedBox(height: 60),
+                      const SizedBox(height: 60),
                       Container(
                         decoration: BoxDecoration(
                           color: Colors.grey[100],
@@ -151,7 +151,7 @@ class _MailLoginPageState extends State<MailLoginPage>
                           onChanged: (value) {
                             email = value;
                           },
-                          style: TextStyle(color: Colors.black),
+                          style: const TextStyle(color: Colors.black),
                           decoration: InputDecoration(
                             labelText: 'メールアドレスを入力',
                             labelStyle: TextStyle(color: Colors.grey[700]),
@@ -160,13 +160,13 @@ class _MailLoginPageState extends State<MailLoginPage>
                               borderSide: BorderSide.none,
                             ),
                             prefixIcon:
-                                Icon(Icons.email, color: Color(0xFF7986CB)),
-                            contentPadding: EdgeInsets.symmetric(
+                                const Icon(Icons.email, color: Color(0xFF7986CB)),
+                            contentPadding: const EdgeInsets.symmetric(
                                 horizontal: 20, vertical: 15),
                           ),
                         ),
                       ),
-                      SizedBox(height: 20),
+                      const SizedBox(height: 20),
                       Container(
                         decoration: BoxDecoration(
                           color: Colors.grey[100],
@@ -177,7 +177,7 @@ class _MailLoginPageState extends State<MailLoginPage>
                             password = value;
                           },
                           obscureText: _isObscure,
-                          style: TextStyle(color: Colors.black),
+                          style: const TextStyle(color: Colors.black),
                           decoration: InputDecoration(
                             labelText: 'パスワードを入力',
                             labelStyle: TextStyle(color: Colors.grey[700]),
@@ -186,13 +186,13 @@ class _MailLoginPageState extends State<MailLoginPage>
                               borderSide: BorderSide.none,
                             ),
                             prefixIcon:
-                                Icon(Icons.lock, color: Color(0xFF7986CB)),
+                                const Icon(Icons.lock, color: Color(0xFF7986CB)),
                             suffixIcon: IconButton(
                               icon: Icon(
                                 _isObscure
                                     ? Icons.visibility_off
                                     : Icons.visibility,
-                                color: Color(0xFF7986CB),
+                                color: const Color(0xFF7986CB),
                               ),
                               onPressed: () {
                                 setState(() {
@@ -200,16 +200,16 @@ class _MailLoginPageState extends State<MailLoginPage>
                                 });
                               },
                             ),
-                            contentPadding: EdgeInsets.symmetric(
+                            contentPadding: const EdgeInsets.symmetric(
                                 horizontal: 20, vertical: 15),
                           ),
                         ),
                       ),
-                      SizedBox(height: 40),
+                      const SizedBox(height: 40),
                       Container(
                         width: 350.0,
                         height: 50.0,
-                        margin: EdgeInsets.symmetric(vertical: 8.0),
+                        margin: const EdgeInsets.symmetric(vertical: 8.0),
                         child: ElevatedButton(
                           onPressed: _isLoading ? null : _login,
                           style: ElevatedButton.styleFrom(
@@ -220,11 +220,11 @@ class _MailLoginPageState extends State<MailLoginPage>
                             elevation: 3,
                           ),
                           child: _isLoading
-                              ? CircularProgressIndicator(
+                              ? const CircularProgressIndicator(
                                   valueColor: AlwaysStoppedAnimation<Color>(
                                       Colors.white),
                                 )
-                              : Text(
+                              : const Text(
                                   'ログイン',
                                   style: TextStyle(
                                     color: Colors.white,
@@ -234,12 +234,12 @@ class _MailLoginPageState extends State<MailLoginPage>
                                 ),
                         ),
                       ),
-                      SizedBox(height: 20),
+                      const SizedBox(height: 20),
                       TextButton(
                         onPressed: () {
                           _showPasswordResetDialog(context);
                         },
-                        child: Text(
+                        child: const Text(
                           'パスワード忘れた方はこちら',
                           style: TextStyle(
                             color: Colors.black,
@@ -253,7 +253,7 @@ class _MailLoginPageState extends State<MailLoginPage>
                             elasticTransition(const SignUpPage()),
                           );
                         },
-                        child: Text(
+                        child: const Text(
                           '会員登録がまだの方はこちら',
                           style: TextStyle(
                             color: Colors.black,
@@ -269,7 +269,7 @@ class _MailLoginPageState extends State<MailLoginPage>
             if (_isLoading)
               Container(
                 color: Colors.black.withOpacity(0.5),
-                child: Center(
+                child: const Center(
                   child: CircularProgressIndicator(
                     valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                   ),
@@ -372,9 +372,9 @@ class _MailLoginPageState extends State<MailLoginPage>
                       borderRadius: BorderRadius.circular(15),
                       borderSide: BorderSide.none,
                     ),
-                    prefixIcon: Icon(Icons.email, color: Color(0xFF7986CB)),
+                    prefixIcon: const Icon(Icons.email, color: Color(0xFF7986CB)),
                     contentPadding:
-                        EdgeInsets.symmetric(horizontal: 15, vertical: 15),
+                        const EdgeInsets.symmetric(horizontal: 15, vertical: 15),
                   ),
                 ),
               ),
@@ -385,7 +385,7 @@ class _MailLoginPageState extends State<MailLoginPage>
               onPressed: () {
                 Navigator.pop(context);
               },
-              child: Text(
+              child: const Text(
                 'キャンセル',
                 style: TextStyle(
                   color: Colors.grey,
@@ -415,7 +415,7 @@ class _MailLoginPageState extends State<MailLoginPage>
                   }
                 }
               },
-              child: Text(
+              child: const Text(
                 '送信',
                 style: TextStyle(
                   color: Color(0xFF00008b),

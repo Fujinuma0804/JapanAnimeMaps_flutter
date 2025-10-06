@@ -9,3 +9,5 @@
         <include domain="file" path="fiam_impressions_store_file"/>
     </device-transfer>
 </data-extraction-rules>
+
+

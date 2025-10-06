@@ -4,10 +4,9 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:parts/bloc/spotbloc/spotbloc.dart';
 import 'package:parts/bloc/spotbloc/spot_event.dart';
 import 'package:parts/bloc/spotbloc/spot_state.dart';
-import 'package:parts/Dataprovider/model/spot_model.dart';
 
 class SpotListWidget extends StatelessWidget {
-  const SpotListWidget({Key? key}) : super(key: key);
+  const SpotListWidget({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -19,7 +18,7 @@ class SpotListWidget extends StatelessWidget {
 }
 
 class SpotListView extends StatelessWidget {
-  const SpotListView({Key? key}) : super(key: key);
+  const SpotListView({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -93,3 +92,5 @@ class SpotListView extends StatelessWidget {
     );
   }
 }
+
+

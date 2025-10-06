@@ -194,13 +194,10 @@ class _SpotTestScreenState extends State<SpotTestScreen>
           stream: _checkInsStream,
           builder: (context, AsyncSnapshot<QuerySnapshot> snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
-              return Container(
-                height: 400,
-                child: const Center(
-                  child: CircularProgressIndicator(
-                    valueColor: AlwaysStoppedAnimation<Color>(
-                      Color(0xFF3498DB),
-                    ),
+              return const Center(
+                child: CircularProgressIndicator(
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                    Color(0xFF3498DB),
                   ),
                 ),
               );
@@ -216,6 +213,7 @@ class _SpotTestScreenState extends State<SpotTestScreen>
                   border: Border.all(color: Colors.red.shade200),
                 ),
                 child: Column(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
                     Icon(
                       Icons.error_outline,
@@ -245,8 +243,7 @@ class _SpotTestScreenState extends State<SpotTestScreen>
             }
 
             if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-              return Container(
-                height: 400,
+              return Center(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
