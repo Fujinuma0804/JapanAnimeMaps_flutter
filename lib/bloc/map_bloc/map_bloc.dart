@@ -1,12 +1,14 @@
 // map_bloc.dart
 import 'dart:async';
+import 'dart:typed_data';
+import 'dart:ui' as ui;
 import 'package:bloc/bloc.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
-
+import 'package:http/http.dart' as http;
 part 'map_event.dart';
 part 'map_state.dart';
 
@@ -260,10 +262,55 @@ class MapBloc extends Bloc<MapEvent, MapState> {
       (data['latitude'] as num).toDouble(),
       (data['longitude'] as num).toDouble(),
     );
+    String imageUrl = data['imageUrl'] ?? '';
+    const int height = 200;
+    const int width = 300;
+    final Uint8List markerIcon =
+        await _getBytesFromUrl(imageUrl, width, height);
+
+    // Use compute to move image processing to a separate isolate
+    final ui.PictureRecorder pictureRecorder = ui.PictureRecorder();
+    final Canvas canvas = Canvas(pictureRecorder);
+    final Paint paint = Paint()..color = Colors.white;
+    // 吹き出しの描画（先端を下に移動）
+    final Path path = Path();
+    path.moveTo(0, 0);
+    path.lineTo(0, height + 20);
+    path.lineTo((width + 40) / 2 - 10, height + 20);
+    path.lineTo((width + 40) / 2, height + 40);
+    path.lineTo((width + 40) / 2 + 10, height + 20);
+    path.lineTo(width + 40, height + 20);
+    path.lineTo(width + 40, 0);
+    path.close();
+
+    canvas.drawPath(path, paint);
+
+    // 画像の描画
+    final ui.Image image = await decodeImageFromList(markerIcon);
+
+    const double scaleFactor = 0.95;
+    const double scaledWidth = (width + 40) * scaleFactor;
+    const double scaledHeight = (height + 20) * scaleFactor;
+    const double offsetX = ((width + 40) - scaledWidth) / 2;
+    const double offsetY = ((height + 20) - scaledHeight) / 2;
+
+    canvas.drawImageRect(
+      image,
+      Rect.fromLTWH(0, 0, image.width.toDouble(), image.height.toDouble()),
+      Rect.fromLTWH(offsetX, offsetY, scaledWidth, scaledHeight),
+      Paint(),
+    );
+
+    final img =
+        await pictureRecorder.endRecording().toImage(width + 40, height + 60);
+    final imgData = await img.toByteData(format: ui.ImageByteFormat.png);
+
+    if (imgData == null) return null;
 
     return Marker(
       markerId: MarkerId(doc.id),
       position: position,
+      icon: BitmapDescriptor.fromBytes(imgData.buffer.asUint8List()),
       onTap: () {
         add(MarkerSelected(doc.id, position));
       },
@@ -314,6 +361,36 @@ class MapBloc extends Bloc<MapEvent, MapState> {
     } catch (e) {
       print('Error calculating distance: $e');
       return false;
+    }
+  }
+
+  Future<Uint8List> _getBytesFromUrl(String url, int width, int height) async {
+    try {
+      final http.Response response = await http.get(Uri.parse(url));
+
+      if (response.statusCode != 200) {
+        throw Exception(
+            'Failed to load image, status code: ${response.statusCode}');
+      }
+
+      final ui.Codec codec = await ui.instantiateImageCodec(
+        response.bodyBytes,
+        targetWidth: width,
+        targetHeight: height,
+      );
+      final ui.FrameInfo fi = await codec.getNextFrame();
+      final ByteData? byteData =
+          await fi.image.toByteData(format: ui.ImageByteFormat.png);
+
+      if (byteData == null) {
+        throw Exception('Failed to convert image to bytes');
+      }
+
+      return byteData.buffer.asUint8List();
+    } catch (e) {
+      print('Error loading image from URL: $e');
+      // Return a fallback/placeholder image or rethrow
+      throw e;
     }
   }
 
