@@ -33,6 +33,11 @@ class MarkersBatchLoadRequested extends MapEvent {
   MarkersBatchLoadRequested({this.batchSize = 10});
 }
 
+class MarkersAdded extends MapEvent {
+  final Set<Marker> markers;
+  MarkersAdded(this.markers);
+}
+
 class MarkerSelected extends MapEvent {
   final String markerId;
   final LatLng position;
@@ -92,3 +97,4 @@ class LocationsCacheUpdated extends MapEvent {
   final List<DocumentSnapshot> locations;
   LocationsCacheUpdated(this.locations);
 }
+

@@ -132,9 +132,7 @@ class _MainScreenState extends State<MainScreen> {
   List<Widget> _buildPages(UserDataLoaded state) {
     return [
       // Page 0: Spot
-      state.language == 'Japanese'
-          ? AnimeListTestRanking()
-          :  AnimeListEnNew(),
+      state.language == 'Japanese' ? AnimeListTestRanking() : AnimeListEnNew(),
 
       // Page 1: Map
       state.language == 'Japanese'
