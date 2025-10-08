@@ -172,3 +172,5 @@ The UserBloc is now fully functional and ready for testing. It provides:
 - Easy integration with Flutter widgets
 
 All linting errors have been resolved and the code follows Flutter/Dart best practices.
+
+

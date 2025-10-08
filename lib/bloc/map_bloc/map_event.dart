@@ -19,7 +19,23 @@ class MarkersLoadRequested extends MapEvent {
   final LatLngBounds? visibleRegion;
   final LatLng? center;
   final double? radius;
-  MarkersLoadRequested({this.visibleRegion, this.center, this.radius});
+  final bool isInitialLoad;
+  MarkersLoadRequested({
+    this.visibleRegion,
+    this.center,
+    this.radius,
+    this.isInitialLoad = false,
+  });
+}
+
+class MarkersBatchLoadRequested extends MapEvent {
+  final int batchSize;
+  MarkersBatchLoadRequested({this.batchSize = 10});
+}
+
+class MarkersAdded extends MapEvent {
+  final Set<Marker> markers;
+  MarkersAdded(this.markers);
 }
 
 class MarkerSelected extends MapEvent {
@@ -49,7 +65,8 @@ class TravelModeChanged extends MapEvent {
 class RouteCalculationRequested extends MapEvent {
   final LatLng origin;
   final LatLng destination;
-  RouteCalculationRequested(this.origin, this.destination);
+  final String travelMode;
+  RouteCalculationRequested(this.origin, this.destination, this.travelMode);
 }
 
 class FavoriteToggled extends MapEvent {
@@ -62,3 +79,22 @@ class NearbyMarkersRequested extends MapEvent {
   final double radius;
   NearbyMarkersRequested(this.center, this.radius);
 }
+
+class SubscriptionStatusChecked extends MapEvent {}
+
+class AdWatchRequested extends MapEvent {}
+
+class AdCompleted extends MapEvent {}
+
+class VideoPlayerInitialized extends MapEvent {
+  final String videoUrl;
+  VideoPlayerInitialized(this.videoUrl);
+}
+
+class CachedLocationsRequested extends MapEvent {}
+
+class LocationsCacheUpdated extends MapEvent {
+  final List<DocumentSnapshot> locations;
+  LocationsCacheUpdated(this.locations);
+}
+

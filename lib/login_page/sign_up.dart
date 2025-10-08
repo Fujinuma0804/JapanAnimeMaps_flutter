@@ -178,7 +178,7 @@ class _SignUpPageState extends State<SignUpPage> with TickerProviderStateMixin {
       final authCredential = oAuthProvider.credential(
         idToken: credential.identityToken,
         rawNonce: rawNonce,
-        accessToken: credential.authorizationCode
+        accessToken: credential.authorizationCode,
       );
 
       UserCredential userCredential =

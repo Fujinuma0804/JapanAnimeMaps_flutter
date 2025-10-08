@@ -2,7 +2,7 @@ name: parts
 description: "This is JapanAnimeMaps©️"
 publish_to: 'none'
 
-version: 3.2.4+1
+version: 3.3.0+1
 
 environment:
   sdk: '>=3.0.0 <4.0.0'
@@ -169,6 +169,13 @@ dependencies:
   # ======================
   bloc: ^8.1.4
   flutter_bloc: ^8.1.4
+  camera: ^0.11.2
+  photo_manager: ^3.7.1
+  image_editor_plus: ^1.0.6
+  image: ^4.5.4
+  video_thumbnail: ^0.5.3
+  ffmpeg_kit_flutter_new: ^3.2.0
+  easy_localization: ^3.0.8
 
 dev_dependencies:
   flutter_test:
