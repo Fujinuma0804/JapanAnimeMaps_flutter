@@ -1325,6 +1325,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.0.6"
+  image_gallery_saver:
+    dependency: "direct main"
+    description:
+      name: image_editor_plus
+      sha256: "0108c24756e7867f9a325c8f1d15ff29ca0a40aae03517e7d55dee6135f9b3e6"
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.0.6"
   image_picker:
     dependency: "direct main"
     description:

@@ -561,6 +561,7 @@ class NativeCameraHandler: NSObject {
         previewLayer = nil
         result(["success": true])
     }
+<<<<<<< HEAD
 }
 
 // MARK: - 写真撮影デリゲート
@@ -599,4 +600,6 @@ extension NativeCameraHandler: AVCaptureFileOutputRecordingDelegate {
             methodChannel?.invokeMethod("onVideoRecordingComplete", arguments: ["videoPath": outputFileURL.path])
         }
     }
+=======
+>>>>>>> 4977c911c5996dabe9c3e684b4dc8ae6cee0aa56
 }
