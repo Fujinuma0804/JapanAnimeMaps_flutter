@@ -1,20 +1,36 @@
 import 'dart:async';
 import 'dart:io';
 import 'dart:typed_data';
-import 'dart:ui';
-import 'package:flutter/services.dart';
 import 'package:camera/camera.dart';
-import 'package:ffmpeg_kit_flutter_new/ffmpeg_kit.dart';
-import 'package:ffmpeg_kit_flutter_new/return_code.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-// import 'package:gal/gal.dart'; // Temporarily disabled
-import 'package:parts/Prensantionlayer/CameraCompositionScreen/Capturevideo_image.dart';
-import 'package:parts/Prensantionlayer/CameraCompositionScreen/ScaredSitebottomsheet.dart';
-import 'package:photo_manager/photo_manager.dart';
+import 'package:geocoding/geocoding.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:video_player/video_player.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:video_thumbnail/video_thumbnail.dart' as video_thumbnail;
+import 'package:http/http.dart' as http;
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'package:parts/Prensantionlayer/CameraCompositionScreen/Capturevideo_image.dart';
+import 'package:parts/Prensantionlayer/CameraCompositionScreen/sacred_site_model.dart';
+
+// Enums
+enum MediaType { none, image, video }
+
+enum CaptureType { photo, video }
+
+// Capture Result Model
+class CaptureResult {
+  final File file;
+  final Uint8List? imageBytes;
+  final CaptureType type;
+  final Duration? duration;
+
+  CaptureResult({
+    required this.file,
+    this.imageBytes,
+    required this.type,
+    this.duration,
+  });
+}
 
 class CameraCompositionScreen extends StatefulWidget {
   final VoidCallback? onBackPressed;
@@ -28,34 +44,34 @@ class CameraCompositionScreen extends StatefulWidget {
 }
 
 class _CameraCompositionScreenState extends State<CameraCompositionScreen> {
-  // Media states
+  // Firebase
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FirebaseStorage _storage = FirebaseStorage.instance;
+
+  // Sacred sites
+  List<SacredSite> _sacredSites = [];
+  List<SacredSite> _nearbySites = [];
+  bool _showNearby = false;
+  bool _isLoading = true;
+  bool _isFetchingLocation = false;
+
+  // Location
+  Position? _userPosition;
+  final double _radiusKm = 5.0; // Nearby distance radius
+
+  // Scroll
+  final ScrollController _scrollController = ScrollController();
+
+  // Media
   Uint8List? _referenceImageBytes;
   File? _referenceVideoFile;
-  Uint8List? _sacredSiteImageBytes;
-  Uint8List? _combinedImageBytes;
-  File? _processedVideoFile;
-
-  // Media type tracking
   MediaType _referenceMediaType = MediaType.none;
-  MediaType _combinedMediaType = MediaType.none;
-
-  // UI state
-  bool _isLoading = false;
-  bool _isInitializing = true;
-  double _opacity = 0.7;
-  double _scale = 1.0;
-  double _offsetX = 0.0;
-  double _offsetY = 0.0;
-  bool _isSelectingSacredSite = false;
-
-  // Video controllers
   VideoPlayerController? _videoController;
-  VideoPlayerController? _processedVideoController;
   bool _isVideoPlaying = true;
-  bool _isProcessedVideoPlaying = true;
 
-  // Selected states
+  // Selected site
   SacredSite? _selectedSacredSite;
+  Uint8List? _sacredSiteImageBytes;
 
   @override
   void initState() {
@@ -65,1185 +81,439 @@ class _CameraCompositionScreenState extends State<CameraCompositionScreen> {
 
   @override
   void dispose() {
+    _scrollController.dispose();
     _videoController?.dispose();
-    _processedVideoController?.dispose();
     super.dispose();
   }
 
-  void _initializeScreen() async {
-    setState(() {
-      _isInitializing = false;
-    });
+  // Initialize
+  Future<void> _initializeScreen() async {
+    await _loadSacredSitesFromFirebase();
+    await _getUserLocation();
+    _filterNearbySites();
+    setState(() => _isLoading = false);
   }
 
-  // Camera method for reference media
-  Future<void> _openCameraForReference() async {
+  // Load all sites
+  Future<void> _loadSacredSitesFromFirebase() async {
     try {
-      WidgetsFlutterBinding.ensureInitialized();
-      final cameras = await availableCameras();
-      if (cameras.isEmpty) {
-        _showErrorSnackBar('No cameras available');
+      final snapshot =
+          await _firestore.collection('locations').orderBy('locationID').get();
+
+      final List<SacredSite> sites = snapshot.docs
+          .map((doc) {
+            final data = doc.data();
+            return SacredSite(
+              id: doc.id,
+              imageUrl: data['imageUrl'] ?? '',
+              locationID: data['locationID'] ?? '',
+              latitude: (data['latitude'] ?? 0).toDouble(),
+              longitude: (data['longitude'] ?? 0).toDouble(),
+              point: (data['point'] ?? 0).toInt(),
+              sourceLink: data['sourceLink'] ?? '',
+              sourceTitle: data['sourceTitle'] ?? '',
+              subMedia: data['subMedia'] ?? '',
+            );
+          })
+          .where((s) => s.imageUrl.isNotEmpty)
+          .toList();
+
+      _sacredSites = sites;
+    } catch (e) {
+      print('Error loading sacred sites: $e');
+    }
+  }
+
+  // Get user location
+  Future<void> _getUserLocation() async {
+    try {
+      setState(() => _isFetchingLocation = true);
+
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        _showErrorSnackBar("Location services are disabled.");
         return;
       }
 
-      final firstCamera = cameras.first;
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+      }
 
-      if (!mounted) return;
+      if (permission == LocationPermission.denied ||
+          permission == LocationPermission.deniedForever) {
+        _showErrorSnackBar("Location permissions are denied.");
+        return;
+      }
 
-      final CaptureResult? captureResult = await Navigator.push(
+      final position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
+      );
+
+      setState(() => _userPosition = position);
+    } catch (e) {
+      print('Error getting location: $e');
+      _showErrorSnackBar("Failed to get location.");
+    } finally {
+      setState(() => _isFetchingLocation = false);
+    }
+  }
+
+  // Filter nearby sites
+  void _filterNearbySites() {
+    if (_userPosition == null) return;
+    _nearbySites = _sacredSites.where((site) {
+      final distance = Geolocator.distanceBetween(
+            _userPosition!.latitude,
+            _userPosition!.longitude,
+            site.latitude,
+            site.longitude,
+          ) /
+          1000; // meters → km
+      return distance <= _radiusKm;
+    }).toList();
+  }
+
+  // Load sacred site image
+  Future<void> _loadSacredSiteImageFromUrl(SacredSite site) async {
+    try {
+      setState(() => _isLoading = true);
+      String imageUrl = site.imageUrl;
+      if (imageUrl.startsWith('gs://')) {
+        final ref = _storage.refFromURL(imageUrl);
+        imageUrl = await ref.getDownloadURL();
+      }
+
+      final response = await http.get(Uri.parse(imageUrl));
+      if (response.statusCode == 200) {
+        setState(() {
+          _sacredSiteImageBytes = response.bodyBytes;
+          _selectedSacredSite = site;
+        });
+      }
+    } catch (e) {
+      print('Error loading image: $e');
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  // --- CAMERA METHODS ---
+  Future<void> _openCameraForReference() async {
+    try {
+      final cameras = await availableCameras();
+      if (cameras.isEmpty) {
+        _showErrorSnackBar("No cameras available.");
+        return;
+      }
+
+      final result = await Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) => CameraCaptureScreen(camera: firstCamera),
+          builder: (context) => CameraCaptureScreen(
+            camera: cameras.first,
+            initialSacredSite: _selectedSacredSite,
+            sacredSiteImageBytes: _sacredSiteImageBytes,
+            onSacredSiteSelected: (site) => _loadSacredSiteImageFromUrl(site),
+          ),
         ),
       );
 
-      if (captureResult != null && mounted) {
-        if (captureResult.type == CaptureType.photo) {
-          final Uint8List imageBytes = await captureResult.file.readAsBytes();
+      if (result != null && result is CaptureResult) {
+        if (result.type == CaptureType.photo) {
           setState(() {
-            _referenceImageBytes = imageBytes;
+            _referenceImageBytes = result.imageBytes;
             _referenceVideoFile = null;
             _referenceMediaType = MediaType.image;
-            _resetMediaStates();
           });
-          _showSuccessSnackBar('参考画像をキャプチャしました！');
         } else {
+          _initializeVideoController(result.file);
+        }
+      }
+    } catch (e) {
+      _showErrorSnackBar("Failed to open camera");
+      print(e);
+    }
+  }
+
+  void _initializeVideoController(File file) {
+    _videoController?.dispose();
+    _videoController = VideoPlayerController.file(file)
+      ..initialize().then((_) {
+        if (mounted) {
           setState(() {
-            _referenceVideoFile = captureResult.file;
-            _referenceImageBytes = null;
+            _referenceVideoFile = file;
             _referenceMediaType = MediaType.video;
-            _resetMediaStates();
           });
-          _initializeVideoController(captureResult.file);
-          _showSuccessSnackBar('参考動画をキャプチャしました！');
-        }
-      }
-    } catch (e) {
-      print('Error opening camera: $e');
-      _showErrorSnackBar('Failed to open camera');
-    }
-  }
-
-  void _initializeVideoController(File videoFile) {
-    _videoController?.dispose();
-    _videoController = VideoPlayerController.file(videoFile)
-      ..initialize().then((_) {
-        if (mounted) {
-          setState(() {});
-          _videoController!.play();
           _videoController!.setLooping(true);
+          _videoController!.play();
         }
       });
   }
 
-  void _initializeProcessedVideoController(File videoFile) {
-    _processedVideoController?.dispose();
-    _processedVideoController = VideoPlayerController.file(videoFile)
-      ..initialize().then((_) {
-        if (mounted) {
-          setState(() {});
-          _processedVideoController!.play();
-          _processedVideoController!.setLooping(true);
-        }
-      });
-  }
-
-  void _toggleVideoPlayback() {
-    if (_videoController != null) {
-      setState(() {
-        _isVideoPlaying = !_isVideoPlaying;
-      });
-      if (_isVideoPlaying) {
-        _videoController!.play();
-      } else {
-        _videoController!.pause();
-      }
-    }
-  }
-
-  void _toggleProcessedVideoPlayback() {
-    if (_processedVideoController != null) {
-      setState(() {
-        _isProcessedVideoPlaying = !_isProcessedVideoPlaying;
-      });
-      if (_isProcessedVideoPlaying) {
-        _processedVideoController!.play();
-      } else {
-        _processedVideoController!.pause();
-      }
-    }
-  }
-
-  // Sacred site selection
-  Future<void> _showSacredSiteGrid() async {
-    setState(() {
-      _isSelectingSacredSite = true;
-    });
-
-    await showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => SacredSiteBottomSheet(
-        selectedSacredSite: _selectedSacredSite,
-        onSacredSiteSelected: _loadSacredSiteFromUrl,
-      ),
-    );
-
-    setState(() {
-      _isSelectingSacredSite = false;
-    });
-  }
-
-  Future<void> _loadSacredSiteFromUrl(SacredSite site) async {
-    setState(() {
-      _isLoading = true;
-    });
-    try {
-      final HttpClient httpClient = HttpClient();
-      final HttpClientRequest request = await httpClient.getUrl(
-        Uri.parse(site.imageUrl),
-      );
-      final HttpClientResponse response = await request.close();
-
-      if (response.statusCode == 200) {
-        final Uint8List bytes = await consolidateHttpClientResponseBytes(
-          response,
-        );
-        if (mounted) {
-          setState(() {
-            _sacredSiteImageBytes = bytes;
-            _selectedSacredSite = site;
-            _combinedImageBytes = null;
-            _processedVideoFile = null;
-            _processedVideoController?.dispose();
-            _processedVideoController = null;
-            _isLoading = false;
-          });
-          _showSuccessSnackBar('Sacred site "${site.sourceTitle}" selected!');
-        }
-      } else {
-        throw Exception('HTTP ${response.statusCode}');
-      }
-    } catch (e) {
-      print('Error loading sacred site image: $e');
-      _showErrorSnackBar('Failed to load sacred site image');
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
-    }
-  }
-
-  // Combination methods
-  Future<void> _combineMedia() async {
-    if (_referenceMediaType == MediaType.none ||
-        _sacredSiteImageBytes == null) {
-      _showErrorSnackBar(
-        '参考メディアと聖地画像の両方を選択してください',
-      );
-      return;
-    }
-
-    setState(() {
-      _isLoading = true;
-    });
-
-    try {
-      if (_referenceMediaType == MediaType.image) {
-        await _combineImages();
-      } else {
-        await _combineVideoWithImage();
-      }
-    } catch (e) {
-      print('Error combining media: $e');
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
-      _showErrorSnackBar('Failed to combine media');
-    }
-  }
-
-  Future<void> _combineImages() async {
-    try {
-      final combinedBytes = await _createCombinedImage();
-      if (mounted) {
-        setState(() {
-          _combinedImageBytes = combinedBytes;
-          _combinedMediaType = MediaType.image;
-          _isLoading = false;
-        });
-      }
-      _showSuccessSnackBar('画像の結合に成功しました！');
-    } catch (e) {
-      print('Error combining images: $e');
-      rethrow;
-    }
-  }
-
-  Future<void> _combineVideoWithImage() async {
-    try {
-      setState(() {
-        _isLoading = true;
-      });
-
-      // Process video with overlay
-      await _processVideoWithOverlay();
-
-      // Create preview for UI
-      final previewBytes = await _createVideoPreviewWithOverlay();
-
-      if (mounted) {
-        setState(() {
-          _combinedImageBytes = previewBytes;
-          _combinedMediaType = MediaType.video;
-          _isLoading = false;
-        });
-      }
-      _showSuccessSnackBar('動画と画像が結合されました！保存準備完了。');
-    } catch (e) {
-      print('Error combining video with image: $e');
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
-      rethrow;
-    }
-  }
-
-  Future<Uint8List> _createCombinedImage() async {
-    try {
-      if (_referenceImageBytes == null || _sacredSiteImageBytes == null) {
-        throw Exception('Missing images for combination');
-      }
-
-      final codec1 = await instantiateImageCodec(_referenceImageBytes!);
-      final frame1 = await codec1.getNextFrame();
-      final referenceImage = frame1.image;
-
-      final codec2 = await instantiateImageCodec(_sacredSiteImageBytes!);
-      final frame2 = await codec2.getNextFrame();
-      final sacredSiteImage = frame2.image;
-
-      final recorder = PictureRecorder();
-      final canvas = Canvas(recorder);
-
-      // Use reference image dimensions
-      final double width = referenceImage.width.toDouble();
-      final double height = referenceImage.height.toDouble();
-
-      // Draw reference image as background
-      canvas.drawImageRect(
-        referenceImage,
-        Rect.fromLTWH(0, 0, width, height),
-        Rect.fromLTWH(0, 0, width, height),
-        Paint()..isAntiAlias = true,
-      );
-
-      // Draw sacred site image with transformations
-      canvas.save();
-      canvas.translate(width / 2, height / 2);
-      canvas.translate(_offsetX, _offsetY);
-      canvas.scale(_scale);
-
-      final sacredSitePaint = Paint()
-        ..isAntiAlias = true
-        ..filterQuality = FilterQuality.high
-        ..color = Color.fromRGBO(255, 255, 255, _opacity);
-
-      final double scaledWidth = sacredSiteImage.width.toDouble() * _scale;
-      final double scaledHeight = sacredSiteImage.height.toDouble() * _scale;
-
-      canvas.drawImageRect(
-        sacredSiteImage,
-        Rect.fromLTWH(
-          0,
-          0,
-          sacredSiteImage.width.toDouble(),
-          sacredSiteImage.height.toDouble(),
-        ),
-        Rect.fromCenter(
-          center: Offset.zero,
-          width: scaledWidth,
-          height: scaledHeight,
-        ),
-        sacredSitePaint,
-      );
-
-      canvas.restore();
-
-      final picture = recorder.endRecording();
-      final combinedImage = await picture.toImage(
-        width.toInt(),
-        height.toInt(),
-      );
-      final byteData = await combinedImage.toByteData(
-        format: ImageByteFormat.png,
-      );
-
-      return byteData!.buffer.asUint8List();
-    } catch (e) {
-      print('Error creating combined image: $e');
-      rethrow;
-    }
-  }
-
-  Future<Uint8List> _createVideoPreviewWithOverlay() async {
-    try {
-      if (_referenceVideoFile == null || _sacredSiteImageBytes == null) {
-        throw Exception('Missing video or sacred site image');
-      }
-
-      // Create a thumbnail from the video
-      final uint8list = await video_thumbnail.VideoThumbnail.thumbnailData(
-        video: _referenceVideoFile!.path,
-        imageFormat: video_thumbnail.ImageFormat.JPEG,
-        quality: 100,
-      );
-
-      if (uint8list == null) {
-        throw Exception('Could not create video thumbnail');
-      }
-
-      final codec1 = await instantiateImageCodec(uint8list);
-      final frame1 = await codec1.getNextFrame();
-      final videoThumbnail = frame1.image;
-
-      final codec2 = await instantiateImageCodec(_sacredSiteImageBytes!);
-      final frame2 = await codec2.getNextFrame();
-      final sacredSiteImage = frame2.image;
-
-      final recorder = PictureRecorder();
-      final canvas = Canvas(recorder);
-
-      // Use video thumbnail dimensions
-      final double width = videoThumbnail.width.toDouble();
-      final double height = videoThumbnail.height.toDouble();
-
-      // Draw video thumbnail as background
-      canvas.drawImageRect(
-        videoThumbnail,
-        Rect.fromLTWH(0, 0, width, height),
-        Rect.fromLTWH(0, 0, width, height),
-        Paint()..isAntiAlias = true,
-      );
-
-      // Draw sacred site overlay
-      canvas.save();
-      canvas.translate(width / 2, height / 2);
-      canvas.translate(_offsetX, _offsetY);
-      canvas.scale(_scale);
-
-      final sacredSitePaint = Paint()
-        ..isAntiAlias = true
-        ..filterQuality = FilterQuality.high
-        ..color = Color.fromRGBO(255, 255, 255, _opacity);
-
-      final double scaledWidth = sacredSiteImage.width.toDouble() * _scale;
-      final double scaledHeight = sacredSiteImage.height.toDouble() * _scale;
-
-      canvas.drawImageRect(
-        sacredSiteImage,
-        Rect.fromLTWH(
-          0,
-          0,
-          sacredSiteImage.width.toDouble(),
-          sacredSiteImage.height.toDouble(),
-        ),
-        Rect.fromCenter(
-          center: Offset.zero,
-          width: scaledWidth,
-          height: scaledHeight,
-        ),
-        sacredSitePaint,
-      );
-
-      canvas.restore();
-
-      final picture = recorder.endRecording();
-      final previewImage = await picture.toImage(width.toInt(), height.toInt());
-      final byteData = await previewImage.toByteData(
-        format: ImageByteFormat.png,
-      );
-
-      return byteData!.buffer.asUint8List();
-    } catch (e) {
-      print('Error creating video preview: $e');
-      rethrow;
-    }
-  }
-
-  Future<void> _processVideoWithOverlay() async {
-    try {
-      if (_referenceVideoFile == null || _sacredSiteImageBytes == null) {
-        throw Exception('Missing video or sacred site image');
-      }
-
-      // Save sacred site image to temporary file
-      final tempDir = await getTemporaryDirectory();
-      final overlayImagePath =
-          '${tempDir.path}/overlay_${DateTime.now().millisecondsSinceEpoch}.png';
-      final overlayFile = File(overlayImagePath);
-      await overlayFile.writeAsBytes(_sacredSiteImageBytes!);
-
-      // Get video dimensions
-      final videoInfo = await _getVideoDimensions(_referenceVideoFile!.path);
-      final videoWidth = videoInfo['width'] ?? 1920;
-      final videoHeight = videoInfo['height'] ?? 1080;
-
-      // Create output path
-      final outputPath =
-          '${tempDir.path}/sacred_video_${DateTime.now().millisecondsSinceEpoch}.mp4';
-
-      // Build FFmpeg command for overlay
-      final command = _buildOverlayCommand(
-        videoPath: _referenceVideoFile!.path,
-        imagePath: overlayImagePath,
-        outputPath: outputPath,
-        offsetX: _offsetX,
-        offsetY: _offsetY,
-        scale: _scale,
-        opacity: _opacity,
-        videoWidth: videoWidth,
-        videoHeight: videoHeight,
-      );
-
-      print('FFmpeg Command: $command');
-
-      // Execute FFmpeg command with better error handling
-      final session = await FFmpegKit.execute(command);
-      final returnCode = await session.getReturnCode();
-      final logs = await session.getAllLogs();
-
-      print('FFmpeg Return Code: $returnCode');
-      for (final log in logs) {
-        print('FFmpeg Log: ${log.getMessage()}');
-      }
-
-      // Clean up temporary overlay file
-      await overlayFile.delete();
-
-      if (ReturnCode.isSuccess(returnCode)) {
-        // Verify the output file was created
-        final outputFile = File(outputPath);
-        if (await outputFile.exists()) {
-          // Initialize the processed video controller for UI display
-          _initializeProcessedVideoController(outputFile);
-
-          setState(() {
-            _processedVideoFile = outputFile;
-          });
-          print('Video processed successfully: $outputPath');
-        } else {
-          throw Exception('Output file was not created');
-        }
-      } else {
-        print('FFmpeg processing failed with return code: $returnCode');
-        throw Exception('FFmpeg processing failed');
-      }
-    } catch (e) {
-      print('Error processing video with overlay: $e');
-      rethrow;
-    }
-  }
-
-  // Save methods
-  Future<void> _saveCombinedMedia() async {
-    if (_combinedMediaType == MediaType.none) {
-      _showErrorSnackBar('No combined media to save');
-      return;
-    }
-
-    try {
-      setState(() {
-        _isLoading = true;
-      });
-
-      bool saved = false;
-
-      if (_combinedMediaType == MediaType.image) {
-        // Save combined image
-        saved = await _saveCombinedImage();
-      } else {
-        // Save processed video
-        saved = await _saveProcessedVideo();
-      }
-
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
-
-      if (saved) {
-        _showSuccessSnackBar('Media saved to gallery successfully!');
-      } else {
-        _showErrorSnackBar('Failed to save media to gallery');
-      }
-    } catch (e) {
-      print('Error saving combined media: $e');
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
-      _showErrorSnackBar('Failed to save media: $e');
-    }
-  }
-
-  Future<bool> _saveCombinedImage() async {
-    try {
-      if (_combinedImageBytes == null) {
-        throw Exception('No combined image to save');
-      }
-
-      // Use photo_manager to save image (primary method)
-      final AssetEntity? savedAsset = await PhotoManager.editor.saveImage(
-        _combinedImageBytes!,
-        title: 'sacred_composition_${DateTime.now().millisecondsSinceEpoch}',
-        filename:
-            'sacred_composition_${DateTime.now().millisecondsSinceEpoch}.png',
-      );
-
-      if (savedAsset != null) {
-        print('Image saved successfully with photo_manager');
-        return true;
-      } else {
-        throw Exception('Failed to save image with photo_manager');
-      }
-    } catch (e) {
-      print('Error saving combined image: $e');
-
-      // Fallback to photo_manager if available
-      try {
-        final AssetEntity? savedAsset = await PhotoManager.editor.saveImage(
-          _combinedImageBytes!,
-          title: 'sacred_composition_${DateTime.now().millisecondsSinceEpoch}',
-          filename:
-              'sacred_composition_${DateTime.now().millisecondsSinceEpoch}.png',
-        );
-        return savedAsset != null;
-      } catch (e2) {
-        print('Fallback save also failed: $e2');
-        return false;
-      }
-    }
-  }
-
-  Future<bool> _saveProcessedVideo() async {
-    try {
-      if (_processedVideoFile == null || !await _processedVideoFile!.exists()) {
-        throw Exception('No processed video file to save');
-      }
-
-      // Verify the video is playable before saving
-      try {
-        final verificationController =
-            VideoPlayerController.file(_processedVideoFile!);
-        await verificationController.initialize();
-        final duration = verificationController.value.duration;
-        await verificationController.dispose();
-
-        if (duration.inSeconds == 0) {
-          throw Exception('Video has zero duration');
-        }
-      } catch (e) {
-        _showErrorSnackBar('Processed video is corrupted, please try again');
-        return false;
-      }
-
-      // Use photo_manager to save video (primary method)
-      final AssetEntity? savedAsset = await PhotoManager.editor.saveVideo(
-        _processedVideoFile!,
-        title: 'sacred_video_${DateTime.now().millisecondsSinceEpoch}',
-      );
-
-      if (savedAsset != null) {
-        print('Video saved successfully with photo_manager');
-
-        // Clean up processed video file after saving
-        await _processedVideoFile!.delete();
-        setState(() {
-          _processedVideoFile = null;
-        });
-
-        return true;
-      } else {
-        throw Exception('Failed to save video with photo_manager');
-      }
-    } catch (e) {
-      print('Error saving processed video: $e');
-      return false;
-    }
-  }
-
-  // Helper method to get video dimensions
-  Future<Map<String, int>> _getVideoDimensions(String videoPath) async {
-    try {
-      final controller = VideoPlayerController.file(File(videoPath));
-      await controller.initialize();
-      final width = controller.value.size.width.toInt();
-      final height = controller.value.size.height.toInt();
-      await controller.dispose();
-
-      return {'width': width, 'height': height};
-    } catch (e) {
-      print('Error getting video dimensions: $e');
-      return {'width': 1920, 'height': 1080};
-    }
-  }
-
-  String _buildOverlayCommand({
-    required String videoPath,
-    required String imagePath,
-    required String outputPath,
-    required double offsetX,
-    required double offsetY,
-    required double scale,
-    required double opacity,
-    required int videoWidth,
-    required int videoHeight,
-  }) {
-    // Calculate overlay dimensions and position
-    final overlayWidth = (videoWidth * scale).toInt();
-    final overlayHeight = (videoHeight * scale).toInt();
-
-    // Calculate position to center the overlay with offsets
-    final overlayX = ((videoWidth - overlayWidth) / 2 + offsetX).toInt();
-    final overlayY = ((videoHeight - overlayHeight) / 2 + offsetY).toInt();
-
-    // Ensure coordinates are within bounds
-    final safeOverlayX = overlayX.clamp(0, videoWidth - overlayWidth);
-    final safeOverlayY = overlayY.clamp(0, videoHeight - overlayHeight);
-
-    // Proper FFmpeg command that handles both video and audio correctly
-    return '-i "$videoPath" -i "$imagePath" '
-        '-filter_complex "'
-        '[0:v]setpts=PTS-STARTPTS[main_video];' // Main video stream
-        '[1]format=rgba,scale=$overlayWidth:$overlayHeight,'
-        'colorchannelmixer=aa=$opacity[overlay];' // Overlay with opacity
-        '[main_video][overlay]overlay=$safeOverlayX:$safeOverlayY:enable=\'between(t,0,1e+6)\'[out_video]" ' // Overlay for entire duration
-        '-map "[out_video]" ' // Map the processed video
-        '-map "0:a?" ' // Map audio from original video (optional)
-        '-c:v libx264 ' // Video codec
-        '-preset medium ' // Encoding speed
-        '-crf 23 ' // Quality setting
-        '-c:a aac ' // Audio codec
-        '-b:a 128k ' // Audio bitrate
-        '-movflags +faststart ' // Quick start for web
-        '-pix_fmt yuv420p ' // Pixel format for compatibility
-        '-y ' // Overwrite output file
-        '"$outputPath"';
-  }
-
-  void _resetMediaStates() {
-    setState(() {
-      _sacredSiteImageBytes = null;
-      _combinedImageBytes = null;
-      _processedVideoFile = null;
-      _selectedSacredSite = null;
-      _processedVideoController?.dispose();
-      _processedVideoController = null;
-      _opacity = 0.7;
-      _scale = 1.0;
-      _offsetX = 0.0;
-      _offsetY = 0.0;
-    });
-  }
-
-  void _resetAll() {
-    _videoController?.dispose();
-    _videoController = null;
-    _processedVideoController?.dispose();
-    _processedVideoController = null;
-    setState(() {
-      _referenceImageBytes = null;
-      _referenceVideoFile = null;
-      _processedVideoFile = null;
-      _referenceMediaType = MediaType.none;
-      _resetMediaStates();
-      _isVideoPlaying = true;
-      _isProcessedVideoPlaying = true;
-    });
-  }
-
-  void _showErrorSnackBar(String message) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.red,
-        duration: Duration(seconds: 3),
-      ),
-    );
-  }
-
-  void _showSuccessSnackBar(String message) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.green,
-        duration: Duration(seconds: 2),
-      ),
-    );
-  }
-
+  // --- UI BUILD ---
   @override
   Widget build(BuildContext context) {
-    return PopScope(
-      canPop: true,
-      onPopInvoked: (didPop) {
-        if (didPop && widget.onBackPressed != null) {
-          widget.onBackPressed!();
-        }
-      },
-      child: Scaffold(
-        backgroundColor: Colors.black,
-        body: _isInitializing
-            ? _buildInitializingView()
-            : Column(
-                children: [
-                  _buildTopBar(),
-                  Expanded(
-                    child: _referenceMediaType == MediaType.none
-                        ? _buildCameraSelectionView()
-                        : _buildCompositionView(),
-                  ),
-                  _buildBottomControls(),
-                ],
-              ),
-      ),
-    );
-  }
-
-  Widget _buildInitializingView() {
-    return Center(
-      child: CircularProgressIndicator(
-        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-      ),
-    );
-  }
-
-  Widget _buildTopBar() {
-    return Container(
-      padding: EdgeInsets.only(
-        top: MediaQuery.of(context).padding.top + 16,
-        left: 16,
-        right: 16,
-        bottom: 16,
-      ),
-      color: Colors.black,
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          IconButton(
-            icon: Icon(Icons.arrow_back, color: Colors.white),
-            onPressed: () {
-              if (widget.onBackPressed != null) {
-                widget.onBackPressed!();
-              } else {
-                Navigator.maybePop(context);
-              }
-            },
-          ),
-          if (_referenceMediaType != MediaType.none)
-            IconButton(
-              icon: Icon(Icons.refresh, color: Colors.white),
-              onPressed: _resetAll,
-            ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildCameraSelectionView() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          GestureDetector(
-            onTap: _openCameraForReference,
-            child: Container(
-              width: 80,
-              height: 80,
-              decoration: BoxDecoration(
-                color: Colors.blueAccent,
-                shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.blueAccent.withOpacity(0.4),
-                    blurRadius: 8,
-                    offset: Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: Icon(Icons.camera_alt, color: Colors.white, size: 40),
-            ),
-          ),
-          SizedBox(height: 20),
-          Text(
-            'キャプチャリファレンス',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          SizedBox(height: 8),
-          Text(
-            '写真を撮ったりビデオを録画したりする',
-            style: TextStyle(color: Colors.white54, fontSize: 14),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildCompositionView() {
     if (_isLoading) {
-      return Center(
-        child: CircularProgressIndicator(
-          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+      return const Scaffold(
+        body: Center(
+          child: CircularProgressIndicator(
+              valueColor: AlwaysStoppedAnimation<Color>(
+            Color(0xFF00008b),
+          )),
         ),
       );
     }
 
-    return Stack(
-      children: [
-        // Background media
-        if (_referenceMediaType == MediaType.image &&
-            _referenceImageBytes != null)
-          Positioned.fill(
-            child: Image.memory(_referenceImageBytes!, fit: BoxFit.cover),
-          ),
+    final displayedSites = _showNearby ? _nearbySites : _sacredSites;
 
-        if (_referenceMediaType == MediaType.video && _videoController != null)
-          Positioned.fill(
-            child: GestureDetector(
-              onTap: _toggleVideoPlayback,
-              child: Stack(
-                children: [
-                  VideoPlayer(_videoController!),
-                  if (!_isVideoPlaying)
-                    Center(
-                      child: Container(
-                        padding: EdgeInsets.all(20),
-                        decoration: BoxDecoration(
-                          color: Colors.black54,
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(
-                          Icons.play_arrow,
-                          color: Colors.white,
-                          size: 50,
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-            ),
-          ),
-
-        // Sacred site overlay (when not combined yet)
-        if (_sacredSiteImageBytes != null &&
-            _combinedImageBytes == null &&
-            _processedVideoFile == null)
-          Positioned.fill(
-            child: GestureDetector(
-              onScaleUpdate: (details) {
-                setState(() {
-                  _scale = (_scale * details.scale).clamp(0.1, 5.0);
-                  _offsetX += details.focalPointDelta.dx;
-                  _offsetY += details.focalPointDelta.dy;
-                });
-              },
-              child: Transform(
-                transform: Matrix4.identity()
-                  ..translate(_offsetX, _offsetY)
-                  ..scale(_scale),
-                child: Opacity(
-                  opacity: _opacity,
-                  child: Image.memory(
-                    _sacredSiteImageBytes!,
-                    fit: BoxFit.contain,
-                  ),
-                ),
-              ),
-            ),
-          ),
-
-        // Combined result - Shows final processed video or image
-        if (_combinedMediaType == MediaType.video &&
-            _processedVideoController != null &&
-            _processedVideoController!.value.isInitialized)
-          Positioned.fill(
-            child: GestureDetector(
-              onTap: _toggleProcessedVideoPlayback,
-              child: Stack(
-                children: [
-                  VideoPlayer(_processedVideoController!),
-                  if (!_isProcessedVideoPlaying)
-                    Center(
-                      child: Container(
-                        padding: EdgeInsets.all(20),
-                        decoration: BoxDecoration(
-                          color: Colors.black54,
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(
-                          Icons.play_arrow,
-                          color: Colors.white,
-                          size: 50,
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-            ),
-          )
-        else if (_combinedMediaType == MediaType.image &&
-            _combinedImageBytes != null)
-          Positioned.fill(
-            child: Image.memory(_combinedImageBytes!, fit: BoxFit.contain),
-          ),
-
-        // Controls overlay
-        if (_sacredSiteImageBytes != null &&
-            _combinedImageBytes == null &&
-            _processedVideoFile == null)
-          Positioned(
-            bottom: 20,
-            left: 20,
-            right: 20,
-            child: _buildEditingControls(),
-          ),
-
-        // Media type indicator
-        if (_combinedImageBytes != null || _processedVideoFile != null)
-          Positioned(
-            top: 20,
-            right: 20,
-            child: Container(
-              padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(
-                color: Colors.black54,
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Text(
-                _combinedMediaType == MediaType.image ? '画像' : 'ビデオ',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-          ),
-      ],
-    );
-  }
-
-  Widget _buildEditingControls() {
-    return Container(
-      padding: EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.black.withOpacity(0.8),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Column(
+    return Scaffold(
+      body: Column(
         children: [
-          Text(
-            'オーバーレイを調整する',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
+          _buildTopBar(),
+          if (_isFetchingLocation)
+            const Padding(
+              padding: EdgeInsets.all(8),
+              child: Text(
+                "Fetching location...",
+                style: TextStyle(color: Colors.white70),
+              ),
             ),
-          ),
-          SizedBox(height: 12),
-          Row(
-            children: [
-              Icon(Icons.opacity, color: Colors.white70, size: 20),
-              SizedBox(width: 8),
-              Expanded(
-                child: Slider(
-                  value: _opacity,
-                  min: 0.0,
-                  max: 1.0,
-                  onChanged: (value) {
-                    setState(() {
-                      _opacity = value;
-                    });
-                  },
-                  activeColor: Colors.blueAccent,
-                ),
-              ),
-              SizedBox(width: 8),
-              Text(
-                '${(_opacity * 100).round()}%',
-                style: TextStyle(color: Colors.white70, fontSize: 12),
-              ),
-            ],
-          ),
-          SizedBox(height: 8),
-          Row(
-            children: [
-              Icon(Icons.zoom_in, color: Colors.white70, size: 20),
-              SizedBox(width: 8),
-              Expanded(
-                child: Slider(
-                  value: _scale,
-                  min: 0.1,
-                  max: 3.0,
-                  onChanged: (value) {
-                    setState(() {
-                      _scale = value;
-                    });
-                  },
-                  activeColor: Colors.greenAccent,
-                ),
-              ),
-              SizedBox(width: 8),
-              Text(
-                '${(_scale * 100).round()}%',
-                style: TextStyle(color: Colors.white70, fontSize: 12),
-              ),
-            ],
+          Expanded(
+            child: _referenceMediaType == MediaType.none
+                ? _buildSacredSitesGridView(displayedSites)
+                : _buildCompositionView(),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildBottomControls() {
-    return Container(
-      padding: EdgeInsets.all(16),
-      color: Colors.black,
-      child: _referenceMediaType == MediaType.none
-          ? _buildCameraButton()
-          : _sacredSiteImageBytes == null
-              ? _buildSacredSiteButton()
-              : _combinedImageBytes == null && _processedVideoFile == null
-                  ? _buildCombineButton()
-                  : _buildSaveButton(),
-    );
-  }
-
-  Widget _buildCameraButton() {
-    return GestureDetector(
-      onTap: _openCameraForReference,
-      child: Container(
-        width: 60,
-        height: 60,
-        decoration: BoxDecoration(
-          color: Colors.blueAccent,
-          shape: BoxShape.circle,
-        ),
-        child: Icon(Icons.camera_alt, color: Colors.white, size: 30),
-      ),
-    );
-  }
-
-  Widget _buildSacredSiteButton() {
-    return Column(
-      children: [
-        GestureDetector(
-          onTap: _showSacredSiteGrid,
-          child: Container(
-            width: 60,
-            height: 60,
-            decoration: BoxDecoration(
-              color: Colors.greenAccent,
-              shape: BoxShape.circle,
+  // Top bar
+  Widget _buildTopBar() {
+    return SafeArea(
+      child: Padding(
+        padding:
+            const EdgeInsets.symmetric(horizontal: 10.0).copyWith(bottom: 8),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            IconButton(
+              icon: const Icon(Icons.arrow_back, color: Colors.grey),
+              onPressed: widget.onBackPressed ?? () => Navigator.pop(context),
             ),
-            child: _isSelectingSacredSite
-                ? CircularProgressIndicator(
-                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                  )
-                : Icon(Icons.photo_library, color: Colors.white, size: 30),
-          ),
-        ),
-        SizedBox(height: 8),
-        Text(
-          '聖地を選択',
-          style: TextStyle(color: Colors.greenAccent, fontSize: 14),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildCombineButton() {
-    return SizedBox(
-      width: double.infinity,
-      child: ElevatedButton(
-        onPressed: _combineMedia,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.blueAccent,
-          padding: EdgeInsets.symmetric(vertical: 16),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-        ),
-        child: Text(
-          '組み合わせる',
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-          ),
+            Container(
+              width: 40,
+              height: 40,
+              decoration: const BoxDecoration(
+                  color: Color(0xFF00008b), shape: BoxShape.circle),
+              child: IconButton(
+                icon: const Icon(
+                  Icons.camera_alt,
+                  color: Colors.white,
+                  size: 20,
+                ),
+                onPressed: _openCameraForReference,
+              ),
+            ),
+          ],
         ),
       ),
     );
   }
 
-  Widget _buildSaveButton() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-      children: [
-        _buildActionButton(
-          icon: Icons.refresh,
-          label: 'やり直す',
-          onPressed: _resetMediaStates,
-          color: Colors.orange,
+  // Sacred Sites Grid
+  Widget _buildSacredSitesGridView(List<SacredSite> sites) {
+    if (sites.isEmpty) {
+      return const Center(
+        child: Text(
+          "聖地は見つかりませんでした",
+          style: TextStyle(color: Colors.black),
         ),
-        _buildActionButton(
-          icon: Icons.save_alt,
-          label: '保存',
-          onPressed: _saveCombinedMedia,
-          color: Colors.green,
-        ),
-      ],
+      );
+    }
+
+    return GridView.builder(
+      controller: _scrollController,
+      padding: const EdgeInsets.all(16),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        crossAxisSpacing: 16,
+        mainAxisSpacing: 16,
+        childAspectRatio: 3 / 4,
+      ),
+      itemCount: sites.length,
+      itemBuilder: (context, index) => _buildSacredSiteCard(sites[index]),
     );
   }
 
-  Widget _buildActionButton({
-    required IconData icon,
-    required String label,
-    required VoidCallback onPressed,
-    required Color color,
-  }) {
-    return Column(
-      children: [
-        Container(
-          width: 50,
-          height: 50,
-          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-          child: IconButton(
-            icon: Icon(icon, color: Colors.white, size: 24),
-            onPressed: onPressed,
-          ),
+  Widget _buildSacredSiteCard(SacredSite site) {
+    return Card(
+      elevation: 3,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: InkWell(
+        onTap: () => _loadSacredSiteImageFromUrl(site),
+        borderRadius: BorderRadius.circular(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Expanded(
+              child: ClipRRect(
+                borderRadius:
+                    const BorderRadius.vertical(top: Radius.circular(10)),
+                child: _buildImage(site.imageUrl),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(8),
+              child: Text(
+                site.sourceTitle.isNotEmpty ? site.sourceTitle : 'Unknown Site',
+                style: const TextStyle(
+                    color: Colors.black,
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+// In your widget
+            FutureBuilder<List<Placemark>>(
+              future: placemarkFromCoordinates(site.latitude, site.longitude),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return Expanded(
+                    child: Text(
+                      'Loading...',
+                      style: TextStyle(
+                        color: Colors.black87,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w500,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  );
+                }
+
+                if (snapshot.hasError ||
+                    snapshot.data == null ||
+                    snapshot.data!.isEmpty) {
+                  return Expanded(
+                    child: Text(
+                      'Unknown Location',
+                      style: TextStyle(
+                        color: Colors.black87,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w500,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  );
+                }
+
+                final placemark = snapshot.data!.first;
+                final locationName = placemark.locality ??
+                    placemark.subAdministrativeArea ??
+                    placemark.administrativeArea ??
+                    'Unknown Location';
+
+                return Expanded(
+                  child: Text(
+                    locationName,
+                    style: TextStyle(
+                      color: Colors.black87,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w500,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                );
+              },
+            ),
+          ],
         ),
-        SizedBox(height: 4),
-        Text(label, style: TextStyle(color: color, fontSize: 12)),
-      ],
+      ),
+    );
+  }
+
+  Widget _buildImage(String imageUrl) {
+    if (imageUrl.startsWith('gs://')) {
+      try {
+        final ref = _storage.refFromURL(imageUrl);
+        return FutureBuilder<String>(
+          future: ref.getDownloadURL(),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState != ConnectionState.done) {
+              return _buildImagePlaceholder();
+            }
+            return Image.network(snapshot.data!,
+                fit: BoxFit.cover,
+                loadingBuilder: (_, child, progress) =>
+                    progress == null ? child : _buildImagePlaceholder(),
+                errorBuilder: (_, __, ___) => _buildImageError());
+          },
+        );
+      } catch (_) {
+        return _buildImageError();
+      }
+    }
+
+    return Image.network(
+      imageUrl,
+      fit: BoxFit.cover,
+      loadingBuilder: (_, child, progress) =>
+          progress == null ? child : _buildImagePlaceholder(),
+      errorBuilder: (_, __, ___) => _buildImageError(),
+    );
+  }
+
+  Widget _buildImagePlaceholder() => Container(
+        color: Colors.grey[800],
+        child: const Center(
+          child: CircularProgressIndicator(
+              strokeWidth: 2,
+              valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF00008b))),
+        ),
+      );
+
+  Widget _buildImageError() => Container(
+        color: Colors.grey[800],
+        child: const Center(
+            child: Icon(Icons.broken_image, color: Colors.white54, size: 40)),
+      );
+
+  Widget _buildCompositionView() {
+    if (_referenceMediaType == MediaType.image &&
+        _referenceImageBytes != null) {
+      return Image.memory(_referenceImageBytes!, fit: BoxFit.cover);
+    } else if (_referenceMediaType == MediaType.video &&
+        _videoController != null) {
+      return GestureDetector(
+        onTap: () {
+          setState(() => _isVideoPlaying = !_isVideoPlaying);
+          _isVideoPlaying
+              ? _videoController!.play()
+              : _videoController!.pause();
+        },
+        child: Stack(
+          children: [
+            VideoPlayer(_videoController!),
+            if (!_isVideoPlaying)
+              const Center(
+                  child: Icon(Icons.play_arrow, size: 60, color: Colors.white))
+          ],
+        ),
+      );
+    }
+    return const SizedBox();
+  }
+
+  // SnackBar helpers
+  void _showErrorSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+          backgroundColor: Colors.red,
+          content: Text(message),
+          duration: const Duration(seconds: 3)),
     );
   }
 }
-
-enum MediaType { none, image, video }

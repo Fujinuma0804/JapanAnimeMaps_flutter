@@ -1,8 +1,8 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:parts/Prensantionlayer/CameraCompositionScreen/CameraCompositionScreen.dart';
 import 'package:parts/bloc/Userinfo_bloc/Userinfo_bloc.dart';
 import 'package:parts/map_page/map_subsc.dart';
@@ -75,10 +75,97 @@ class _MainScreenState extends State<MainScreen> {
       },
     );
 
+    // Handle camera tab - request permissions before navigating
+    if (index == 2) {
+      bool hasPermission = await _requestCameraPermissions();
+      if (!hasPermission) {
+        // Don't navigate if permission denied
+        return;
+      }
+    }
+
     setState(() {
       _selectedIndex = index;
     });
     _pageController.jumpToPage(index);
+  }
+
+  Future<bool> _requestCameraPermissions() async {
+    // Check camera permission
+    PermissionStatus cameraStatus = await Permission.camera.status;
+
+    if (cameraStatus.isGranted) {
+      // Permission already granted
+      return true;
+    }
+
+    if (cameraStatus.isDenied) {
+      // Request permission
+      PermissionStatus result = await Permission.camera.request();
+
+      if (result.isGranted) {
+        return true;
+      } else if (result.isPermanentlyDenied) {
+        // Show dialog to open settings
+        _showPermissionDialog();
+        return false;
+      } else {
+        // Permission denied
+        _showPermissionDeniedMessage();
+        return false;
+      }
+    }
+
+    if (cameraStatus.isPermanentlyDenied) {
+      // Show dialog to open settings
+      _showPermissionDialog();
+      return false;
+    }
+
+    // Request permission if status is unknown
+    PermissionStatus result = await Permission.camera.request();
+    return result.isGranted;
+  }
+
+  void _showPermissionDialog() {
+    if (!mounted) return;
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Camera Permission Required'),
+          content: const Text(
+            'Camera access is required to use this feature. Please enable camera permission in your device settings.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                openAppSettings();
+              },
+              child: const Text('Open Settings'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showPermissionDeniedMessage() {
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Camera permission is required to use this feature'),
+        backgroundColor: Colors.red,
+        duration: Duration(seconds: 3),
+      ),
+    );
   }
 
   @override

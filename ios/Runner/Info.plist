@@ -102,6 +102,7 @@
       <string>fetch</string>
       <string>processing</string>
       <string>remote-notification</string>
+      <string>background-processing</string>
    </array>
 
    <key>UIRequiredDeviceCapabilities</key>
