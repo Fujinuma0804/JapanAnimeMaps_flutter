@@ -1,17 +1,15 @@
-// Separate Stateful Widget for the Bottom Sheet to manage its own state
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'package:parts/Prensantionlayer/CameraCompositionScreen/Capturevideo_image.dart';
+import 'package:parts/Prensantionlayer/CameraCompositionScreen/sacred_site_model.dart';
+import 'package:geocoding/geocoding.dart';
 
 class SacredSiteBottomSheet extends StatefulWidget {
   final SacredSite? selectedSacredSite;
-  final Function(SacredSite) onSacredSiteSelected;
 
   const SacredSiteBottomSheet({
     Key? key,
     required this.selectedSacredSite,
-    required this.onSacredSiteSelected,
   }) : super(key: key);
 
   @override
@@ -19,44 +17,25 @@ class SacredSiteBottomSheet extends StatefulWidget {
 }
 
 class _SacredSiteBottomSheetState extends State<SacredSiteBottomSheet> {
-  // Firebase Sacred Sites - now managed only in bottom sheet
   List<SacredSite> _sacredSites = [];
   bool _isLoadingSacredSites = false;
   bool _hasLoadedSacredSites = false;
 
-  // Pagination variables
-  final int _pageSize = 30; // Number of documents per page
-  DocumentSnapshot? _lastDocument; // Last document for pagination
-  bool _hasMoreSacredSites = true; // Whether there are more documents to load
-  bool _isLoadingMoreSacredSites = false; // Loading state for pagination
+  final int _pageSize = 30;
+  DocumentSnapshot? _lastDocument;
+  bool _hasMoreSacredSites = true;
+  bool _isLoadingMoreSacredSites = false;
 
-  // Scroll controller for detecting when to load more
   final ScrollController _scrollController = ScrollController();
-
-  // Firebase instance
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-
-  // Add this for loading state management
-  final ValueNotifier<bool> _loadingNotifier = ValueNotifier<bool>(false);
-  String? _currentlyLoadingId;
 
   @override
   void initState() {
     super.initState();
-    // Always load Firebase data when bottom sheet is created
     _loadSacredSitesFromFirebase();
-
-    // Add scroll listener for pagination
     _scrollController.addListener(_onScroll);
   }
 
-  @override
-  void didUpdateWidget(SacredSiteBottomSheet oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    // No need to check tabs since we only show Firebase data
-  }
-
-  // Scroll listener for pagination
   void _onScroll() {
     if (_scrollController.position.pixels >=
         _scrollController.position.maxScrollExtent - 100) {
@@ -64,33 +43,16 @@ class _SacredSiteBottomSheetState extends State<SacredSiteBottomSheet> {
     }
   }
 
-  // Preload images for faster display
-  void _preloadImages() {
-    if (_sacredSites.isNotEmpty) {
-      // Preload all images in background
-      for (final site in _sacredSites) {
-        precacheImage(
-            CachedNetworkImageProvider(
-              site.imageUrl,
-            ),
-            context);
-      }
-    }
-  }
-
   @override
   void dispose() {
     _scrollController.dispose();
-    _loadingNotifier.dispose();
     super.dispose();
   }
 
-  // Load sacred sites from Firebase with pagination
   Future<void> _loadSacredSitesFromFirebase({bool loadMore = false}) async {
     try {
       if (!mounted) return;
 
-      // If not loading more, reset the state
       if (!loadMore) {
         setState(() {
           _isLoadingSacredSites = true;
@@ -98,9 +60,7 @@ class _SacredSiteBottomSheetState extends State<SacredSiteBottomSheet> {
           _lastDocument = null;
         });
       } else {
-        // If loading more and no more documents or already loading, return
         if (!_hasMoreSacredSites || _isLoadingMoreSacredSites) return;
-
         setState(() {
           _isLoadingMoreSacredSites = true;
         });
@@ -108,10 +68,9 @@ class _SacredSiteBottomSheetState extends State<SacredSiteBottomSheet> {
 
       Query query = _firestore
           .collection('locations')
-          .orderBy('locationID') // Order by a field for consistent pagination
-          .limit(_pageSize); // Limit results per page
+          .orderBy('locationID')
+          .limit(_pageSize);
 
-      // If loading more, start after the last document
       if (loadMore && _lastDocument != null) {
         query = query.startAfterDocument(_lastDocument!);
       }
@@ -125,27 +84,21 @@ class _SacredSiteBottomSheetState extends State<SacredSiteBottomSheet> {
         try {
           Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
 
-          // Helper function to safely extract string values
           String _getStringValue(dynamic value) {
             if (value == null) return '';
             if (value is String) return value;
             if (value is List<dynamic>) {
-              if (value.isNotEmpty) {
-                return value.first.toString();
-              }
+              if (value.isNotEmpty) return value.first.toString();
               return '';
             }
             return value.toString();
           }
 
-          // Helper function to safely extract numeric values
           double _getDoubleValue(dynamic value) {
             if (value == null) return 0.0;
             if (value is double) return value;
             if (value is int) return value.toDouble();
-            if (value is String) {
-              return double.tryParse(value) ?? 0.0;
-            }
+            if (value is String) return double.tryParse(value) ?? 0.0;
             return 0.0;
           }
 
@@ -153,13 +106,10 @@ class _SacredSiteBottomSheetState extends State<SacredSiteBottomSheet> {
             if (value == null) return 0;
             if (value is int) return value;
             if (value is double) return value.round();
-            if (value is String) {
-              return int.tryParse(value) ?? 0;
-            }
+            if (value is String) return int.tryParse(value) ?? 0;
             return 0;
           }
 
-          // Create SacredSite object from document data with safe parsing
           SacredSite site = SacredSite(
             id: doc.id,
             imageUrl: _getStringValue(data['imageUrl']),
@@ -172,7 +122,6 @@ class _SacredSiteBottomSheetState extends State<SacredSiteBottomSheet> {
             subMedia: _getStringValue(data['subMedia']),
           );
 
-          // Only add sites that have valid image URLs
           if (site.imageUrl.isNotEmpty) {
             sites.add(site);
             newDocuments.add(doc);
@@ -185,27 +134,19 @@ class _SacredSiteBottomSheetState extends State<SacredSiteBottomSheet> {
       if (mounted) {
         setState(() {
           if (loadMore) {
-            // Append new sites for infinite scroll
             _sacredSites.addAll(sites);
             _isLoadingMoreSacredSites = false;
           } else {
-            // Replace sites for initial load
             _sacredSites = sites;
             _isLoadingSacredSites = false;
             _hasLoadedSacredSites = true;
           }
 
-          // Update pagination state
           _hasMoreSacredSites = sites.length == _pageSize;
           if (newDocuments.isNotEmpty) {
             _lastDocument = newDocuments.last;
           }
         });
-
-        // Preload images after sacred sites are loaded
-        if (!loadMore) {
-          _preloadImages();
-        }
       }
     } catch (e) {
       print('Error loading sacred sites from Firebase: $e');
@@ -219,25 +160,10 @@ class _SacredSiteBottomSheetState extends State<SacredSiteBottomSheet> {
     }
   }
 
-  // Method to load more data (call this when user scrolls to bottom)
   void _loadMoreSacredSites() {
     if (_hasMoreSacredSites && !_isLoadingMoreSacredSites) {
       _loadSacredSitesFromFirebase(loadMore: true);
     }
-  }
-
-  // Build loading indicator for pagination
-  Widget _buildLoadingIndicator() {
-    return _isLoadingMoreSacredSites
-        ? Container(
-            padding: EdgeInsets.all(16),
-            child: Center(
-              child: CircularProgressIndicator(
-                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-              ),
-            ),
-          )
-        : SizedBox.shrink();
   }
 
   @override
@@ -245,51 +171,68 @@ class _SacredSiteBottomSheetState extends State<SacredSiteBottomSheet> {
     return Container(
       height: MediaQuery.of(context).size.height * 0.85,
       decoration: BoxDecoration(
-        color: Colors.grey[900],
+        color: Colors.white,
         borderRadius: BorderRadius.only(
           topLeft: Radius.circular(20),
           topRight: Radius.circular(20),
         ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black26,
+            blurRadius: 10,
+            offset: Offset(0, -2),
+          ),
+        ],
       ),
       child: Column(
         children: [
-          // Header with Tabs
           Container(
-            padding: EdgeInsets.all(10),
+            padding: EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Colors.grey[800],
+              color: Colors.white,
               borderRadius: BorderRadius.only(
                 topLeft: Radius.circular(20),
                 topRight: Radius.circular(20),
               ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black12,
+                  blurRadius: 3,
+                  offset: Offset(0, 2),
+                ),
+              ],
             ),
-            child: Column(
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
+                    Icon(Icons.photo_library,
+                        color: Color(0xFF00008b), size: 24),
+                    SizedBox(width: 8),
                     Text(
                       '聖なる画像を選択',
                       style: TextStyle(
-                        color: Colors.white,
+                        color: Colors.black,
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    IconButton(
-                      icon: Icon(Icons.close, color: Colors.white, size: 24),
-                      onPressed: () {
-                        if (Navigator.canPop(context)) {
-                          Navigator.pop(context);
-                        }
-                      },
-                    ),
                   ],
+                ),
+                Container(
+                  decoration: BoxDecoration(
+                    color: Colors.grey[100],
+                    shape: BoxShape.circle,
+                  ),
+                  child: IconButton(
+                    icon: Icon(Icons.close, color: Colors.grey, size: 20),
+                    onPressed: () => Navigator.pop(context),
+                  ),
                 ),
               ],
             ),
           ),
-
           Expanded(
             child: _buildFirebaseSacredSiteGrid(),
           ),
@@ -299,20 +242,19 @@ class _SacredSiteBottomSheetState extends State<SacredSiteBottomSheet> {
   }
 
   Widget _buildFirebaseSacredSiteGrid() {
-    // Show loading state
     if (_isLoadingSacredSites && !_isLoadingMoreSacredSites) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             CircularProgressIndicator(
-              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+              valueColor: AlwaysStoppedAnimation<Color>(Colors.blue),
             ),
             SizedBox(height: 16),
             Text(
               '聖地を読み込んでいます...',
               style: TextStyle(
-                color: Colors.white70,
+                color: Colors.black87,
                 fontSize: 16,
               ),
             ),
@@ -321,40 +263,52 @@ class _SacredSiteBottomSheetState extends State<SacredSiteBottomSheet> {
       );
     }
 
-    // Show empty state or load button
     if (!_hasLoadedSacredSites) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.cloud_download, color: Colors.white54, size: 64),
+            Container(
+              width: 80,
+              height: 80,
+              decoration: BoxDecoration(
+                color: Colors.grey[200],
+                borderRadius: BorderRadius.circular(40),
+              ),
+              child: Icon(Icons.photo_library, size: 40, color: Colors.grey),
+            ),
             SizedBox(height: 16),
             Text(
-              'Sacred Sites Not Loaded',
+              '聖地画像を読み込み',
               style: TextStyle(
-                color: Colors.white70,
+                color: Colors.black87,
                 fontSize: 16,
+                fontWeight: FontWeight.w500,
               ),
             ),
             SizedBox(height: 8),
             Text(
-              'Tap the button below to load sacred sites',
+              'Firebaseから聖地データを取得します',
               style: TextStyle(
-                color: Colors.white54,
+                color: Colors.black54,
                 fontSize: 14,
               ),
+              textAlign: TextAlign.center,
             ),
             SizedBox(height: 20),
             ElevatedButton(
               onPressed: _loadSacredSitesFromFirebase,
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.blueAccent,
+                backgroundColor: Colors.blue,
+                foregroundColor: Colors.white,
                 padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
               ),
               child: Text(
                 '聖地を読み込む',
                 style: TextStyle(
-                  color: Colors.white,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -364,26 +318,34 @@ class _SacredSiteBottomSheetState extends State<SacredSiteBottomSheet> {
       );
     }
 
-    // Show empty results
     if (_sacredSites.isEmpty) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.cloud_off, color: Colors.white54, size: 64),
+            Container(
+              width: 80,
+              height: 80,
+              decoration: BoxDecoration(
+                color: Colors.grey[200],
+                borderRadius: BorderRadius.circular(40),
+              ),
+              child: Icon(Icons.search_off, size: 40, color: Colors.grey),
+            ),
             SizedBox(height: 16),
             Text(
-              'No Sacred Sites Available',
+              '聖地が見つかりません',
               style: TextStyle(
-                color: Colors.white70,
+                color: Colors.black87,
                 fontSize: 16,
+                fontWeight: FontWeight.w500,
               ),
             ),
             SizedBox(height: 8),
             Text(
-              'Check your internet connection',
+              'インターネット接続を確認してください',
               style: TextStyle(
-                color: Colors.white54,
+                color: Colors.black54,
                 fontSize: 14,
               ),
             ),
@@ -392,223 +354,231 @@ class _SacredSiteBottomSheetState extends State<SacredSiteBottomSheet> {
       );
     }
 
-    // Show sacred sites grid with pagination support
     return Column(
       children: [
         Expanded(
-          child: NotificationListener<ScrollNotification>(
-            onNotification: (scrollNotification) {
-              if (scrollNotification is ScrollEndNotification) {
-                final maxScroll = _scrollController.position.maxScrollExtent;
-                final currentScroll = _scrollController.position.pixels;
-                // Load more when scrolled to 80% of the list
-                if (currentScroll >= (maxScroll * 0.8)) {
-                  _loadMoreSacredSites();
-                }
-              }
-              return false;
-            },
-            child: GridView.builder(
-              controller: _scrollController,
-              padding: EdgeInsets.all(8),
-              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 3,
-                crossAxisSpacing: 2.0,
-                mainAxisSpacing: 2.0,
-                childAspectRatio: 1.0,
-              ),
-              itemCount: _sacredSites.length + (_hasMoreSacredSites ? 1 : 0),
-              itemBuilder: (context, index) {
-                // Show loading indicator at the end
-                if (index == _sacredSites.length) {
-                  return _buildLoadingIndicator();
-                }
-
-                final site = _sacredSites[index];
-                return _buildFirebaseSacredSiteItem(site);
-              },
+          child: GridView.builder(
+            controller: _scrollController,
+            padding: EdgeInsets.all(8),
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              crossAxisSpacing: 12,
+              mainAxisSpacing: 12,
+              childAspectRatio: 16 / 14,
             ),
+            itemCount: _sacredSites.length + (_hasMoreSacredSites ? 1 : 0),
+            itemBuilder: (context, index) {
+              if (index == _sacredSites.length) {
+                return _buildLoadingIndicator();
+              }
+              final site = _sacredSites[index];
+              return _buildFirebaseSacredSiteItem(site);
+            },
           ),
         ),
-
-        // Bottom loading indicator for better UX
-        if (_isLoadingMoreSacredSites)
-          Container(
-            padding: EdgeInsets.all(16),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                CircularProgressIndicator(
-                  strokeWidth: 2,
-                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                ),
-                SizedBox(width: 12),
-                Text(
-                  'さらに読み込み中...',
-                  style: TextStyle(
-                    color: Colors.white70,
-                    fontSize: 14,
-                  ),
-                ),
-              ],
-            ),
-          ),
       ],
     );
+  }
+
+  Widget _buildLoadingIndicator() {
+    return _isLoadingMoreSacredSites
+        ? Card(
+            color: Colors.grey[50],
+            elevation: 2,
+            child: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  CircularProgressIndicator(
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.blue),
+                    strokeWidth: 2,
+                  ),
+                  SizedBox(height: 8),
+                  Text(
+                    '読み込み中...',
+                    style: TextStyle(
+                      color: Colors.black54,
+                      fontSize: 10,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          )
+        : SizedBox.shrink();
   }
 
   Widget _buildFirebaseSacredSiteItem(SacredSite site) {
     return GestureDetector(
       onTap: () {
-        // Immediate feedback - close bottom sheet instantly
-        if (Navigator.canPop(context)) {
-          Navigator.pop(context);
-        }
-
-        // Call the selection callback after closing the bottom sheet
-        // This makes the selection feel instant to the user
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          widget.onSacredSiteSelected(site);
-        });
+        // FIXED: Directly return the selected site
+        Navigator.of(context).pop(site);
       },
-      child: Container(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(8),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black26,
-              blurRadius: 4,
-              offset: Offset(0, 2),
-            ),
-          ],
+      child: Card(
+        elevation: 2,
+        clipBehavior: Clip.antiAlias,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
         ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(8),
+        child: Container(
+          decoration: BoxDecoration(
+            border: widget.selectedSacredSite?.id == site.id
+                ? Border.all(color: Colors.blue, width: 2)
+                : null,
+            borderRadius: BorderRadius.circular(12),
+          ),
           child: Stack(
-            fit: StackFit.expand,
             children: [
-              // Ultra-optimized image loading - NO TRANSPARENCY (0%)
-              CachedNetworkImage(
-                imageUrl: site.imageUrl,
-                fit: BoxFit.cover,
-                memCacheWidth: 200, // Increased for better clarity
-                memCacheHeight: 200,
-                maxWidthDiskCache: 300, // Increased for better clarity
-                maxHeightDiskCache: 300,
-                cacheKey: 'sacred_site_${site.id}',
-                fadeInDuration: Duration(milliseconds: 150),
-                fadeInCurve: Curves.easeIn,
-                placeholder: (context, url) => Container(
-                  color: Colors.grey[800], // Solid background, no transparency
-                  child: Center(
-                    child: SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 1.5,
-                        valueColor:
-                            AlwaysStoppedAnimation<Color>(Colors.white54),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Expanded(
+                    flex: 3,
+                    child: CachedNetworkImage(
+                      imageUrl: site.imageUrl,
+                      fit: BoxFit.cover,
+                      width: double.infinity,
+                      placeholder: (context, url) => Container(
+                        color: Colors.grey[200],
+                        child: Center(
+                          child: Icon(
+                            Icons.photo,
+                            size: 32,
+                            color: Colors.grey[400],
+                          ),
+                        ),
+                      ),
+                      errorWidget: (context, url, error) => Container(
+                        color: Colors.grey[200],
+                        child: Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.error_outline,
+                                size: 32,
+                                color: Colors.grey[400],
+                              ),
+                              SizedBox(height: 4),
+                              Text(
+                                'Error',
+                                style: TextStyle(
+                                  color: Colors.grey[500],
+                                  fontSize: 10,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
                     ),
                   ),
-                ),
-                errorWidget: (context, url, error) => Container(
-                  color: Colors.grey[800], // Solid background, no transparency
-                  child: Center(
-                    child: Icon(Icons.error_outline,
-                        color: Colors.white54, size: 16),
+                  Container(
+                    padding: EdgeInsets.all(8),
+                    color: Colors.white,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          site.sourceTitle.isNotEmpty ? site.sourceTitle : '聖地',
+                          style: TextStyle(
+                            color: Colors.black,
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        SizedBox(height: 2),
+                        Row(
+                          children: [
+                            Icon(Icons.location_on,
+                                size: 12, color: Colors.red),
+                            SizedBox(width: 4),
+                            FutureBuilder<List<Placemark>>(
+                              future: placemarkFromCoordinates(
+                                  site.latitude, site.longitude),
+                              builder: (context, snapshot) {
+                                if (snapshot.connectionState ==
+                                    ConnectionState.waiting) {
+                                  return Expanded(
+                                    child: Text(
+                                      'Loading...',
+                                      style: TextStyle(
+                                        color: Colors.black87,
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  );
+                                }
+
+                                if (snapshot.hasError ||
+                                    snapshot.data == null ||
+                                    snapshot.data!.isEmpty) {
+                                  return Expanded(
+                                    child: Text(
+                                      'Unknown Location',
+                                      style: TextStyle(
+                                        color: Colors.black87,
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  );
+                                }
+
+                                final placemark = snapshot.data!.first;
+                                final locationName = placemark.locality ??
+                                    placemark.subAdministrativeArea ??
+                                    placemark.administrativeArea ??
+                                    'Unknown Location';
+
+                                return Expanded(
+                                  child: Text(
+                                    locationName,
+                                    style: TextStyle(
+                                      color: Colors.black87,
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                );
+                              },
+                            )
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
-                ),
+                ],
               ),
-
-              // REMOVED gradient overlay completely for 0% transparency
-              // Images will now display at full opacity and clarity
-
-              // Optimized selection indicator - reduced transparency
               if (widget.selectedSacredSite?.id == site.id)
-                Positioned.fill(
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: Colors.greenAccent
-                          .withOpacity(0.1), // Reduced from 0.15 to 0.1
-                      border: Border.all(
-                        color: Colors.greenAccent,
-                        width: 2.0, // Slightly thicker for better visibility
-                      ),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Center(
-                      child: Container(
-                        padding: EdgeInsets.all(4),
-                        decoration: BoxDecoration(
-                          color: Colors.black
-                              .withOpacity(0.6), // Reduced transparency
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(
-                          Icons.check_circle,
-                          color: Colors.greenAccent,
-                          size: 20,
-                        ),
-                      ),
-                    ),
-                  ),
-                )
-              else
-                // Quick load indicator for unselected items - reduced transparency
                 Positioned(
-                  top: 3,
-                  right: 3,
+                  top: 8,
+                  right: 8,
                   child: Container(
-                    padding: EdgeInsets.all(2),
+                    padding: EdgeInsets.all(4),
                     decoration: BoxDecoration(
-                      color:
-                          Colors.black.withOpacity(0.7), // Reduced transparency
+                      color: Colors.blue,
                       shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black26,
+                          blurRadius: 2,
+                        ),
+                      ],
                     ),
                     child: Icon(
-                      Icons.add,
+                      Icons.check,
                       color: Colors.white,
-                      size: 12, // Slightly larger for better visibility
+                      size: 14,
                     ),
                   ),
                 ),
-
-              // Minimal site info badge - reduced transparency
-              Positioned(
-                bottom: 1,
-                left: 1,
-                right: 1,
-                child: Container(
-                  padding: EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-                  decoration: BoxDecoration(
-                    color:
-                        Colors.black.withOpacity(0.8), // Reduced transparency
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        site.sourceTitle.isNotEmpty
-                            ? site.sourceTitle.length > 12
-                                ? '${site.sourceTitle.substring(0, 12)}...'
-                                : site.sourceTitle
-                            : '聖地',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 9, // Slightly larger for better readability
-                          fontWeight: FontWeight.w600,
-                          height: 1.0,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
-                  ),
-                ),
-              ),
             ],
           ),
         ),
