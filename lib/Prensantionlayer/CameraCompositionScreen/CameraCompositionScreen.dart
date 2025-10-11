@@ -10,7 +10,7 @@ import 'package:http/http.dart' as http;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:parts/Prensantionlayer/CameraCompositionScreen/Capturevideo_image.dart';
-import 'package:parts/Prensantionlayer/CameraCompositionScreen/sacred_site_model.dart';
+import 'package:parts/Dataprovider/model/sacred_site_model.dart';
 
 // Enums
 enum MediaType { none, image, video }

@@ -1,7 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'package:parts/Prensantionlayer/CameraCompositionScreen/sacred_site_model.dart';
+import 'package:parts/Dataprovider/model/sacred_site_model.dart';
 import 'package:geocoding/geocoding.dart';
 
 class SacredSiteBottomSheet extends StatefulWidget {
