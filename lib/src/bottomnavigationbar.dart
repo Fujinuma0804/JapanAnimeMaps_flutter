@@ -227,7 +227,7 @@ class _MainScreenState extends State<MainScreen> {
           : MapSubscriptionEn(latitude: 37.7749, longitude: -122.4194),
 
       // Page 2: Camera
-      CameraCompositionScreen(
+      CreateBookmarkPage(
         onBackPressed: _refreshMainScreen,
       ),
 

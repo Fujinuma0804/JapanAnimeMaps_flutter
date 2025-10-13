@@ -8,7 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
 import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
-import 'package:parts/Prensantionlayer/CameraCompositionScreen/sacred_site_model.dart';
+import 'package:parts/Dataprovider/model/sacred_site_model.dart';
 import 'package:parts/Prensantionlayer/CameraCompositionScreen/ScaredSitebottomsheet.dart';
 import 'package:ffmpeg_kit_flutter_new/ffmpeg_kit.dart';
 import 'package:ffmpeg_kit_flutter_new/return_code.dart';

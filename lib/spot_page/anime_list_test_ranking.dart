@@ -1281,7 +1281,7 @@ class _AnimeListTestRankingState extends State<AnimeListTestRanking>
 
   Future<void> _initializeTabController() async {
     await _checkActiveEvents();
-    int tabCount = _activeEvents.isNotEmpty ? 3 : 2;
+    int tabCount = 3; // Always 3 tabs: Anime, Events, Location
     _tabController = TabController(length: tabCount, vsync: this);
     _tabController.addListener(_handleTabChange);
     setState(() {
@@ -1416,7 +1416,7 @@ class _AnimeListTestRankingState extends State<AnimeListTestRanking>
         'timestamp': DateTime.now().toIso8601String(),
       });
 
-      if (_currentTabIndex == 1 && !_isPrefectureDataFetched) {
+      if (_currentTabIndex == 2 && !_isPrefectureDataFetched) {
         _fetchPrefectureData();
       }
     }
@@ -2514,7 +2514,9 @@ class _AnimeListTestRankingState extends State<AnimeListTestRanking>
             controller: _tabController,
             tabs: [
               Tab(text: 'アニメから探す'),
-              Tab(text: 'イベント情報',),
+              Tab(
+                text: 'イベント情報',
+              ),
               Tab(text: '場所から探す'),
             ],
             labelColor: Color(0xFF00008b),
@@ -2533,7 +2535,7 @@ class _AnimeListTestRankingState extends State<AnimeListTestRanking>
                     children: [
                       _buildAnimeList(),
                       EventSection(),
-                      _currentTabIndex == 1
+                      _currentTabIndex == 2
                           ? PrefectureListPage(
                               prefectureSpots: _prefectureSpots,
                               searchQuery: _searchQuery,

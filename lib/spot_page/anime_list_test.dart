@@ -467,7 +467,8 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
                         alignment: Alignment.center,
                         children: [
                           AspectRatio(
-                            aspectRatio: _videoPlayerController!.value.aspectRatio,
+                            aspectRatio:
+                                _videoPlayerController!.value.aspectRatio,
                             child: Stack(
                               children: [
                                 VideoPlayer(_videoPlayerController!),
@@ -475,7 +476,8 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
                                   child: GestureDetector(
                                     onTap: () {
                                       setState(() {
-                                        if (_videoPlayerController!.value.isPlaying) {
+                                        if (_videoPlayerController!
+                                            .value.isPlaying) {
                                           _videoPlayerController!.pause();
                                         } else {
                                           _videoPlayerController!.play();
@@ -486,7 +488,8 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
                                       color: Colors.transparent,
                                       child: Center(
                                         child: Icon(
-                                          _videoPlayerController!.value.isPlaying
+                                          _videoPlayerController!
+                                                  .value.isPlaying
                                               ? Icons.pause_circle_filled
                                               : Icons.play_circle_filled,
                                           color: Colors.white.withOpacity(0.8),
@@ -523,42 +526,42 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
                       ),
                     )
                   else if (widget.subMedia.isNotEmpty &&
-                        widget.subMedia.first['type'] == 'image')
-                      Padding(
-                        padding: const EdgeInsets.all(16.0),
-                        child: Image.network(
-                          widget.subMedia.first['url'],
-                          fit: BoxFit.cover,
-                          height: 200,
-                          width: double.infinity,
-                          errorBuilder: (context, error, stackTrace) {
-                            return Container(
-                              height: 200,
-                              width: double.infinity,
-                              color: Colors.grey,
-                              child: Center(
-                                child: Icon(Icons.error, color: Colors.white),
-                              ),
-                            );
-                          },
-                        ),
-                      )
-                    else
-                      SizedBox(
+                      widget.subMedia.first['type'] == 'image')
+                    Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Image.network(
+                        widget.subMedia.first['url'],
+                        fit: BoxFit.cover,
                         height: 200,
-                        child: GoogleMap(
-                          initialCameraPosition: CameraPosition(
-                            target: LatLng(widget.latitude, widget.longitude),
-                            zoom: 15,
-                          ),
-                          markers: {
-                            Marker(
-                              markerId: const MarkerId('spot_location'),
-                              position: LatLng(widget.latitude, widget.longitude),
+                        width: double.infinity,
+                        errorBuilder: (context, error, stackTrace) {
+                          return Container(
+                            height: 200,
+                            width: double.infinity,
+                            color: Colors.grey,
+                            child: Center(
+                              child: Icon(Icons.error, color: Colors.white),
                             ),
-                          },
-                        ),
+                          );
+                        },
                       ),
+                    )
+                  else
+                    SizedBox(
+                      height: 200,
+                      child: GoogleMap(
+                        initialCameraPosition: CameraPosition(
+                          target: LatLng(widget.latitude, widget.longitude),
+                          zoom: 15,
+                        ),
+                        markers: {
+                          Marker(
+                            markerId: const MarkerId('spot_location'),
+                            position: LatLng(widget.latitude, widget.longitude),
+                          ),
+                        },
+                      ),
+                    ),
                   // 残りのコードは同じ...
                   SizedBox(height: 10.0),
                   Padding(
@@ -566,7 +569,8 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
                     child: FutureBuilder<Map<String, String>>(
                       future: _getAddress(),
                       builder: (context, snapshot) {
-                        if (snapshot.connectionState == ConnectionState.waiting) {
+                        if (snapshot.connectionState ==
+                            ConnectionState.waiting) {
                           return CircularProgressIndicator();
                         } else if (snapshot.hasError) {
                           return Text('エラーが発生しました');
@@ -693,7 +697,8 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
                               child: GestureDetector(
                                 onTap: () {
                                   setState(() {
-                                    if (_videoPlayerController!.value.isPlaying) {
+                                    if (_videoPlayerController!
+                                        .value.isPlaying) {
                                       _videoPlayerController!.pause();
                                     } else {
                                       _videoPlayerController!.play();
