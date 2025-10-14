@@ -437,20 +437,20 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen> {
       // Reset app mode
       _appMode = AppMode.gallery;
 
-      // Reset media selection
+      // Reset media selection completely
       _selectedMediaFile = null;
       _selectedMediaType = null;
 
-      // Reset to initial sacred site data
-      _selectedSacredSite = widget.initialSacredSite;
-      _sacredSiteImageBytes = widget.sacredSiteImageBytes;
+      // Reset sacred site data completely - clear everything
+      _selectedSacredSite = null;
+      _sacredSiteImageBytes = null;
 
       // Reset composition controls to defaults
       _opacity = 0.7;
       _scale = 1.0;
       _offsetX = 0.0;
       _offsetY = 0.0;
-      _showOverlay = true;
+      _showOverlay = false; // Hide overlay completely
       _showControls = true;
 
       // Reset processing states
@@ -468,10 +468,8 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen> {
       _thumbnailCache.clear();
     });
 
-    // If we have an initial sacred site but no image bytes, load it
-    if (widget.initialSacredSite != null && _sacredSiteImageBytes == null) {
-      _loadSacredSiteImage(widget.initialSacredSite!);
-    }
+    // Force garbage collection to clear memory
+    _thumbnailCache.clear();
   }
 
   // Build composition view
@@ -1154,6 +1152,8 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen> {
         if (saved) {
           _showSuccessSnackBar('Media saved to gallery successfully!');
           _resetEverything();
+          // Navigate back to CreateBookmarkPage
+          Navigator.pop(context);
         } else {
           _showErrorSnackBar('Failed to save media to gallery');
         }

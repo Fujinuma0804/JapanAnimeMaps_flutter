@@ -104,13 +104,16 @@ class _CreateBookmarkPageState extends State<CreateBookmarkPage> {
       if (result != null && result is File) {
         setState(() {
           _selectedImage = result;
-          // Reset sacred site data when new image is selected
-          _selectedSacredSite = null;
-          _sacredSiteImageBytes = null;
         });
       } else if (result != null) {
         print('Received unexpected result type: ${result.runtimeType}');
       }
+
+      // Always reset sacred site data when returning from camera capture screen
+      setState(() {
+        _selectedSacredSite = null;
+        _sacredSiteImageBytes = null;
+      });
     } catch (e) {
       print('Error picking image: $e');
       _showSnackBar('画像の選択中にエラーが発生しました');
