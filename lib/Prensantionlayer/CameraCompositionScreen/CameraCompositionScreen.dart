@@ -21,7 +21,6 @@ class _CreateBookmarkPageState extends State<CreateBookmarkPage> {
   File? _selectedImage;
   SacredSite? _selectedSacredSite;
   Uint8List? _sacredSiteImageBytes;
-  bool _isLoading = true;
   final TextEditingController _titleController = TextEditingController();
   final FirebaseStorage _storage = FirebaseStorage.instance;
   String _selectedPrefecture = '選択してください';
@@ -95,7 +94,6 @@ class _CreateBookmarkPageState extends State<CreateBookmarkPage> {
         context,
         MaterialPageRoute(
           builder: (context) => CameraCaptureScreen(
-            camera: cameras.first,
             initialSacredSite: _selectedSacredSite,
             sacredSiteImageBytes: _sacredSiteImageBytes,
             onSacredSiteSelected: (site) => _loadSacredSiteImageFromUrl(site),
@@ -110,6 +108,12 @@ class _CreateBookmarkPageState extends State<CreateBookmarkPage> {
       } else if (result != null) {
         print('Received unexpected result type: ${result.runtimeType}');
       }
+
+      // Always reset sacred site data when returning from camera capture screen
+      setState(() {
+        _selectedSacredSite = null;
+        _sacredSiteImageBytes = null;
+      });
     } catch (e) {
       print('Error picking image: $e');
       _showSnackBar('画像の選択中にエラーが発生しました');
@@ -120,6 +124,9 @@ class _CreateBookmarkPageState extends State<CreateBookmarkPage> {
       if (pickedFile != null) {
         setState(() {
           _selectedImage = File(pickedFile.path);
+          // Reset sacred site data when new image is selected
+          _selectedSacredSite = null;
+          _sacredSiteImageBytes = null;
         });
       }
     }
@@ -127,7 +134,6 @@ class _CreateBookmarkPageState extends State<CreateBookmarkPage> {
 
   Future<void> _loadSacredSiteImageFromUrl(SacredSite site) async {
     try {
-      setState(() => _isLoading = true);
       String imageUrl = site.imageUrl;
       if (imageUrl.startsWith('gs://')) {
         final ref = _storage.refFromURL(imageUrl);
@@ -143,14 +149,26 @@ class _CreateBookmarkPageState extends State<CreateBookmarkPage> {
       }
     } catch (e) {
       print('Error loading image: $e');
-    } finally {
-      setState(() => _isLoading = false);
     }
   }
 
   void _removeImage() {
     setState(() {
       _selectedImage = null;
+    });
+  }
+
+  void _resetToDefaults() {
+    setState(() {
+      _selectedImage = null;
+      _selectedSacredSite = null;
+      _sacredSiteImageBytes = null;
+      _titleController.clear();
+      _selectedPrefecture = '選択してください';
+      _startDate = null;
+      _endDate = null;
+      _duration = '';
+      _time = '(23:51)';
     });
   }
 
@@ -236,6 +254,8 @@ class _CreateBookmarkPageState extends State<CreateBookmarkPage> {
                 child: _buildScheduleSectionContent(),
               ),
             ),
+            SizedBox(height: 24),
+            _buildCreateButton(),
           ],
         ),
       ),
@@ -263,8 +283,11 @@ class _CreateBookmarkPageState extends State<CreateBookmarkPage> {
               children: [
                 IconButton(
                   icon: Icon(Icons.arrow_back, color: Colors.black),
-                  onPressed:
-                      widget.onBackPressed ?? () => Navigator.pop(context),
+                  onPressed: widget.onBackPressed ??
+                      () {
+                        _resetToDefaults();
+                        Navigator.pop(context);
+                      },
                 ),
                 Expanded(
                   child: Center(
@@ -487,6 +510,7 @@ class _CreateBookmarkPageState extends State<CreateBookmarkPage> {
         ),
         SizedBox(height: 16),
         GestureDetector(
+          onTap: _selectDateRange,
           child: Container(
             width: double.infinity,
             padding: EdgeInsets.all(16),
@@ -598,6 +622,9 @@ class _CreateBookmarkPageState extends State<CreateBookmarkPage> {
 
     print('しおりを作成: $bookmarkData');
     _showSnackBar('しおりを作成しました！');
+
+    // Reset everything after creating bookmark
+    _resetToDefaults();
   }
 
   void _showSnackBar(String message) {
